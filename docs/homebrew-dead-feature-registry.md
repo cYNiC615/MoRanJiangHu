@@ -262,3 +262,90 @@ in:
   unused auction payloads.
 - Inventory sell-to-auction actions should disappear with the feature, not be
   silently redirected into a new economy system.
+
+## Feature: `cloud_play_and_sync`
+
+- Decision: retire.
+- Reason: The homebrew project does not need cloud play, GitHub/WebDAV/Object
+  multi-device sync, account-based sync entrypoints, or public sync workflows.
+  Local settings, local saves, and ZIP import/export stay intact.
+- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+
+### Entrypoints Removed In This Pass
+
+- `App.tsx`: no longer lazy-loads, preloads, opens, or mounts
+  `CloudPlayModal`.
+- `App.tsx`: no longer exposes `cloud_play` as an active mobile/detail window.
+- `App.tsx`: removed the in-game cloud/local play-mode badge and the direct
+  dependency on `读取云端游玩存储模式`.
+- `components/layout/LandingPage.tsx`: removed the `云端游玩` primary action.
+- `components/layout/LandingPage.tsx`: removed `GitHubSyncButton` from the
+  homepage top bar.
+- `components/layout/LandingPage.tsx`: removed the cloud-play login bridge used
+  by the workshop modal.
+- `components/layout/MobileQuickMenu.tsx`: removed the `cloud_play` quick-menu
+  id and metadata.
+- `components/features/SaveLoad/SaveLoadModal.tsx`: removed all
+  "convert local save to cloud play" buttons, cloud-play status copy, and direct
+  imports of cloud/object-storage sync services.
+
+### Entrypoints Still Pending
+
+These are adjacent cloud/community surfaces and should be removed in later
+focused passes:
+
+- `components/features/Workshop/CreativeWorkshopModal.tsx`: still imports
+  `读取云端游玩会话` and exposes community contribution/publish concepts.
+- `components/features/Settings/NovelDecompositionSettings.tsx`: still contains
+  novel-decomposition workshop publishing code. It belongs to the later
+  novel-decomposition cleanup pass.
+- `components/features/Auth/GitHubSyncButton.tsx`
+- `components/features/Auth/WebDAVSyncPanel.tsx`
+- `components/features/Auth/ObjectStorageSyncPanel.tsx`
+- `components/features/Auth/CloudPlayModal.tsx`
+
+### Backend And Data Pending
+
+- `App.tsx`: return-home flow still calls
+  `等待云端后台同步完成`, `确保本地存档已同步到云端`, and
+  `确保最新本地存档已同步到云端`.
+- `hooks/useGame/saveCoordinator.ts`: still imports and calls
+  `后台同步存档到云端`.
+- `services/cloudPlayService.ts`
+- `services/githubSync.ts`
+- `services/objectStorageSync.ts`
+- `services/webdavSync.ts`
+- `utils/cloudPlayStorageMode.ts`
+- `utils/cloudPlaySaveTree.ts`
+- `hooks/useGitHubOAuth.ts`
+- `functions/api/cloud-play.ts`
+- `functions/api/github/*`
+- `functions/api/auth/*`
+- `functions/api/object-storage-proxy.ts`
+- `functions/api/webdav-proxy.ts`
+- `functions/api/workshop/*` cloud/community publishing paths
+- `services/onlinePresence.ts`: still reads cloud-play session state.
+- `services/creativeWorkshop.ts`: still reads cloud-play session state for
+  community contribution ownership.
+- `services/workshopNovelDecomposition.ts`: still reads cloud-play session
+  state for retired workshop publishing.
+
+### Tests And Scripts Still Pending
+
+- `tests/object-storage-save-tree-order.test.ts`
+- Any sync/API tests under `tests` or `__tests__` that target GitHub, WebDAV,
+  object storage, cloud play, or OAuth should be deleted with the backend pass.
+
+### Storage And Migration Notes
+
+- Existing localStorage keys under `moranjianghu.cloudPlay.*` can be dropped in
+  a strong migration.
+- Existing IndexedDB settings keys can be dropped after no active code reads
+  them:
+  - `utils/settingsSchema.ts`: `webdav_sync_settings`
+  - `utils/settingsSchema.ts`: `object_storage_sync_settings`
+- `services/dbService.ts` setting management and backups may still expose these
+  keys until the storage migration pass.
+- Save metadata fields written for object-storage sync can be deleted during
+  the save-schema cleanup, but local save content and ZIP import/export must
+  remain supported.

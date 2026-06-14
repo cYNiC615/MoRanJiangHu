@@ -37,7 +37,7 @@ import { 分配角色属性点, type 可分配六维属性键 } from './utils/ch
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, 执行延迟上传队列, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
 import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
-import { 等待云端后台同步完成, 确保本地存档已同步到云端, 确保最新本地存档已同步到云端, 读取云端游玩存储模式 } from './services/cloudPlayService';
+import { 等待云端后台同步完成, 确保本地存档已同步到云端, 确保最新本地存档已同步到云端 } from './services/cloudPlayService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
@@ -330,7 +330,6 @@ const MemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-memory-
 const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowModal'));
 const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowMobileModal'));
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
-const CloudPlayModal = 创建可预加载懒组件('cloud-play-modal', () => import('./components/features/Auth/CloudPlayModal'));
 
 
 type 可选网络信息 = {
@@ -357,7 +356,6 @@ const 桌面轻量预热目标 = [
     HeroinePlanModal,
     MemoryModal,
     SaveLoadModal,
-    CloudPlayModal,
     NovelExportModal
 ] as const;
 
@@ -377,8 +375,7 @@ const 移动端轻量预热目标 = [
     MobileStory,
     MobileHeroinePlanModal,
     MobileMemory,
-    SaveLoadModal,
-    CloudPlayModal
+    SaveLoadModal
 ] as const;
 
 const 网络较慢或节省流量 = (connection?: 可选网络信息 | null): boolean => {
@@ -487,7 +484,6 @@ const App: React.FC = () => {
     const [showWorldbookManager, setShowWorldbookManager] = React.useState(false);
     const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
-    const [showCloudPlay, setShowCloudPlay] = React.useState(false);
     const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => {
         try {
             return 读取拍卖行状态();
@@ -1571,7 +1567,6 @@ const App: React.FC = () => {
         state.showHeroinePlan ? 题材界面文案.菜单.plan :
         state.showMemory ? 题材界面文案.菜单.memory :
         showNovelExport ? '导出小说' :
-        showCloudPlay ? '云端游玩' :
         showImageManager ? '图册' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
         state.showSettings ? '设置' :
@@ -1595,7 +1590,6 @@ const App: React.FC = () => {
         state.showHeroinePlan ? 'plan' :
         state.showMemory ? 'memory' :
         showNovelExport ? 'export_novel' :
-        showCloudPlay ? 'cloud_play' :
         showImageManager ? 'image_manager' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
         state.showSettings ? 'settings' :
@@ -1619,7 +1613,6 @@ const App: React.FC = () => {
         || state.showHeroinePlan
         || state.showMemory
         || showNovelExport
-        || showCloudPlay
         || showImageManager
         || safeShowSaveLoad.show
         || state.showSettings
@@ -1628,15 +1621,6 @@ const App: React.FC = () => {
     const desktopRightDetailClass = state.view === 'game' && !isMobile
         ? `desktop-right-detail-modal desktop-right-detail-modal--${desktopRightDetailId}${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
         : undefined;
-    const currentCloudPlayMode = 读取云端游玩存储模式();
-    const playModeLabel = currentCloudPlayMode === 'object'
-        ? '云端游玩：对象存储'
-        : currentCloudPlayMode === 'tg'
-            ? '云端游玩：TG图床'
-            : '本地游玩';
-    const playModeHint = currentCloudPlayMode
-        ? '当前进度会先保存到本地，再后台同步到云端'
-        : '当前进度仅保存到本地';
     const mainStoryApiInfo = React.useMemo(() => {
         const config = 获取主剧情接口配置(state.apiConfig);
         return {
@@ -1726,7 +1710,6 @@ const App: React.FC = () => {
         setters.setShowHeroinePlan(false);
         setters.setShowMemory(false);
         setShowNovelExport(false);
-        setShowCloudPlay(false);
         setShowImageManager(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
         setters.setShowSettings(false);
@@ -2345,13 +2328,6 @@ const App: React.FC = () => {
         closeAllPanels();
         setters.setShowSaveLoad({ show: true, mode: 'load' });
     }, [closeAllPanels, setters]);
-    const openCloudPlay = React.useCallback(() => {
-        closeAllPanels();
-        setShowCloudPlay(true);
-    }, [closeAllPanels]);
-    const openCloudPlayForWorkshopLogin = React.useCallback(() => {
-        setShowCloudPlay(true);
-    }, []);
     const closeSettings = React.useCallback(() => setters.setShowSettings(false), [setters]);
     const closeNovelExport = React.useCallback(() => setShowNovelExport(false), []);
     const handleAllocateAttributePoint = React.useCallback((key: 可分配六维属性键) => {
@@ -2366,20 +2342,9 @@ const App: React.FC = () => {
         });
     }, [actions, setters, state.角色]);
     const closeSaveLoad = React.useCallback(() => setters.setShowSaveLoad({ show: false, mode: 'save' }), [setters]);
-    const closeCloudPlay = React.useCallback(() => setShowCloudPlay(false), []);
-    const openObjectStorageSettingsFromCloudPlay = React.useCallback(() => {
-        setShowCloudPlay(false);
-        closeAllPanels();
-        setters.setActiveTab('storage');
-        setters.setShowSettings(true);
-    }, [closeAllPanels, setters]);
     const closeWorldbookManager = React.useCallback(() => setShowWorldbookManager(false), []);
     const openWorldbookManager = React.useCallback(() => setShowWorldbookManager(true), []);
     const handleStartFromLanding = React.useCallback(() => actions.handleStartNewGameWizard(), [actions]);
-    const handleStartFromCloudPlay = React.useCallback(() => {
-        closeCloudPlay();
-        actions.handleStartNewGameWizard();
-    }, [actions, closeCloudPlay]);
     const openReleaseNotes = React.useCallback(() => {
         setSuppressReleaseNotesForToday(false);
         setShowReleaseNotes(true);
@@ -2775,10 +2740,8 @@ const App: React.FC = () => {
                 <LandingPage 
                     onStart={handleStartFromLanding}
                     onLoad={openLoad}
-                    onCloudPlay={openCloudPlay}
                     onImageManager={openImageManagerWithCheck}
                     onWorldbookManager={openWorldbookManager}
-                    onRequireWorkshopLogin={openCloudPlayForWorkshopLogin}
                     onSettings={openSettings}
                     onOpenReleaseNotes={openReleaseNotes}
                     currentTheme={state.currentTheme}
@@ -2903,18 +2866,6 @@ const App: React.FC = () => {
                                 }`}
                             ></div>
                               <div className={isMobile ? 'fixed right-2 top-[calc(var(--app-safe-top,env(safe-area-inset-top,0px))+72px)] z-[91] flex items-center gap-2' : 'absolute right-3 top-3 z-30 flex items-center gap-2'}>
-                                  <div
-                                      className={`app-play-mode-badge hidden items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur sm:inline-flex ${
-                                          currentCloudPlayMode === 'object'
-                                              ? 'border-sky-300/45 bg-sky-950/75 text-sky-100'
-                                              : currentCloudPlayMode === 'tg'
-                                                  ? 'border-emerald-300/45 bg-emerald-950/75 text-emerald-100'
-                                                  : 'border-wuxia-gold/40 bg-black/65 text-wuxia-gold'
-                                      }`}
-                                      title={playModeHint}
-                                  >
-                                      {playModeLabel}
-                                  </div>
                                   <div
                                       className="hidden max-w-[360px] items-center truncate rounded-full border border-wuxia-gold/40 bg-black/65 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-wuxia-gold shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur sm:inline-flex"
                                       title={mainStoryApiLabel}
@@ -3302,21 +3253,6 @@ const App: React.FC = () => {
                         mode={safeShowSaveLoad.mode}
                         requestConfirm={requestConfirm}
                     />
-                </懒加载边界>
-                </div>
-            )}
-
-            {showCloudPlay && (
-                <div className={desktopRightDetailClass || 'fixed inset-0 z-[300] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm'}>
-                <懒加载边界>
-                    <div className={desktopRightDetailClass ? 'h-full w-full' : 'h-[min(760px,92vh)] w-full max-w-5xl'}>
-                        <CloudPlayModal
-                            onClose={closeCloudPlay}
-                            onLoadGame={actions.handleLoadGame}
-                            onStartNewGame={handleStartFromCloudPlay}
-                            onConfigureObjectStorage={openObjectStorageSettingsFromCloudPlay}
-                        />
-                    </div>
                 </懒加载边界>
                 </div>
             )}

@@ -1,15 +1,11 @@
 import React from 'react';
 import GameButton from '../ui/GameButton';
-import { GitHubSyncButton } from '../features/Auth/GitHubSyncButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
 import { checkForAppUpdate, downloadLatestApkPackage, openExternalUrl } from '../../services/appUpdate';
 import { fetchOnlinePresencePublicStats, type OnlinePresencePublicStats } from '../../services/onlinePresence';
-import { 读取云端游玩会话 } from '../../services/cloudPlayService';
 import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { 接口设置结构, ThemePreset } from '../../types';
 import CreativeWorkshopModal from '../features/Workshop/CreativeWorkshopModal';
-
-const WORKSHOP_PENDING_LOGIN_KEY = 'creative_workshop_pending_login';
 
 const hasFullscreenElement = () => {
     const doc = document as Document & {
@@ -66,10 +62,8 @@ const requestBrowserFullscreen = async () => {
 interface Props {
     onStart: () => void;
     onLoad: () => void;
-    onCloudPlay: () => void;
     onImageManager: () => void;
     onWorldbookManager: () => void;
-    onRequireWorkshopLogin?: () => void;
     onSettings: () => void;
     onOpenReleaseNotes: () => void;
     currentTheme: ThemePreset;
@@ -593,10 +587,8 @@ const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?:
 const LandingPage: React.FC<Props> = ({
     onStart,
     onLoad,
-    onCloudPlay,
     onImageManager,
     onWorldbookManager,
-    onRequireWorkshopLogin,
     onSettings,
     onOpenReleaseNotes,
     currentTheme,
@@ -619,22 +611,6 @@ const LandingPage: React.FC<Props> = ({
         }, 16000);
         return () => window.clearInterval(timer);
     }, []);
-
-    React.useEffect(() => {
-        const timer = window.setInterval(() => {
-            if (localStorage.getItem(WORKSHOP_PENDING_LOGIN_KEY) !== 'true') return;
-            if (!读取云端游玩会话()) return;
-            localStorage.removeItem(WORKSHOP_PENDING_LOGIN_KEY);
-            setWorkshopOpen(true);
-        }, 800);
-        return () => window.clearInterval(timer);
-    }, []);
-
-    const handleRequireWorkshopLogin = React.useCallback(() => {
-        localStorage.setItem(WORKSHOP_PENDING_LOGIN_KEY, 'true');
-        setWorkshopOpen(false);
-        onRequireWorkshopLogin?.();
-    }, [onRequireWorkshopLogin]);
 
     React.useEffect(() => {
         const syncSystemBars = () => {
@@ -712,8 +688,6 @@ const LandingPage: React.FC<Props> = ({
                 >
                     Discord 独立贴
                 </button>
-
-                <GitHubSyncButton floating={false} />
 
                 {isNativeApp && (
                     <button
@@ -808,10 +782,6 @@ const LandingPage: React.FC<Props> = ({
                     <div className="landing-action-group flex w-[min(16rem,calc(100vw-2rem))] max-w-full flex-col gap-3 animate-slide-in delay-100">
                         <GameButton onClick={() => setLocalPlayOpen(true)} variant="primary" className="py-4 text-lg shadow-lg">
                             本地游玩
-                        </GameButton>
-
-                        <GameButton onClick={onCloudPlay} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-95 shadow-lg hover:opacity-100">
-                            云端游玩
                         </GameButton>
 
                         <GameButton onClick={() => setWorkshopOpen(true)} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-95 shadow-lg hover:opacity-100">
@@ -1006,7 +976,6 @@ const LandingPage: React.FC<Props> = ({
             <CreativeWorkshopModal
                 open={workshopOpen}
                 onClose={() => setWorkshopOpen(false)}
-                onRequireLogin={handleRequireWorkshopLogin}
                 apiConfig={apiConfig}
             />
         </div>

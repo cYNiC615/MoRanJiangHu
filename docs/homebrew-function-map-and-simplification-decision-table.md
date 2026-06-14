@@ -130,7 +130,7 @@
 | NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | 默认改现代都市；移除移动向导和同人/小说分解入口 |
 | Worldbook | 世界书管理、导入、编辑 | `components/features/Worldbook` | 核心保留 | 保留本地世界书，不接社区 UGC |
 | Workshop | 模式包/创意工坊/云端投稿/Comfy 工作流 | `components/features/Workshop`, `services/creativeWorkshop.ts`, `data/creativeWorkshopModules.ts` | 保留本地模式包，移除社区投稿 | 改名或重新定位为“模式包/本地扩展” |
-| SaveLoad | 存档读写、导入导出 | `components/features/SaveLoad`, `services/saveArchiveService.ts` | 必须保留 | 保留 ZIP 导入导出，解绑云同步提示 |
+| SaveLoad | 存档读写、导入导出 | `components/features/SaveLoad`, `services/saveArchiveService.ts` | 必须保留 | 已移除“转云端游玩”入口；保留 ZIP 导入导出、本地时间树、删除与存档保护 |
 | Memory | 记忆查看、召回、整理 | `components/features/Memory`, `hooks/useGame/memory*` | 核心保留 | 增强可观测性，不删 |
 | Map | 地图层级、地点浏览、NPC 位置 | `components/features/Map`, `utils/mapSpatial.ts`, `utils/mapNpcLocation.ts` | 保留但重做边界 | 地点/移动可保留；NPC 位置和在场判定暂列重做，不急着让 AI 继续写 |
 | Social | NPC、关系、社交档案、立绘 | `components/features/Social`, `models/social.ts` | 核心保留并可能扩展 | 社交/关系保留；位置管理和在场判定作为问题子系统单独重做 |
@@ -141,7 +141,7 @@
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
 | Music | 背景音乐、播放器、音乐设置、曲库持久化 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具和 UI 入口；旧存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
-| Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 准备移除 | 若不做云同步和社区，账号体系可删 |
+| Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 入口已移除/后端待删 | 首页 GitHub 同步按钮和 Cloud Play 挂载已移除；未挂载 Auth 组件、OAuth hook 和 API 仍待删 |
 | NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 准备移除 | 第一批移除入口，第二批删服务/模型/提示词 |
 
 ## 7. 服务与数据功能地图
@@ -150,10 +150,10 @@
 | --- | --- | --- | --- | --- |
 | IndexedDB 本地存储 | 存档、设置、图片资源、本地摘要、迁移保护 | `services/dbService.ts` | 必须保留 | 文件很大，删除云同步时不要误伤本地设置/存档 |
 | ZIP 存档归档 | 存档导入导出、图片资源打包 | `services/saveArchiveService.ts` | 必须保留 | 需要保留玩家迁移数据能力 |
-| 存档协调器 | 自动/手动存档、加载、保存后同步 | `hooks/useGame/saveCoordinator.ts` | 保留但解绑云同步 | 现在会触发云端同步，需拆干净 |
-| GitHub 同步 | GitHub 云存档、多设备同步 | `services/githubSync.ts`, `functions/api/github` | 准备移除 | 需要先确认没有本地存档依赖这些类型 |
-| Object/WebDAV 同步 | 对象存储、WebDAV、多设备同步 | `services/objectStorageSync.ts`, `services/webdavSync.ts`, `functions/api/object-storage-proxy.ts`, `functions/api/webdav-proxy.ts` | 准备移除 | 可能和设置页 storage 混在一起 |
-| Cloud Play | 云端游玩、返回主页同步 | `services/cloudPlayService.ts`, `functions/api/cloud-play.ts` | 准备移除 | `App.tsx` 有入口和副作用 |
+| 存档协调器 | 自动/手动存档、加载、保存后同步 | `hooks/useGame/saveCoordinator.ts` | 保留但解绑云同步 | UI 入口已断；保存后云同步副作用仍待拆干净 |
+| GitHub 同步 | GitHub 云存档、多设备同步 | `services/githubSync.ts`, `functions/api/github` | 入口已移除/后端待删 | 首页同步按钮已移除；服务、OAuth、API 和测试仍待删 |
+| Object/WebDAV 同步 | 对象存储、WebDAV、多设备同步 | `services/objectStorageSync.ts`, `services/webdavSync.ts`, `functions/api/object-storage-proxy.ts`, `functions/api/webdav-proxy.ts` | 入口已移除/后端待删 | SaveLoad 转云端入口已移除；Auth 面板、设置键、服务和 API 仍待删 |
+| Cloud Play | 云端游玩、返回主页同步 | `services/cloudPlayService.ts`, `functions/api/cloud-play.ts` | 入口已移除/后端待删 | `App.tsx` 不再挂载 CloudPlayModal；返回主页同步副作用仍待删 |
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 准备移除 | 删除后也要清理 release scripts |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 准备移除 | 保留本地模式包时要拆分 local/cloud |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 准备移除 | 分布很广，适合分批删 |
@@ -202,9 +202,9 @@
 | 小说分解 | 准备移除 | 用户明确不做小说分解 | 第一批移除 UI，第二批删服务和 prompts |
 | 移动端 UI | 准备移除 | 用户明确不做移动端 | 删除移动组件、mobile wizard、移动布局分支 |
 | Android/APK | 准备移除 | 用户明确不做 APK | 删除 scripts、Capacitor、android、app update |
-| GitHub/WebDAV/Object 云同步 | 准备移除 | 用户明确不做多设备同步 | 先从 UI 和 saveCoordinator 解绑 |
+| GitHub/WebDAV/Object 云同步 | 入口已移除/后端待删 | 用户明确不做多设备同步 | 已从首页、移动菜单、SaveLoad 入口解绑；下一步拆 saveCoordinator、服务、API、storage key |
 | 社区 UGC/云工坊 | 准备移除 | 用户明确不做社区 UGC | 保留本地 JSON 导入，删除投稿/下载 |
-| 在线状态/云端游玩 | 准备移除 | 更像公共运营功能 | 删除心跳、副作用和相关 API |
+| 在线状态/云端游玩 | 入口已移除/后端待删 | 更像公共运营功能 | 已删除 CloudPlayModal 挂载和首页入口；心跳、同步副作用和相关 API 仍待删 |
 | 管理后台/公共运营 | 准备移除或开发态隐藏 | 不服务个人 homebrew 主体验 | 先从玩家入口隐藏 |
 | 旧存档兼容 | 不保留 | 当前 fork 暂时个人使用，保兼容会拖慢精简 | 迁移只服务当前 homebrew 默认状态，不兼容旧武侠存档 |
 | 全局类型债与 warning | 准备治理 | 当前 `npx tsc --noEmit` 已不可作为绿色验证；整体精简后必须回到 0 error / 0 warning | 每次删模块同步修测试和类型，最终设为硬门禁 |
@@ -263,7 +263,7 @@ Phase 1 不算完成的情况：
 ### Phase 2：拆云端和移动外围
 
 - 删除 Android/Capacitor/APK 脚本和更新链路。
-- 删除 GitHub/WebDAV/Object/Cloud Play 云同步入口。
+- 删除 GitHub/WebDAV/Object/Cloud Play 云同步后台服务、API、测试和 storage key。
 - 从存档协调器中移除保存后云同步副作用。
 - Cloudflare 只保留可能必要的托管/API 代理能力。
 

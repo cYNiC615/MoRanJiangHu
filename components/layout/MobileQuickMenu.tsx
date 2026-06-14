@@ -23,7 +23,6 @@ type MenuId =
     | 'save'
     | 'load'
     | 'settings'
-    | 'cloud_play'
     | 'more';
 
 interface Props {
@@ -89,7 +88,6 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     save: { id: 'save', label: '保存', icon: 'save' },
     load: { id: 'load', label: '读取', icon: 'load' },
     settings: { id: 'settings', label: '设置', icon: 'settings' },
-    cloud_play: { id: 'cloud_play', label: '云端', icon: 'grid' },
 };
 
 const MobileQuickMenu: React.FC<Props> = ({

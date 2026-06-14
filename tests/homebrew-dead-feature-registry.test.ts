@@ -117,4 +117,51 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('models/world.ts');
         expect(registry).toContain('prompts/runtime/worldDataSchema.ts');
     });
+
+    it('removes cloud play and cloud sync player-visible entrypoints', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('CloudPlayModal');
+        expect(app).not.toContain('showCloudPlay');
+        expect(app).not.toContain("case 'cloud_play'");
+        expect(app).not.toContain('openCloudPlay');
+        expect(app).not.toContain('onCloudPlay');
+        expect(app).not.toContain('读取云端游玩存储模式');
+
+        const landing = readProjectFile('components/layout/LandingPage.tsx');
+        expect(landing).not.toContain('GitHubSyncButton');
+        expect(landing).not.toContain('onCloudPlay');
+        expect(landing).not.toContain('onRequireWorkshopLogin');
+        expect(landing).not.toContain('读取云端游玩会话');
+        expect(landing).not.toContain('云端游玩');
+
+        const mobileMenu = readProjectFile('components/layout/MobileQuickMenu.tsx');
+        expect(mobileMenu).not.toContain("| 'cloud_play'");
+        expect(mobileMenu).not.toContain('cloud_play');
+        expect(mobileMenu).not.toContain("label: '云端'");
+
+        const saveLoad = readProjectFile('components/features/SaveLoad/SaveLoadModal.tsx');
+        expect(saveLoad).not.toContain('读取云端游玩会话');
+        expect(saveLoad).not.toContain('读取云端游玩存储模式');
+        expect(saveLoad).not.toContain('设置云端游玩存储模式');
+        expect(saveLoad).not.toContain('上传本地存档到云端');
+        expect(saveLoad).not.toContain('objectStorageSync');
+        expect(saveLoad).not.toContain('handleConvertLocalToCloudPlay');
+        expect(saveLoad).not.toContain('cloudPlayMode');
+        expect(saveLoad).not.toContain('云端游玩');
+        expect(saveLoad).not.toContain('转云端');
+        expect(saveLoad).not.toContain('对象存储');
+    });
+
+    it('records cloud play and sync backend as pending removal after entrypoints are gone', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('cloud_play_and_sync');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('services/cloudPlayService.ts');
+        expect(registry).toContain('services/githubSync.ts');
+        expect(registry).toContain('services/objectStorageSync.ts');
+        expect(registry).toContain('services/webdavSync.ts');
+        expect(registry).toContain('functions/api/cloud-play.ts');
+        expect(registry).toContain('utils/settingsSchema.ts');
+    });
 });

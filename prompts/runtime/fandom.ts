@@ -101,6 +101,8 @@ const 默认仙侠境界映射: 境界映射项[] = [
     { level: 43, label: '合体期' }
 ];
 
+const HOMEBREW_FANDOM_RUNTIME_DISABLED = true;
+
 export const 默认累计境界映射数值列表 = 默认境界映射.map((item) => item.level);
 export const 默认累计境界阶段推进跳转列表 = [
     '1→2', '2→3', '3→4',
@@ -122,6 +124,7 @@ export const 默认累计境界大境突破跳转列表 = [
 ] as const;
 
 const 读取同人配置 = (openingConfig?: OpeningConfig | null) => {
+    if (HOMEBREW_FANDOM_RUNTIME_DISABLED) return null;
     const fandom = openingConfig?.同人融合;
     const title = typeof fandom?.作品名 === 'string' ? fandom.作品名.trim() : '';
     if (!fandom?.enabled || !title) return null;

@@ -22,6 +22,9 @@ hide backend code, stored data, prompts, or tests that still need a later pass.
   saves, but active code no longer reads or writes it.
 - `prose_atmosphere_only`: The concept may appear in generated prose or visual
   descriptions, but is no longer maintained as structured game state.
+- `prompt_copy_pending`: Retired feature language still exists in prompt text
+  that should be rewritten or deleted before Phase 1 is considered fully
+  closed.
 - `fully_removed`: Entrypoints, backend code, prompt references, tests, and
   local data migration are complete.
 
@@ -55,7 +58,7 @@ Final homebrew simplification is not complete until:
 - Reason: The homebrew project will not support fanfiction/original-work
   adaptation, novel decomposition, or novel-decomposition workshop sharing.
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
-  `backend_pending`, `storage_pending`.
+  `prompt_copy_pending`, `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -226,6 +229,32 @@ in:
 - Before removing the backend fields, make sure no prompt path still reads old
   `同人融合` values from custom presets, workshop modules, or saved runtime
   snapshots.
+
+### Active Runtime Injection Removed In This Pass
+
+- `prompts/runtime/fandom.ts`: legacy `同人融合.enabled` opening configs no
+  longer enable the runtime fandom prompt bundle. The realm-mapping helper
+  behavior remains intact for now because other legacy cultivation/realm code
+  still depends on it until the broader wuxia cleanup.
+- `prompts/runtime/openingConfig.ts`: world-generation no longer emits
+  `同人融合世界观要求` even if a historical opening config still contains
+  fandom fields.
+- `utils/femaleNameSelector.ts`: the active female-name guard prompt no longer
+  tells the model to preserve original-work/fandom/novel-decomposition names as
+  a special class.
+
+### Remaining Active-Code Residue
+
+- Several workflows still carry `同人剧情规划` /
+  `同人女主剧情规划` state plumbing and type dependencies while the deeper model
+  deletion is pending. The runtime fandom prompt bundle is disabled, but these
+  fields should still be deleted during the backend/model cleanup.
+- Always-on prompt copy still contains old original-work/fandom/novel-window
+  wording in places such as `prompts/core/story.ts`,
+  `prompts/core/cotOpening.ts`, `prompts/runtime/planningAnalysis.ts`,
+  `prompts/runtime/storyPlanSchema.ts`, and world-evolution prompt files.
+  These prompt surfaces are the next Phase 1 cleanup target because runtime
+  injection is now inert but stale wording can still confuse AI behavior.
 
 ## Feature: `music_playback`
 

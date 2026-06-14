@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { 构建同人运行时提示词包 } from '../prompts/runtime/fandom';
+import { 构建世界观同人融合提示词 } from '../prompts/runtime/openingConfig';
+import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelector';
 
 const readProjectFile = (relativePath: string) => {
     const absolutePath = resolve(process.cwd(), relativePath);
@@ -454,6 +457,40 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('models/fandomPlanning');
         expect(registry).toContain('prompts/runtime/fandom*.ts');
         expect(registry).toContain('data/creativeWorkshopModules.ts');
+    });
+
+    it('disables active fandom prompt injection even when legacy config enables it', () => {
+        const legacyFandomOpeningConfig = {
+            题材模式: '现代都市',
+            同人融合: {
+                enabled: true,
+                作品名: '旧原著',
+                来源类型: '小说',
+                融合强度: '显性同台',
+                保留原著角色: true,
+                启用附加小说: true
+            }
+        } as any;
+
+        const bundle = 构建同人运行时提示词包({
+            openingConfig: legacyFandomOpeningConfig,
+            worldPrompt: '旧世界观',
+            realmPrompt: '【境界映射母板】\n1 => 自定义一阶'
+        });
+
+        expect(bundle.enabled).toBe(false);
+        expect(bundle.同人设定摘要).toBe('');
+        expect(bundle.世界观创建补丁).toBe('');
+        expect(bundle.开局任务补丁).toBe('');
+        expect(bundle.开局COT补丁).toBe('');
+        expect(bundle.主剧情COT补丁).toBe('');
+        expect(bundle.剧情规划补丁).toBe('');
+        expect(bundle.女主规划补丁).toBe('');
+        expect(bundle.女主思考补丁).toBe('');
+        expect(bundle.世界演变补丁).toBe('');
+        expect(bundle.变量校准补丁).toBe('');
+        expect(构建世界观同人融合提示词(legacyFandomOpeningConfig)).toBe('');
+        expect(构建女性姓名黑名单提示词()).not.toMatch(/同人|原著|小说拆分|分解组/);
     });
 
     it('removes legacy battle player-visible entrypoints', () => {

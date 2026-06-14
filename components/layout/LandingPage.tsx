@@ -1,8 +1,7 @@
 import React from 'react';
 import GameButton from '../ui/GameButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
-import { checkForAppUpdate, downloadLatestApkPackage, openExternalUrl } from '../../services/appUpdate';
-import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
+import { setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { 接口设置结构, ThemePreset } from '../../types';
 import CreativeWorkshopModal from '../features/Workshop/CreativeWorkshopModal';
 
@@ -58,13 +57,17 @@ const requestBrowserFullscreen = async () => {
     }
 };
 
+const openExternalUrl = (url?: string) => {
+    if (!url || typeof window === 'undefined') return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 interface Props {
     onStart: () => void;
     onLoad: () => void;
     onImageManager: () => void;
     onWorldbookManager: () => void;
     onSettings: () => void;
-    onOpenReleaseNotes: () => void;
     currentTheme: ThemePreset;
     onThemeChange: (theme: ThemePreset) => void;
     hasSave: boolean;
@@ -589,14 +592,11 @@ const LandingPage: React.FC<Props> = ({
     onImageManager,
     onWorldbookManager,
     onSettings,
-    onOpenReleaseNotes,
     currentTheme,
     onThemeChange,
     hasSave,
     apiConfig
 }) => {
-    const isNativeApp = React.useMemo(() => isNativeCapacitorEnvironment(), []);
-    const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
     const [supportDetailsOpen, setSupportDetailsOpen] = React.useState(false);
     const [localPlayOpen, setLocalPlayOpen] = React.useState(false);
     const [workshopOpen, setWorkshopOpen] = React.useState(false);
@@ -621,28 +621,6 @@ const LandingPage: React.FC<Props> = ({
         };
     }, []);
 
-    const handleCheckUpdate = async () => {
-        setIsCheckingUpdate(true);
-        try {
-            await checkForAppUpdate();
-        } catch (error: any) {
-            window.alert(`开始更新失败：${error?.message || '未知错误'}`);
-        } finally {
-            setIsCheckingUpdate(false);
-        }
-    };
-
-    const handleDownloadApk = async () => {
-        setIsCheckingUpdate(true);
-        try {
-            await downloadLatestApkPackage();
-        } catch (error: any) {
-            window.alert(`下载 APK 失败：${error?.message || '未知错误'}`);
-        } finally {
-            setIsCheckingUpdate(false);
-        }
-    };
-
     return (
         <div className="landing-page relative z-40 flex min-h-full w-full max-w-full min-w-0 flex-col items-center rounded-xl bg-black px-4 pt-[max(var(--app-safe-top,env(safe-area-inset-top,0px)),12px)] pb-[calc(var(--app-safe-bottom,env(safe-area-inset-bottom,0px))+16px)]">
             <div className="landing-bg absolute inset-0" aria-hidden="true">
@@ -666,18 +644,6 @@ const LandingPage: React.FC<Props> = ({
                 >
                     Discord 独立贴
                 </button>
-
-                {isNativeApp && (
-                    <button
-                        type="button"
-                        onClick={() => { void handleCheckUpdate(); }}
-                    className="landing-topbar-button min-h-[40px] border border-wuxia-gold/40 bg-black/60 px-3 py-2 text-xs font-serif tracking-[0.18em] text-wuxia-gold transition-colors hover:bg-black/80 md:text-sm"
-                        style={actionButtonStyle}
-                        title="检查 APK 更新"
-                    >
-                        {isCheckingUpdate ? '检查中...' : '检查更新'}
-                    </button>
-                )}
 
                 <button
                     type="button"
@@ -727,7 +693,7 @@ const LandingPage: React.FC<Props> = ({
                                 lineHeight: 'var(--ui-等宽信息-line-height, 1.45)'
                             }}
                         >
-                            VER {RELEASE_INFO.versionName} · APK {RELEASE_INFO.versionCode}
+                            VER {RELEASE_INFO.versionName}
                         </div>
 
                         <div className="landing-subtitle-row flex w-full max-w-full min-w-0 items-center justify-center gap-3 opacity-90 sm:gap-6">
@@ -786,14 +752,11 @@ const LandingPage: React.FC<Props> = ({
                             <div>
                                 <div className="text-sm font-serif tracking-[0.24em] text-wuxia-gold">发布信息</div>
                                 <div className="mt-1 text-xs text-gray-400">
-                                    Web / APK 当前统一版本 v{RELEASE_INFO.versionName}
+                                    当前版本 v{RELEASE_INFO.versionName}
                                 </div>
                                 <div className="mt-1 text-[11px] font-mono tracking-[0.08em] text-gray-500">
                                     发布时间 {格式化发布时间(RELEASE_INFO.releasePublishedAt)}
                                 </div>
-                            </div>
-                            <div className="text-xs font-mono tracking-[0.18em] text-gray-500">
-                                APK CODE {RELEASE_INFO.versionCode}
                             </div>
                         </div>
 
@@ -804,15 +767,6 @@ const LandingPage: React.FC<Props> = ({
                                 className="min-h-[38px] border border-wuxia-gold/25 bg-white/[0.03] px-3 py-2 text-xs tracking-[0.16em] text-wuxia-gold transition-colors hover:bg-white/[0.06]"
                             >
                                 GitHub 项目
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    void handleDownloadApk();
-                                }}
-                                className="min-h-[38px] border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500/15"
-                            >
-                                {isNativeApp ? (isCheckingUpdate ? '准备中...' : '下载 APK') : 'APK 下载'}
                             </button>
                             <button
                                 type="button"

@@ -570,6 +570,68 @@ focused passes:
   operations code. Remove it after the cloud/sync backend pass identifies which
   session helpers are no longer needed.
 
+## Feature: `apk_app_update_system`
+
+- Decision: retire.
+- Reason: The homebrew project will not ship an Android APK or maintain an
+  in-app updater. Version publishing, APK download UX, native update progress,
+  and update-manifest checks are release infrastructure for the old public
+  product, not part of the local desktop-first AI-RPG loop.
+- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+
+### Entrypoints And Automatic Effects Removed In This Pass
+
+- `App.tsx`: no longer imports `services/appUpdate`, checks for app updates,
+  subscribes to app-update progress, listens for native foreground update
+  checks, or renders the app-update progress modal.
+- `App.tsx`: removed the automatic release-notes/update modal and its APK
+  download action. The homepage no longer wires a release-notes modal through
+  the app shell.
+- `components/layout/LandingPage.tsx`: removed APK update checking, APK
+  download action, native-only update button, APK code display, and Web/APK
+  unified-version copy.
+- `components/features/Settings/GameSettings.tsx`: removed the player-facing
+  "manual APK update only" toggle.
+- `hooks/useGameState.ts`: no longer mirrors the APK auto-update preference
+  into localStorage during settings load.
+
+### Backend, Release, And Data Pending
+
+- `services/appUpdate.ts`
+- `services/nativeApkUpdater.ts`
+- `utils/appUpdatePreferences.ts`
+- `components/ui/ReleaseNotesModal.tsx`
+- `services/diagnosticReport.ts` current-app-release dependency
+- `data/releaseInfo.ts` APK fields and update-manifest fields
+- `public/release-info.json` APK fields and update-manifest fields
+- `functions/api/apk`
+- `android`
+- `capacitor.config.ts`
+- `package.json` scripts: `build:apk`, `apk:sync`, `apk:debug`,
+  `apk:release`, `apk:signature`, `e2e:apk-download`,
+  `release:benchmark-apk`, `signing:upload`, and `signing:restore`
+- APK/release scripts:
+  - `scripts/benchmark-apk-providers.mjs`
+  - `scripts/e2e-apk-download.mjs`
+  - `scripts/inspect-apk-signature.mjs`
+  - `scripts/prune-apk-assets.mjs`
+  - `scripts/publish-release-r2.mjs`
+  - `scripts/publish-release-s3.mjs`
+  - `scripts/run-gradle.mjs`
+  - `scripts/sync-android-signing-bundle.mjs`
+  - `scripts/sync-release.mjs` Android/Gradle update path
+
+### Storage And Migration Notes
+
+- localStorage key: `moranjianghu.apkAutoUpdateDisabled`
+- Game settings field: `禁用APK自动更新`
+- Release metadata may still contain `versionCode`, `apkDownloadUrl`,
+  `updateManifestUrl`, `apkSha256`, and `apkSize` until the release metadata
+  pass removes APK publishing.
+- Capacitor packages remain in `package.json` while native/mobile cleanup is
+  pending because other code still imports native helpers. Delete them with the
+  broader mobile/Capacitor pass, not as a hidden side effect of this slice.
+
 ## Feature: `festival_system`
 
 - Decision: retire.

@@ -386,20 +386,6 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="text-sm text-wuxia-cyan font-bold">仅手动更新 APK</div>
-                        <div className="text-xs text-gray-400 mt-1">开启后，APK 不再自动检查更新或弹出更新提示；需要你手动打开更新日志或点击 APK 下载。</div>
-                    </div>
-                    <ToggleSwitch
-                        checked={form.禁用APK自动更新 === true}
-                        onChange={(next) => 实时应用更新({ 禁用APK自动更新: next })}
-                        ariaLabel="切换仅手动更新 APK"
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
-                <div className="flex items-center justify-between gap-4">
-                    <div>
                         <div className="text-sm text-wuxia-cyan font-bold">行动选项功能</div>
                         <div className="text-xs text-gray-400 mt-1">开启后，将在上下文注入“行动选项规范”，并要求输出 \`&lt;行动选项&gt;\` 标签。</div>
                     </div>

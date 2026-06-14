@@ -51,7 +51,7 @@
 | 本地数据 | IndexedDB、设置、存档、图片资源、ZIP 导入导出 | `services/dbService.ts`, `services/saveArchiveService.ts`, `hooks/useGame/saveCoordinator.ts` | 必须保留；解绑云同步 |
 | 前端功能面 | 设置、新建、聊天、地图、社交、背包、存读档、工坊等 UI | `components/features` | 分层处理，详见决策表 |
 | 云端/发布/API | Cloudflare Functions、OAuth、同步、社区、APK、图床代理 | `functions/api`, `scripts`, `wrangler.jsonc` | 大部分进入删除/暂缓；Cloudflare 托管能力暂缓 |
-| Android/APK | Capacitor、Android 壳、APK 发布和更新 | `android`, `capacitor.config.ts`, `services/appUpdate.ts`, `services/nativeApkUpdater.ts` | 已确认移除方向 |
+| Android/APK | Capacitor、Android 壳、APK 发布和更新 | `android`, `capacitor.config.ts`, `services/appUpdate.ts`, `services/nativeApkUpdater.ts` | 入口已移除/后端待删 |
 | 测试 | 单测、E2E、构建验证 | `tests`, `*.test.ts`, `playwright.config.ts` | 保留测试框架，后续删掉废弃功能测试 |
 
 ## 2.1 工程健康门禁
@@ -124,9 +124,9 @@
 
 | 功能面 | 当前状态 | 关键位置 | 判定 | 第一刀建议 |
 | --- | --- | --- | --- | --- |
-| Home/Game Shell | 主页、游戏视图、面板挂载、全局弹窗 | `App.tsx`, `components/layout` | 保留但瘦身 | 拆掉移动/APK/更新/云同步/小说分解挂载 |
+| Home/Game Shell | 主页、游戏视图、面板挂载、全局弹窗 | `App.tsx`, `components/layout` | 保留但瘦身 | APK 更新/下载与更新弹窗入口已断；移动布局仍待后续 |
 | Chat | 主聊天、输入、行动选项、回合队列状态 | `components/features/Chat` | 核心保留 | 保留桌面体验，删移动专用适配 |
-| Settings | API、流程图、记忆、世界书、提示词、存储、模型配置等 | `components/features/Settings` | 保留但大幅瘦身 | 先隐藏/删除小说分解、云同步、APK/移动、社区相关 tab |
+| Settings | API、流程图、记忆、世界书、提示词、存储、模型配置等 | `components/features/Settings` | 保留但大幅瘦身 | 已移除小说分解、音乐、节日、修炼体系、APK 手动更新等入口；云/社区/移动仍待后续 |
 | NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | Phase 1 已移除桌面/移动新建角里的同人融合、角色替换、附加小说分解、手动境界提示词、境界 DIY 和开局生成门派可见入口；默认现代都市和移动向导删除仍待后续 |
 | Worldbook | 世界书管理、导入、编辑 | `components/features/Worldbook` | 核心保留 | 保留本地世界书，不接社区 UGC |
 | Workshop | 模式包/创意工坊/云端投稿/Comfy 工作流 | `components/features/Workshop`, `services/creativeWorkshop.ts`, `data/creativeWorkshopModules.ts` | 保留本地模式包，移除社区投稿 | 改名或重新定位为“模式包/本地扩展” |
@@ -156,7 +156,7 @@
 | Object/WebDAV 同步 | 对象存储、WebDAV、多设备同步 | `services/objectStorageSync.ts`, `services/webdavSync.ts`, `functions/api/object-storage-proxy.ts`, `functions/api/webdav-proxy.ts` | 入口已移除/后端待删 | SaveLoad 转云端入口已移除；Auth 面板、设置键、服务和 API 仍待删 |
 | Cloud Play | 云端游玩、返回主页同步 | `services/cloudPlayService.ts`, `functions/api/cloud-play.ts` | 入口已移除/后端待删 | `App.tsx` 不再挂载 CloudPlayModal；返回主页同步副作用仍待删 |
 | Online Presence/Public Ops | 在线心跳、公开在线统计、在线时长榜 | `services/onlinePresence.ts`, `functions/api/online-presence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | `App.tsx` 不再启动心跳，首页不再请求/展示在线人数；服务、API、静态榜页、localStorage 历史和测试仍待删 |
-| App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 准备移除 | 删除后也要清理 release scripts |
+| App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 入口已移除/后端待删 | Phase 1 已删除 App 自动检查/下载/进度弹窗、首页 APK 下载/检查、设置开关和本地镜像写入；release scripts/API/Android 仍待删 |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 准备移除 | 保留本地模式包时要拆分 local/cloud |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口已移除/后端待删 | 前端可见入口已断；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 新建角入口已移除/后端待删 | 新建角同人配置入口已断；创意工坊、提示词、设置和 API 残留后续清理 |
@@ -204,7 +204,7 @@
 | 同人/原著融合 | 新建角入口已移除/后端待删 | 用户明确不做同人 | Phase 1 已删除新建角同人融合、角色替换和摘要入口；后续删除模型/提示词/服务/API |
 | 小说分解 | 入口已移除/后端待删 | 用户明确不做小说分解 | Phase 1 已移除工作台、设置、创意工坊和新建角附加小说入口；第二批删服务、模型、prompts、tests 和 storage keys |
 | 移动端 UI | 准备移除 | 用户明确不做移动端 | 删除移动组件、mobile wizard、移动布局分支 |
-| Android/APK | 准备移除 | 用户明确不做 APK | 删除 scripts、Capacitor、android、app update |
+| Android/APK | 入口已移除/后端待删 | 用户明确不做 APK | Phase 1 已断玩家可见更新/下载入口；后续删除 scripts、Capacitor、android、app update、APK manifest/API |
 | GitHub/WebDAV/Object 云同步 | 入口已移除/后端待删 | 用户明确不做多设备同步 | 已从首页、移动菜单、SaveLoad 入口解绑；下一步拆 saveCoordinator、服务、API、storage key |
 | 社区 UGC/云工坊 | 准备移除 | 用户明确不做社区 UGC | 保留本地 JSON 导入，删除投稿/下载 |
 | 云端游玩 | 入口已移除/后端待删 | 更像公共运营/多设备功能，不属于个人本地 homebrew | 已删除 CloudPlayModal 挂载、首页云端入口和 SaveLoad 转云端入口；返回主页同步副作用和相关 API 仍待删 |

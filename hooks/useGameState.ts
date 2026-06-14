@@ -28,7 +28,6 @@ import { 默认中期转长期提示词, 默认短期转中期提示词, 默认N
 import * as dbService from '../services/dbService';
 import { THEMES, 应用主题到根元素 } from '../styles/themes';
 import { 创建空接口设置, 读取接口设置本地镜像, 写入接口设置本地镜像, 规范化接口设置 } from '../utils/apiConfig';
-import { 写入APK自动更新禁用镜像 } from '../utils/appUpdatePreferences';
 import { 默认游戏设置, 规范化游戏设置 } from '../utils/gameSettings';
 import { 设置键 } from '../utils/settingsSchema';
 import { 规范化视觉设置 } from '../utils/visualSettings';
@@ -319,7 +318,6 @@ export const useGameState = () => {
                 const savedGameConfig = await dbService.读取设置(设置键.游戏设置);
                 if (savedGameConfig) {
                     const normalizedGameConfig = 规范化游戏设置(savedGameConfig as Partial<游戏设置结构>);
-                    写入APK自动更新禁用镜像(normalizedGameConfig.禁用APK自动更新 === true);
                     setGameConfig(normalizedGameConfig);
                 }
                 const savedMemoryConfig = await dbService.读取设置(设置键.记忆设置);

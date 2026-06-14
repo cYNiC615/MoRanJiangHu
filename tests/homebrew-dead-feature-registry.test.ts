@@ -389,4 +389,55 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('prompts/stats/kungfu.ts');
         expect(registry).toContain('prompts/core/realm.ts');
     });
+
+    it('removes APK/app-update player-visible entrypoints and automatic effects', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('services/appUpdate');
+        expect(app).not.toContain('checkForAppUpdate');
+        expect(app).not.toContain('downloadLatestApkPackage');
+        expect(app).not.toContain('subscribeAppUpdateProgress');
+        expect(app).not.toContain('AppUpdateProgressState');
+        expect(app).not.toContain('APK仅手动更新已启用');
+        expect(app).not.toContain('runAppUpdateCheck');
+        expect(app).not.toContain('appUpdateProgress');
+        expect(app).not.toContain('应用更新');
+        expect(app).not.toContain('ReleaseNotesModal');
+        expect(app).not.toContain('RELEASE_NOTES_SUPPRESS_DATE_KEY');
+
+        const landing = readProjectFile('components/layout/LandingPage.tsx');
+        expect(landing).not.toContain('checkForAppUpdate');
+        expect(landing).not.toContain('downloadLatestApkPackage');
+        expect(landing).not.toContain('handleCheckUpdate');
+        expect(landing).not.toContain('handleDownloadApk');
+        expect(landing).not.toContain('检查 APK 更新');
+        expect(landing).not.toContain('APK 下载');
+        expect(landing).not.toContain('下载 APK');
+        expect(landing).not.toContain('APK CODE');
+        expect(landing).not.toContain('Web / APK');
+        expect(landing).not.toContain('APK {RELEASE_INFO.versionCode}');
+
+        const gameSettings = readProjectFile('components/features/Settings/GameSettings.tsx');
+        expect(gameSettings).not.toContain('仅手动更新 APK');
+        expect(gameSettings).not.toContain('禁用APK自动更新');
+
+        const useGameState = readProjectFile('hooks/useGameState.ts');
+        expect(useGameState).not.toContain('写入APK自动更新禁用镜像');
+        expect(useGameState).not.toContain('appUpdatePreferences');
+    });
+
+    it('records APK/app-update backend, release, and storage residue as pending removal', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('apk_app_update_system');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('storage_pending');
+        expect(registry).toContain('services/appUpdate.ts');
+        expect(registry).toContain('services/nativeApkUpdater.ts');
+        expect(registry).toContain('utils/appUpdatePreferences.ts');
+        expect(registry).toContain('components/ui/ReleaseNotesModal.tsx');
+        expect(registry).toContain('functions/api/apk');
+        expect(registry).toContain('android');
+        expect(registry).toContain('capacitor.config.ts');
+        expect(registry).toContain('moranjianghu.apkAutoUpdateDisabled');
+    });
 });

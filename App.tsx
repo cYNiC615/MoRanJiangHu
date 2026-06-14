@@ -8,7 +8,6 @@ import ChatList from './components/features/Chat/ChatList';
 import InputArea from './components/features/Chat/InputArea';
 import LandingPage from './components/layout/LandingPage';
 import InAppConfirmModal, { ConfirmOptions } from './components/ui/InAppConfirmModal';
-import ReleaseNotesModal from './components/ui/ReleaseNotesModal';
 import { useGame } from './hooks/useGame';
 import { use图片资源回源预取 } from './hooks/useImageAssetPrefetch';
 import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
@@ -25,8 +24,6 @@ import { 生图最大自动重试次数, 执行生图模型调用带重试, 读�
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
 import { isNativeCapacitorEnvironment } from './utils/nativeRuntime';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
-import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
-import { APK仅手动更新已启用 } from './utils/appUpdatePreferences';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 构建拍卖行存储作用域, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 获取题材界面文案 } from './utils/resourceLabels';
@@ -40,7 +37,6 @@ import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
 
-const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
 const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths.v3';
 const DESKTOP_DETAIL_MIN_WIDTH = 520;
 const DESKTOP_DETAIL_MAX_WIDTH = 1160;
@@ -485,10 +481,7 @@ const App: React.FC = () => {
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
     const [sceneQuickGenToastVisible, setSceneQuickGenToastVisible] = React.useState(false);
     const [contextSnapshot, setContextSnapshot] = React.useState<Awaited<ReturnType<typeof actions.getContextSnapshot>> | undefined>(undefined);
-    const [showReleaseNotes, setShowReleaseNotes] = React.useState(false);
-    const [suppressReleaseNotesForToday, setSuppressReleaseNotesForToday] = React.useState(false);
     const [returnHomeSaving, setReturnHomeSaving] = React.useState(false);
-    const [appUpdateProgress, setAppUpdateProgress] = React.useState<AppUpdateProgressState | null>(null);
     const [legacyImageMigrationStatus, setLegacyImageMigrationStatus] = React.useState(() => 获取本地图片图床迁移状态());
     const [legacyImageMigrationNoticeClosed, setLegacyImageMigrationNoticeClosed] = React.useState(false);
     const [legacySaveLineageMigrationStatus, setLegacySaveLineageMigrationStatus] = React.useState(() => 读取旧存档谱系迁移状态());
@@ -510,8 +503,6 @@ const App: React.FC = () => {
         };
         return Boolean(document.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement);
     });
-    const lastUpdateCheckAtRef = React.useRef(0);
-    const releaseNotesAutoOpenedRef = React.useRef(false);
     const autoItemImageRunningRef = React.useRef<Set<string>>(new Set());
     const autoItemImageScheduledRef = React.useRef<Set<string>>(new Set());
     const autoItemImageRecentSuccessRef = React.useRef<Map<string, 物品自动生图近期结果>>(new Map());
@@ -546,23 +537,6 @@ const App: React.FC = () => {
             autoItemImageWakeTimerRef.current = null;
         }
     }, []);
-    const runAppUpdateCheck = React.useCallback(async (options?: { silentNoUpdate?: boolean; auto?: boolean }) => {
-        if (options?.auto && APK仅手动更新已启用(state.gameConfig)) {
-            return;
-        }
-        try {
-            await checkForAppUpdate(options);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : '更新失败，请稍后重试。';
-            if (options?.auto) {
-                console.warn('Auto update check failed:', error);
-                return;
-            }
-            window.alert(message);
-        }
-    }, [state.gameConfig]);
-
-    React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
     React.useEffect(() => {
         const handleImageError = (event: Event) => {
             const target = event.target;
@@ -799,75 +773,7 @@ const App: React.FC = () => {
             html.style.backgroundColor = previousHtmlBackground;
             body.style.backgroundColor = previousBodyBackground;
         };
-    }, [runAppUpdateCheck]);
-    React.useEffect(() => {
-        if (!isNativeCapacitorEnvironment()) return;
-        if (APK仅手动更新已启用(state.gameConfig)) return;
-
-        let disposed = false;
-        let listenerHandle: { remove: () => Promise<void> } | null = null;
-
-        const runAutoUpdateCheck = async () => {
-            const now = Date.now();
-            if (now - lastUpdateCheckAtRef.current < 5 * 60 * 1000) return;
-            lastUpdateCheckAtRef.current = now;
-            await runAppUpdateCheck({ auto: true, silentNoUpdate: true });
-        };
-
-        void runAutoUpdateCheck();
-
-        void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-            if (!disposed && isActive) {
-                void runAutoUpdateCheck();
-            }
-        }).then((handle) => {
-            if (disposed) {
-                void handle.remove();
-                return;
-            }
-            listenerHandle = handle;
-        });
-
-        return () => {
-            disposed = true;
-            if (listenerHandle) {
-                void listenerHandle.remove();
-            }
-        };
-    }, [runAppUpdateCheck, state.gameConfig]);
-    React.useEffect(() => {
-        if (typeof window === 'undefined') return;
-        if (APK仅手动更新已启用(state.gameConfig)) {
-            setSuppressReleaseNotesForToday(false);
-            return;
-        }
-        if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
-            return;
-        }
-
-        const today = new Date().toISOString().slice(0, 10);
-        let suppressedDate = '';
-
-        try {
-            suppressedDate = localStorage.getItem(RELEASE_NOTES_SUPPRESS_DATE_KEY) || '';
-        } catch {
-            suppressedDate = '';
-        }
-
-        const suppressedToday = suppressedDate === today;
-        setSuppressReleaseNotesForToday(suppressedToday);
-
-        if (state.view !== 'home') {
-            return;
-        }
-
-        if (suppressedToday || releaseNotesAutoOpenedRef.current) {
-            return;
-        }
-
-        releaseNotesAutoOpenedRef.current = true;
-        setShowReleaseNotes(true);
-    }, [state.view, state.gameConfig]);
+    }, []);
     const confirmResolverRef = React.useRef<((value: boolean) => void) | null>(null);
     const [confirmState, setConfirmState] = React.useState<(ConfirmOptions & { open: boolean })>({
         open: false,
@@ -2100,36 +2006,6 @@ const App: React.FC = () => {
     const closeWorldbookManager = React.useCallback(() => setShowWorldbookManager(false), []);
     const openWorldbookManager = React.useCallback(() => setShowWorldbookManager(true), []);
     const handleStartFromLanding = React.useCallback(() => actions.handleStartNewGameWizard(), [actions]);
-    const openReleaseNotes = React.useCallback(() => {
-        setSuppressReleaseNotesForToday(false);
-        setShowReleaseNotes(true);
-    }, []);
-    const closeReleaseNotes = React.useCallback(() => {
-        const today = new Date().toISOString().slice(0, 10);
-
-        try {
-            if (suppressReleaseNotesForToday) {
-                localStorage.setItem(RELEASE_NOTES_SUPPRESS_DATE_KEY, today);
-            } else {
-                localStorage.removeItem(RELEASE_NOTES_SUPPRESS_DATE_KEY);
-            }
-        } catch {
-            // ignore storage failures
-        }
-
-        setShowReleaseNotes(false);
-    }, [suppressReleaseNotesForToday]);
-    const handleReleaseNotesPrimaryAction = React.useCallback(() => {
-        setShowReleaseNotes(false);
-        if (isNativeCapacitorEnvironment()) {
-            void downloadLatestApkPackage();
-            return;
-        }
-        void window.open(RELEASE_INFO.apkDownloadUrl, '_blank', 'noopener,noreferrer');
-    }, [runAppUpdateCheck]);
-    const handleReleaseNotesOpenGithub = React.useCallback(() => {
-        void window.open(RELEASE_INFO.githubRepoUrl, '_blank', 'noopener,noreferrer');
-    }, []);
     const handleReturnToHomeWithAutoSave = React.useCallback(async () => {
         if (returnHomeSaving) return;
         setReturnHomeSaving(true);
@@ -2343,37 +2219,6 @@ const App: React.FC = () => {
         };
     }, [isMobile]);
 
-    const appUpdateProgressPercent = React.useMemo(() => {
-        const explicitPercent = Number(appUpdateProgress?.percent || 0);
-        if (Number.isFinite(explicitPercent) && explicitPercent > 0) {
-            return Math.max(0, Math.min(100, explicitPercent));
-        }
-        const downloaded = Number(appUpdateProgress?.downloadedBytes || 0);
-        const total = Number(appUpdateProgress?.totalBytes || 0);
-        if (total > 0) {
-            return Math.max(0, Math.min(100, (downloaded / total) * 100));
-        }
-        return appUpdateProgress?.stage === 'completed' ? 100 : 0;
-    }, [appUpdateProgress]);
-
-    const appUpdateStageText = React.useMemo(() => {
-        switch (appUpdateProgress?.stage) {
-            case 'preparing':
-                return '准备中';
-            case 'downloading':
-                return '下载中';
-            case 'downloaded':
-                return '下载完成';
-            case 'installing':
-                return '拉起安装';
-            case 'completed':
-                return '等待安装';
-            case 'error':
-                return '更新失败';
-            default:
-                return '处理中';
-        }
-    }, [appUpdateProgress]);
     const legacyImageMigrationNoticeVisible = !legacyImageMigrationNoticeClosed && (
         legacyImageMigrationStatus.stage === 'scanning'
         || legacyImageMigrationStatus.stage === 'running'
@@ -2416,7 +2261,6 @@ const App: React.FC = () => {
                     onImageManager={openImageManagerWithCheck}
                     onWorldbookManager={openWorldbookManager}
                     onSettings={openSettings}
-                    onOpenReleaseNotes={openReleaseNotes}
                     currentTheme={state.currentTheme}
                     onThemeChange={setters.setCurrentTheme}
                     hasSave={state.hasSave}
@@ -3024,64 +2868,6 @@ const App: React.FC = () => {
                     />
                 </懒加载边界>
             )}
-
-            {appUpdateProgress?.visible && (
-                <div className="fixed inset-0 z-[295] flex items-center justify-center bg-black/72 px-5 py-8 backdrop-blur-sm">
-                    <div className="w-full max-w-sm rounded-2xl border border-wuxia-gold/30 bg-[#0b0907]/95 p-5 text-wuxia-gold shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
-                        <div className="flex items-center justify-between gap-3">
-                            <div>
-                                <div className="text-base font-semibold tracking-[0.16em]">应用更新</div>
-                                <div className="mt-1 text-xs text-wuxia-gold/70">{appUpdateStageText}</div>
-                            </div>
-                            <div className="text-sm font-semibold text-wuxia-gold/90">
-                                {appUpdateProgressPercent.toFixed(0)}%
-                            </div>
-                        </div>
-                        <div className="mt-4 h-2 overflow-hidden rounded-full border border-wuxia-gold/10 bg-black/50">
-                            <div
-                                className={`h-full transition-all duration-300 ${
-                                    appUpdateProgress.stage === 'error'
-                                        ? 'bg-gradient-to-r from-red-500/80 to-red-300/80'
-                                        : 'bg-gradient-to-r from-wuxia-gold/40 via-wuxia-gold to-wuxia-gold/60'
-                                }`}
-                                style={{ width: `${appUpdateProgressPercent}%` }}
-                            />
-                        </div>
-                        <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-wuxia-gold/90">
-                            {appUpdateProgress.message || '正在处理更新请求...'}
-                        </div>
-                        {appUpdateProgress.totalBytes && appUpdateProgress.totalBytes > 0 && (
-                            <div className="mt-3 text-xs text-wuxia-gold/65">
-                                已下载 {Math.max(0, Number(appUpdateProgress.downloadedBytes || 0)).toLocaleString()} / {Math.max(0, Number(appUpdateProgress.totalBytes || 0)).toLocaleString()} 字节
-                            </div>
-                        )}
-                        {appUpdateProgress.stage === 'completed' && (
-                            <div className="mt-3 text-xs leading-5 text-emerald-300/90">
-                                如果系统安装界面没有自动弹出，请检查“允许安装未知应用”权限后再试一次。
-                            </div>
-                        )}
-                        {appUpdateProgress.stage === 'error' && (
-                            <button
-                                type="button"
-                                onClick={() => setAppUpdateProgress(null)}
-                                className="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-red-300/35 bg-red-950/40 px-4 text-sm text-red-50"
-                            >
-                                关闭
-                            </button>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            <ReleaseNotesModal
-                open={showReleaseNotes}
-                isNativeApp={isNativeCapacitorEnvironment()}
-                suppressForToday={suppressReleaseNotesForToday}
-                onSuppressForTodayChange={setSuppressReleaseNotesForToday}
-                onClose={closeReleaseNotes}
-                onPrimaryAction={handleReleaseNotesPrimaryAction}
-                onOpenGithub={handleReleaseNotesOpenGithub}
-            />
 
             <InAppConfirmModal
                 open={confirmState.open}

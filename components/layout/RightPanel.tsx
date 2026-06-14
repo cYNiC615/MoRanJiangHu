@@ -22,7 +22,6 @@ interface Props {
     onOpenMemory: () => void;
     onOpenNovelExport?: () => void;
     onOpenImageManager?: () => void;
-    onOpenNovelDecomposition?: () => void;
     onOpenAuctionHouse?: () => void;
     auctionHouseLabel?: string;
     sectLabel?: string;
@@ -60,7 +59,6 @@ const RightPanel: React.FC<Props> = ({
     onOpenMemory,
     onOpenNovelExport,
     onOpenImageManager,
-    onOpenNovelDecomposition,
     onOpenAuctionHouse,
     auctionHouseLabel = '拍卖行',
     sectLabel = '门派',
@@ -130,7 +128,6 @@ const RightPanel: React.FC<Props> = ({
         { label: menuLabel?.memory || '记忆', action: onOpenMemory, color: 'primary' as const, changeKeys: ['记忆系统'] },
         ...(onOpenNovelExport ? [{ label: '导出小说', action: onOpenNovelExport, color: 'secondary' as const }] : []),
         ...(onOpenImageManager ? [{ label: menuLabel?.imageManager || '图册', action: onOpenImageManager, color: 'secondary' as const }] : []),
-        ...(onOpenNovelDecomposition ? [{ label: '分解工坊', action: onOpenNovelDecomposition, color: 'secondary' as const }] : []),
     ];
 
     const systemItems = [

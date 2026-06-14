@@ -22,7 +22,6 @@ type MenuId =
     | 'export_novel'
     | 'auction_house'
     | 'image_manager'
-    | 'novel_decomposition'
     | 'save'
     | 'load'
     | 'settings'
@@ -38,7 +37,6 @@ interface Props {
     enablePlanningPanel?: boolean;
     enableKungfu?: boolean;
     enableImageManager?: boolean;
-    enableNovelDecomposition?: boolean;
     auctionHouseLabel?: string;
     sectLabel?: string;
     uiLabels?: 题材界面文案;
@@ -92,7 +90,6 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     memory: { id: 'memory', label: '记忆', icon: 'memory' },
     export_novel: { id: 'export_novel', label: '导出', icon: 'novel' },
     image_manager: { id: 'image_manager', label: '图册', icon: 'grid' },
-    novel_decomposition: { id: 'novel_decomposition', label: '分解', icon: 'novel' },
     auction_house: { id: 'auction_house', label: '拍卖', icon: 'grid' },
     save: { id: 'save', label: '保存', icon: 'save' },
     load: { id: 'load', label: '读取', icon: 'load' },
@@ -109,7 +106,6 @@ const MobileQuickMenu: React.FC<Props> = ({
     enablePlanningPanel = true,
     enableKungfu = true,
     enableImageManager = false,
-    enableNovelDecomposition = false,
     auctionHouseLabel = '拍卖',
     sectLabel = '门派',
     uiLabels
@@ -170,11 +166,10 @@ const MobileQuickMenu: React.FC<Props> = ({
         metaFor(MENU_META.memory),
         MENU_META.export_novel,
         ...(enableImageManager ? [metaFor(MENU_META.image_manager)] : []),
-        ...(enableNovelDecomposition ? [MENU_META.novel_decomposition] : []),
         metaFor(MENU_META.save),
         metaFor(MENU_META.load),
         metaFor(MENU_META.settings),
-    ]), [auctionHouseLabel, enableHeroinePlan, enableImageManager, enableKungfu, enableNovelDecomposition, enablePlanningPanel, enableWorldPanel, sectLabel, uiLabels]);
+    ]), [auctionHouseLabel, enableHeroinePlan, enableImageManager, enableKungfu, enablePlanningPanel, enableWorldPanel, sectLabel, uiLabels]);
 
     const handleMenuClick = (menu: MenuId) => {
         onMenuClick(menu);

@@ -31,13 +31,11 @@ const WorldEvolutionModelSettings = React.lazy(() => lazyImportWithReload('setti
 const VariableModelSettings = React.lazy(() => lazyImportWithReload('settings-variable-model', () => import('./VariableModelSettings')));
 const PlanningModelSettings = React.lazy(() => lazyImportWithReload('settings-planning-model', () => import('./PlanningModelSettings')));
 const IndependentApiGptModeSettings = React.lazy(() => lazyImportWithReload('settings-independent-api-gpt-mode', () => import('./IndependentApiGptModeSettings')));
-const NovelDecompositionApiSettings = React.lazy(() => lazyImportWithReload('settings-novel-decomposition-api', () => import('./NovelDecompositionApiSettings')));
-const CurrentNovelDecompositionInjectionSettings = React.lazy(() => lazyImportWithReload('settings-novel-decomposition-runtime', () => import('./CurrentNovelDecompositionInjectionSettings')));
 const MusicSettings = React.lazy(() => lazyImportWithReload('settings-music', () => import('./MusicSettings')));
 const NpcManager = React.lazy(() => lazyImportWithReload('settings-npc-manager', () => import('./NpcManager')));
 const VariableManager = React.lazy(() => lazyImportWithReload('settings-variable-manager', () => import('./VariableManager')));
 
-type SettingsTab = 'api' | 'workflow_graph' | 'image_generation' | 'recall' | 'memory_summary_model' | 'memory_refine_model' | 'map_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'novel_decomposition' | 'novel_decomposition_runtime' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'music' | 'npc_management' | 'variable_manager';
+type SettingsTab = 'api' | 'workflow_graph' | 'image_generation' | 'recall' | 'memory_summary_model' | 'memory_refine_model' | 'map_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'music' | 'npc_management' | 'variable_manager';
 type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统', unknown>;
 
 type ContextSection = {
@@ -142,8 +140,6 @@ const SettingsModal: React.FC<Props> = ({
         { id: 'variable_model', label: '变量生成' },
         { id: 'planning_model', label: '规划分析' },
         { id: 'independent_api_gpt', label: '独立API GPT' },
-        { id: 'novel_decomposition', label: '小说分解接口' },
-        { id: 'novel_decomposition_runtime', label: '当前小说分解注入' },
         { id: 'prompt', label: '提示词' },
         { id: 'theme', label: '界面风格' },
         { id: 'storage', label: '数据存储' }
@@ -177,17 +173,6 @@ const SettingsModal: React.FC<Props> = ({
         if (activeTab === 'variable_model') return <VariableModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'planning_model') return <PlanningModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'independent_api_gpt' && gameConfig && onSaveGame) return <IndependentApiGptModeSettings settings={gameConfig} onSave={onSaveGame} />;
-        if (activeTab === 'novel_decomposition') return <NovelDecompositionApiSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'novel_decomposition_runtime') {
-            return (
-                <CurrentNovelDecompositionInjectionSettings
-                    settings={apiConfig}
-                    story={currentStory}
-                    openingConfig={openingConfig}
-                    playerName={typeof (runtimeState?.角色 as any)?.姓名 === 'string' ? (runtimeState.角色 as any).姓名 : ''}
-                />
-            );
-        }
         if (activeTab === 'prompt') return <PromptManager prompts={prompts} onUpdate={onUpdatePrompts} requestConfirm={requestConfirm} runtimePromptStates={contextSnapshot?.runtimePromptStates} />;
         if (activeTab === 'world') return <WorldSettings festivals={festivals || []} onUpdate={onUpdateFestivals} requestConfirm={requestConfirm} />;
         if (activeTab === 'theme') return <ThemeSettings currentTheme={currentTheme} onThemeChange={onThemeChange} />;

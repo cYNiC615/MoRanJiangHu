@@ -69,7 +69,6 @@ interface Props {
     onCloudPlay: () => void;
     onImageManager: () => void;
     onWorldbookManager: () => void;
-    onNovelDecomposition: () => void;
     onRequireWorkshopLogin?: () => void;
     onSettings: () => void;
     onOpenReleaseNotes: () => void;
@@ -597,7 +596,6 @@ const LandingPage: React.FC<Props> = ({
     onCloudPlay,
     onImageManager,
     onWorldbookManager,
-    onNovelDecomposition,
     onRequireWorkshopLogin,
     onSettings,
     onOpenReleaseNotes,
@@ -1008,7 +1006,6 @@ const LandingPage: React.FC<Props> = ({
             <CreativeWorkshopModal
                 open={workshopOpen}
                 onClose={() => setWorkshopOpen(false)}
-                onNovelDecomposition={onNovelDecomposition}
                 onRequireLogin={handleRequireWorkshopLogin}
                 apiConfig={apiConfig}
             />

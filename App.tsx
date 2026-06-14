@@ -26,7 +26,6 @@ import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActi
 import { MusicProvider } from './components/features/Music/MusicProvider';
 import { isNativeCapacitorEnvironment } from './utils/nativeRuntime';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
-import { 小说拆分后台调度服务 } from './services/novelDecompositionScheduler';
 import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { APK仅手动更新已启用 } from './utils/appUpdatePreferences';
 import { RELEASE_INFO } from './data/releaseInfo';
@@ -334,7 +333,6 @@ const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
 const CloudPlayModal = 创建可预加载懒组件('cloud-play-modal', () => import('./components/features/Auth/CloudPlayModal'));
 const MobileMusicPlayer = 创建可预加载懒组件('mobile-music-player', () => import('./components/features/Music/mobile/MobileMusicPlayer'));
-const NovelDecompositionWorkbenchModal = 创建可预加载懒组件('novel-decomposition-workbench-modal', () => import('./components/features/NovelDecomposition/NovelDecompositionWorkbenchModal'));
 const AuctionHouseModal = 创建可预加载懒组件('auction-house-modal', () => import('./components/features/AuctionHouse/AuctionHouseModal'));
 
 
@@ -492,7 +490,6 @@ const App: React.FC = () => {
     const [showCharacter, setShowCharacter] = React.useState(false);
     const [showImageManager, setShowImageManager] = React.useState(false);
     const [showWorldbookManager, setShowWorldbookManager] = React.useState(false);
-    const [showNovelDecompositionWorkbench, setShowNovelDecompositionWorkbench] = React.useState(false);
     const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
     const [showAuctionHouse, setShowAuctionHouse] = React.useState(false);
@@ -745,9 +742,6 @@ const App: React.FC = () => {
             case 'image_manager':
                 void openImageManagerWithCheck();
                 break;
-            case 'novel_decomposition':
-                void openNovelDecompositionWorkbench();
-                break;
             case 'save':
                 setters.setShowSaveLoad({ show: true, mode: 'save' });
                 break;
@@ -933,7 +927,6 @@ const App: React.FC = () => {
         setShowReleaseNotes(true);
     }, [state.view, state.gameConfig]);
     const confirmResolverRef = React.useRef<((value: boolean) => void) | null>(null);
-    const 最近小说分解报错提示IDRef = React.useRef('');
     const [confirmState, setConfirmState] = React.useState<(ConfirmOptions & { open: boolean })>({
         open: false,
         title: '请确认',
@@ -972,23 +965,6 @@ const App: React.FC = () => {
         window.addEventListener('resize', update);
         return () => window.removeEventListener('resize', update);
     }, []);
-
-    React.useEffect(() => {
-        const unsubscribe = 小说拆分后台调度服务.subscribe((schedulerState) => {
-            const latestErrorLog = [...(schedulerState.recentLogs || [])]
-                .reverse()
-                .find((log) => log.level === 'error');
-            if (!latestErrorLog) return;
-            if (最近小说分解报错提示IDRef.current === latestErrorLog.id) return;
-            最近小说分解报错提示IDRef.current = latestErrorLog.id;
-            actions.pushNotification({
-                title: '小说分解异常',
-                message: latestErrorLog.text,
-                tone: 'error'
-            });
-        });
-        return unsubscribe;
-    }, [actions]);
 
     React.useEffect(() => {
         if (state.view !== 'game' || typeof window === 'undefined') return;
@@ -1633,7 +1609,6 @@ const App: React.FC = () => {
         showAuctionHouse ? 当前题材市场名称 :
         showCloudPlay ? '云端游玩' :
         showImageManager ? '图册' :
-        showNovelDecompositionWorkbench ? '小说分解' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
         state.showSettings ? '设置' :
         showMobileMusic ? '音乐' :
@@ -1660,7 +1635,6 @@ const App: React.FC = () => {
         showAuctionHouse ? 'auction_house' :
         showCloudPlay ? 'cloud_play' :
         showImageManager ? 'image_manager' :
-        showNovelDecompositionWorkbench ? 'novel_decomposition' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
         state.showSettings ? 'settings' :
         showMobileMusic ? 'music' :
@@ -1687,7 +1661,6 @@ const App: React.FC = () => {
         || showAuctionHouse
         || showCloudPlay
         || showImageManager
-        || showNovelDecompositionWorkbench
         || safeShowSaveLoad.show
         || state.showSettings
     );
@@ -1796,7 +1769,6 @@ const App: React.FC = () => {
         setShowAuctionHouse(false);
         setShowCloudPlay(false);
         setShowImageManager(false);
-        setShowNovelDecompositionWorkbench(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
         setters.setShowSettings(false);
         setShowMobileMusic(false);
@@ -2489,7 +2461,6 @@ const App: React.FC = () => {
         setShowCloudPlay(true);
     }, []);
     const closeSettings = React.useCallback(() => setters.setShowSettings(false), [setters]);
-    const closeNovelDecompositionWorkbench = React.useCallback(() => setShowNovelDecompositionWorkbench(false), []);
     const closeNovelExport = React.useCallback(() => setShowNovelExport(false), []);
     const handleAllocateAttributePoint = React.useCallback((key: 可分配六维属性键) => {
         const nextCharacter = 分配角色属性点(state.角色, key);
@@ -2513,34 +2484,6 @@ const App: React.FC = () => {
     const closeWorldbookManager = React.useCallback(() => setShowWorldbookManager(false), []);
     const closeMobileMusic = React.useCallback(() => setShowMobileMusic(false), []);
     const openWorldbookManager = React.useCallback(() => setShowWorldbookManager(true), []);
-    const openNovelDecompositionWorkbench = React.useCallback(async () => {
-        const feature = state.apiConfig?.功能模型占位;
-        const 独立接口已配置 = Boolean(
-            feature?.小说拆分功能启用
-            && feature?.小说拆分独立模型开关
-            && (feature?.小说拆分使用模型 || '').trim()
-            && (feature?.小说拆分API地址 || '').trim()
-            && (feature?.小说拆分API密钥 || '').trim()
-        );
-
-        if (!独立接口已配置) {
-            const accepted = await requestConfirm({
-                title: '先配置小说分解独立 API',
-                message: '小说分解现在从首页独立打开。\n\n使用前请先在“设置 -> 小说分解接口”中启用并填写独立模型、API 地址和密钥。\n\n是否现在前往设置？',
-                confirmText: '前往设置',
-                cancelText: '取消'
-            });
-            if (accepted) {
-                closeAllPanels();
-                setters.setActiveTab('novel_decomposition');
-                setters.setShowSettings(true);
-            }
-            return;
-        }
-
-        closeAllPanels();
-        setShowNovelDecompositionWorkbench(true);
-    }, [closeAllPanels, requestConfirm, setters, state.apiConfig]);
     const handleStartFromLanding = React.useCallback(() => actions.handleStartNewGameWizard(), [actions]);
     const handleStartFromCloudPlay = React.useCallback(() => {
         closeCloudPlay();
@@ -2708,9 +2651,6 @@ const App: React.FC = () => {
             case '图册':
                 void openImageManagerWithCheck();
                 break;
-            case '小说分解':
-                void openNovelDecompositionWorkbench();
-                break;
             case '保存':
                 setters.setShowSaveLoad({ show: true, mode: 'save' });
                 break;
@@ -2727,7 +2667,7 @@ const App: React.FC = () => {
             default:
                 break;
         }
-    }, [activeMobileWindow, closeAllPanels, openImageManagerWithCheck, openNovelDecompositionWorkbench, setters, 启用修炼体系]);
+    }, [activeMobileWindow, closeAllPanels, openImageManagerWithCheck, setters, 启用修炼体系]);
 
     const toggleAppFullscreen = React.useCallback(async () => {
         const doc = document as Document & {
@@ -2765,10 +2705,6 @@ const App: React.FC = () => {
             closeWorldbookManager();
             return true;
         }
-        if (showNovelDecompositionWorkbench) {
-            closeNovelDecompositionWorkbench();
-            return true;
-        }
         if (showNovelExport) {
             closeNovelExport();
             return true;
@@ -2803,7 +2739,6 @@ const App: React.FC = () => {
         activeMobileWindowId,
         closeAllPanels,
         closeMobileMusic,
-        closeNovelDecompositionWorkbench,
         closeNovelExport,
         closeSaveLoad,
         closeSettings,
@@ -2811,7 +2746,6 @@ const App: React.FC = () => {
         isFullscreen,
         showImageManager,
         showMobileMusic,
-        showNovelDecompositionWorkbench,
         showNovelExport,
         showWorldbookManager,
         state,
@@ -2962,7 +2896,6 @@ const App: React.FC = () => {
                     onCloudPlay={openCloudPlay}
                     onImageManager={openImageManagerWithCheck}
                     onWorldbookManager={openWorldbookManager}
-                    onNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
                     onRequireWorkshopLogin={openCloudPlayForWorkshopLogin}
                     onSettings={openSettings}
                     onOpenReleaseNotes={openReleaseNotes}
@@ -3211,7 +3144,6 @@ const App: React.FC = () => {
                                          recall: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.剧情回忆非流式输出 ? 'non-stream' : 'stream',
                                          summary: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.记忆总结非流式输出 ? 'non-stream' : 'stream',
                                          refine: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.记忆精炼非流式输出 ? 'non-stream' : 'stream',
-                                         novel: state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.小说拆分非流式输出 ? 'non-stream' : 'stream',
                                      }}
                                  />
                             </div>
@@ -3251,7 +3183,6 @@ const App: React.FC = () => {
                                 sectLabel={组织入口显示名称}
                                 uiLabels={题材界面文案}
                                 onOpenImageManager={openImageManagerWithCheck}
-                                onOpenNovelDecomposition={() => { void openNovelDecompositionWorkbench(); }}
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
                                 worldEvolutionUpdating={meta.worldEvolutionUpdating}
                                 enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
@@ -3381,7 +3312,6 @@ const App: React.FC = () => {
                         enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
                         enableKungfu={启用修炼体系}
                         enableImageManager={true}
-                        enableNovelDecomposition={true}
                         auctionHouseLabel={当前题材市场名称}
                         sectLabel={组织入口显示名称}
                         uiLabels={题材界面文案}
@@ -3627,23 +3557,6 @@ const App: React.FC = () => {
                         requestConfirm={requestConfirm}
                     />
                 </懒加载边界>
-            )}
-
-            {showNovelDecompositionWorkbench && (
-                <div className={desktopRightDetailClass}>
-                <ModalErrorBoundary title="小说分解工作台打开失败" onClose={closeNovelDecompositionWorkbench}>
-                <懒加载边界>
-                    <NovelDecompositionWorkbenchModal
-                        open={showNovelDecompositionWorkbench}
-                        settings={state.apiConfig}
-                        onSave={actions.saveSettings}
-                        onClose={closeNovelDecompositionWorkbench}
-                        requestConfirm={requestConfirm}
-                        onNotify={actions.pushNotification}
-                    />
-                </懒加载边界>
-                </ModalErrorBoundary>
-                </div>
             )}
 
             {appUpdateProgress?.visible && (

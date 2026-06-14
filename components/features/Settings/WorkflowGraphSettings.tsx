@@ -11,7 +11,6 @@ import {
     获取地图自动更新接口配置,
     获取记忆总结接口配置,
     获取记忆精炼接口配置,
-    获取小说拆分接口配置,
     接口配置是否可用,
     规范化接口设置
 } from '../../../utils/apiConfig';
@@ -95,10 +94,6 @@ const stageToggleTips: Record<string, StageToggleConfig> = {
     refine: {
         enableKey: '记忆精炼独立模型开关',
         tipText: '记忆精炼由玩家手动触发，可将多条历史回忆合并为一条纪要。关闭后无法使用回忆整理功能。按需开启。'
-    },
-    novel: {
-        enableKey: '小说拆分功能启用',
-        tipText: '小说分解是离线数据处理阶段，用于构建同人小说的结构化数据集。不玩同人模式可以关闭。按需开启。'
     }
 };
 
@@ -111,8 +106,7 @@ const stageNonStreamKeys: Record<string, keyof 功能模型占位配置结构> =
     planning: '规划分析非流式输出',
     map: '地图自动更新非流式输出',
     summary: '记忆总结非流式输出',
-    refine: '记忆精炼非流式输出',
-    novel: '小说拆分非流式输出'
+    refine: '记忆精炼非流式输出'
 };
 
 const statusClass: Record<StageStatus, string> = {
@@ -205,7 +199,6 @@ const WorkflowGraphSettings: React.FC<{
         const mapApi = 获取地图自动更新接口配置(normalized);
         const memorySummaryApi = 获取记忆总结接口配置(normalized);
         const memoryRefineApi = 获取记忆精炼接口配置(normalized);
-        const novelApi = 获取小说拆分接口配置(normalized);
 
         return [
             buildStage(normalized, {
@@ -410,27 +403,6 @@ const WorkflowGraphSettings: React.FC<{
                     enableKeys: ['记忆精炼独立模型开关']
                 },
                 note: '由回忆整理入口触发，可复用记忆总结或独立渠道。'
-            }),
-            buildStage(normalized, {
-                id: 'novel',
-                title: '小说分解',
-                subtitle: '数据集构建',
-                row: 9,
-                order: 2,
-                enabled: Boolean(feature.小说拆分功能启用),
-                fallback: !feature.小说拆分独立模型开关,
-                api: novelApi,
-                configTab: 'novel_decomposition',
-                modelConfig: {
-                    kind: 'placeholder',
-                    title: '小说分解',
-                    modelKey: '小说拆分使用模型',
-                    channelKey: '小说拆分渠道ID',
-                    baseUrlKey: '小说拆分API地址',
-                    apiKeyKey: '小说拆分API密钥',
-                    enableKeys: ['小说拆分功能启用', '小说拆分独立模型开关']
-                },
-                note: '离线/后台数据处理阶段，不会自动等同于注入世界观。'
             })
         ];
     }, [feature, mainApi, normalized]);

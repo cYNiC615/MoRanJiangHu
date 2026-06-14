@@ -19,8 +19,7 @@ const 功能项列表: Array<{
     { key: '文章优化', title: '文章优化', description: '让正文优化链路按真实润色任务直接触发。' },
     { key: '世界演变', title: '世界演变', description: '让世界演变使用真实任务提示作为本轮触发消息。' },
     { key: '变量生成', title: '变量生成', description: '让变量生成直接以当前变量任务作为触发消息。' },
-    { key: '规划分析', title: '规划分析', description: '让规划分析直接以本轮规划审计任务作为触发消息。' },
-    { key: '小说拆分', title: '小说分解', description: '让小说分解按当前分段任务直接发起，而不是固定开始任务。' }
+    { key: '规划分析', title: '规划分析', description: '让规划分析直接以本轮规划审计任务作为触发消息。' }
 ];
 
 const IndependentApiGptModeSettings: React.FC<Props> = ({ settings, onSave }) => {

@@ -20,7 +20,6 @@ import CurrencySystemEditor from './CurrencySystemEditor';
 interface Props {
     open: boolean;
     onClose: () => void;
-    onNovelDecomposition: () => void;
     onRequireLogin?: () => void;
     apiConfig?: 接口设置结构;
 }
@@ -765,7 +764,7 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
     };
 };
 
-const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecomposition, onRequireLogin, apiConfig }) => {
+const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin, apiConfig }) => {
     const [activeType, setActiveType] = useState<创意工坊模块类型>('topic');
     const [sourceFilter, setSourceFilter] = useState<来源筛选>('all');
     const [entries, setEntries] = useState<创意工坊模块条目[]>([]);
@@ -1495,16 +1494,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onNovelDecompos
                 <div className="max-h-[calc(92vh-118px)] overflow-y-auto p-5">
                     {previewEntry ? 渲染注入预览页面(previewEntry) : (
                     <>
-                    <button type="button" onClick={() => { onClose(); onNovelDecomposition(); }} className="mb-4 w-full rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4 text-left transition-colors hover:bg-emerald-500/15">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <div className="text-sm font-bold tracking-[0.14em] text-emerald-300">小说分解模块</div>
-                                <div className="mt-2 text-xs leading-5 text-gray-300">导入、拆章、续跑、分段校对、发布和下载小说分解分享 ZIP。</div>
-                            </div>
-                            <div className="shrink-0 border border-emerald-500/30 px-2 py-1 text-[10px] tracking-[0.14em] text-emerald-200">进入工作台</div>
-                        </div>
-                    </button>
-
                     <div className="mb-4 grid gap-2 sm:grid-cols-4">
                         {可展示工坊分区.map((section) => (
                             <button key={section.id} type="button" onClick={() => setActiveType(section.id)} className={`rounded-xl border p-3 text-left transition-colors ${activeType === section.id ? 'border-wuxia-gold/50 bg-wuxia-gold/15 text-wuxia-gold' : 'border-white/10 bg-white/[0.03] text-gray-200 hover:border-wuxia-gold/30'}`}>

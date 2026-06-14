@@ -463,8 +463,8 @@ const StorageManager: React.FC<Props> = ({ requestConfirm }) => {
             }
             const result = await dbService.导入全部设置备份(parsed.value, { 保留现有APIKey: protectApiKey });
             const repairedTip = parsed.usedRepair ? '（文件有格式问题，已自动修复）' : '';
-            await refreshStorageView();
-            pushNotice('success', `导入完成：已应用 ${result.appliedKeys.length} 项设置，跳过 ${result.skippedKeys.length} 项${repairedTip}`);
+            pushNotice('success', `导入完成：已应用 ${result.appliedKeys.length} 项设置，跳过 ${result.skippedKeys.length} 项，即将刷新页面${repairedTip}`);
+            window.setTimeout(() => { window.location.reload(); }, 800);
         } catch (error: any) {
             pushNotice('error', `导入失败：${error?.message || '未知错误'}`);
         } finally {

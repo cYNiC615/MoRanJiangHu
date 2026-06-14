@@ -13,6 +13,9 @@ interface Props {
     worldEvolutionLastRawText?: string;
     onForceUpdate?: () => Promise<string | null> | string | null;
     onClose: () => void;
+    social?: any[];
+    playerLocation?: string;
+    playerLocationPath?: string;
 }
 
 type TabType = 'events' | 'npcs' | 'overview';
@@ -59,7 +62,10 @@ const MobileWorldModal: React.FC<Props> = ({
     worldEvolutionLastSummary = [],
     worldEvolutionLastRawText = '',
     onForceUpdate,
-    onClose
+    onClose,
+    social = [],
+    playerLocation = '',
+    playerLocationPath = ''
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>('events');
     const [localNotice, setLocalNotice] = useState('');
@@ -69,6 +75,17 @@ const MobileWorldModal: React.FC<Props> = ({
     const 进行中事件 = useMemo(() => Array.isArray(world?.进行中事件) ? world.进行中事件 : [], [world]);
     const 已结算事件 = useMemo(() => Array.isArray(world?.已结算事件) ? world.已结算事件 : [], [world]);
     const 活跃NPC列表 = useMemo(() => Array.isArray(world?.活跃NPC列表) ? world.活跃NPC列表 : [], [world]);
+    const 玩家可见活跃NPC = useMemo(() => {
+        const 社交姓名集 = new Set((Array.isArray(social) ? social : []).map((npc: any) => typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '').filter(Boolean));
+        return 活跃NPC列表.filter((npc: any) => {
+            const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '';
+            if (npcName && 社交姓名集.has(npcName)) return true;
+            const npcLoc = (typeof npc?.当前位置 === 'string' ? npc.当前位置 : '') || (typeof npc?.位置路径 === 'string' ? npc.位置路径 : '');
+            if (npcLoc && playerLocation && npcLoc.includes(playerLocation)) return true;
+            if (npcLoc && playerLocationPath && npcLoc.includes(playerLocationPath)) return true;
+            return false;
+        });
+    }, [活跃NPC列表, social, playerLocation, playerLocationPath]);
     const 世界镜头规划 = useMemo(() => Array.isArray(world?.世界镜头规划) ? world.世界镜头规划 : [], [world]);
     const 江湖史册 = useMemo(() => Array.isArray(world?.江湖史册) ? world.江湖史册 : [], [world]);
     const 势力列表 = useMemo(() => Array.isArray(world?.势力列表) ? world.势力列表 : [], [world]);
@@ -310,7 +327,7 @@ const MobileWorldModal: React.FC<Props> = ({
                             )}
 
                             <div className="px-2 pt-4 pb-1 text-[11px] font-bold text-wuxia-cyan tracking-widest">活跃群英</div>
-                            {活跃NPC列表.length > 0 ? 活跃NPC列表.map((npc, idx) => (
+                            {玩家可见活跃NPC.length > 0 ? 玩家可见活跃NPC.map((npc, idx) => (
                                 <div key={`npc-${idx}`} className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-black/80 to-cyan-950/10 p-4">
                                     <div className="flex justify-between items-start">
                                         <div className="text-base font-bold text-wuxia-cyan">{npc.姓名 || `NPC ${idx + 1}`}</div>
@@ -330,7 +347,7 @@ const MobileWorldModal: React.FC<Props> = ({
                                     </div>
                                 </div>
                             )) : (
-                                <div className="rounded-3xl border border-dashed border-gray-800 bg-black/30 px-4 py-16 text-center text-sm text-gray-500">天机晦暗，不见群英行迹。</div>
+                                <div className="rounded-3xl border border-dashed border-gray-800 bg-black/30 px-4 py-16 text-center text-sm text-gray-500">{活跃NPC列表.length > 0 ? '群英行迹尚不为你所知。' : '天机晦暗，不见群英行迹。'}</div>
                             )}
                         </div>
                     )}

@@ -13,6 +13,9 @@ interface Props {
     worldEvolutionLastRawText?: string;
     onForceUpdate?: () => Promise<string | null> | string | null;
     onClose: () => void;
+    social?: any[];
+    playerLocation?: string;
+    playerLocationPath?: string;
 }
 
 type TabType = 'events' | 'npcs' | 'overview';
@@ -61,7 +64,10 @@ const WorldModal: React.FC<Props> = ({
     worldEvolutionLastSummary = [],
     worldEvolutionLastRawText = '',
     onForceUpdate,
-    onClose
+    onClose,
+    social = [],
+    playerLocation = '',
+    playerLocationPath = ''
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>('events');
     const [localNotice, setLocalNotice] = useState('');
@@ -72,6 +78,15 @@ const WorldModal: React.FC<Props> = ({
     const 进行中事件 = Array.isArray(world?.进行中事件) ? world.进行中事件 : [];
     const 已结算事件 = Array.isArray(world?.已结算事件) ? world.已结算事件 : [];
     const 活跃NPC列表 = Array.isArray(world?.活跃NPC列表) ? world.活跃NPC列表 : [];
+    const 社交姓名集 = new Set((Array.isArray(social) ? social : []).map((npc: any) => typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '').filter(Boolean));
+    const 玩家可见活跃NPC = 活跃NPC列表.filter((npc: any) => {
+        const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim() : '';
+        if (npcName && 社交姓名集.has(npcName)) return true;
+        const npcLoc = (typeof npc?.当前位置 === 'string' ? npc.当前位置 : '') || (typeof npc?.位置路径 === 'string' ? npc.位置路径 : '');
+        if (npcLoc && playerLocation && npcLoc.includes(playerLocation)) return true;
+        if (npcLoc && playerLocationPath && npcLoc.includes(playerLocationPath)) return true;
+        return false;
+    });
     const 世界镜头规划 = Array.isArray(world?.世界镜头规划) ? world.世界镜头规划 : [];
     const 江湖史册 = Array.isArray(world?.江湖史册) ? world.江湖史册 : [];
     const 势力列表 = Array.isArray(world?.势力列表) ? world.势力列表 : [];
@@ -384,7 +399,7 @@ const WorldModal: React.FC<Props> = ({
                                 )}
 
                                 <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                {活跃NPC列表.length > 0 ? 活跃NPC列表.map((npc, idx) => (
+                                {玩家可见活跃NPC.length > 0 ? 玩家可见活跃NPC.map((npc, idx) => (
                                     <div key={`npc-${idx}`} className="rounded-2xl border border-gray-800 bg-black/35 p-5">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
@@ -406,7 +421,7 @@ const WorldModal: React.FC<Props> = ({
                                             <div className="rounded border border-gray-800 bg-black/30 p-2">行动结束：{格式化时间展示(npc.行动结束时间)}</div>
                                         </div>
                                     </div>
-                                )) : <div className="col-span-full text-center py-24 text-gray-600 italic">当前没有活跃 NPC 轨迹。</div>}
+                                )) : <div className="col-span-full text-center py-24 text-gray-600 italic">{活跃NPC列表.length > 0 ? '活跃 NPC 的信息尚未被你探知。' : '当前没有活跃 NPC 轨迹。'}</div>}
                                 </section>
                             </div>
                         )}

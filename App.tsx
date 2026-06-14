@@ -536,10 +536,7 @@ const App: React.FC = () => {
         if (typeof window === 'undefined') return 1280;
         return window.innerWidth;
     });
-    const [isMobile, setIsMobile] = React.useState<boolean>(() => {
-        if (typeof window === 'undefined') return false;
-        return window.matchMedia('(max-width: 767px)').matches;
-    });
+    const isMobile = false; // 个人定制版：不做移动端适配
     const [isFullscreen, setIsFullscreen] = React.useState<boolean>(() => {
         if (typeof document === 'undefined') return false;
         const doc = document as Document & {
@@ -966,14 +963,6 @@ const App: React.FC = () => {
             confirmResolverRef.current = null;
         }
         setConfirmState((prev) => ({ ...prev, open: false }));
-    }, []);
-
-    React.useEffect(() => {
-        const mq = window.matchMedia('(max-width: 767px)');
-        const update = () => setIsMobile(mq.matches);
-        update();
-        mq.addEventListener('change', update);
-        return () => mq.removeEventListener('change', update);
     }, []);
 
     React.useEffect(() => {
@@ -4186,6 +4175,9 @@ const App: React.FC = () => {
                                     worldEvolutionLastRawText={meta.worldEvolutionLastRawText}
                                     onForceUpdate={actions.handleForceWorldEvolutionUpdate}
                                     onClose={() => setters.setShowWorld(false)}
+                                    social={state.社交}
+                                    playerLocation={state.环境?.具体地点 || state.环境?.当前位置 || ''}
+                                    playerLocationPath={state.环境?.位置路径 || ''}
                                 />
                             ) : (
                                 <WorldModal
@@ -4198,6 +4190,9 @@ const App: React.FC = () => {
                                     worldEvolutionLastRawText={meta.worldEvolutionLastRawText}
                                     onForceUpdate={actions.handleForceWorldEvolutionUpdate}
                                     onClose={() => setters.setShowWorld(false)}
+                                    social={state.社交}
+                                    playerLocation={state.环境?.具体地点 || state.环境?.当前位置 || ''}
+                                    playerLocationPath={state.环境?.位置路径 || ''}
                                 />
                             )}
                         </懒加载边界>

@@ -235,16 +235,23 @@ describe('homebrew dead feature registry', () => {
         expect(landing).not.toContain('online-ranking.html');
         expect(landing).not.toContain('presenceStats');
         expect(landing).not.toContain('presenceHistory');
+
+        expect(projectFileExists('public/online-ranking.html')).toBe(false);
+        expect(projectFileExists('public/admin/online.html')).toBe(false);
     });
 
     it('records online presence backend and public pages as pending removal', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('online_presence_public_ops');
         expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('static_pages_removed');
         expect(registry).toContain('backend_pending');
         expect(registry).toContain('services/onlinePresence.ts');
+        expect(registry).toContain('functions/api/admin/online');
         expect(registry).toContain('public/online-ranking.html');
+        expect(registry).toContain('public/admin/online.html');
         expect(registry).toContain('tests/online-ranking-session-regression.test.ts');
+        expect(registry).toContain('tests/e2e-admin-online.spec.mjs');
     });
 
     it('removes festival settings, top-bar display, and automatic festival side effects', () => {

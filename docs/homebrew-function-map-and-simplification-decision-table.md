@@ -142,7 +142,7 @@
 | Music / Audio Cues | 背景音乐、播放器、音乐设置、曲库持久化、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/turnNotificationSound.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具、回合提示音开关、播放副作用和音频资产；旧存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 入口已移除/后端待删 | 首页 GitHub 同步按钮和 Cloud Play 挂载已移除；未挂载 Auth 组件、OAuth hook 和 API 仍待删 |
-| Online Presence/Public Ops | 在线心跳、首页在线人数、公开在线时长榜 | `App.tsx`, `components/layout/LandingPage.tsx`, `services/onlinePresence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表和在线时长榜入口；图表 helper、服务、API、静态页和测试仍待删 |
+| Online Presence/Public Ops | 在线心跳、首页在线人数、公开在线时长榜 | `App.tsx`, `components/layout/LandingPage.tsx`, `services/onlinePresence.ts`, `functions/api/admin/online` | 静态入口已移除/后端待删 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表、在线时长榜入口、公开排行榜静态页和在线管理静态页；图表 helper、服务、API 和测试仍待删 |
 | NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 入口已移除/后端待删 | Phase 1 已移除顶部/侧栏/设置/创意工坊/新建角入口；服务、模型、prompt、测试和存储键仍待后端清理 |
 
 ## 7. 服务与数据功能地图
@@ -155,13 +155,13 @@
 | GitHub 同步 | GitHub 云存档、多设备同步 | `services/githubSync.ts`, `functions/api/github` | 入口已移除/后端待删 | 首页同步按钮已移除；服务、OAuth、API 和测试仍待删 |
 | Object/WebDAV 同步 | 对象存储、WebDAV、多设备同步 | `services/objectStorageSync.ts`, `services/webdavSync.ts`, `functions/api/object-storage-proxy.ts`, `functions/api/webdav-proxy.ts` | 入口已移除/后端待删 | SaveLoad 转云端入口已移除；Auth 面板、设置键、服务和 API 仍待删 |
 | Cloud Play | 云端游玩、返回主页同步 | `services/cloudPlayService.ts`, `functions/api/cloud-play.ts` | 入口和自动副作用已移除/后端待删 | `App.tsx` 不再挂载 CloudPlayModal，也不再在返回首页时等待/触发云同步；服务/API/storage 仍待删 |
-| Online Presence/Public Ops | 在线心跳、公开在线统计、在线时长榜 | `services/onlinePresence.ts`, `functions/api/online-presence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | `App.tsx` 不再启动心跳，首页不再请求/展示在线人数；服务、API、静态榜页、localStorage 历史和测试仍待删 |
+| Online Presence/Public Ops | 在线心跳、公开在线统计、在线时长榜 | `services/onlinePresence.ts`, `functions/api/admin/online` | 静态入口已移除/后端待删 | `App.tsx` 不再启动心跳，首页不再请求/展示在线人数；公开排行榜和在线管理静态页已删除；服务、API、localStorage 历史和测试仍待删 |
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 入口已移除/后端待删 | Phase 1 已删除 App 自动检查/下载/进度弹窗、首页 APK 下载/检查、设置开关和本地镜像写入；release scripts/API/Android 仍待删 |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 入口和自动列表已移除/后端待删 | `列出创意工坊模块` 不再 fetch 云端列表；保留本地模式包时后续删除 publish/edit/delete/download API |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口已移除/后端待删 | 前端可见入口已断；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 新建角入口已移除/后端待删 | 新建角同人配置入口已断；创意工坊、提示词、设置和 API 残留后续清理 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 已降级为正文氛围/模型待删 | Phase 1 已删除节日默认数据、设置入口、天气/节日 TopBar 展示、强制上下文、prompt/schema 写入要求、AI 命令写入路径和自动环境写入；`环境.节日` / `环境.天气` 模型字段和旧存档残留待强迁移 |
-| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
+| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口已移除/后端待删 | 不改二手市场，不保留拍卖行；Phase 1 已断玩家入口，服务、图片数据、脚本、prompt 和模型字段后续深删 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
 | Diagnostic | 上下文诊断、日志、报告 | `services/diagnostic*`, `components/features/Settings/WorkflowGraphSettings.tsx` | 保留开发态 | 可从玩家 UI 隐藏，研发保留 |
@@ -208,8 +208,8 @@
 | GitHub/WebDAV/Object 云同步 | 入口已移除/后端待删 | 用户明确不做多设备同步 | 已从首页、移动菜单、SaveLoad 入口解绑；下一步拆 saveCoordinator、服务、API、storage key |
 | 社区 UGC/云工坊 | 入口已移除/后端待删 | 用户明确不做社区 UGC | 已保留本地 JSON 导入、下载 JSON、复制摘要和本地工作流保存；后续删除 workshop API、发布/编辑/删除/下载云端 helper 和旧反馈数据 |
 | 云端游玩 | 入口已移除/后端待删 | 更像公共运营/多设备功能，不属于个人本地 homebrew | 已删除 CloudPlayModal 挂载、首页云端入口和 SaveLoad 转云端入口；返回主页同步副作用和相关 API 仍待删 |
-| 公共在线状态/在线榜 | 入口已移除/后端待删 | 在线心跳、在线人数和公开时长榜是公共运营功能，不服务本地单机 AI RP 核心 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表和在线时长榜入口；服务/API/静态页/测试待删 |
-| 管理后台/公共运营 | 准备移除或开发态隐藏 | 不服务个人 homebrew 主体验 | 先从玩家入口隐藏 |
+| 公共在线状态/在线榜 | 静态入口已移除/后端待删 | 在线心跳、在线人数和公开时长榜是公共运营功能，不服务本地单机 AI RP 核心 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表、在线时长榜入口和公开排行榜静态页；服务/API/测试待删 |
+| 管理后台/公共运营 | 静态入口已移除/后端待删 | 不服务个人 homebrew 主体验 | Phase 1 已删除 `public/admin/online.html`；管理 API 和 E2E 测试后续随在线状态后端清理 |
 | 旧存档兼容 | 不保留 | 当前 fork 暂时个人使用，保兼容会拖慢精简 | 迁移只服务当前 homebrew 默认状态，不兼容旧武侠存档 |
 | 全局类型债与 warning | 准备治理 | 当前 `npx tsc --noEmit` 已不可作为绿色验证；整体精简后必须回到 0 error / 0 warning | 每次删模块同步修测试和类型，最终设为硬门禁 |
 
@@ -269,7 +269,7 @@ Phase 1 全局完成的标准：下面所有明确废弃功能族都至少达到
 | 同人/小说分解 | 断开新建角、设置、工坊、全局工作台入口 | 已断入口，后端/prompt/storage 待删 |
 | 云同步/云端游玩 | 断开玩家入口和保存/返回主页自动同步副作用 | 已断入口和副作用，后端/API/storage 待删 |
 | 社区 UGC/云工坊 | 保留本地模式包，移除投稿、社区发布、云端编辑/删除/反馈入口 | 已断入口和自动云端列表，后端/API/storage 待删 |
-| 公共在线状态/在线榜 | 删除心跳、首页在线统计和公开榜入口 | 已断入口和心跳，后端/API/静态页待删 |
+| 公共在线状态/在线榜 | 删除心跳、首页在线统计和公开榜入口 | 已断入口、心跳和静态页，后端/API/测试待删 |
 | 移动端 | 删除移动入口、移动布局和移动组件挂载 | App 壳入口已断，移动组件/Capacitor/测试待删 |
 | Android/APK | 删除更新检查、下载、发布面板、APK 设置入口和自动检查 | 已断入口和自动效果，后端/release/android 待删 |
 | 旧战斗 | 删除旧战斗面板和菜单；后续另做轻量级对抗系统 | 已断入口，后端/prompt/model 待删 |

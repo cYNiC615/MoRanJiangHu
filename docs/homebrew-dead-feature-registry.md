@@ -12,6 +12,8 @@ hide backend code, stored data, prompts, or tests that still need a later pass.
 - `automatic_side_effect_removed`: Startup, save, navigation, timer, heartbeat,
   or background side effects for a retired feature have been disconnected from
   active player flows.
+- `static_pages_removed`: Static public/admin HTML pages for a retired feature
+  have been deleted from `public/`, so they are no longer direct URL entrypoints.
 - `backend_removed`: Runtime files, services, model fields, storage schema
   readers, or tests for the feature have been deleted from active code paths.
 - `backend_pending`: Services, prompts, models, API routes, storage keys, or
@@ -590,7 +592,8 @@ focused passes:
 - Reason: Public online heartbeat, online player counts, and online-duration
   ranking are public-operations/community surfaces, not part of the local
   homebrew AI-RPG core loop.
-- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+- Current status: `entrypoint_removed`, `static_pages_removed`,
+  `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -599,18 +602,21 @@ focused passes:
 - `components/layout/LandingPage.tsx`: no longer fetches public online stats,
   stores homepage online history state, renders the online-count chart, or links
   to the public online-duration ranking page.
+- Deleted `public/online-ranking.html`, the direct public online-duration
+  ranking page.
+- Deleted `public/admin/online.html`, the direct admin dashboard page for online
+  presence.
 
 ### Frontend Code Still Pending
 
 - `components/layout/LandingPage.tsx`: dead online-chart helper code still
   exists but is not rendered and no longer fetches online data. Delete it with
-  the backend/static-page cleanup pass.
+  the backend cleanup pass.
 
-### Backend, Static Pages, And Data Pending
+### Backend, API, And Data Pending
 
 - `services/onlinePresence.ts`
-- `functions/api/online-presence.ts`
-- `public/online-ranking.html`
+- `functions/api/admin/online`
 - localStorage key: `moranjianghu.onlineHourlyHistory`
 - Any release/homepage copy that still treats public online stats as a product
   surface should be removed during the same pass.
@@ -618,8 +624,10 @@ focused passes:
 ### Tests Still Pending
 
 - `tests/online-ranking-session-regression.test.ts`
-- Any worker/API tests that target public online presence or public ranking
-  endpoints should be deleted with the backend pass.
+- `tests/e2e-admin-online.spec.mjs`
+- Any worker/API tests that target public online presence, admin online
+  dashboards, or public ranking endpoints should be deleted with the backend
+  pass.
 
 ### Storage And Migration Notes
 

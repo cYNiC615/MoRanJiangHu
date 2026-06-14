@@ -1,9 +1,7 @@
 import React from 'react';
-import { App as CapacitorApp } from '@capacitor/app';
 import TopBar from './components/layout/TopBar';
 import LeftPanel from './components/layout/LeftPanel';
 import RightPanel from './components/layout/RightPanel';
-import MobileQuickMenu from './components/layout/MobileQuickMenu';
 import ChatList from './components/features/Chat/ChatList';
 import InputArea from './components/features/Chat/InputArea';
 import LandingPage from './components/layout/LandingPage';
@@ -22,7 +20,6 @@ import { 生成物品图标 } from './services/ai/itemImageGeneration';
 import { 合并物品图片档案, 获取物品图标复用Key, 物品已有可用图标, 获取物品已选图标地址 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
-import { isNativeCapacitorEnvironment } from './utils/nativeRuntime';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 构建拍卖行存储作用域, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
@@ -279,40 +276,24 @@ const 创建可预加载懒组件 = <T extends React.ComponentType<any>>(
 };
 
 const CharacterModal = 创建可预加载懒组件('character-modal', () => import('./components/features/Character/CharacterModal'));
-const MobileCharacter = 创建可预加载懒组件('mobile-character', () => import('./components/features/Character/MobileCharacter'));
 const NewGameWizard = 创建可预加载懒组件('new-game-wizard', () => import('./components/features/NewGame/NewGameWizard'));
-const MobileNewGameWizard = 创建可预加载懒组件('mobile-new-game-wizard', () => import('./components/features/NewGame/mobile/MobileNewGameWizard'));
 const SettingsModal = 创建可预加载懒组件('settings-modal', () => import('./components/features/Settings/SettingsModal'));
-const MobileSettingsModal = 创建可预加载懒组件('mobile-settings-modal', () => import('./components/features/Settings/mobile/MobileSettingsModal'));
 const InventoryModal = 创建可预加载懒组件('inventory-modal', () => import('./components/features/Inventory/InventoryModal'));
-const MobileInventoryModal = 创建可预加载懒组件('mobile-inventory-modal', () => import('./components/features/Inventory/MobileInventoryModal'));
 const EquipmentModal = 创建可预加载懒组件('equipment-modal', () => import('./components/features/Equipment/EquipmentModal'));
 const SocialModal = 创建可预加载懒组件('social-modal', () => import('./components/features/Social/SocialModal'));
-const MobileSocial = 创建可预加载懒组件('mobile-social', () => import('./components/features/Social/MobileSocial'));
 const ImageManagerModal = 创建可预加载懒组件('image-manager-modal', () => import('./components/features/Social/ImageManagerModal'));
-const MobileImageManagerModal = 创建可预加载懒组件('mobile-image-manager-modal', () => import('./components/features/Social/mobile/MobileImageManagerModal'));
 const WorldbookManagerModal = 创建可预加载懒组件('worldbook-manager-modal', () => import('./components/features/Worldbook/WorldbookManagerModal'));
 const TeamModal = 创建可预加载懒组件('team-modal', () => import('./components/features/Team/TeamModal'));
-const MobileTeamModal = 创建可预加载懒组件('mobile-team-modal', () => import('./components/features/Team/MobileTeamModal'));
 const WorldModal = 创建可预加载懒组件('world-modal', () => import('./components/features/World/WorldModal'));
-const MobileWorldModal = 创建可预加载懒组件('mobile-world-modal', () => import('./components/features/World/MobileWorldModal'));
 const MapModal = 创建可预加载懒组件('map-modal', () => import('./components/features/Map/MapModal'));
-const MobileMapModal = 创建可预加载懒组件('mobile-map-modal', () => import('./components/features/Map/MobileMapModal'));
 const TaskModal = 创建可预加载懒组件('task-modal', () => import('./components/features/Task/TaskModal'));
-const MobileTask = 创建可预加载懒组件('mobile-task', () => import('./components/features/Task/MobileTask'));
 const AgreementModal = 创建可预加载懒组件('agreement-modal', () => import('./components/features/Agreement/AgreementModal'));
-const MobileAgreementModal = 创建可预加载懒组件('mobile-agreement-modal', () => import('./components/features/Agreement/MobileAgreementModal'));
 const StoryModal = 创建可预加载懒组件('story-modal', () => import('./components/features/Story/StoryModal'));
-const MobileStory = 创建可预加载懒组件('mobile-story', () => import('./components/features/Story/MobileStory'));
 const HeroinePlanModal = 创建可预加载懒组件('heroine-plan-modal', () => import('./components/features/Story/HeroinePlanModal'));
-const MobileHeroinePlanModal = 创建可预加载懒组件('mobile-heroine-plan-modal', () => import('./components/features/Story/MobileHeroinePlanModal'));
 const NovelExportModal = 创建可预加载懒组件('novel-export-modal', () => import('./components/features/Story/NovelExportModal'));
 const MemoryModal = 创建可预加载懒组件('memory-modal', () => import('./components/features/Memory/MemoryModal'));
-const MobileMemory = 创建可预加载懒组件('mobile-memory', () => import('./components/features/Memory/MobileMemory'));
 const MemorySummaryFlowModal = 创建可预加载懒组件('memory-summary-flow-modal', () => import('./components/features/Memory/MemorySummaryFlowModal'));
-const MemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-memory-summary-flow-modal', () => import('./components/features/Memory/MemorySummaryFlowMobileModal'));
 const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowModal'));
-const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowMobileModal'));
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
 
 
@@ -338,22 +319,6 @@ const 桌面轻量预热目标 = [
     MemoryModal,
     SaveLoadModal,
     NovelExportModal
-] as const;
-
-const 移动端轻量预热目标 = [
-    MobileCharacter,
-    MobileSettingsModal,
-    MobileInventoryModal,
-    MobileTeamModal,
-    MobileSocial,
-    MobileWorldModal,
-    MobileMapModal,
-    MobileTask,
-    MobileAgreementModal,
-    MobileStory,
-    MobileHeroinePlanModal,
-    MobileMemory,
-    SaveLoadModal
 ] as const;
 
 const 网络较慢或节省流量 = (connection?: 可选网络信息 | null): boolean => {
@@ -493,15 +458,6 @@ const App: React.FC = () => {
         if (typeof window === 'undefined') return 1280;
         return window.innerWidth;
     });
-    const isMobile = false; // 个人定制版：不做移动端适配
-    const [isFullscreen, setIsFullscreen] = React.useState<boolean>(() => {
-        if (typeof document === 'undefined') return false;
-        const doc = document as Document & {
-            webkitFullscreenElement?: Element;
-            msFullscreenElement?: Element;
-        };
-        return Boolean(document.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement);
-    });
     const autoItemImageRunningRef = React.useRef<Set<string>>(new Set());
     const autoItemImageScheduledRef = React.useRef<Set<string>>(new Set());
     const autoItemImageRecentSuccessRef = React.useRef<Map<string, 物品自动生图近期结果>>(new Map());
@@ -612,69 +568,6 @@ const App: React.FC = () => {
         window.addEventListener('moranjianghu:auction-house-loaded', handleAuctionLoaded);
         return () => window.removeEventListener('moranjianghu:auction-house-loaded', handleAuctionLoaded);
     }, []);
-    function handleMobileMenuAction(menu: string) {
-        const isActive = activeMobileWindowId === menu;
-        closeAllPanels();
-        if (isActive) return;
-
-        switch (menu) {
-            case 'character':
-                setShowCharacter(true);
-                break;
-            case 'equipment':
-                setters.setShowEquipment(true);
-                break;
-            case 'inventory':
-                setters.setShowInventory(true);
-                break;
-            case 'social':
-                setters.setShowSocial(true);
-                break;
-            case 'world':
-                setters.setShowWorld(true);
-                break;
-            case 'map':
-                setters.setShowMap(true);
-                break;
-            case 'team':
-                setters.setShowTeam(true);
-                break;
-            case 'task':
-                setters.setShowTask(true);
-                break;
-            case 'agreement':
-                setters.setShowAgreement(true);
-                break;
-            case 'story':
-                setters.setShowStory(true);
-                break;
-            case 'plan':
-                setters.setShowHeroinePlan(true);
-                break;
-            case 'memory':
-                setters.setShowMemory(true);
-                break;
-            case 'export_novel':
-                setShowNovelExport(true);
-                break;
-            case 'image_manager':
-                void openImageManagerWithCheck();
-                break;
-            case 'save':
-                setters.setShowSaveLoad({ show: true, mode: 'save' });
-                break;
-            case 'load':
-                setters.setShowSaveLoad({ show: true, mode: 'load' });
-                break;
-            case 'settings':
-                setters.setActiveTab('game');
-                setters.setShowSettings(true);
-                break;
-            default:
-                break;
-        }
-    }
-
     React.useEffect(() => {
         const shouldBuildSnapshot = state.showSettings
             && (state.activeTab === 'context' || state.activeTab === 'prompt');
@@ -743,22 +636,6 @@ const App: React.FC = () => {
         meta.builtinPromptEntries,
         meta.worldbooks
     ]);
-    React.useEffect(() => {
-        const syncFullscreen = () => {
-            const doc = document as Document & {
-                webkitFullscreenElement?: Element;
-                msFullscreenElement?: Element;
-            };
-            setIsFullscreen(Boolean(document.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement));
-        };
-
-        syncFullscreen();
-        document.addEventListener('fullscreenchange', syncFullscreen);
-        return () => {
-            document.removeEventListener('fullscreenchange', syncFullscreen);
-        };
-    }, []);
-
     React.useEffect(() => {
         const html = document.documentElement;
         const body = document.body;
@@ -829,7 +706,7 @@ const App: React.FC = () => {
             || null;
         const preloadTargets = 网络较慢或节省流量(connection)
             ? []
-            : (isMobile ? 移动端轻量预热目标 : 桌面轻量预热目标);
+            : 桌面轻量预热目标;
         const idleWindow = window as typeof window & {
             requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
             cancelIdleCallback?: (id: number) => void;
@@ -840,7 +717,7 @@ const App: React.FC = () => {
 
         const warmup = () => {
             if (cancelled || preloadTargets.length === 0) return;
-            const priorityCount = isMobile ? 5 : 9;
+            const priorityCount = 9;
             preloadTargets.forEach((target, index) => {
                 const delay = index < priorityCount
                     ? 240 + index * 140
@@ -873,7 +750,7 @@ const App: React.FC = () => {
                 window.clearTimeout(timerId);
             }
         };
-    }, [isMobile, state.view]);
+    }, [state.view]);
 
     const parseActionOptionText = (option: unknown): string => {
         if (typeof option === 'string') return option.trim();
@@ -911,22 +788,7 @@ const App: React.FC = () => {
         () => 环境时间转标准串(state.环境) || state.环境?.时间 || '未知时间',
         [state.环境]
     );
-    const effectiveVisualConfig = React.useMemo(() => {
-        if (!isMobile || !state.visualConfig) return state.visualConfig;
-        const mobileRenderLayers = Math.max(
-            1,
-            Math.min(8, Number(state.visualConfig.渲染层数) || 10)
-        );
-
-        return {
-            ...state.visualConfig,
-            ['字体大小']: 16,
-            ['段落间距']: 1.6,
-            ['渲染层数']: mobileRenderLayers,
-            ['区域文字样式']: undefined,
-            ['UI文字样式']: undefined
-        } as typeof state.visualConfig;
-    }, [isMobile, state.visualConfig]);
+    const effectiveVisualConfig = state.visualConfig;
     const effectiveTopBarTimeFormat = React.useMemo<'传统' | '数字'>(() => {
         const configured = effectiveVisualConfig?.时间显示格式;
         if (configured === '传统' || configured === '数字') return configured;
@@ -958,25 +820,11 @@ const App: React.FC = () => {
     const uiTextStyleVars = React.useMemo(() => 构建UI文字CSS变量(effectiveVisualConfig), [effectiveVisualConfig]);
     const appUiStyleVars = React.useMemo(() => {
         const runtimeSafeAreaVars = {
-            ['--app-safe-top' as any]: isMobile && isFullscreen ? '0px' : 'env(safe-area-inset-top, 0px)',
-            ['--app-safe-bottom' as any]: isMobile && isFullscreen ? '0px' : 'env(safe-area-inset-bottom, 0px)'
+            ['--app-safe-top' as any]: 'env(safe-area-inset-top, 0px)',
+            ['--app-safe-bottom' as any]: 'env(safe-area-inset-bottom, 0px)'
         };
-        if (!isMobile) return { ...uiTextStyleVars, ...runtimeSafeAreaVars };
-        return {
-            ...uiTextStyleVars,
-            ...runtimeSafeAreaVars,
-            ['--ui-正文-font-size' as any]: '14px',
-            ['--ui-辅助文本-font-size' as any]: '12px',
-            ['--ui-按钮-font-size' as any]: '13px',
-            ['--ui-标签-font-size' as any]: '11px',
-            ['--ui-数字-font-size' as any]: '13px',
-            ['--ui-等宽信息-font-size' as any]: '12px',
-            ['--ui-compact-font-size' as any]: '14px',
-            ['--ui-micro-font-size' as any]: '12px',
-            ['--ui-compact-button-font-size' as any]: '13px',
-            ['--ui-compact-mono-font-size' as any]: '12px'
-        };
-    }, [isFullscreen, isMobile, uiTextStyleVars]);
+        return { ...uiTextStyleVars, ...runtimeSafeAreaVars };
+    }, [uiTextStyleVars]);
     const hideBottomTicker = effectiveVisualConfig?.底部滚动关闭显示 === true;
     const runtimeStateSections = React.useMemo(() => ({
         角色: state.角色,
@@ -1406,7 +1254,7 @@ const App: React.FC = () => {
         () => 获取题材界面文案(state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile),
         [state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile]
     );
-    const activeMobileWindowId =
+    const activeDetailPanelId =
         showCharacter ? 'character' :
         state.showEquipment ? 'equipment' :
         state.showInventory ? 'inventory' :
@@ -1425,7 +1273,7 @@ const App: React.FC = () => {
         state.showSettings ? 'settings' :
         null;
 
-    const desktopRightDetailPanelOpen = state.view === 'game' && !isMobile && (
+    const desktopRightDetailPanelOpen = state.view === 'game' && (
         showCharacter
         || state.showEquipment
         || state.showInventory
@@ -1443,8 +1291,8 @@ const App: React.FC = () => {
         || safeShowSaveLoad.show
         || state.showSettings
     );
-    const desktopRightDetailId = activeMobileWindowId || 'detail';
-    const desktopRightDetailClass = state.view === 'game' && !isMobile
+    const desktopRightDetailId = activeDetailPanelId || 'detail';
+    const desktopRightDetailClass = state.view === 'game'
         ? `desktop-right-detail-modal desktop-right-detail-modal--${desktopRightDetailId}${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
         : undefined;
     const mainStoryApiInfo = React.useMemo(() => {
@@ -1890,11 +1738,6 @@ const App: React.FC = () => {
             return false;
         }
     }, [actions, meta.worldbooks, state.记忆系统]);
-    const handleRefineMemoriesRef = React.useRef(handleRefineMemories);
-    handleRefineMemoriesRef.current = handleRefineMemories;
-    const stableRefineMemories = React.useCallback((rounds: number[]) =>
-        handleRefineMemoriesRef.current(rounds)
-    , []);
     const handleRegenerateMapFromMemory = React.useCallback(async (onDelta: (delta: string) => void): Promise<{ ok: boolean; message: string }> => {
         const memory = state.记忆系统;
         const memoryCount = [
@@ -2045,148 +1888,10 @@ const App: React.FC = () => {
         setShowImageManager(true);
     }, [closeAllPanels, requestConfirm, setters, state.apiConfig]);
 
-    const toggleAppFullscreen = React.useCallback(async () => {
-        const doc = document as Document & {
-            webkitFullscreenElement?: Element;
-            webkitExitFullscreen?: () => Promise<void> | void;
-            msFullscreenElement?: Element;
-            msExitFullscreen?: () => Promise<void> | void;
-        };
-        const root = document.documentElement as HTMLElement & {
-            webkitRequestFullscreen?: () => Promise<void> | void;
-            msRequestFullscreen?: () => Promise<void> | void;
-        };
-        const fullscreenNow = Boolean(document.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement);
-
-        if (!fullscreenNow) {
-            const enter = root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen;
-            if (enter) {
-                await Promise.resolve(enter.call(root));
-            }
-            return;
-        }
-
-        const exit = document.exitFullscreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-        if (exit) {
-            await Promise.resolve(exit.call(document));
-        }
-    }, []);
-
-    const handleNativeBackNavigation = React.useCallback(async () => {
-        if (showImageManager) {
-            setShowImageManager(false);
-            return true;
-        }
-        if (showWorldbookManager) {
-            closeWorldbookManager();
-            return true;
-        }
-        if (showNovelExport) {
-            closeNovelExport();
-            return true;
-        }
-        if (safeShowSaveLoad.show) {
-            closeSaveLoad();
-            return true;
-        }
-        if (state.showSettings) {
-            closeSettings();
-            return true;
-        }
-        if (activeMobileWindowId) {
-            closeAllPanels();
-            return true;
-        }
-        if (state.view === 'new_game') {
-            state.setView('home');
-            return true;
-        }
-        if (isFullscreen) {
-            await toggleAppFullscreen();
-            return true;
-        }
-
-        return false;
-    }, [
-        activeMobileWindowId,
-        closeAllPanels,
-        closeNovelExport,
-        closeSaveLoad,
-        closeSettings,
-        closeWorldbookManager,
-        isFullscreen,
-        showImageManager,
-        showNovelExport,
-        showWorldbookManager,
-        state,
-        toggleAppFullscreen
-    ]);
-
-    const mobileBackNavigationRef = React.useRef(handleNativeBackNavigation);
     const apiConfigRef = React.useRef(state.apiConfig);
     apiConfigRef.current = state.apiConfig;
     const worldRef = React.useRef(state.世界);
     worldRef.current = state.世界;
-
-    React.useEffect(() => {
-        mobileBackNavigationRef.current = handleNativeBackNavigation;
-    }, [handleNativeBackNavigation]);
-
-    React.useEffect(() => {
-        if (!isNativeCapacitorEnvironment()) return;
-
-        let cancelled = false;
-        let removeListener: (() => Promise<void>) | null = null;
-
-        void CapacitorApp.addListener('backButton', () => {
-            void handleNativeBackNavigation();
-        }).then((listener) => {
-            if (cancelled) {
-                void listener.remove();
-                return;
-            }
-            removeListener = () => listener.remove();
-        });
-
-        return () => {
-            cancelled = true;
-            if (removeListener) {
-                void removeListener();
-            }
-        };
-    }, [handleNativeBackNavigation]);
-
-    React.useEffect(() => {
-        if (typeof window === 'undefined' || !isMobile) return;
-
-        const historyStateKey = '__mrjhMobileBackTrap';
-
-        if (!window.history.state || !window.history.state[historyStateKey]) {
-            window.history.pushState(
-                { ...(window.history.state || {}), [historyStateKey]: Date.now() },
-                '',
-                window.location.href
-            );
-        }
-
-        const handlePopState = () => {
-            void (async () => {
-                const handled = await mobileBackNavigationRef.current();
-                if (handled) {
-                    window.history.pushState(
-                        { ...(window.history.state || {}), [historyStateKey]: Date.now() },
-                        '',
-                        window.location.href
-                    );
-                }
-            })();
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-        };
-    }, [isMobile]);
 
     const legacyImageMigrationNoticeVisible = !legacyImageMigrationNoticeClosed && (
         legacyImageMigrationStatus.stage === 'scanning'
@@ -2207,7 +1912,7 @@ const App: React.FC = () => {
 
     return (
         <>
-            <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} ${isMobile ? 'p-0' : 'p-3'}`} style={appRootStyleVars}>
+            <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} p-3`} style={appRootStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
                 {legacyImageMigrationNoticeVisible && (
                     <旧图迁移提示条
@@ -2238,77 +1943,25 @@ const App: React.FC = () => {
 
             {state.view === 'new_game' && (
                 <懒加载边界>
-                    {isMobile ? (
-                        <MobileNewGameWizard
-                            onComplete={(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, activeModuleExtraRules) =>
-                                actions.handleGenerateWorld(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, undefined, activeModuleExtraRules)
-                            }
-                            onCancel={() => { state.setView('home'); }}
-                            loading={state.loading}
-                            apiConfig={state.apiConfig}
-                            requestConfirm={requestConfirm}
-                            isStreamingDefault={!(state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出)}
-                        />
-                    ) : (
-                        <NewGameWizard
-                            onComplete={(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, activeModuleExtraRules) =>
-                                actions.handleGenerateWorld(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, undefined, activeModuleExtraRules)
-                            }
-                            onCancel={() => { state.setView('home'); }}
-                            loading={state.loading}
-                            apiConfig={state.apiConfig}
-                            requestConfirm={requestConfirm}
-                            isStreamingDefault={!(state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出)}
-                        />
-                    )}
+                    <NewGameWizard
+                        onComplete={(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, activeModuleExtraRules) =>
+                            actions.handleGenerateWorld(worldConfig, charData, openingConfig, mode, openingStreaming, openingExtraPrompt, undefined, activeModuleExtraRules)
+                        }
+                        onCancel={() => { state.setView('home'); }}
+                        loading={state.loading}
+                        apiConfig={state.apiConfig}
+                        requestConfirm={requestConfirm}
+                        isStreamingDefault={!(state.gameConfig?.启用非流式输出 || state.apiConfig?.功能模型占位?.主剧情非流式输出)}
+                    />
                 </懒加载边界>
             )}
 
             {state.view === 'game' && (
                 <ModalErrorBoundary title="主界面渲染失败">
                 {/* Main Game Frame Container */}
-                <div className={`relative flex-1 flex flex-col w-full h-full overflow-hidden bg-ink-black ${isMobile ? 'rounded-none shadow-none' : 'rounded-2xl shadow-2xl'}`}>
-                    {isMobile && (
-                        <div className="absolute right-2 top-[calc(var(--app-safe-top,env(safe-area-inset-top,0px))+10px)] z-[90] flex flex-col gap-1.5">
-                            <button
-                                type="button"
-                                onClick={() => { void toggleAppFullscreen(); }}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-wuxia-gold/35 bg-black/75 text-[0px] text-wuxia-gold shadow-[0_6px_18px_rgba(0,0,0,0.35)] backdrop-blur-sm"
-                                aria-label={isFullscreen ? '退出全屏' : '进入全屏'}
-                                title={isFullscreen ? '退出全屏' : '进入全屏'}
-                            >
-                                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H3v5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 3h5v5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 21H3v-5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 21h5v-5" />
-                                </svg>
-                                {isFullscreen ? '退出全屏' : '全屏'}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => { void handleReturnToHomeWithAutoSave(); }}
-                                disabled={returnHomeSaving}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-sky-400/35 bg-black/75 text-[0px] text-sky-100 shadow-[0_6px_18px_rgba(0,0,0,0.35)] backdrop-blur-sm disabled:cursor-wait disabled:opacity-70"
-                                aria-label={returnHomeSaving ? '正在保存存档中' : '自动存档后返回主界面'}
-                                title={returnHomeSaving ? '正在保存存档中' : '自动存档后返回主界面'}
-                            >
-                                {returnHomeSaving ? (
-                                    <span className="h-3 w-3 animate-spin rounded-full border border-sky-100/35 border-t-sky-100" aria-hidden="true" />
-                                ) : (
-                                    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 7 5 12l5 5" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h9a5 5 0 0 1 5 5" />
-                                    </svg>
-                                )}
-                                {returnHomeSaving ? '正在保存存档中' : '返回主页'}
-                            </button>
-                        </div>
-                    )}
-
+                <div className="relative flex-1 flex flex-col w-full h-full overflow-hidden bg-ink-black rounded-2xl shadow-2xl">
                     {/* 顶部导航栏 */}
-                    <div className={`shrink-0 z-40 bg-ink-black/90 border-b border-wuxia-gold/20 shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-visible ${isMobile ? 'h-0 border-b-0 bg-transparent shadow-none rounded-none mx-0 mt-0' : 'rounded-t-xl mx-1 mt-1'}`}>
+                    <div className="shrink-0 z-40 bg-ink-black/90 border-b border-wuxia-gold/20 shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative overflow-visible rounded-t-xl mx-1 mt-1">
                         <TopBar 
                             环境={state.环境} 
                             游戏初始时间={state.游戏初始时间}
@@ -2318,7 +1971,7 @@ const App: React.FC = () => {
                     </div>
 
                     {/* 中间主要互动区域 */}
-                    <div className={`flex-1 flex overflow-hidden relative z-10 ${isMobile ? 'mx-0 mb-0' : 'mx-1 mb-1'}`}>
+                    <div className="flex-1 flex overflow-hidden relative z-10 mx-1 mb-1">
                         
                         {/* 左侧栏 */}
                         <div className="hidden md:block w-[14.285714%] h-full relative z-20 bg-ink-black/95 border-r border-wuxia-gold/20 flex flex-col shadow-[10px_0_20px_rgba(0,0,0,0.5)]">
@@ -2349,7 +2002,7 @@ const App: React.FC = () => {
                                     chatContentHidden ? 'opacity-0' : 'opacity-100'
                                 }`}
                             ></div>
-                              <div className={isMobile ? 'fixed right-2 top-[calc(var(--app-safe-top,env(safe-area-inset-top,0px))+72px)] z-[91] flex items-center gap-2' : 'absolute right-3 top-3 z-30 flex items-center gap-2'}>
+                              <div className="absolute right-3 top-3 z-30 flex items-center gap-2">
                                   <div
                                       className="hidden max-w-[360px] items-center truncate rounded-full border border-wuxia-gold/40 bg-black/65 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-wuxia-gold shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur sm:inline-flex"
                                       title={mainStoryApiLabel}
@@ -2612,53 +2265,6 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    {/* 移动端快捷菜单 */}
-                    <MobileQuickMenu
-                        activeWindow={activeMobileWindowId}
-                        onMenuClick={handleMobileMenuAction}
-                        enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
-                        enableHeroinePlan={safeGameConfig?.启用女主剧情规划 === true}
-                        enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
-                        enableImageManager={true}
-                        uiLabels={题材界面文案}
-                    />
-
-                    {!hideBottomTicker && (
-                        <div
-                            className={`md:hidden shrink-0 h-[28px] bg-ink-black/88 border-t border-wuxia-gold/20 flex items-center font-mono text-wuxia-gold-dark relative overflow-hidden pb-[var(--app-safe-bottom,env(safe-area-inset-bottom,0px))] ${isMobile ? 'mx-0 mb-0' : 'mx-1 mb-1'}`}
-                            style={{ fontSize: '11px' }}
-                        >
-                            <button type="button" onClick={openWorld} className="shrink-0 h-full px-2 flex items-center border-r border-gray-800 text-wuxia-gold/90 tracking-[0.18em] text-transparent relative hover:bg-wuxia-gold/10 transition-colors">
-                                <span className="absolute inset-0 flex items-center px-2 text-wuxia-gold/90">世界大事</span>
-                                世界大事
-                            </button>
-                            <div className="flex-1 overflow-hidden relative h-full flex items-center">
-                                <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-ink-black to-transparent z-10 pointer-events-none"></div>
-                                <div className="absolute right-0 top-0 bottom-0 w-5 bg-gradient-to-l from-ink-black to-transparent z-10 pointer-events-none"></div>
-                                {tickerEvents && tickerEvents.length > 0 ? (
-                                    <div className="w-full overflow-hidden">
-                                        <div
-                                            className="flex items-center gap-8 whitespace-nowrap min-w-max animate-marquee-linear text-wuxia-gold/70 tracking-wide"
-                                            style={{ ['--marquee-duration' as any]: '28s', fontSize: 'var(--ui-compact-mono-font-size, 12px)' }}
-                                        >
-                                            <div className="flex items-center gap-8">
-                                                {renderTickerItems(tickerEvents, 'm')}
-                                            </div>
-                                            <div className="flex items-center gap-8" aria-hidden>
-                                                {renderTickerItems(tickerEvents, 'm-dup')}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="w-full text-center text-gray-700 tracking-wider text-transparent relative" style={{ fontSize: 'var(--ui-compact-mono-font-size, 12px)' }}>
-                                        <span className="absolute inset-0 flex items-center justify-center text-gray-700">江湖平静，暂时无大事发生...</span>
-                                        江湖平静，暂无大事发生...
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
                     {!hideBottomTicker && (
                         <div
                             className="hidden md:flex shrink-0 h-[37px] bg-ink-black/90 border-t border-wuxia-gold/20 justify-between px-4 items-center font-mono text-wuxia-gold-dark z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.8)] relative rounded-b-xl mx-1 mb-1 overflow-hidden"
@@ -2706,7 +2312,7 @@ const App: React.FC = () => {
             )}
 
             {/* Global Golden Border Frame */}
-            {!isMobile && <div className="global-golden-frame pointer-events-none fixed inset-3 z-[100] border-4 border-double border-wuxia-gold/40 rounded-2xl shadow-[inset_0_0_30px_rgba(0,0,0,0.5)]">
+            <div className="global-golden-frame pointer-events-none fixed inset-3 z-[100] border-4 border-double border-wuxia-gold/40 rounded-2xl shadow-[inset_0_0_30px_rgba(0,0,0,0.5)]">
                 {/* Corner Ornaments */}
                 <div className="global-golden-frame-corner absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-wuxia-gold rounded-tl-xl shadow-[-2px_-2px_5px_rgba(0,0,0,0.5)]"></div>
                 <div className="global-golden-frame-corner absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-wuxia-gold rounded-tr-xl shadow-[2px_-2px_5px_rgba(0,0,0,0.5)]"></div>
@@ -2716,7 +2322,7 @@ const App: React.FC = () => {
                 {/* Mid-point Accents */}
                 <div className="global-golden-frame-accent absolute top-1/2 left-0 w-1 h-12 -translate-y-1/2 bg-wuxia-gold/60"></div>
                 <div className="global-golden-frame-accent absolute top-1/2 right-0 w-1 h-12 -translate-y-1/2 bg-wuxia-gold/60"></div>
-            </div>}
+            </div>
 
             {/* Save/Load Modal */}
             {safeShowSaveLoad.show && (
@@ -2737,48 +2343,7 @@ const App: React.FC = () => {
             {state.showSettings && (
                 <div className={desktopRightDetailClass}>
                 <懒加载边界>
-                    {isMobile ? (
-                        <MobileSettingsModal
-                            activeTab={state.activeTab}
-                            onTabChange={setters.setActiveTab}
-                            onClose={closeSettings}
-                            apiConfig={state.apiConfig}
-                            visualConfig={state.visualConfig}
-                            gameConfig={state.gameConfig}
-                            memoryConfig={state.memoryConfig}
-                            prompts={state.prompts}
-                            currentTheme={state.currentTheme}
-                            history={state.历史记录}
-                            memorySystem={state.记忆系统}
-                            socialList={state.社交}
-                            runtimeState={runtimeStateSections}
-                            currentStory={state.剧情}
-                            openingConfig={state.开局配置}
-                            contextSnapshot={contextSnapshot}
-                            onSaveApi={actions.saveSettings}
-                            onSaveVisual={actions.saveVisualSettings}
-                            onSaveGame={actions.saveGameSettings}
-                            onSaveMemory={actions.saveMemorySettings}
-                            onDeleteMemory={handleDeleteMemory}
-                            onRefineMemories={stableRefineMemories}
-                            onRegenerateMapFromMemory={handleRegenerateMapFromMemory}
-                            onCreateNpc={actions.createNpcManually}
-                            onSaveNpc={actions.updateNpcManually}
-                            onDeleteNpc={actions.deleteNpcManually}
-                            onRestoreNpcBackup={actions.restoreNpcVariableBackup}
-                            onStartNpcMemorySummary={actions.handleQueueManualNpcMemorySummary}
-                            onUploadNpcImage={actions.uploadNpcImageToSlot}
-                            onReplaceVariableSection={actions.updateRuntimeVariableSection}
-                            onApplyVariableCommand={actions.applyRuntimeVariableCommand}
-                            onUpdatePrompts={actions.updatePrompts}
-                            onThemeChange={setters.setCurrentTheme}
-                            requestConfirm={requestConfirm}
-                            onReturnToHome={handleReturnToHomeFromSettings}
-                            isHome={state.view === 'home'}
-                            returnHomeSaving={returnHomeSaving}
-                        />
-                    ) : (
-                        <SettingsModal
+                    <SettingsModal
                             activeTab={state.activeTab}
                             onTabChange={setters.setActiveTab}
                             onClose={closeSettings}
@@ -2817,7 +2382,6 @@ const App: React.FC = () => {
                             isHome={state.view === 'home'}
                             returnHomeSaving={returnHomeSaving}
                         />
-                    )}
                 </懒加载边界>
                 </div>
             )}
@@ -2850,142 +2414,43 @@ const App: React.FC = () => {
 
             {state.view === 'game' && meta.memorySummaryOpen && (
                 <懒加载边界>
-                    {isMobile ? (
-                        <MemorySummaryFlowMobileModal
-                            open={true}
-                            stage={(meta.memorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
-                            task={meta.memorySummaryTask || null}
-                            draft={meta.memorySummaryDraft || ''}
-                            error={meta.memorySummaryError || ''}
-                            onStart={() => { void actions.handleStartMemorySummary(); }}
-                            onCancel={actions.handleCancelMemorySummary}
-                            onBack={actions.handleBackToMemorySummaryRemind}
-                            onDraftChange={actions.handleUpdateMemorySummaryDraft}
-                            onApply={actions.handleApplyMemorySummary}
-                        />
-                    ) : (
-                        <MemorySummaryFlowModal
-                            open={true}
-                            stage={(meta.memorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
-                            task={meta.memorySummaryTask || null}
-                            draft={meta.memorySummaryDraft || ''}
-                            error={meta.memorySummaryError || ''}
-                            onStart={() => { void actions.handleStartMemorySummary(); }}
-                            onCancel={actions.handleCancelMemorySummary}
-                            onBack={actions.handleBackToMemorySummaryRemind}
-                            onDraftChange={actions.handleUpdateMemorySummaryDraft}
-                            onApply={actions.handleApplyMemorySummary}
-                        />
-                    )}
+                    <MemorySummaryFlowModal
+                        open={true}
+                        stage={(meta.memorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
+                        task={meta.memorySummaryTask || null}
+                        draft={meta.memorySummaryDraft || ''}
+                        error={meta.memorySummaryError || ''}
+                        onStart={() => { void actions.handleStartMemorySummary(); }}
+                        onCancel={actions.handleCancelMemorySummary}
+                        onBack={actions.handleBackToMemorySummaryRemind}
+                        onDraftChange={actions.handleUpdateMemorySummaryDraft}
+                        onApply={actions.handleApplyMemorySummary}
+                    />
                 </懒加载边界>
             )}
 
             {state.view === 'game' && !meta.memorySummaryOpen && meta.npcMemorySummaryOpen && (
                 <懒加载边界>
-                    {isMobile ? (
-                        <NpcMemorySummaryFlowMobileModal
-                            open={true}
-                            stage={(meta.npcMemorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
-                            task={meta.npcMemorySummaryTask || null}
-                            queueLength={meta.npcMemorySummaryQueueLength || 0}
-                            draft={meta.npcMemorySummaryDraft || ''}
-                            error={meta.npcMemorySummaryError || ''}
-                            onStart={() => { void actions.handleStartNpcMemorySummary(); }}
-                            onCancel={actions.handleCancelNpcMemorySummary}
-                            onBack={actions.handleBackToNpcMemorySummaryRemind}
-                            onDraftChange={actions.handleUpdateNpcMemorySummaryDraft}
-                            onApply={actions.handleApplyNpcMemorySummary}
-                        />
-                    ) : (
-                        <NpcMemorySummaryFlowModal
-                            open={true}
-                            stage={(meta.npcMemorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
-                            task={meta.npcMemorySummaryTask || null}
-                            queueLength={meta.npcMemorySummaryQueueLength || 0}
-                            draft={meta.npcMemorySummaryDraft || ''}
-                            error={meta.npcMemorySummaryError || ''}
-                            onStart={() => { void actions.handleStartNpcMemorySummary(); }}
-                            onCancel={actions.handleCancelNpcMemorySummary}
-                            onBack={actions.handleBackToNpcMemorySummaryRemind}
-                            onDraftChange={actions.handleUpdateNpcMemorySummaryDraft}
-                            onApply={actions.handleApplyNpcMemorySummary}
-                        />
-                    )}
+                    <NpcMemorySummaryFlowModal
+                        open={true}
+                        stage={(meta.npcMemorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
+                        task={meta.npcMemorySummaryTask || null}
+                        queueLength={meta.npcMemorySummaryQueueLength || 0}
+                        draft={meta.npcMemorySummaryDraft || ''}
+                        error={meta.npcMemorySummaryError || ''}
+                        onStart={() => { void actions.handleStartNpcMemorySummary(); }}
+                        onCancel={actions.handleCancelNpcMemorySummary}
+                        onBack={actions.handleBackToNpcMemorySummaryRemind}
+                        onDraftChange={actions.handleUpdateNpcMemorySummaryDraft}
+                        onApply={actions.handleApplyNpcMemorySummary}
+                    />
                 </懒加载边界>
             )}
 
             {showImageManager && (
                 <div className={desktopRightDetailClass}>
                 <懒加载边界>
-                    {isMobile ? (
-                        <ModalErrorBoundary title="图册打开失败" onClose={() => setShowImageManager(false)}>
-                        <MobileImageManagerModal
-                            socialList={state.社交}
-                            playerCharacter={state.角色}
-                            cultivationSystemEnabled={false}
-                            itemImageSequence={itemImageSequence}
-                            queue={meta.imageGenerationQueue || []}
-                            sceneArchive={meta.sceneImageArchive || {}}
-                            sceneQueue={meta.sceneImageQueue || []}
-                            apiConfig={state.apiConfig}
-                            imageManagerConfig={state.imageManagerConfig}
-                            femboyNsfwEnabled={safeGameConfig?.启用NSFW模式 === true && safeGameConfig?.启用男娘NSFW内容 !== false}
-                            currentPersistentWallpaper={state.visualConfig?.常驻壁纸 || ''}
-                            onSaveApiConfig={actions.saveSettings}
-                            onSaveImageManagerConfig={actions.saveImageManagerSettings}
-                            onGenerateImage={actions.generateNpcImageManually}
-                            onGenerateSecretPartImage={actions.generateNpcSecretPartImage}
-                            onRetryImage={actions.retryNpcImageGeneration}
-                            onGenerateSceneImage={actions.generateSceneImageManually}
-                            onSelectAvatarImage={actions.selectNpcAvatarImage}
-                            onSelectPortraitImage={actions.selectNpcPortraitImage}
-                            onSelectBackgroundImage={actions.selectNpcBackgroundImage}
-                            onClearAvatarImage={actions.clearNpcAvatarImage}
-                            onClearPortraitImage={actions.clearNpcPortraitImage}
-                            onClearBackgroundImage={actions.clearNpcBackgroundImage}
-                            onDeleteImageRecord={actions.removeNpcImageRecord}
-                            onClearImageHistory={actions.clearNpcImageHistory}
-                            onDeleteQueueTask={actions.removeNpcImageQueueTask}
-                            onClearQueue={actions.clearNpcImageQueue}
-                            onSaveImageLocally={actions.saveNpcImageLocally}
-                            onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
-                            onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
-                            onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
-                            onClearPlayerPortraitImage={actions.clearPlayerPortraitImage}
-                            onRemovePlayerImageRecord={actions.removePlayerImageRecord}
-                            onApplySceneWallpaper={actions.applySceneImageWallpaper}
-                            onClearSceneWallpaper={actions.clearSceneWallpaper}
-                            onDeleteSceneImage={actions.removeSceneImageRecord}
-                            onClearSceneHistory={actions.clearSceneImageHistory}
-                            onDeleteSceneQueueTask={actions.removeSceneImageQueueTask}
-                            onClearSceneQueue={actions.clearSceneImageQueue}
-                            onClearItemImageHistory={actions.clearItemImageHistory}
-                            onSaveSceneImageLocally={actions.saveSceneImageLocally}
-                            onSetPersistentWallpaper={actions.setPersistentWallpaper}
-                            onClearPersistentWallpaper={actions.clearPersistentWallpaper}
-                            onSavePngStylePreset={actions.savePngStylePreset}
-                            onDeletePngStylePreset={actions.deletePngStylePreset}
-                            onSetCurrentPngStylePreset={actions.setCurrentPngStylePreset}
-                            onParsePngStylePreset={actions.parsePngStylePreset}
-                            onExportPngStylePresets={actions.exportPngStylePresets}
-                            onImportPngStylePresets={actions.importPngStylePresets}
-                            onSaveCharacterAnchor={actions.saveCharacterAnchor}
-                            onDeleteCharacterAnchor={actions.deleteCharacterAnchor}
-                            onExtractCharacterAnchor={actions.extractCharacterAnchor}
-                            onClose={() => setShowImageManager(false)}
-                            onSaveArtistPreset={actions.saveArtistPreset}
-                            onDeleteArtistPreset={actions.deleteArtistPreset}
-                            onSaveModelConverterPreset={actions.saveModelConverterPreset}
-                            onDeleteModelConverterPreset={actions.deleteModelConverterPreset}
-                            onSetModelConverterPresetEnabled={actions.setModelConverterPresetEnabled}
-                            onSavePromptConverterPreset={actions.savePromptConverterPreset}
-                            onDeletePromptConverterPreset={actions.deletePromptConverterPreset}
-                            onImportPresets={actions.importPresets}
-                            onExportPresets={actions.exportPresets}
-                        />
-                        </ModalErrorBoundary>
-                    ) : (
-                        <ImageManagerModal
+                    <ImageManagerModal
                             socialList={state.社交}
                             playerCharacter={state.角色}
                             cultivationSystemEnabled={false}
@@ -3040,7 +2505,6 @@ const App: React.FC = () => {
                             onExtractCharacterAnchor={actions.extractCharacterAnchor}
                             onClose={() => setShowImageManager(false)}
                         />
-                    )}
                 </懒加载边界>
                 </div>
             )}
@@ -3050,81 +2514,44 @@ const App: React.FC = () => {
                 <div className={desktopRightDetailClass}>
                     {state.showInventory && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileInventoryModal 
-                                    character={state.角色} 
-                                    openingConfig={state.开局配置}
-                                    initialSelectedItemRef={inventoryInitialItemRef}
-                                    onCharacterChange={(nextCharacter: any) => {
-                                        setters.setCharacter(nextCharacter);
-                                        void actions.performAutoSave?.({ role: nextCharacter, force: true });
-                                    }}
-                                    onDiscardItem={handleDiscardBagItem}
-                                    onDiscardAllMisc={handleDiscardAllMiscItems}
-                                    onRegenerateItemImage={handleRegenerateBagItemImage}
-                                    onClose={() => setters.setShowInventory(false)} 
-                                />
-                            ) : (
-                                <InventoryModal 
-                                    character={state.角色} 
-                                    openingConfig={state.开局配置}
-                                    initialSelectedItemRef={inventoryInitialItemRef}
-                                    onCharacterChange={(nextCharacter: any) => {
-                                        setters.setCharacter(nextCharacter);
-                                        void actions.performAutoSave?.({ role: nextCharacter, force: true });
-                                    }}
-                                    onDiscardItem={handleDiscardBagItem}
-                                    onDiscardAllMisc={handleDiscardAllMiscItems}
-                                    onRegenerateItemImage={handleRegenerateBagItemImage}
-                                    onClose={() => setters.setShowInventory(false)} 
-                                />
-                            )}
+                            <InventoryModal
+                                character={state.角色}
+                                openingConfig={state.开局配置}
+                                initialSelectedItemRef={inventoryInitialItemRef}
+                                onCharacterChange={(nextCharacter: any) => {
+                                    setters.setCharacter(nextCharacter);
+                                    void actions.performAutoSave?.({ role: nextCharacter, force: true });
+                                }}
+                                onDiscardItem={handleDiscardBagItem}
+                                onDiscardAllMisc={handleDiscardAllMiscItems}
+                                onRegenerateItemImage={handleRegenerateBagItemImage}
+                                onClose={() => setters.setShowInventory(false)}
+                            />
                         </懒加载边界>
                     )}
 
                     {showCharacter && (
                         <懒加载边界>
-                            {isMobile ? (
-                                 <MobileCharacter
-                                    character={state.角色}
-                                    gameConfig={state.gameConfig}
-                                    openingConfig={state.开局配置}
-                                    apiConfig={state.apiConfig}
-                                    playerAnchor={主角锚点}
-                                    nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
-                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
-                                    onGeneratePlayerImage={actions.generatePlayerImageManually}
-                                    onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
-                                    onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
-                                    onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
-                                    onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
-                                    onClearPlayerPortraitImage={actions.clearPlayerPortraitImage}
-                                    onRemovePlayerImageRecord={actions.removePlayerImageRecord}
-                                    onAllocateAttributePoint={handleAllocateAttributePoint}
-                                    onClose={() => setShowCharacter(false)}
-                                />
-                            ) : (
-                                 <CharacterModal
-                                    character={state.角色}
-                                    onClose={() => setShowCharacter(false)}
-                                    visualConfig={effectiveVisualConfig}
-                                    apiConfig={state.apiConfig}
-                                    playerAnchor={主角锚点}
-                                    nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
-                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
-                                    onGeneratePlayerImage={actions.generatePlayerImageManually}
-                                    onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
-                                    onExtractPlayerAnchor={actions.extractPlayerCharacterAnchor}
-                                    onSavePlayerAnchor={actions.saveCharacterAnchor}
-                                    onDeletePlayerAnchor={actions.deleteCharacterAnchor}
-                                    onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
-                                    onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
-                                    onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
-                                    onClearPlayerPortraitImage={actions.clearPlayerPortraitImage}
-                                    onRemovePlayerImageRecord={actions.removePlayerImageRecord}
-                                    onAllocateAttributePoint={handleAllocateAttributePoint}
-                                />
-                            )}
+                             <CharacterModal
+                                character={state.角色}
+                                onClose={() => setShowCharacter(false)}
+                                visualConfig={effectiveVisualConfig}
+                                apiConfig={state.apiConfig}
+                                playerAnchor={主角锚点}
+                                nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
+                                femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
+                                onGeneratePlayerImage={actions.generatePlayerImageManually}
+                                onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
+                                onExtractPlayerAnchor={actions.extractPlayerCharacterAnchor}
+                                onSavePlayerAnchor={actions.saveCharacterAnchor}
+                                onDeletePlayerAnchor={actions.deleteCharacterAnchor}
+                                onSelectPlayerAvatarImage={actions.selectPlayerAvatarImage}
+                                onClearPlayerAvatarImage={actions.clearPlayerAvatarImage}
+                                onSelectPlayerPortraitImage={actions.selectPlayerPortraitImage}
+                                onClearPlayerPortraitImage={actions.clearPlayerPortraitImage}
+                                onRemovePlayerImageRecord={actions.removePlayerImageRecord}
+                                onAllocateAttributePoint={handleAllocateAttributePoint}
+                            />
                         </懒加载边界>
                     )}
 
@@ -3144,197 +2571,106 @@ const App: React.FC = () => {
 
                     {state.showTeam && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileTeamModal
-                                    character={state.角色}
-                                    teammates={state.社交}
-                                    openingConfig={state.开局配置}
-                                    onClose={() => setters.setShowTeam(false)}
-                                />
-                            ) : (
-                                <TeamModal
-                                    character={state.角色}
-                                    teammates={state.社交}
-                                    openingConfig={state.开局配置}
-                                    onClose={() => setters.setShowTeam(false)}
-                                />
-                            )}
+                            <TeamModal
+                                character={state.角色}
+                                teammates={state.社交}
+                                openingConfig={state.开局配置}
+                                onClose={() => setters.setShowTeam(false)}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showSocial && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileSocial
-                                    socialList={state.社交}
-                                    cultivationSystemEnabled={false}
-                                    openingConfig={state.开局配置}
-                                    onClose={() => setters.setShowSocial(false)}
-                                    selectedNpcId={selectedSocialNpcId}
-                                    onSelectedNpcIdChange={setSelectedSocialNpcId}
-                                    playerName={safeCharacter?.姓名 || ''}
-                                    nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
-                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
-                                    onToggleMajorRole={actions.updateNpcMajorRole}
-                                    onTogglePresence={actions.updateNpcPresence}
-                                     onDeleteNpc={actions.removeNpc}
-                                     onLearnSkill={handleLearnNpcSkill}
-                                     onStealFromNpc={handleStealFromNpc}
-                                     onRetryImage={actions.retryNpcImageGeneration}
-                                     playerSect={state.玩家门派}
-                                  />
-                            ) : (
-                                <SocialModal
-                                    socialList={state.社交}
-                                    cultivationSystemEnabled={false}
-                                    openingConfig={state.开局配置}
-                                    onClose={() => setters.setShowSocial(false)}
-                                    selectedNpcId={selectedSocialNpcId}
-                                    onSelectedNpcIdChange={setSelectedSocialNpcId}
-                                    playerName={safeCharacter?.姓名 || ''}
-                                    nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
-                                    femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
-                                    onToggleMajorRole={actions.updateNpcMajorRole}
-                                    onTogglePresence={actions.updateNpcPresence}
-                                     onDeleteNpc={actions.removeNpc}
-                                     onLearnSkill={handleLearnNpcSkill}
-                                      onStealFromNpc={handleStealFromNpc}
-                                      onRetryImage={actions.retryNpcImageGeneration}
-                                      playerSect={state.玩家门派}
-                                  />
-                            )}
+                            <SocialModal
+                                socialList={state.社交}
+                                cultivationSystemEnabled={false}
+                                openingConfig={state.开局配置}
+                                onClose={() => setters.setShowSocial(false)}
+                                selectedNpcId={selectedSocialNpcId}
+                                onSelectedNpcIdChange={setSelectedSocialNpcId}
+                                playerName={safeCharacter?.姓名 || ''}
+                                nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
+                                femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
+                                onToggleMajorRole={actions.updateNpcMajorRole}
+                                onTogglePresence={actions.updateNpcPresence}
+                                onDeleteNpc={actions.removeNpc}
+                                onLearnSkill={handleLearnNpcSkill}
+                                onStealFromNpc={handleStealFromNpc}
+                                onRetryImage={actions.retryNpcImageGeneration}
+                                playerSect={state.玩家门派}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showWorld && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileWorldModal
-                                    world={state.世界}
-                                    worldEvolutionEnabled={meta.worldEvolutionEnabled}
-                                    worldEvolutionUpdating={meta.worldEvolutionUpdating}
-                                    worldEvolutionStatus={meta.worldEvolutionStatus}
-                                    worldEvolutionLastUpdatedAt={meta.worldEvolutionLastUpdatedAt}
-                                    worldEvolutionLastSummary={meta.worldEvolutionLastSummary}
-                                    worldEvolutionLastRawText={meta.worldEvolutionLastRawText}
-                                    onForceUpdate={actions.handleForceWorldEvolutionUpdate}
-                                    onClose={() => setters.setShowWorld(false)}
-                                    social={state.社交}
-                                    playerLocation={state.环境?.具体地点 || state.环境?.当前位置 || ''}
-                                    playerLocationPath={state.环境?.位置路径 || ''}
-                                />
-                            ) : (
-                                <WorldModal
-                                    world={state.世界}
-                                    worldEvolutionEnabled={meta.worldEvolutionEnabled}
-                                    worldEvolutionUpdating={meta.worldEvolutionUpdating}
-                                    worldEvolutionStatus={meta.worldEvolutionStatus}
-                                    worldEvolutionLastUpdatedAt={meta.worldEvolutionLastUpdatedAt}
-                                    worldEvolutionLastSummary={meta.worldEvolutionLastSummary}
-                                    worldEvolutionLastRawText={meta.worldEvolutionLastRawText}
-                                    onForceUpdate={actions.handleForceWorldEvolutionUpdate}
-                                    onClose={() => setters.setShowWorld(false)}
-                                    social={state.社交}
-                                    playerLocation={state.环境?.具体地点 || state.环境?.当前位置 || ''}
-                                    playerLocationPath={state.环境?.位置路径 || ''}
-                                />
-                            )}
+                            <WorldModal
+                                world={state.世界}
+                                worldEvolutionEnabled={meta.worldEvolutionEnabled}
+                                worldEvolutionUpdating={meta.worldEvolutionUpdating}
+                                worldEvolutionStatus={meta.worldEvolutionStatus}
+                                worldEvolutionLastUpdatedAt={meta.worldEvolutionLastUpdatedAt}
+                                worldEvolutionLastSummary={meta.worldEvolutionLastSummary}
+                                worldEvolutionLastRawText={meta.worldEvolutionLastRawText}
+                                onForceUpdate={actions.handleForceWorldEvolutionUpdate}
+                                onClose={() => setters.setShowWorld(false)}
+                                social={state.社交}
+                                playerLocation={state.环境?.具体地点 || state.环境?.当前位置 || ''}
+                                playerLocationPath={state.环境?.位置路径 || ''}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showMap && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileMapModal
-                                    world={state.世界}
-                                    env={state.环境}
-                                    socialList={state.社交}
-                                    playerName={safeCharacter?.姓名 || ''}
-                                    uiLabels={题材界面文案}
-                                    debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
-                                    onOpenPerson={openNpcDetailFromRecord}
-                                    onRegenerateMap={handleRegenerateMap}
-                                    onInsertCommand={insertChatDraft}
-                                    rawResponse={mapRegenerateRawText}
-                                    onClose={() => setters.setShowMap(false)}
-                                />
-                            ) : (
-                                <MapModal
-                                    world={state.世界}
-                                    env={state.环境}
-                                    socialList={state.社交}
-                                    playerName={safeCharacter?.姓名 || ''}
-                                    uiLabels={题材界面文案}
-                                    debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
-                                    onOpenPerson={openNpcDetailFromRecord}
-                                    onRegenerateMap={handleRegenerateMap}
-                                    onInsertCommand={insertChatDraft}
-                                    rawResponse={mapRegenerateRawText}
-                                    onClose={() => setters.setShowMap(false)}
-                                />
-                            )}
+                            <MapModal
+                                world={state.世界}
+                                env={state.环境}
+                                socialList={state.社交}
+                                playerName={safeCharacter?.姓名 || ''}
+                                uiLabels={题材界面文案}
+                                debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
+                                onOpenPerson={openNpcDetailFromRecord}
+                                onRegenerateMap={handleRegenerateMap}
+                                onInsertCommand={insertChatDraft}
+                                rawResponse={mapRegenerateRawText}
+                                onClose={() => setters.setShowMap(false)}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showTask && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileTask
-                                    tasks={state.任务列表}
-                                    onDeleteTask={actions.removeTask}
-                                    playerSect={state.玩家门派}
-                                    topicMode={state.开局配置?.题材模式}
-                                    uiLabels={题材界面文案}
-                                    onClose={() => setters.setShowTask(false)}
-                                />
-                            ) : (
-                                <TaskModal
-                                    tasks={state.任务列表}
-                                    onDeleteTask={actions.removeTask}
-                                    playerSect={state.玩家门派}
-                                    topicMode={state.开局配置?.题材模式}
-                                    uiLabels={题材界面文案}
-                                    onClose={() => setters.setShowTask(false)}
-                                />
-                            )}
+                            <TaskModal
+                                tasks={state.任务列表}
+                                onDeleteTask={actions.removeTask}
+                                playerSect={state.玩家门派}
+                                topicMode={state.开局配置?.题材模式}
+                                uiLabels={题材界面文案}
+                                onClose={() => setters.setShowTask(false)}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showAgreement && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileAgreementModal
-                                    agreements={state.约定列表}
-                                    onDeleteAgreement={actions.removeAgreement}
-                                    onClose={() => setters.setShowAgreement(false)}
-                                />
-                            ) : (
-                                <AgreementModal
-                                    agreements={state.约定列表}
-                                    onDeleteAgreement={actions.removeAgreement}
-                                    onClose={() => setters.setShowAgreement(false)}
-                                />
-                            )}
+                            <AgreementModal
+                                agreements={state.约定列表}
+                                onDeleteAgreement={actions.removeAgreement}
+                                onClose={() => setters.setShowAgreement(false)}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showStory && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileStory
-                                    story={state.剧情}
-                                    storyPlan={当前剧情规划}
-                                    isFandomMode={启用同人模式}
-                                    onClose={() => setters.setShowStory(false)}
-                                />
-                            ) : (
-                                <StoryModal
-                                    story={state.剧情}
-                                    storyPlan={当前剧情规划}
-                                    isFandomMode={启用同人模式}
-                                    onClose={() => setters.setShowStory(false)}
-                                />
-                            )}
+                            <StoryModal
+                                story={state.剧情}
+                                storyPlan={当前剧情规划}
+                                isFandomMode={启用同人模式}
+                                onClose={() => setters.setShowStory(false)}
+                            />
                         </懒加载边界>
                     )}
 
@@ -3352,43 +2688,24 @@ const App: React.FC = () => {
 
                     {state.showHeroinePlan && safeGameConfig?.启用女主剧情规划 === true && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileHeroinePlanModal
-                                    plan={当前女主剧情规划}
-                                    isFandomMode={启用同人模式}
-                                    onClose={() => setters.setShowHeroinePlan(false)}
-                                />
-                            ) : (
-                                <HeroinePlanModal
-                                    plan={当前女主剧情规划}
-                                    isFandomMode={启用同人模式}
-                                    onClose={() => setters.setShowHeroinePlan(false)}
-                                />
-                            )}
+                            <HeroinePlanModal
+                                plan={当前女主剧情规划}
+                                isFandomMode={启用同人模式}
+                                onClose={() => setters.setShowHeroinePlan(false)}
+                            />
                         </懒加载边界>
                     )}
 
                     {state.showMemory && (
                         <懒加载边界>
-                            {isMobile ? (
-                                <MobileMemory
-                                    history={state.历史记录}
-                                    memorySystem={state.记忆系统}
-                                    onClose={() => setters.setShowMemory(false)}
-                                    currentTime={currentEnvTime}
-                                    onSaveMemory={actions.updateMemorySystem}
-                                    onStartMemorySummary={actions.handleStartManualMemorySummary}
-                                />
-                            ) : (
-                                <MemoryModal
-                                    history={state.历史记录}
-                                    memorySystem={state.记忆系统}
-                                    onClose={() => setters.setShowMemory(false)}
-                                    currentTime={currentEnvTime}
-                                    onSaveMemory={actions.updateMemorySystem}
-                                    onStartMemorySummary={actions.handleStartManualMemorySummary}
-                                />
-                            )}
+                            <MemoryModal
+                                history={state.历史记录}
+                                memorySystem={state.记忆系统}
+                                onClose={() => setters.setShowMemory(false)}
+                                currentTime={currentEnvTime}
+                                onSaveMemory={actions.updateMemorySystem}
+                                onStartMemorySummary={actions.handleStartManualMemorySummary}
+                            />
                         </懒加载边界>
                     )}
                 </div>

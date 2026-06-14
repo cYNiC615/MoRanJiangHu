@@ -540,4 +540,37 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('capacitor.config.ts');
         expect(registry).toContain('moranjianghu.apkAutoUpdateDisabled');
     });
+
+    it('removes mobile frontend shell entrypoints and app mounts', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('MobileQuickMenu');
+        expect(app).not.toContain('MobileNewGameWizard');
+        expect(app).not.toContain('MobileSettingsModal');
+        expect(app).not.toContain('MobileInventoryModal');
+        expect(app).not.toContain('MobileCharacter');
+        expect(app).not.toContain('MobileSocial');
+        expect(app).not.toContain('MobileImageManagerModal');
+        expect(app).not.toContain('MobileTeamModal');
+        expect(app).not.toContain('MobileWorldModal');
+        expect(app).not.toContain('MobileMapModal');
+        expect(app).not.toContain('MobileTask');
+        expect(app).not.toContain('MobileAgreementModal');
+        expect(app).not.toContain('MobileStory');
+        expect(app).not.toContain('MobileHeroinePlanModal');
+        expect(app).not.toContain('MobileMemory');
+        expect(app).not.toContain('MemorySummaryFlowMobileModal');
+        expect(app).not.toContain('NpcMemorySummaryFlowMobileModal');
+        expect(app).not.toContain('移动端轻量预热目标');
+        expect(app).not.toContain('handleMobileMenuAction');
+    });
+
+    it('records mobile frontend residue as pending deeper deletion', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('mobile_frontend');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('components/layout/MobileQuickMenu.tsx');
+        expect(registry).toContain('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
+        expect(registry).toContain('components/features/Settings/mobile/MobileSettingsModal.tsx');
+    });
 });

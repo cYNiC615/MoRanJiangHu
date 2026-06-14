@@ -691,6 +691,59 @@ focused passes:
   pending because other code still imports native helpers. Delete them with the
   broader mobile/Capacitor pass, not as a hidden side effect of this slice.
 
+## Feature: `mobile_frontend`
+
+- Decision: retire.
+- Reason: The homebrew project is desktop-first and will not support mobile UI
+  or APK-oriented shell behavior.
+- Current status: `entrypoint_removed`, `backend_pending`.
+
+### Entrypoints Removed In This Pass
+
+- `App.tsx`: no longer imports, preloads, or mounts mobile-only components.
+- `App.tsx`: no longer renders `MobileQuickMenu`.
+- `App.tsx`: no longer renders mobile-only bottom ticker layout.
+- `App.tsx`: no longer branches settings, new-game, image manager, memory
+  summary, NPC memory summary, inventory, character, social, team, world, map,
+  task, agreement, story, heroine-plan, or memory panels through mobile
+  component variants.
+- `App.tsx`: removed the mobile browser-history trap, native back-button
+  listener, and fullscreen state used by the old mobile shell.
+
+### Deeper Deletion Pending
+
+- `components/layout/MobileQuickMenu.tsx`
+- `components/features/NewGame/mobile/MobileNewGameWizard.tsx`
+- `components/features/Settings/mobile/MobileSettingsModal.tsx`
+- `components/features/Character/MobileCharacter.tsx`
+- `components/features/Inventory/MobileInventoryModal.tsx`
+- `components/features/Social/MobileSocial.tsx`
+- `components/features/Social/mobile/MobileImageManagerModal.tsx`
+- `components/features/Social/mobile/MobileCustomSelect.tsx`
+- `components/features/Social/mobile/MobileFileUploader.tsx`
+- `components/features/Team/MobileTeamModal.tsx`
+- `components/features/World/MobileWorldModal.tsx`
+- `components/features/Map/MobileMapModal.tsx`
+- `components/features/Task/MobileTask.tsx`
+- `components/features/Agreement/MobileAgreementModal.tsx`
+- `components/features/Story/MobileStory.tsx`
+- `components/features/Story/MobileHeroinePlanModal.tsx`
+- `components/features/Memory/MobileMemory.tsx`
+- `components/features/Memory/MemorySummaryFlowMobileModal.tsx`
+- `components/features/Memory/NpcMemorySummaryFlowMobileModal.tsx`
+- Responsive/mobile-only branches still inside shared desktop files such as
+  `components/layout/TopBar.tsx`, `components/layout/LandingPage.tsx`,
+  `components/features/Settings/SettingsModal.tsx`, and global CSS.
+- Mobile-specific tests, E2E scripts, and visual verification notes should be
+  deleted or rewritten with the deeper mobile/Capacitor pass.
+
+### Backend, Native, And Storage Notes
+
+- App-shell entrypoints are gone, but native/Capacitor helpers remain across
+  save/load, image prefetch, OAuth, sync, diagnostics, AI streaming, and Android
+  build files. Delete those with the broader Android/APK/Capacitor cleanup pass.
+- No new migration is needed for the removed App-shell branches themselves.
+
 ## Feature: `festival_system`
 
 - Decision: retire.

@@ -253,4 +253,34 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('hooks/useGame/systemPromptBuilder.ts');
         expect(registry).toContain('settings key: `festivals`');
     });
+
+    it('removes new-game fandom and novel-injection player-visible entrypoints', () => {
+        const desktopWizard = readProjectFile('components/features/NewGame/NewGameWizard.tsx');
+        const mobileWizard = readProjectFile('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
+
+        for (const wizard of [desktopWizard, mobileWizard]) {
+            expect(wizard).not.toContain('Fandom Blend');
+            expect(wizard).not.toContain('启用同人融合');
+            expect(wizard).not.toContain('启用附加小说分解');
+            expect(wizard).not.toContain('启用同人角色替换');
+            expect(wizard).not.toContain('<p>同人融合:');
+            expect(wizard).not.toContain('<p>角色替换:');
+            expect(wizard).not.toContain('<p>附加小说:');
+            expect(wizard).not.toContain('小说分解数据集');
+            expect(wizard).not.toContain('读取小说拆分数据集列表');
+            expect(wizard).not.toContain('novelDecompositionStore');
+        }
+    });
+
+    it('records new-game fandom backend and prompts as pending removal', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('new_game_fandom_entrypoints');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('components/features/NewGame/NewGameWizard.tsx');
+        expect(registry).toContain('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
+        expect(registry).toContain('models/fandomPlanning');
+        expect(registry).toContain('prompts/runtime/fandom*.ts');
+        expect(registry).toContain('data/creativeWorkshopModules.ts');
+    });
 });

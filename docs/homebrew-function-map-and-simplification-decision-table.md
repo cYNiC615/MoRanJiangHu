@@ -116,8 +116,8 @@
 | 酒馆预设 | 导入 SillyTavern/酒馆预设，按预设顺序生成消息链 | `components/features/Settings/TavernPresetSettings.tsx`, `hooks/useGame/promptRuntime.ts`, `utils/tavernPreset.ts` | 核心保留 |
 | 剧情规划 | 维护剧情承接、任务、镜头、后续推进 | `models/storyPlan.ts`, `prompts/runtime/planningAnalysis.ts`, `hooks/useGame/planningUpdateWorkflow.ts` | 保留，删除同人/小说分解分支 |
 | 女主规划 | 支撑男性向恋爱/亲密关系体验与重要女角色推进 | `models/heroinePlan.ts`, `prompts/core/heroinePlan*.ts` | 保留并优化；后宫模式下弱化“唯一主推女主”的副作用 |
-| 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 准备移除 |
-| 小说分解提示词 | 小说章节拆解、滑窗、拆分 COT、工作台注入 | `prompts/runtime/novelDecomposition*.ts`, `services/novelDecomposition*` | 准备移除 |
+| 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 新建角入口已移除/后端待删 |
+| 小说分解提示词 | 小说章节拆解、滑窗、拆分 COT、工作台注入 | `prompts/runtime/novelDecomposition*.ts`, `services/novelDecomposition*` | 入口已移除/后端待删 |
 | 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 准备移除，不保留为默认或兼容目标 |
 
 ## 6. 前端功能地图
@@ -127,7 +127,7 @@
 | Home/Game Shell | 主页、游戏视图、面板挂载、全局弹窗 | `App.tsx`, `components/layout` | 保留但瘦身 | 拆掉移动/APK/更新/云同步/小说分解挂载 |
 | Chat | 主聊天、输入、行动选项、回合队列状态 | `components/features/Chat` | 核心保留 | 保留桌面体验，删移动专用适配 |
 | Settings | API、流程图、记忆、世界书、提示词、存储、模型配置等 | `components/features/Settings` | 保留但大幅瘦身 | 先隐藏/删除小说分解、云同步、APK/移动、社区相关 tab |
-| NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | 默认改现代都市；移除移动向导和同人/小说分解入口 |
+| NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | Phase 1 已移除桌面/移动新建角里的同人融合、角色替换和附加小说分解可见入口；默认现代都市和移动向导删除仍待后续 |
 | Worldbook | 世界书管理、导入、编辑 | `components/features/Worldbook` | 核心保留 | 保留本地世界书，不接社区 UGC |
 | Workshop | 模式包/创意工坊/云端投稿/Comfy 工作流 | `components/features/Workshop`, `services/creativeWorkshop.ts`, `data/creativeWorkshopModules.ts` | 保留本地模式包，移除社区投稿 | 改名或重新定位为“模式包/本地扩展” |
 | SaveLoad | 存档读写、导入导出 | `components/features/SaveLoad`, `services/saveArchiveService.ts` | 必须保留 | 已移除“转云端游玩”入口；保留 ZIP 导入导出、本地时间树、删除与存档保护 |
@@ -143,7 +143,7 @@
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 入口已移除/后端待删 | 首页 GitHub 同步按钮和 Cloud Play 挂载已移除；未挂载 Auth 组件、OAuth hook 和 API 仍待删 |
 | Online Presence/Public Ops | 在线心跳、首页在线人数、公开在线时长榜 | `App.tsx`, `components/layout/LandingPage.tsx`, `services/onlinePresence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表和在线时长榜入口；图表 helper、服务、API、静态页和测试仍待删 |
-| NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 准备移除 | 第一批移除入口，第二批删服务/模型/提示词 |
+| NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 入口已移除/后端待删 | Phase 1 已移除顶部/侧栏/设置/创意工坊/新建角入口；服务、模型、prompt、测试和存储键仍待后端清理 |
 
 ## 7. 服务与数据功能地图
 
@@ -158,8 +158,8 @@
 | Online Presence/Public Ops | 在线心跳、公开在线统计、在线时长榜 | `services/onlinePresence.ts`, `functions/api/online-presence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | `App.tsx` 不再启动心跳，首页不再请求/展示在线人数；服务、API、静态榜页、localStorage 历史和测试仍待删 |
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 准备移除 | 删除后也要清理 release scripts |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 准备移除 | 保留本地模式包时要拆分 local/cloud |
-| Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 准备移除 | 分布很广，适合分批删 |
-| Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 准备移除 | 与创意工坊、提示词、设置耦合 |
+| Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口已移除/后端待删 | 前端可见入口已断；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
+| Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 新建角入口已移除/后端待删 | 新建角同人配置入口已断；创意工坊、提示词、设置和 API 残留后续清理 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 节日入口已移除/天气待降级 | Phase 1 已删除节日默认数据、设置入口、TopBar 节日展示和自动环境写入；`环境.节日` 模型、prompt/schema 和命令路径仍待删 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
@@ -200,8 +200,8 @@
 | 天气 | 准备移除/降级 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 从结构化状态和强制上下文中移除 |
 | 节日 | 入口已移除/模型提示词待删 | 意义小且占上下文 | Phase 1 已删除默认节日表、节日设置页、TopBar 节日卡和自动写入环境节日的副作用；后续删除 `环境.节日`、prompt/schema 和旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
-| 同人/原著融合 | 准备移除 | 用户明确不做同人 | 删入口，再删模型/提示词/服务 |
-| 小说分解 | 准备移除 | 用户明确不做小说分解 | 第一批移除 UI，第二批删服务和 prompts |
+| 同人/原著融合 | 新建角入口已移除/后端待删 | 用户明确不做同人 | Phase 1 已删除新建角同人融合、角色替换和摘要入口；后续删除模型/提示词/服务/API |
+| 小说分解 | 入口已移除/后端待删 | 用户明确不做小说分解 | Phase 1 已移除工作台、设置、创意工坊和新建角附加小说入口；第二批删服务、模型、prompts、tests 和 storage keys |
 | 移动端 UI | 准备移除 | 用户明确不做移动端 | 删除移动组件、mobile wizard、移动布局分支 |
 | Android/APK | 准备移除 | 用户明确不做 APK | 删除 scripts、Capacitor、android、app update |
 | GitHub/WebDAV/Object 云同步 | 入口已移除/后端待删 | 用户明确不做多设备同步 | 已从首页、移动菜单、SaveLoad 入口解绑；下一步拆 saveCoordinator、服务、API、storage key |

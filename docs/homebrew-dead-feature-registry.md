@@ -47,9 +47,7 @@ Final homebrew simplification is not complete until:
 - Decision: retire.
 - Reason: The homebrew project will not support fanfiction/original-work
   adaptation, novel decomposition, or novel-decomposition workshop sharing.
-- Current status: `entrypoint_removed` for top-level access,
-  `entrypoint_pending` for new-game fandom injection UI,
-  `backend_pending` overall.
+- Current status: `entrypoint_removed`, `backend_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -75,15 +73,15 @@ Final homebrew simplification is not complete until:
   per-stage GPT-mode toggle for novel decomposition.
 - `hooks/useGameState.ts`: removed the deleted settings tabs from `activeTab`.
 
-### Entrypoints Still Pending
+### New-Game Entrypoints Removed In This Pass
 
-These are intentionally left for a later fanfiction/new-game cleanup pass:
-
-- `components/features/NewGame/NewGameWizard.tsx`: still exposes
-  `启用附加小说分解` inside the broader `同人融合` configuration.
-- `components/features/NewGame/mobile/MobileNewGameWizard.tsx`: same mobile
-  path. Mobile itself is a larger removal target, so do not spend extra effort
-  polishing this path before the mobile deletion pass.
+- `components/features/NewGame/NewGameWizard.tsx`: no longer exposes
+  `Fandom Blend`, `启用同人融合`, `启用同人角色替换`, or
+  `启用附加小说分解`, and no longer loads novel-decomposition datasets for
+  the new-game wizard.
+- `components/features/NewGame/mobile/MobileNewGameWizard.tsx`: removed the
+  same visible new-game path. Mobile itself remains a larger removal target,
+  but the retired fandom/novel injection controls are no longer player-visible.
 
 ### Backend And Data Still Pending
 
@@ -159,6 +157,47 @@ in:
 - `components/features/Story/NovelExportModal.tsx` exports play history as prose.
   It is not a novel decomposition/fanfiction ingestion path. Decide separately
   whether this remains useful for the homebrew project.
+
+## Feature: `new_game_fandom_entrypoints`
+
+- Decision: retire.
+- Reason: The homebrew project will not support fanfiction/original-work
+  adaptation or fandom blending as a new-game configuration path.
+- Current status: `entrypoint_removed`, `backend_pending`.
+
+### Entrypoints Removed In This Pass
+
+- `components/features/NewGame/NewGameWizard.tsx`: removed the desktop
+  new-game fandom/fanfiction configuration panel, role-replacement controls,
+  novel-decomposition dataset selector, visible summary rows, and dataset store
+  loading.
+- `components/features/NewGame/mobile/MobileNewGameWizard.tsx`: removed the
+  same mobile new-game fandom/fanfiction configuration path.
+- `services/novelDecompositionStore.ts`: no longer imported by the desktop or
+  mobile new-game wizard for dataset listing.
+
+### Backend, Prompt, And Data Pending
+
+- `models/fandomPlanning`
+- `prompts/runtime/fandom*.ts`
+- `prompts/runtime/opening*.ts` fandom and novel-injection branches
+- `prompts/runtime/planningAnalysis.ts`
+- `prompts/runtime/worldEvolution*.ts`
+- `data/creativeWorkshopModules.ts`
+- `utils/openingConfig.ts` normalization helpers and `OpeningConfig.同人融合`
+  handling
+- `models/system.ts` fandom configuration structures
+- `services/fandomPresetSubmission.ts`
+- `functions/api/fandom-presets`
+
+### Storage And Migration Notes
+
+- Existing custom new-game presets or saved opening configs may still contain
+  `同人融合` fields. A later strong migration can drop them because this fork
+  does not preserve old fandom/novel-decomposition compatibility.
+- Before removing the backend fields, make sure no prompt path still reads old
+  `同人融合` values from custom presets, workshop modules, or saved runtime
+  snapshots.
 
 ## Feature: `music_playback`
 

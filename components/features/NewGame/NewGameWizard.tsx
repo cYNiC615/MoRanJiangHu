@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameButton from '../../ui/GameButton';
-import { 接口设置结构, OpeningConfig, WorldGenConfig, 小说拆分数据集结构, 角色数据结构, 天赋结构, 背景结构, 游戏难度, 初始伙伴配置结构, 世界书结构 } from '../../../types';
+import { 接口设置结构, OpeningConfig, WorldGenConfig, 角色数据结构, 天赋结构, 背景结构, 游戏难度, 初始伙伴配置结构, 世界书结构 } from '../../../types';
 import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../data/presets';
 import type { 开局预设方案结构 } from '../../../data/newGamePresets';
 import { 从模式世界书提取提示词, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
@@ -11,14 +11,11 @@ import NewGameDiyTools from './NewGameDiyTools';
 import GeneratedGenderSelector from './GeneratedGenderSelector';
 import NewGameCurrencySystemSetup from './NewGameCurrencySystemSetup';
 import * as dbService from '../../../services/dbService';
-import { 读取小说拆分数据集列表 } from '../../../services/novelDecompositionStore';
 import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键, 构建开局运行时快照, 构建预设表单恢复结果, 构建预设直开恢复结果, 获取快速重开运行时恢复参数 } from '../../../utils/customNewGamePresets';
 import {
     获取题材关系侧重选项,
     获取题材开局切入偏好选项,
     获取题材开局配置文案,
-    同人来源类型选项,
-    同人融合强度选项,
     题材模式选项,
     属性最大值,
     属性最小值,
@@ -30,8 +27,6 @@ import {
     默认开局配置,
     获取题材化难度设定,
     获取难度总属性点,
-    获取同人角色替换规则列表,
-    格式化角色替换规则摘要,
     规范化开局生成性别列表,
     规范化开局配置,
     规范化可选开局配置
@@ -275,7 +270,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [模式包背景列表, 设置模式包背景列表] = useState<背景结构[]>([]);
     const [模式包世界书列表, 设置模式包世界书列表] = useState<世界书结构[]>([]);
     const [自定义开局预设列表, 设置自定义开局预设列表] = useState<开局预设方案结构[]>([]);
-    const [小说拆分数据集列表, 设置小说拆分数据集列表] = useState<小说拆分数据集结构[]>([]);
     const [创意工坊模块列表, 设置创意工坊模块列表] = useState<创意工坊模块条目[]>([]);
     const [已选创意工坊模式, 设置已选创意工坊模式] = useState<题材模式类型 | ''>('');
     const [已选创意工坊子项, 设置已选创意工坊子项] = useState<Partial<Record<创意工坊模块类型, string>>>({});
@@ -826,14 +820,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const selectedTalentNames = selectedTalents.map(item => item.名称);
     const 背景长期说明 = '背景代表长期身份资源、社会关系、风险来源与成长路径，不应只决定第一幕处境。';
     const 天赋说明 = '天赋代表长期倾向与修行适配，优先影响成长曲线、事件判定与路线优势。';
-    const 当前附加小说数据集 = useMemo(
-        () => 小说拆分数据集列表.find((item) => item.id === openingConfig.同人融合.附加小说数据集ID) || null,
-        [openingConfig.同人融合.附加小说数据集ID, 小说拆分数据集列表]
-    );
-    const 当前角色替换规则列表 = useMemo(
-        () => 获取同人角色替换规则列表(openingConfig, charName),
-        [openingConfig, charName]
-    );
     const 构建伙伴开局配置 = () => {
         const fallback = 默认初始伙伴配置();
         return {
@@ -1409,11 +1395,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     useEffect(() => {
         const 加载自定义建角配置 = async () => {
             try {
-                const [savedTalents, savedBackgrounds, savedStartPresets, savedNovelDatasets, workshopModules] = await Promise.all([
+                const [savedTalents, savedBackgrounds, savedStartPresets, workshopModules] = await Promise.all([
                     dbService.读取设置(自定义天赋存储键),
                     dbService.读取设置(自定义背景存储键),
                     dbService.读取设置(自定义开局预设存储键),
-                    读取小说拆分数据集列表(),
                     列出创意工坊模块().catch(() => [] as 创意工坊模块条目[])
                 ]);
                 if (Array.isArray(savedTalents)) {
@@ -1428,7 +1413,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 if (Array.isArray(workshopModules)) {
                     设置创意工坊模块列表(workshopModules.filter((item) => item.type === 'topic'));
                 }
-                设置小说拆分数据集列表(savedNovelDatasets);
             } catch (error) {
                 console.error('加载自定义身份/天赋/开局方案失败', error);
             }
@@ -1436,18 +1420,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         加载自定义建角配置();
     }, []);
 
-    useEffect(() => {
-        if (!openingConfig.同人融合.附加小说数据集ID) return;
-        if (小说拆分数据集列表.some((item) => item.id === openingConfig.同人融合.附加小说数据集ID)) return;
-        setOpeningConfig((prev) => ({
-            ...prev,
-            同人融合: {
-                ...prev.同人融合,
-                启用附加小说: false,
-                附加小说数据集ID: ''
-            }
-        }));
-    }, [openingConfig.同人融合.附加小说数据集ID, 小说拆分数据集列表]);
 
     const handleStatChange = (key: keyof typeof stats, delta: number) => {
         const current = stats[key];
@@ -1477,58 +1449,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 关系侧重: [...prev.关系侧重, value]
             };
         });
-    };
-
-    const 选择附加小说数据集 = (datasetId: string) => {
-        const matched = 小说拆分数据集列表.find((item) => item.id === datasetId) || null;
-        setOpeningConfig((prev) => ({
-            ...prev,
-            同人融合: {
-                ...prev.同人融合,
-                启用附加小说: Boolean(datasetId),
-                附加小说数据集ID: datasetId,
-                作品名: matched?.作品名 || matched?.标题 || prev.同人融合.作品名,
-                来源类型: '小说'
-            }
-        }));
-    };
-    const 新增附加角色替换规则 = () => {
-        setOpeningConfig((prev) => ({
-            ...prev,
-            同人融合: {
-                ...prev.同人融合,
-                附加角色替换规则列表: [
-                    ...prev.同人融合.附加角色替换规则列表,
-                    { 原名称: '', 替换为: '' }
-                ]
-            }
-        }));
-    };
-    const 更新附加角色替换规则 = (
-        index: number,
-        field: '原名称' | '替换为',
-        value: string
-    ) => {
-        setOpeningConfig((prev) => ({
-            ...prev,
-            同人融合: {
-                ...prev.同人融合,
-                附加角色替换规则列表: prev.同人融合.附加角色替换规则列表.map((rule, ruleIndex) => (
-                    ruleIndex === index
-                        ? { ...rule, [field]: value }
-                        : rule
-                ))
-            }
-        }));
-    };
-    const 删除附加角色替换规则 = (index: number) => {
-        setOpeningConfig((prev) => ({
-            ...prev,
-            同人融合: {
-                ...prev.同人融合,
-                附加角色替换规则列表: prev.同人融合.附加角色替换规则列表.filter((_, ruleIndex) => ruleIndex !== index)
-            }
-        }));
     };
 
     const 校验属性点是否合法 = (): boolean => {
@@ -1819,7 +1739,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         }
         const effectiveName = preset?.character.姓名 ?? charName;
         const effectiveGender = preset?.character.性别 ?? charGender;
-        const effectiveRoleReplaceRules = 获取同人角色替换规则列表(effectiveOpeningConfig, effectiveName);
         if (!effectiveName.trim()) {
             alert("请先填写角色姓名");
             setStep(2);
@@ -1839,29 +1758,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         if (!preset && partnerEnabled && !partnerGender.trim()) {
             alert("已启用开局伙伴，请先填写伙伴性别，或关闭伙伴。");
             setStep(3);
-            return;
-        }
-        if (effectiveOpeningConfig?.同人融合.enabled && !effectiveOpeningConfig.同人融合.作品名.trim()) {
-            alert('已启用同人融合，请先填写作品名。');
-            setStep(0);
-            return;
-        }
-        if (
-            effectiveOpeningConfig?.同人融合.enabled
-            && effectiveOpeningConfig.同人融合.启用附加小说
-            && !effectiveOpeningConfig.同人融合.附加小说数据集ID.trim()
-        ) {
-            alert('已启用附加小说，请先选择一个小说分解数据集。');
-            setStep(0);
-            return;
-        }
-        if (
-            effectiveOpeningConfig?.同人融合.enabled
-            && effectiveOpeningConfig.同人融合.启用角色替换
-            && effectiveRoleReplaceRules.length <= 0
-        ) {
-            alert('已启用同人角色替换，请先填写至少一条有效替换规则。');
-            setStep(0);
             return;
         }
         const charData = preset
@@ -2383,214 +2279,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             </div>
                                         </div>
                                     </div>
-
-                            <OrnateBorder className="p-6 md:p-7">
-                                <div className="border-b border-wuxia-gold/30 pb-4 mb-5">
-                                    <div className="text-[11px] uppercase tracking-[0.35em] text-wuxia-red/70 font-mono">Fandom Blend</div>
-                                    <h3 className="text-2xl font-serif font-bold text-wuxia-gold mt-2">同人融合</h3>
-                                    <p className="text-xs text-gray-400 mt-2 leading-6">仅作用于世界观生成，不会单独进入开局初始化提示词。</p>
-                                </div>
-
-                                <div className="space-y-5">
-                                    <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
-                                        <div>
-                                            <div className="text-sm text-gray-200">启用同人融合</div>
-                                            <div className="text-[11px] text-gray-500 mt-1">关闭时完全按原创世界生成。</div>
-                                        </div>
-                                        <开关按钮
-                                            checked={openingConfig.同人融合.enabled}
-                                            label={openingConfig.同人融合.enabled ? '已启用' : '已关闭'}
-                                            onToggle={() => setOpeningConfig((prev) => ({
-                                                ...prev,
-                                                同人融合: prev.同人融合.enabled
-                                                    ? {
-                                                        ...prev.同人融合,
-                                                        enabled: false,
-                                                        启用附加小说: false,
-                                                        附加小说数据集ID: ''
-                                                    }
-                                                    : { ...prev.同人融合, enabled: true }
-                                            }))}
-                                        />
-                                    </div>
-
-                                    {openingConfig.同人融合.enabled && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            <div className="space-y-2 md:col-span-2">
-                                                <label className="text-sm text-wuxia-cyan font-bold">作品名</label>
-                                                <input
-                                                    value={openingConfig.同人融合.作品名}
-                                                    onChange={(e) => setOpeningConfig((prev) => ({
-                                                        ...prev,
-                                                        同人融合: { ...prev.同人融合, 作品名: e.target.value }
-                                                    }))}
-                                                    placeholder="例如：雪中悍刀行 / 诛仙 / 仙剑奇侠传"
-                                                    className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all"
-                                                />
-                                                <div className="text-[11px] text-gray-500">
-                                                    若下方启用附加小说，选择数据集时会自动把作品名同步为对应小说，方便同人规划与注入保持一致。
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-wuxia-cyan font-bold">来源类型</label>
-                                                <InlineSelect
-                                                    value={openingConfig.同人融合.来源类型}
-                                                    options={同人来源类型选项}
-                                                    onChange={(来源类型) => setOpeningConfig((prev) => ({
-                                                        ...prev,
-                                                        同人融合: { ...prev.同人融合, 来源类型 }
-                                                    }))}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-wuxia-cyan font-bold">融合强度</label>
-                                                <InlineSelect
-                                                    value={openingConfig.同人融合.融合强度}
-                                                    options={同人融合强度选项.map((item) => ({ value: item.value, label: item.label }))}
-                                                    onChange={(融合强度) => setOpeningConfig((prev) => ({
-                                                        ...prev,
-                                                        同人融合: { ...prev.同人融合, 融合强度 }
-                                                    }))}
-                                                />
-                                                <div className="text-[11px] text-gray-500 leading-6">
-                                                    {同人融合强度选项.find((item) => item.value === openingConfig.同人融合.融合强度)?.hint}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2 md:col-span-2">
-                                                <开关按钮
-                                                    checked={openingConfig.同人融合.保留原著角色}
-                                                    label="保留原著角色实体"
-                                                    onToggle={() => setOpeningConfig((prev) => ({
-                                                        ...prev,
-                                                        同人融合: { ...prev.同人融合, 保留原著角色: !prev.同人融合.保留原著角色 }
-                                                    }))}
-                                                />
-                                                <div className="text-[11px] text-gray-500">关闭时只吸收作品母题、势力气质和设定结构，不直接保留原著角色。</div>
-                                            </div>
-                                            <div className="space-y-3 md:col-span-2 rounded-2xl border border-wuxia-gold/15 bg-black/25 p-4">
-                                                <开关按钮
-                                                    checked={openingConfig.同人融合.启用角色替换}
-                                                    label="启用同人角色替换"
-                                                    onToggle={() => setOpeningConfig((prev) => ({
-                                                        ...prev,
-                                                        同人融合: {
-                                                            ...prev.同人融合,
-                                                            启用角色替换: !prev.同人融合.启用角色替换
-                                                        }
-                                                    }))}
-                                                />
-                                                <div className="text-[11px] text-gray-500 leading-6">
-                                                    仅在“小说分解注入文本”进入主剧情 / 规划 / 世界演变上下文前做替换，不修改原数据集内容，也不影响外部存储。
-                                                </div>
-                                                {openingConfig.同人融合.启用角色替换 && (
-                                                    <div className="space-y-3">
-                                                        <label className="text-sm text-wuxia-cyan font-bold">被替换的原著角色名</label>
-                                                        <input
-                                                            type="text"
-                                                            value={openingConfig.同人融合.替换目标角色名}
-                                                            onChange={(e) => setOpeningConfig((prev) => ({
-                                                                ...prev,
-                                                                同人融合: {
-                                                                    ...prev.同人融合,
-                                                                    替换目标角色名: e.target.value
-                                                                }
-                                                            }))}
-                                                            placeholder="例如：徐凤年"
-                                                            className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all"
-                                                        />
-                                                        <div className="text-[11px] text-gray-500">
-                                                            这个主名称默认会在注入时替换成当前主角姓名，不会改动界面外显的原始小说数据。
-                                                        </div>
-                                                        <div className="space-y-3">
-                                                            <div className="flex items-center justify-between gap-3">
-                                                                <label className="text-sm text-wuxia-cyan font-bold">附加替换规则（可选）</label>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={新增附加角色替换规则}
-                                                                    className="px-3 py-1.5 rounded-full border border-wuxia-gold/35 text-[11px] text-wuxia-gold hover:bg-wuxia-gold/10 transition-colors"
-                                                                >
-                                                                    新增一条
-                                                                </button>
-                                                            </div>
-                                                            {openingConfig.同人融合.附加角色替换规则列表.length > 0 ? (
-                                                                <div className="space-y-3">
-                                                                    {openingConfig.同人融合.附加角色替换规则列表.map((rule, index) => (
-                                                                        <div key={`replace-rule-${index}`} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                                                                            <input
-                                                                                type="text"
-                                                                                value={rule.原名称}
-                                                                                onChange={(e) => 更新附加角色替换规则(index, '原名称', e.target.value)}
-                                                                                placeholder="原著里的名字，例如：小年"
-                                                                                className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all"
-                                                                            />
-                                                                            <input
-                                                                                type="text"
-                                                                                value={rule.替换为}
-                                                                                onChange={(e) => 更新附加角色替换规则(index, '替换为', e.target.value)}
-                                                                                placeholder="替换成，例如：阿轩"
-                                                                                className="w-full bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all"
-                                                                            />
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => 删除附加角色替换规则(index)}
-                                                                                className="px-3 py-2 rounded-md border border-red-500/30 text-sm text-red-300 hover:bg-red-500/10 transition-colors"
-                                                                            >
-                                                                                删除
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-[11px] text-gray-500">
-                                                                    可以单独指定别名、小名、称呼或化名要替换成什么名字，例如“小年 -&gt; 阿轩”、“世子殿下 -&gt; 轩哥”。
-                                                                </div>
-                                                            )}
-                                                            <div className="text-[11px] text-gray-500">
-                                                                附加规则不会再强制绑定当前主角姓名，每条都按你填写的“原名称 -&gt; 替换为”执行。
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-3 md:col-span-2 rounded-2xl border border-wuxia-cyan/20 bg-black/25 p-4">
-                                                <开关按钮
-                                                    checked={openingConfig.同人融合.启用附加小说}
-                                                    label="启用附加小说分解"
-                                                    onToggle={() => setOpeningConfig((prev) => ({
-                                                        ...prev,
-                                                        同人融合: {
-                                                            ...prev.同人融合,
-                                                            启用附加小说: !prev.同人融合.启用附加小说,
-                                                            附加小说数据集ID: !prev.同人融合.启用附加小说 ? prev.同人融合.附加小说数据集ID : ''
-                                                        }
-                                                    }))}
-                                                />
-                                                <div className="text-[11px] text-gray-500 leading-6">
-                                                    允许前端同时保存多部小说的分解数据，但本次存档只会注入这里选定的那一部；未启用时，本存档不会注入小说分解内容。
-                                                </div>
-                                                <InlineSelect
-                                                    value={openingConfig.同人融合.附加小说数据集ID}
-                                                    options={小说拆分数据集列表.map((dataset) => ({
-                                                        value: dataset.id,
-                                                        label: dataset.作品名 || dataset.标题 || dataset.id
-                                                    }))}
-                                                    onChange={选择附加小说数据集}
-                                                    placeholder={小说拆分数据集列表.length > 0 ? '选择附加小说数据集' : '暂无已导入的小说分解数据'}
-                                                    disabled={!openingConfig.同人融合.启用附加小说 || 小说拆分数据集列表.length <= 0}
-                                                />
-                                                <div className="text-[11px] text-gray-500">
-                                                    {小说拆分数据集列表.length <= 0
-                                                        ? '还没有可选的数据集，请先在首页的小说分解工作台导入 TXT / EPUB 或分解 JSON。'
-                                                        : 当前附加小说数据集
-                                                            ? `当前选择：${当前附加小说数据集.作品名 || 当前附加小说数据集.标题}，后续主剧情 / 规划分析 / 世界演变都会优先使用这部小说的分解注入。`
-                                                            : '启用后请选择一部小说分解数据集。'}
-                                                </div>
-                                                
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </OrnateBorder>
 
                                     <NewGameDiyTools
                                         worldConfig={worldConfig}
@@ -3480,9 +3168,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
                                     <p>开局切入: <span className="text-white">{openingConfigEnabled ? openingConfig.开局切入偏好 : '未设置'}</span></p>
                                     <p>生成性别: <span className="text-white">{openingConfigEnabled ? openingConfig.允许生成性别.join('、') : '未设置'}</span></p>
-                                    <p>同人融合: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.enabled ? `${openingConfig.同人融合.作品名 || '未命名作品'} / ${openingConfig.同人融合.融合强度}` : '关闭') : '未设置'}</span></p>
-                                    <p>角色替换: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.启用角色替换 ? (格式化角色替换规则摘要(当前角色替换规则列表) || '未填写规则') : '关闭') : '未设置'}</span></p>
-                                    <p>附加小说: <span className="text-white">{openingConfigEnabled ? (openingConfig.同人融合.启用附加小说 ? (当前附加小说数据集?.作品名 || 当前附加小说数据集?.标题 || '未选择数据集') : '关闭') : '未设置'}</span></p>
                                 </div>
                             </OrnateBorder>
 

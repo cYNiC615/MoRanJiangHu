@@ -36,7 +36,6 @@ import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolu
 import { 分配角色属性点, type 可分配六维属性键 } from './utils/characterAttributePoints';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, 执行延迟上传队列, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
-import { startOnlinePresenceHeartbeat } from './services/onlinePresence';
 import { 等待云端后台同步完成, 确保本地存档已同步到云端, 确保最新本地存档已同步到云端 } from './services/cloudPlayService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
@@ -583,7 +582,6 @@ const App: React.FC = () => {
     }, [state.gameConfig]);
 
     React.useEffect(() => subscribeAppUpdateProgress(setAppUpdateProgress), []);
-    React.useEffect(() => startOnlinePresenceHeartbeat(), []);
     React.useEffect(() => {
         const handleImageError = (event: Event) => {
             const target = event.target;

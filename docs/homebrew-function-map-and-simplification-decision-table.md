@@ -142,6 +142,7 @@
 | Music | 背景音乐、播放器、音乐设置、曲库持久化 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具和 UI 入口；旧存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 入口已移除/后端待删 | 首页 GitHub 同步按钮和 Cloud Play 挂载已移除；未挂载 Auth 组件、OAuth hook 和 API 仍待删 |
+| Online Presence/Public Ops | 在线心跳、首页在线人数、公开在线时长榜 | `App.tsx`, `components/layout/LandingPage.tsx`, `services/onlinePresence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表和在线时长榜入口；图表 helper、服务、API、静态页和测试仍待删 |
 | NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 准备移除 | 第一批移除入口，第二批删服务/模型/提示词 |
 
 ## 7. 服务与数据功能地图
@@ -154,6 +155,7 @@
 | GitHub 同步 | GitHub 云存档、多设备同步 | `services/githubSync.ts`, `functions/api/github` | 入口已移除/后端待删 | 首页同步按钮已移除；服务、OAuth、API 和测试仍待删 |
 | Object/WebDAV 同步 | 对象存储、WebDAV、多设备同步 | `services/objectStorageSync.ts`, `services/webdavSync.ts`, `functions/api/object-storage-proxy.ts`, `functions/api/webdav-proxy.ts` | 入口已移除/后端待删 | SaveLoad 转云端入口已移除；Auth 面板、设置键、服务和 API 仍待删 |
 | Cloud Play | 云端游玩、返回主页同步 | `services/cloudPlayService.ts`, `functions/api/cloud-play.ts` | 入口已移除/后端待删 | `App.tsx` 不再挂载 CloudPlayModal；返回主页同步副作用仍待删 |
+| Online Presence/Public Ops | 在线心跳、公开在线统计、在线时长榜 | `services/onlinePresence.ts`, `functions/api/online-presence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | `App.tsx` 不再启动心跳，首页不再请求/展示在线人数；服务、API、静态榜页、localStorage 历史和测试仍待删 |
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 准备移除 | 删除后也要清理 release scripts |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 准备移除 | 保留本地模式包时要拆分 local/cloud |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 准备移除 | 分布很广，适合分批删 |
@@ -204,7 +206,8 @@
 | Android/APK | 准备移除 | 用户明确不做 APK | 删除 scripts、Capacitor、android、app update |
 | GitHub/WebDAV/Object 云同步 | 入口已移除/后端待删 | 用户明确不做多设备同步 | 已从首页、移动菜单、SaveLoad 入口解绑；下一步拆 saveCoordinator、服务、API、storage key |
 | 社区 UGC/云工坊 | 准备移除 | 用户明确不做社区 UGC | 保留本地 JSON 导入，删除投稿/下载 |
-| 在线状态/云端游玩 | 入口已移除/后端待删 | 更像公共运营功能 | 已删除 CloudPlayModal 挂载和首页入口；心跳、同步副作用和相关 API 仍待删 |
+| 云端游玩 | 入口已移除/后端待删 | 更像公共运营/多设备功能，不属于个人本地 homebrew | 已删除 CloudPlayModal 挂载、首页云端入口和 SaveLoad 转云端入口；返回主页同步副作用和相关 API 仍待删 |
+| 公共在线状态/在线榜 | 入口已移除/后端待删 | 在线心跳、在线人数和公开时长榜是公共运营功能，不服务本地单机 AI RP 核心 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表和在线时长榜入口；服务/API/静态页/测试待删 |
 | 管理后台/公共运营 | 准备移除或开发态隐藏 | 不服务个人 homebrew 主体验 | 先从玩家入口隐藏 |
 | 旧存档兼容 | 不保留 | 当前 fork 暂时个人使用，保兼容会拖慢精简 | 迁移只服务当前 homebrew 默认状态，不兼容旧武侠存档 |
 | 全局类型债与 warning | 准备治理 | 当前 `npx tsc --noEmit` 已不可作为绿色验证；整体精简后必须回到 0 error / 0 warning | 每次删模块同步修测试和类型，最终设为硬门禁 |
@@ -242,6 +245,16 @@
 - 从 `App.tsx`、`SettingsModal.tsx`、`NewGame`、`CreativeWorkshopModal.tsx` 断开小说分解、同人、云同步、社区、移动/APK、战斗、拍卖行、音乐、节日、武侠/修仙入口。
 - 保证核心聊天、存档、世界书、提示词、记忆、设置仍可工作。
 - 这一阶段目标是“用户看不到已废弃功能”，不是一次性删除所有文件。
+
+#### Phase 1 范围边界
+
+Phase 1 删到这里算完：
+
+1. 已明确废弃模块不再有玩家可见入口：同人/小说分解、云同步/云端游玩、社区 UGC、公共在线状态/在线榜、移动端、APK、旧战斗、拍卖行、音乐、节日、天气游戏系统、武侠/修仙专属入口。
+2. 已明确废弃模块不再有顶层自动副作用：例如应用启动时的心跳、首页定时请求、保存后自动云同步等。
+3. 对于一次删不完的模块，必须在 `docs/homebrew-dead-feature-registry.md` 写明剩余后端、prompt、storage key、测试、静态页或迁移点。
+4. Phase 1 可以允许 `backend_pending`，但不允许“入口删了、残留没登记”。
+5. Phase 1 不追求彻底删除所有深层模型字段；深层删除进入 Phase 2+，以防误伤 AI 上下文、存档、设置和主回合流程。
 
 #### Phase 1 退出标准
 

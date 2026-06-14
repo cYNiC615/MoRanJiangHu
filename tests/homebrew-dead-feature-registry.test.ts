@@ -164,4 +164,27 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('functions/api/cloud-play.ts');
         expect(registry).toContain('utils/settingsSchema.ts');
     });
+
+    it('removes online presence and public ranking player-visible entrypoints', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('startOnlinePresenceHeartbeat');
+        expect(app).not.toContain('services/onlinePresence');
+
+        const landing = readProjectFile('components/layout/LandingPage.tsx');
+        expect(landing).not.toContain('fetchOnlinePresencePublicStats');
+        expect(landing).not.toContain('在线时长榜');
+        expect(landing).not.toContain('online-ranking.html');
+        expect(landing).not.toContain('presenceStats');
+        expect(landing).not.toContain('presenceHistory');
+    });
+
+    it('records online presence backend and public pages as pending removal', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('online_presence_public_ops');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('services/onlinePresence.ts');
+        expect(registry).toContain('public/online-ranking.html');
+        expect(registry).toContain('tests/online-ranking-session-regression.test.ts');
+    });
 });

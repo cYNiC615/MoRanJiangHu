@@ -2,7 +2,6 @@ import React from 'react';
 import GameButton from '../ui/GameButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
 import { checkForAppUpdate, downloadLatestApkPackage, openExternalUrl } from '../../services/appUpdate';
-import { fetchOnlinePresencePublicStats, type OnlinePresencePublicStats } from '../../services/onlinePresence';
 import { isNativeCapacitorEnvironment, setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { 接口设置结构, ThemePreset } from '../../types';
 import CreativeWorkshopModal from '../features/Workshop/CreativeWorkshopModal';
@@ -120,7 +119,7 @@ const 读取在线人数历史 = (): 在线人数小时点[] => {
     }
 };
 
-const 写入在线人数小时点 = (stats: OnlinePresencePublicStats): 在线人数小时点[] => {
+const 写入在线人数小时点 = (stats: any): 在线人数小时点[] => {
     const date = stats.serverTime ? new Date(stats.serverTime) : new Date();
     if (Number.isNaN(date.getTime())) return 读取在线人数历史();
     date.setMinutes(0, 0, 0);
@@ -141,7 +140,7 @@ const 写入在线人数小时点 = (stats: OnlinePresencePublicStats): 在线�
     return next;
 };
 
-const 从服务端在线历史转换 = (stats: OnlinePresencePublicStats): 在线人数小时点[] => (
+const 从服务端在线历史转换 = (stats: any): 在线人数小时点[] => (
     Array.isArray(stats.hourlyHistory)
         ? stats.hourlyHistory
             .map((item) => ({
@@ -177,7 +176,7 @@ const 格式化在线人数日期标签 = (hour: string) => {
     return `${date.getFullYear()}${month}${day}`;
 };
 
-const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?: OnlinePresencePublicStats | null }> = ({ data, current }) => {
+const 在线人数折线图: React.FC<{ data: 在线人数小时点[]; current?: any | null }> = ({ data, current }) => {
     const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
     const panelRef = React.useRef<HTMLDivElement | null>(null);
     const chartScrollRef = React.useRef<HTMLDivElement | null>(null);
@@ -598,8 +597,6 @@ const LandingPage: React.FC<Props> = ({
 }) => {
     const isNativeApp = React.useMemo(() => isNativeCapacitorEnvironment(), []);
     const [isCheckingUpdate, setIsCheckingUpdate] = React.useState(false);
-    const [presenceStats, setPresenceStats] = React.useState<OnlinePresencePublicStats | null>(null);
-    const [presenceHistory, setPresenceHistory] = React.useState<在线人数小时点[]>([]);
     const [supportDetailsOpen, setSupportDetailsOpen] = React.useState(false);
     const [localPlayOpen, setLocalPlayOpen] = React.useState(false);
     const [workshopOpen, setWorkshopOpen] = React.useState(false);
@@ -621,25 +618,6 @@ const LandingPage: React.FC<Props> = ({
         return () => {
             document.removeEventListener('fullscreenchange', syncSystemBars);
             void setNativeSystemBarsHidden(false);
-        };
-    }, []);
-
-    React.useEffect(() => {
-        setPresenceHistory(读取在线人数历史());
-        let cancelled = false;
-        const refresh = async () => {
-            const stats = await fetchOnlinePresencePublicStats();
-            if (!cancelled && stats) {
-                setPresenceStats(stats);
-                const serverHistory = 从服务端在线历史转换(stats);
-                setPresenceHistory(serverHistory.length > 0 ? serverHistory : 写入在线人数小时点(stats));
-            }
-        };
-        void refresh();
-        const timer = window.setInterval(() => { void refresh(); }, 30000);
-        return () => {
-            cancelled = true;
-            window.clearInterval(timer);
         };
     }, []);
 
@@ -802,7 +780,7 @@ const LandingPage: React.FC<Props> = ({
                     </div>
                 </section>
 
-                <div className="landing-dashboard-row relative z-10 grid w-full max-w-full min-w-0 grid-cols-1 items-stretch gap-4 overflow-visible animate-fadeIn lg:absolute lg:bottom-16 lg:left-1/2 lg:h-[224px] lg:max-h-[224px] lg:max-w-[1020px] lg:-translate-x-1/2 lg:grid-cols-[minmax(300px,400px)_minmax(420px,1fr)] lg:overflow-visible">
+                <div className="landing-dashboard-row relative z-10 grid w-full max-w-full min-w-0 grid-cols-1 items-stretch gap-4 overflow-visible animate-fadeIn lg:absolute lg:bottom-16 lg:left-1/2 lg:h-[224px] lg:max-h-[224px] lg:max-w-[420px] lg:-translate-x-1/2 lg:overflow-visible">
                     <aside className="landing-card landing-release-card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-wuxia-gold/15 bg-black/45 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-wuxia-gold/10 pb-2">
                             <div>
@@ -852,13 +830,6 @@ const LandingPage: React.FC<Props> = ({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => { void openExternalUrl('/online-ranking.html'); }}
-                                className="min-h-[38px] border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs tracking-[0.16em] text-amber-200 transition-colors hover:bg-amber-500/16"
-                            >
-                                在线时长榜
-                            </button>
-                            <button
-                                type="button"
                                 onClick={() => { void openExternalUrl('/item-preset-feedback.html'); }}
                                 className="min-h-[38px] border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-2 text-xs tracking-[0.16em] text-fuchsia-200 transition-colors hover:bg-fuchsia-500/15"
                             >
@@ -866,11 +837,6 @@ const LandingPage: React.FC<Props> = ({
                             </button>
                         </div>
                     </aside>
-
-                    <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-                        <在线人数折线图 data={presenceHistory} current={presenceStats} />
-                    </div>
-
                 </div>
             </div>
 

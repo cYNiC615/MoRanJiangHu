@@ -349,3 +349,48 @@ focused passes:
 - Save metadata fields written for object-storage sync can be deleted during
   the save-schema cleanup, but local save content and ZIP import/export must
   remain supported.
+
+## Feature: `online_presence_public_ops`
+
+- Decision: retire.
+- Reason: Public online heartbeat, online player counts, and online-duration
+  ranking are public-operations/community surfaces, not part of the local
+  homebrew AI-RPG core loop.
+- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+
+### Entrypoints Removed In This Pass
+
+- `App.tsx`: no longer imports `services/onlinePresence` or starts the global
+  online heartbeat.
+- `components/layout/LandingPage.tsx`: no longer fetches public online stats,
+  stores homepage online history state, renders the online-count chart, or links
+  to the public online-duration ranking page.
+
+### Frontend Code Still Pending
+
+- `components/layout/LandingPage.tsx`: dead online-chart helper code still
+  exists but is not rendered and no longer fetches online data. Delete it with
+  the backend/static-page cleanup pass.
+
+### Backend, Static Pages, And Data Pending
+
+- `services/onlinePresence.ts`
+- `functions/api/online-presence.ts`
+- `public/online-ranking.html`
+- localStorage key: `moranjianghu.onlineHourlyHistory`
+- Any release/homepage copy that still treats public online stats as a product
+  surface should be removed during the same pass.
+
+### Tests Still Pending
+
+- `tests/online-ranking-session-regression.test.ts`
+- Any worker/API tests that target public online presence or public ranking
+  endpoints should be deleted with the backend pass.
+
+### Storage And Migration Notes
+
+- Existing homepage online-history localStorage can be dropped in a strong
+  migration.
+- Online presence currently overlaps with cloud-play session and public
+  operations code. Remove it after the cloud/sync backend pass identifies which
+  session helpers are no longer needed.

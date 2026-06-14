@@ -483,8 +483,6 @@ in:
 These are adjacent cloud/community surfaces and should be removed in later
 focused passes:
 
-- `components/features/Workshop/CreativeWorkshopModal.tsx`: still imports
-  `读取云端游玩会话` and exposes community contribution/publish concepts.
 - `components/features/Settings/NovelDecompositionSettings.tsx`: still contains
   novel-decomposition workshop publishing code. It belongs to the later
   novel-decomposition cleanup pass.
@@ -533,6 +531,56 @@ focused passes:
 - Save metadata fields written for object-storage sync can be deleted during
   the save-schema cleanup, but local save content and ZIP import/export must
   remain supported.
+
+## Feature: `creative_workshop_cloud_ugc`
+
+- Decision: retire cloud/community publishing, keep local mode packages.
+- Reason: The homebrew project will not support community UGC, cloud workshop
+  publishing, account-owned module editing, or public feedback/report flows.
+  Local built-in modules, local JSON import/export, local ComfyUI workflow
+  saving, and local injection preview remain useful.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`.
+
+### Entrypoints And Automatic Effects Removed In This Pass
+
+- `components/features/Workshop/CreativeWorkshopModal.tsx`: no longer imports
+  cloud-play session state, reads a cloud username, exposes a cloud source
+  filter, or shows community publish/edit/delete/report buttons.
+- `components/features/Workshop/CreativeWorkshopModal.tsx`: keeps only local
+  JSON import, local module creation, local save, read-only injection preview,
+  JSON download, and summary copy.
+- `components/features/Settings/ImageGenerationSettings.tsx`: no longer tries
+  to publish the current ComfyUI workflow to the community workshop. The action
+  now validates the workflow and saves it as a local workshop module only.
+- `services/creativeWorkshop.ts`: `列出创意工坊模块` no longer fetches
+  `/api/workshop/modules` or merges cloud entries into active UI lists. New-game
+  and settings consumers now receive only built-in and local modules.
+
+### Backend, API, And Data Pending
+
+- `services/creativeWorkshop.ts`: publish/edit/delete/download helpers,
+  cloud-account payload helpers, and cloud normalization branches still exist
+  for a later backend deletion pass.
+- `functions/api/workshop/modules.ts`
+- `functions/api/workshop/novel-decomposition.ts` belongs primarily to the
+  retired novel-decomposition feature, but it is also part of the old workshop
+  API surface and can be removed when that backend is deleted.
+- `services/workshopNovelDecomposition.ts` still contains retired workshop
+  publishing/downloading behavior tied to novel decomposition.
+- `components/features/Settings/NovelDecompositionSettings.tsx` still contains
+  novel-decomposition workshop publishing code; remove it with the broader
+  novel-decomposition backend cleanup.
+
+### Storage And Migration Notes
+
+- Historical local feedback reports under `moranjianghu.workshop.reports.*`
+  can be dropped in a strong migration.
+- Historical local workshop modules remain valid if they are built-in/local
+  module JSON. Cloud-only server entries are no longer listed by active code.
+- If a saved new-game preset references a cloud-sourced workshop module key, a
+  later migration may drop that selection because this fork does not preserve
+  community UGC compatibility.
 
 ## Feature: `online_presence_public_ops`
 

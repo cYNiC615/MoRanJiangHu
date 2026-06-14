@@ -2233,7 +2233,6 @@ const App: React.FC = () => {
                     currentTheme={state.currentTheme}
                     onThemeChange={setters.setCurrentTheme}
                     hasSave={state.hasSave}
-                    apiConfig={state.apiConfig}
                 />
             )}
 

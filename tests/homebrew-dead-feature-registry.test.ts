@@ -186,6 +186,44 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('utils/settingsSchema.ts');
     });
 
+    it('removes creative-workshop community publishing entrypoints', () => {
+        const workshop = readProjectFile('components/features/Workshop/CreativeWorkshopModal.tsx');
+        expect(workshop).not.toContain('读取云端游玩会话');
+        expect(workshop).not.toContain('onRequireLogin');
+        expect(workshop).not.toContain('cloudUsername');
+        expect(workshop).not.toContain('发布创意工坊模块');
+        expect(workshop).not.toContain('编辑创意工坊模块');
+        expect(workshop).not.toContain('删除创意工坊模块');
+        expect(workshop).not.toContain("source === 'cloud'");
+        expect(workshop).not.toContain("'cloud'");
+        expect(workshop).not.toContain('社区贡献');
+        expect(workshop).not.toContain('发布到社区');
+        expect(workshop).not.toContain('贡献社区');
+        expect(workshop).not.toContain('编辑投稿');
+        expect(workshop).not.toContain('保存编辑');
+        expect(workshop).not.toContain('删除投稿');
+        expect(workshop).not.toContain('反馈问题');
+        expect(workshop).not.toContain('提交反馈');
+        expect(workshop).not.toContain('reportTarget');
+
+        const imageSettings = readProjectFile('components/features/Settings/ImageGenerationSettings.tsx');
+        expect(imageSettings).not.toContain('发布创意工坊模块');
+        expect(imageSettings).not.toContain('已发布到创意工坊');
+        expect(imageSettings).not.toContain('发布到社区失败');
+        expect(imageSettings).not.toContain('其他玩家');
+    });
+
+    it('records creative-workshop community backend as pending removal after entrypoints are gone', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('creative_workshop_cloud_ugc');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('components/features/Workshop/CreativeWorkshopModal.tsx');
+        expect(registry).toContain('components/features/Settings/ImageGenerationSettings.tsx');
+        expect(registry).toContain('services/creativeWorkshop.ts');
+        expect(registry).toContain('functions/api/workshop/modules.ts');
+    });
+
     it('removes online presence and public ranking player-visible entrypoints', () => {
         const app = readProjectFile('App.tsx');
         expect(app).not.toContain('startOnlinePresenceHeartbeat');

@@ -2,7 +2,7 @@ import React from 'react';
 import GameButton from '../ui/GameButton';
 import { RELEASE_INFO } from '../../data/releaseInfo';
 import { setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
-import { 接口设置结构, ThemePreset } from '../../types';
+import { ThemePreset } from '../../types';
 import CreativeWorkshopModal from '../features/Workshop/CreativeWorkshopModal';
 
 const hasFullscreenElement = () => {
@@ -71,7 +71,6 @@ interface Props {
     currentTheme: ThemePreset;
     onThemeChange: (theme: ThemePreset) => void;
     hasSave: boolean;
-    apiConfig?: 接口设置结构;
 }
 
 const actionButtonStyle: React.CSSProperties = {
@@ -594,8 +593,7 @@ const LandingPage: React.FC<Props> = ({
     onSettings,
     currentTheme,
     onThemeChange,
-    hasSave,
-    apiConfig
+    hasSave
 }) => {
     const [supportDetailsOpen, setSupportDetailsOpen] = React.useState(false);
     const [localPlayOpen, setLocalPlayOpen] = React.useState(false);
@@ -896,7 +894,6 @@ const LandingPage: React.FC<Props> = ({
             <CreativeWorkshopModal
                 open={workshopOpen}
                 onClose={() => setWorkshopOpen(false)}
-                apiConfig={apiConfig}
             />
         </div>
     );

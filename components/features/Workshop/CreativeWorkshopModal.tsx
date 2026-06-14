@@ -1,30 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 从模式世界书提取提示词, 创意工坊模块分区, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
-import type { 接口设置结构, ModeRuntimeProfile, 世界书结构 } from '../../../types';
+import type { ModeRuntimeProfile, 世界书结构 } from '../../../types';
 import type { CurrencySystem, 题材模式类型 } from '../../../models/system';
 import { 题材模式配置表, 题材模式顺序 } from '../../../utils/topicModeProfiles';
 import { 构建货币系统模板, 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容, 规范化显式货币系统 } from '../../../utils/modeRuntimeProfile';
 import { 开局生成性别选项 } from '../../../utils/openingConfig';
 import {
-    编辑创意工坊模块,
-    删除创意工坊模块,
-    发布创意工坊模块,
     导入本地创意工坊模块,
-    列出创意工坊模块,
-    提取ComfyUI工作流模块JSON
+    列出创意工坊模块
 } from '../../../services/creativeWorkshop';
-import { 读取云端游玩会话 } from '../../../services/cloudPlayService';
-import { 校验ComfyUI工作流可生图 } from '../../../services/ai/comfyWorkflowValidation';
 import CurrencySystemEditor from './CurrencySystemEditor';
 
 interface Props {
     open: boolean;
     onClose: () => void;
-    onRequireLogin?: () => void;
-    apiConfig?: 接口设置结构;
 }
 
-type 来源筛选 = 'all' | 'builtin' | 'cloud' | 'local';
+type 来源筛选 = 'all' | 'builtin' | 'local';
 type 货币系统编辑模式 = 'dynamic' | 'legacy' | 'json';
 const 可展示工坊类型: 创意工坊模块类型[] = ['topic', 'comfy_workflow'];
 const 可展示工坊类型集合 = new Set<创意工坊模块类型>(可展示工坊类型);
@@ -764,22 +756,16 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
     };
 };
 
-const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin, apiConfig }) => {
+const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
     const [activeType, setActiveType] = useState<创意工坊模块类型>('topic');
     const [sourceFilter, setSourceFilter] = useState<来源筛选>('all');
     const [entries, setEntries] = useState<创意工坊模块条目[]>([]);
     const [status, setStatus] = useState('');
     const [loading, setLoading] = useState(false);
     const [busyId, setBusyId] = useState('');
-    const [reportTarget, setReportTarget] = useState<{ id: string; title: string } | null>(null);
-    const [reportText, setReportText] = useState('');
-    const [reportGameText, setReportGameText] = useState('');
     const [contributor, setContributor] = useState('');
     const [anonymousContribution, setAnonymousContribution] = useState(false);
-    const [cloudUsername, setCloudUsername] = useState('');
     const [previewEntry, setPreviewEntry] = useState<创意工坊模块条目 | null>(null);
-    const [editingEntryId, setEditingEntryId] = useState('');
-    const [editingDraft, setEditingDraft] = useState({ title: '', subtitle: '', description: '', tags: '', contributor: '', anonymous: false });
     const [contributionDraft, setContributionDraft] = useState<贡献草稿>(() => 空贡献草稿());
     const [currencySystemJsonDraft, setCurrencySystemJsonDraft] = useState(() => 格式化货币系统Json(空贡献草稿().modeRuntimeProfile));
     const [currencySystemJsonError, setCurrencySystemJsonError] = useState('');
@@ -829,30 +815,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
         setCurrencySystemJsonError('');
         setCurrencySystemEditMode(nextDraft.modeRuntimeProfile.economy.currencySystem ? 'dynamic' : 'legacy');
 
-    };
-
-    const 提交工坊反馈 = () => {
-        if (!reportTarget || !reportText.trim()) return;
-        const key = `moranjianghu.workshop.reports.${reportTarget.id}`;
-        const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        existing.push({
-            text: reportText.trim(),
-            gameText: reportGameText.trim() || undefined,
-            createdAt: new Date().toISOString(),
-            userAgent: navigator.userAgent.slice(0, 120)
-        });
-        localStorage.setItem(key, JSON.stringify(existing));
-        setStatus(`已提交对「${reportTarget.title}」的反馈，感谢！`);
-        setReportTarget(null);
-        setReportText('');
-        setReportGameText('');
-    };
-
-    const 获取反馈数量 = (entryId: string): number => {
-        try {
-            const key = `moranjianghu.workshop.reports.${entryId}`;
-            return JSON.parse(localStorage.getItem(key) || '[]').length;
-        } catch { return 0; }
     };
 
     const 更新货币系统Json = (value: string) => {
@@ -1015,120 +977,10 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
     useEffect(() => {
         if (!open) return;
         setPreviewEntry(null);
-        const session = 读取云端游玩会话();
-        setCloudUsername(session?.username || '');
         void refreshEntries();
     }, [open]);
 
     if (!open) return null;
-
-    const 校验发布前ComfyUI工作流 = async (entry: 创意工坊模块条目) => {
-        if (entry.type !== 'comfy_workflow') return;
-        setStatus(`正在真实校验 ComfyUI 工作流「${entry.title}」能否生图...`);
-        const workflowJson = 提取ComfyUI工作流模块JSON(entry);
-        const result = await 校验ComfyUI工作流可生图({ settings: apiConfig, workflowJson });
-        setStatus(`${result.message} 正在继续发布「${entry.title}」。`);
-    };
-
-    const 发布模块 = async (entry: 创意工坊模块条目) => {
-        if (!cloudUsername) {
-            setStatus('正在前往联机登录。登录后回到创意工坊即可继续发布。');
-            onRequireLogin?.();
-            return;
-        }
-        setBusyId(entry.id);
-        try {
-            await 校验发布前ComfyUI工作流(entry);
-            const published = await 发布创意工坊模块({ module: entry, contributor, anonymous: anonymousContribution });
-            setStatus(`已发布到社区工坊：${published.title}。`);
-            await refreshEntries();
-        } catch (error: any) {
-            setStatus(`发布失败：${error?.message || '未知错误'}`);
-        } finally {
-            setBusyId('');
-        }
-    };
-
-    const 发布贡献套装 = async () => {
-        if (!contributionReady) {
-            setStatus(contributionDraft.type === 'comfy_workflow' ? '请先填写模块名称和工作流内容。' : '请完整填写模式元数据，以及模式专属世界书的题材口径、世界规则和能力体系三段内容。');
-            return;
-        }
-        if (!cloudUsername) {
-            setStatus('正在前往联机登录。登录后回到创意工坊即可继续发布。');
-            onRequireLogin?.();
-            return;
-        }
-        setBusyId('contribution-suite');
-        try {
-            const published: 创意工坊模块条目[] = [];
-            if (contributionDraft.type === 'comfy_workflow') {
-                await 校验发布前ComfyUI工作流(contributionModules[0]);
-            }
-            for (const module of contributionModules) {
-                published.push(await 发布创意工坊模块({ module, contributor, anonymous: anonymousContribution }));
-            }
-            setStatus(contributionDraft.type === 'comfy_workflow'
-                ? `已发布到社区工坊：${published[0]?.title || contributionDraft.title}。`
-                : `已发布完整模式包「${contributionDraft.title.trim()}」。`);
-            重置贡献草稿();
-            await refreshEntries();
-        } catch (error: any) {
-            setStatus(`发布失败：${error?.message || '未知错误'}`);
-        } finally {
-            setBusyId('');
-        }
-    };
-
-    const 开始编辑社区模块 = (entry: 创意工坊模块条目) => {
-        setEditingEntryId(entry.id);
-        setEditingDraft({
-            title: entry.title || '',
-            subtitle: entry.subtitle || '',
-            description: entry.description || '',
-            tags: (entry.tags || []).join('、'),
-            contributor: entry.anonymous ? '' : (entry.contributor || cloudUsername),
-            anonymous: entry.anonymous === true
-        });
-    };
-
-    const 保存社区模块编辑 = async (entry: 创意工坊模块条目) => {
-        setBusyId(entry.id);
-        try {
-            const updated = await 编辑创意工坊模块({
-                id: entry.id,
-                anonymous: editingDraft.anonymous,
-                patch: {
-                    title: editingDraft.title,
-                    subtitle: editingDraft.subtitle,
-                    description: editingDraft.description,
-                    tags: editingDraft.tags.split(/[，,、\s]+/).map((tag) => tag.trim()).filter(Boolean),
-                    contributor: editingDraft.contributor
-                }
-            });
-            setStatus(`已更新社区工坊：${updated.title}。`);
-            setEditingEntryId('');
-            await refreshEntries();
-        } catch (error: any) {
-            setStatus(`编辑失败：${error?.message || '未知错误'}`);
-        } finally {
-            setBusyId('');
-        }
-    };
-
-    const 删除社区模块 = async (entry: 创意工坊模块条目) => {
-        if (!window.confirm(`确定删除社区投稿「${entry.title}」吗？`)) return;
-        setBusyId(entry.id);
-        try {
-            await 删除创意工坊模块(entry.id);
-            setStatus(`已删除社区投稿：${entry.title}。`);
-            await refreshEntries();
-        } catch (error: any) {
-            setStatus(`删除失败：${error?.message || '未知错误'}`);
-        } finally {
-            setBusyId('');
-        }
-    };
 
     const 保存贡献模块到本地 = async () => {
         if (!contributionReady) {
@@ -1139,7 +991,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
             const modules = contributionModules.map((module) => 导入本地创意工坊模块(module));
             const first = modules[0];
             setStatus(contributionDraft.type === 'comfy_workflow'
-                ? `已保存本地贡献「${first.title}」，可以在本地导入分区预览或发布。`
+                ? `已保存本地模块「${first.title}」，可以在本地导入分区预览。`
                 : `已保存完整模式包「${contributionDraft.title.trim()}」。`);
             setActiveType(first.type);
             setSourceFilter('local');
@@ -1331,7 +1183,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                             <div className="mt-1 text-sm text-wuxia-gold/80">{entry.subtitle}</div>
                             <p className="mt-3 max-w-4xl text-sm leading-6 text-gray-300">{entry.description}</p>
                         </div>
-                        <div className="shrink-0 rounded-lg border border-white/10 bg-black/25 px-3 py-1.5 text-xs text-gray-300">{entry.source === 'cloud' ? '社区贡献' : entry.source === 'local' ? '本地导入' : '官方预设'}</div>
+                        <div className="shrink-0 rounded-lg border border-white/10 bg-black/25 px-3 py-1.5 text-xs text-gray-300">{entry.source === 'local' ? '本地导入' : '官方预设'}</div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                         {entry.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-gray-300">{tag}</span>)}
@@ -1507,9 +1359,9 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
 
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
                         <div className="flex flex-wrap gap-2">
-                            {(['all', 'builtin', 'cloud', 'local'] as 来源筛选[]).map((source) => (
+                            {(['all', 'builtin', 'local'] as 来源筛选[]).map((source) => (
                                 <button key={source} type="button" onClick={() => setSourceFilter(source)} className={`rounded-lg border px-3 py-1.5 text-xs ${sourceFilter === source ? 'border-wuxia-gold/50 bg-wuxia-gold/15 text-wuxia-gold' : 'border-white/10 text-gray-300 hover:border-white/25'}`}>
-                                    {source === 'all' ? '全部' : source === 'builtin' ? '官方预设' : source === 'cloud' ? '社区贡献' : '本地导入'}
+                                    {source === 'all' ? '全部' : source === 'builtin' ? '官方预设' : '本地导入'}
                                 </button>
                             ))}
                         </div>
@@ -1522,15 +1374,14 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                                 className="hidden"
                                 onChange={(event) => void 导入JSON文件(event)}
                             />
-                            <input value={contributor} onChange={(event) => setContributor(event.target.value)} placeholder="贡献者署名" className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/40" />
+                            <input value={contributor} onChange={(event) => setContributor(event.target.value)} placeholder="作者署名" className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/40" />
                             <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-gray-200">
                                 <input type="checkbox" checked={anonymousContribution} onChange={(event) => setAnonymousContribution(event.target.checked)} className="h-3.5 w-3.5 accent-wuxia-gold" />
-                                匿名发布
+                                隐藏署名
                             </label>
-                            <span className="text-[11px] text-gray-500">{cloudUsername ? `联机账号：${cloudUsername}` : '发布社区投稿需要先登录联机账号'}</span>
                             <button type="button" onClick={() => jsonImportInputRef.current?.click()} disabled={busyId === 'import-json'} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/15 disabled:opacity-50">{busyId === 'import-json' ? '导入中' : '导入 JSON'}</button>
-                            <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起贡献表单' : '贡献新预设'}</button>
-                            <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新社区'}</button>
+                            <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起编辑表单' : '新建本地模块'}</button>
+                            <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新列表'}</button>
                         </div>
                     </div>
 
@@ -1986,7 +1837,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <button type="button" onClick={() => void 保存贡献模块到本地()} disabled={!contributionReady} className="rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-4 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-45">保存到本地</button>
-                                    <button type="button" onClick={() => void 发布贡献套装()} disabled={!contributionReady || Boolean(busyId)} title={cloudUsername ? '发布到社区工坊' : '点击后先登录联机账号'} className="rounded-lg border border-sky-500/35 bg-sky-500/15 px-4 py-2 text-xs font-bold text-sky-100 hover:bg-sky-500/25 disabled:opacity-45">发布到社区</button>
                                     <button type="button" onClick={重置贡献草稿} className="rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-200 hover:border-white/25">清空</button>
                                 </div>
                             </div>
@@ -2019,11 +1869,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                     <div className="grid gap-3 lg:grid-cols-2">
                         {groupedEntries.map((group) => {
                             const entry = getDisplayEntry(group);
-                            const canPublishEntry = entry.source !== 'builtin' && entry.source !== 'cloud' && (
-                                entry.type === 'comfy_workflow' || typeof (entry.payload as any)?.suiteId === 'string'
-                            );
-                            const canManageEntry = entry.source === 'cloud' && Boolean(cloudUsername) && entry.ownerUsername === cloudUsername;
-                            const editing = editingEntryId === entry.id;
                             const hasVersions = group.versions.length > 1;
                             return (
                                 <div key={group.key} className="rounded-xl border border-white/10 bg-black/25 p-4">
@@ -2044,7 +1889,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                                                 </select>
                                             )}
                                             <div className="mt-1 text-xs text-wuxia-gold/80">{entry.subtitle}</div>
-                                            <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'cloud' ? '社区贡献' : entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '匿名'}{entry.versionNote ? ` · ${entry.versionNote}` : ''}</div>
+                                            <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '匿名'}{entry.versionNote ? ` · ${entry.versionNote}` : ''}</div>
                                         </div>
                                         <div className="shrink-0 border border-white/15 px-2 py-0.5 text-[10px] text-gray-300">可注入</div>
                                     </div>
@@ -2052,43 +1897,10 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         {entry.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-gray-300">{tag}</span>)}
                                     </div>
-                                    {editing && (
-                                        <div className="mt-3 space-y-2 rounded-lg border border-sky-500/20 bg-sky-500/10 p-3">
-                                            <div className="grid gap-2 sm:grid-cols-2">
-                                                <input value={editingDraft.title} onChange={(event) => setEditingDraft((prev) => ({ ...prev, title: event.target.value }))} className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none focus:border-sky-400/50" placeholder="模块名称" />
-                                                <input value={editingDraft.subtitle} onChange={(event) => setEditingDraft((prev) => ({ ...prev, subtitle: event.target.value }))} className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none focus:border-sky-400/50" placeholder="副标题" />
-                                            </div>
-                                            <input value={editingDraft.description} onChange={(event) => setEditingDraft((prev) => ({ ...prev, description: event.target.value }))} className="h-9 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none focus:border-sky-400/50" placeholder="简介" />
-                                            <div className="grid gap-2 sm:grid-cols-2">
-                                                <input value={editingDraft.tags} onChange={(event) => setEditingDraft((prev) => ({ ...prev, tags: event.target.value }))} className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none focus:border-sky-400/50" placeholder="标签" />
-                                                <input value={editingDraft.contributor} onChange={(event) => setEditingDraft((prev) => ({ ...prev, contributor: event.target.value }))} disabled={editingDraft.anonymous} className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none focus:border-sky-400/50 disabled:opacity-50" placeholder="署名" />
-                                            </div>
-                                            <label className="inline-flex items-center gap-2 text-xs text-gray-200">
-                                                <input type="checkbox" checked={editingDraft.anonymous} onChange={(event) => setEditingDraft((prev) => ({ ...prev, anonymous: event.target.checked }))} className="h-3.5 w-3.5 accent-wuxia-gold" />
-                                                匿名显示
-                                            </label>
-                                        </div>
-                                    )}
                                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
                                         <button type="button" onClick={() => setPreviewEntry(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">预览注入</button>
                                         <button type="button" onClick={() => 下载JSON(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">下载 JSON</button>
                                         <button type="button" onClick={() => void 复制文本(构建模块摘要(entry)).then((ok) => setStatus(ok ? `已复制「${entry.title}」注入摘要。` : '复制失败，请改用下载 JSON。'))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">复制摘要</button>
-                                        {canPublishEntry && (
-                                            <button type="button" onClick={() => void 发布模块(entry)} disabled={Boolean(busyId)} title={cloudUsername ? '贡献社区' : '点击后先登录联机账号'} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50">贡献社区</button>
-                                        )}
-                                        {canManageEntry && !editing ? (
-                                            <button type="button" onClick={() => 开始编辑社区模块(entry)} className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15">编辑投稿</button>
-                                        ) : null}
-                                        {canManageEntry && editing ? (
-                                            <button type="button" onClick={() => void 保存社区模块编辑(entry)} disabled={Boolean(busyId)} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-50">保存编辑</button>
-                                        ) : null}
-                                        {canManageEntry && editing ? (
-                                            <button type="button" onClick={() => setEditingEntryId('')} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">取消编辑</button>
-                                        ) : null}
-                                        {canManageEntry ? (
-                                            <button type="button" onClick={() => void 删除社区模块(entry)} disabled={Boolean(busyId)} className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-50">删除投稿</button>
-                                        ) : null}
-                                        <button type="button" onClick={() => { setReportTarget({ id: entry.id, title: entry.title }); setReportText(''); setReportGameText(''); }} className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 hover:bg-amber-500/15">反馈问题{获取反馈数量(entry.id) > 0 ? ` (${获取反馈数量(entry.id)})` : ''}</button>
                                     </div>
                                 </div>
                             );
@@ -2098,30 +1910,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose, onRequireLogin,
                     )}
                 </div>
             </div>
-            {reportTarget && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setReportTarget(null)}>
-                    <div className="w-full max-w-lg rounded-xl border border-amber-500/30 bg-[#11100d] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-amber-200">反馈「{reportTarget.title}」</h3>
-                        <p className="mt-1 text-xs text-gray-400">你的反馈会帮助贡献者定位和修复问题。</p>
-                        <textarea
-                            value={reportText}
-                            onChange={(e) => setReportText(e.target.value)}
-                            placeholder="描述你遇到的问题..."
-                            className="mt-4 h-24 w-full rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-amber-500/40 resize-none"
-                        />
-                        <textarea
-                            value={reportGameText}
-                            onChange={(e) => setReportGameText(e.target.value)}
-                            placeholder="粘贴相关游玩文本记录（可选，帮助贡献者理解问题情境）..."
-                            className="mt-2 h-20 w-full rounded-lg border border-white/10 bg-black/30 p-3 text-[11px] text-gray-300 outline-none placeholder:text-gray-500 focus:border-amber-500/40 resize-none font-mono"
-                        />
-                        <div className="mt-4 flex justify-end gap-2">
-                            <button type="button" onClick={() => setReportTarget(null)} className="rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-200 hover:border-white/25">取消</button>
-                            <button type="button" onClick={提交工坊反馈} disabled={!reportText.trim()} className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-xs font-bold text-amber-100 hover:bg-amber-500/25 disabled:opacity-40">提交反馈</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

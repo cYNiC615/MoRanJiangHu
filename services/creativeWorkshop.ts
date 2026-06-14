@@ -23,14 +23,6 @@ export interface 编辑创意工坊模块参数 {
 
 const API_PATH = '/api/workshop/modules';
 const HTML_FALLBACK_ERROR = '创意工坊接口没有命中服务端函数，当前请求被网站首页兜底处理。请刷新页面或更新到最新版本后重试。';
-const 已迁移旧版创意工坊云端模块ID集合 = new Set([
-    'CWM-ABILITY-20260531041855-642H725Z',
-    'CWM-WORLD_RULES-20260531035123-5D2L5A3D',
-    'CWM-WORLD_RULES-20260531033628-1H6E025S',
-    'CWM-ABILITY-20260531032905-5B4I4C4V',
-    'CWM-TOPIC-20260529205725-2H6T376J',
-    'CWM-TOPIC-20260529000124-46193N6V'
-]);
 
 const 看起来像HTML页面 = (text: string): boolean => /^\s*<!doctype\s+html\b/i.test(text) || /^\s*<html\b/i.test(text);
 
@@ -314,19 +306,8 @@ export const 导入本地创意工坊模块 = (module: 创意工坊模块条目)
 };
 
 export const 列出创意工坊模块 = async (): Promise<创意工坊模块条目[]> => {
-    let cloudEntries: 创意工坊模块条目[] = [];
-    try {
-        const response = await fetch(构建创意工坊API地址(), { method: 'GET', headers: { Accept: 'application/json' } });
-        const payload = await 读取响应JSON(response);
-        if (response.ok && payload?.ok !== false && Array.isArray(payload?.entries)) {
-            cloudEntries = (payload.entries.map((entry: unknown) => 规范化当前模块(entry, 'cloud')).filter(Boolean) as 创意工坊模块条目[])
-                .filter((entry) => !已迁移旧版创意工坊云端模块ID集合.has(entry.id));
-        }
-    } catch {
-        cloudEntries = [];
-    }
     const seen = new Set<string>();
-    return filterCreativeWorkshopDuplicates(整合创意工坊模式包([...创意工坊模块列表, ...读取本地创意工坊模块(), ...cloudEntries])
+    return filterCreativeWorkshopDuplicates(整合创意工坊模式包([...创意工坊模块列表, ...读取本地创意工坊模块()])
         .map((entry) => ({ ...entry, source: entry.source || 'builtin' }))
         .filter((entry) => {
             const key = `${entry.source}:${entry.id}`;

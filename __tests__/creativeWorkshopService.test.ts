@@ -101,4 +101,27 @@ describe('creativeWorkshop service compatibility', () => {
         expect(migrated?.modeRuntimeProfile?.opening?.lockGeneratedGenders).toBe(true);
         expect(String(migrated?.payload?.manualWorldPrompt || '')).toContain('旧版开局模块正文');
     });
+
+    it('列出创意工坊模块不会请求或返回云端社区模块', async () => {
+        const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+            ok: true,
+            entries: [{
+                id: 'cloud-topic-demo',
+                type: 'topic',
+                title: '云端社区模式',
+                subtitle: 'cloud',
+                description: '不应出现在本地 homebrew 列表里',
+                tags: ['cloud'],
+                payload: { mode: '现代都市' },
+                injectionPreview: ['cloud entry']
+            }]
+        })));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const modules = await 列出创意工坊模块();
+
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(modules.some((entry) => entry.source === 'cloud')).toBe(false);
+        expect(modules.some((entry) => entry.id === 'cloud-topic-demo')).toBe(false);
+    });
 });

@@ -31,7 +31,6 @@ import {
 import { 规范化ComfyUI工作流JSON } from '../../../services/ai/comfyWorkflowTools';
 import {
     下载创意工坊模块,
-    发布创意工坊模块,
     导入本地创意工坊模块,
     列出创意工坊模块,
     提取ComfyUI工作流模块JSON,
@@ -997,7 +996,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         }
     };
 
-    const publishCurrentComfyWorkflow = async (target: 'main' | 'scene' | 'nsfw') => {
+    const saveCurrentComfyWorkflow = async (target: 'main' | 'scene' | 'nsfw') => {
         const workflowJson = target === 'scene'
             ? 场景ComfyUI工作流显示值
             : target === 'nsfw'
@@ -1009,13 +1008,13 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 ? NSFW使用默认ComfyUI工作流
                 : 普通使用默认ComfyUI工作流;
         if (defaultUsing) {
-            setMessage('请先关闭“使用默认工作流”，再把当前自定义工作流贡献到创意工坊。');
+            setMessage('请先关闭“使用默认工作流”，再把当前自定义工作流保存到本地工坊。');
             setShowSuccess(false);
             return;
         }
         const title = (window.prompt('给这个 ComfyUI 工作流起个名字（必填）', target === 'scene' ? '场景 ComfyUI 工作流' : target === 'nsfw' ? 'NSFW ComfyUI 工作流' : '普通 ComfyUI 工作流') || '').trim();
         if (!title) {
-            setMessage('贡献 ComfyUI 工作流前必须填写名称，方便其他玩家在下拉框中识别。');
+            setMessage('保存 ComfyUI 工作流前必须填写名称，方便在下拉框中识别。');
             setShowSuccess(false);
             return;
         }
@@ -1032,25 +1031,18 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             ? (window.prompt('填写自定义风格名称', '') || '').trim()
             : pickedStyle;
         if (!style) {
-            setMessage('贡献 ComfyUI 工作流前必须选择或填写风格。');
+            setMessage('保存 ComfyUI 工作流前必须选择或填写风格。');
             setShowSuccess(false);
             return;
         }
-        const contributor = window.prompt('贡献者署名（可留空）', '') || '';
-        setComfyWorkflowBusy(`publish:${target}`);
+        const contributor = window.prompt('作者署名（可留空）', '') || '';
+        setComfyWorkflowBusy(`save:${target}`);
         try {
             const module = 构建ComfyUI工作流创意工坊模块({ title, workflowJson, scope: target, style, contributor });
             setMessage(`正在真实校验 ComfyUI 工作流「${module.title}」能否生图...`);
             const validation = await 校验ComfyUI工作流可生图({ settings: form, workflowJson });
             const local = 导入本地创意工坊模块(module);
-            let statusText = `${validation.message} 已保存为本地工坊工作流「${local.title}」。`;
-            try {
-                const published = await 发布创意工坊模块({ module: local, contributor });
-                statusText = `已发布到创意工坊：${published.title}。其他玩家刷新后可在下拉框选择。`;
-            } catch (publishError: any) {
-                statusText += ` 发布到社区失败：${publishError?.message || '未知错误'}；本地仍可使用。`;
-            }
-            setMessage(statusText);
+            setMessage(`${validation.message} 已保存为本地工坊工作流「${local.title}」。`);
             setShowSuccess(true);
             await refreshComfyWorkflowModules();
         } catch (error: any) {
@@ -1078,7 +1070,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 return { value: entry.id, label: `${entry.title}${style ? ` · ${style}` : ''}${entry.contributor ? ` · ${entry.contributor}` : ''}` };
                             })}
                             onChange={(value) => void applyComfyWorkflowModule(target, value)}
-                            placeholder={comfyWorkflowLoading ? '正在读取工坊工作流...' : scoped.length ? '选择其他玩家上传的工作流' : '暂无可选工坊工作流'}
+                            placeholder={comfyWorkflowLoading ? '正在读取工坊工作流...' : scoped.length ? '选择本地或内置工作流' : '暂无可选工坊工作流'}
                             buttonClassName="bg-black/50 border-gray-600 py-2.5"
                             disabled={disabled || comfyWorkflowLoading || scoped.length <= 0 || Boolean(comfyWorkflowBusy)}
                         />
@@ -1093,11 +1085,11 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => void publishCurrentComfyWorkflow(target)}
+                        onClick={() => void saveCurrentComfyWorkflow(target)}
                         disabled={disabled || Boolean(comfyWorkflowBusy)}
                         className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 hover:bg-sky-500/15 disabled:opacity-50"
                     >
-                        {comfyWorkflowBusy === `publish:${target}` ? '发布中...' : '贡献当前工作流'}
+                        {comfyWorkflowBusy === `save:${target}` ? '保存中...' : '保存当前工作流'}
                     </button>
                 </div>
             </div>

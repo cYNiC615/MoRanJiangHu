@@ -55,6 +55,11 @@ describe('homebrew dead feature registry', () => {
         expect(readProjectFile('utils/settingsSchema.ts')).not.toContain('music_tracks');
         expect(readProjectFile('models/system.ts')).not.toContain('MusicTrack');
         expect(readProjectFile('models/system.ts')).not.toContain('启用背景音乐');
+        expect(readProjectFile('models/system.ts')).not.toContain('启用回合提示音');
+        expect(readProjectFile('utils/gameSettings.ts')).not.toContain('启用回合提示音');
+        expect(readProjectFile('hooks/useGame.ts')).not.toContain('turnNotificationSound');
+        expect(readProjectFile('hooks/useGame.ts')).not.toContain('启用回合提示音');
+        expect(readProjectFile('components/features/Settings/GameSettings.tsx')).not.toContain('回合提示音');
 
         expect(projectFileExists('components/features/Music/MusicProvider.tsx')).toBe(false);
         expect(projectFileExists('components/features/Music/MusicPlayerUI.tsx')).toBe(false);
@@ -62,6 +67,8 @@ describe('homebrew dead feature registry', () => {
         expect(projectFileExists('components/features/Settings/MusicSettings.tsx')).toBe(false);
         expect(projectFileExists('data/defaultMusicTracks.ts')).toBe(false);
         expect(projectFileExists('utils/musicMetadata.ts')).toBe(false);
+        expect(projectFileExists('utils/turnNotificationSound.ts')).toBe(false);
+        expect(projectFileExists('public/sounds/turn-notify.mp3')).toBe(false);
     });
 
     it('records music playback as removed except for storage migration history', () => {
@@ -71,6 +78,8 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('backend_removed');
         expect(registry).toContain('storage_pending');
         expect(registry).toContain('music_tracks');
+        expect(registry).toContain('turnNotificationSound.ts');
+        expect(registry).toContain('turn-notify.mp3');
     });
 
     it('removes auction house player-visible entrypoints', () => {

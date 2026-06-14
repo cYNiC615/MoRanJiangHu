@@ -139,7 +139,7 @@
 | Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 准备移除 | 不做功法/站位/传统对打；后续另做新的轻量级系统化对抗 |
 | Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 准备移除 | 武侠/修仙完全不要；组织/能力以后另行设计 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
-| Music | 背景音乐、播放器、音乐设置、曲库持久化 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具和 UI 入口；旧存储数据待强迁移清理 |
+| Music / Audio Cues | 背景音乐、播放器、音乐设置、曲库持久化、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/turnNotificationSound.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具、回合提示音开关、播放副作用和音频资产；旧存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 入口已移除/后端待删 | 首页 GitHub 同步按钮和 Cloud Play 挂载已移除；未挂载 Auth 组件、OAuth hook 和 API 仍待删 |
 | Online Presence/Public Ops | 在线心跳、首页在线人数、公开在线时长榜 | `App.tsx`, `components/layout/LandingPage.tsx`, `services/onlinePresence.ts`, `public/online-ranking.html` | 入口已移除/后端待删 | Phase 1 已删除 App 心跳、首页在线统计请求、在线图表和在线时长榜入口；图表 helper、服务、API、静态页和测试仍待删 |
@@ -162,7 +162,7 @@
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 准备移除 | 与创意工坊、提示词、设置耦合 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 节日入口已移除/天气待降级 | Phase 1 已删除节日默认数据、设置入口、TopBar 节日展示和自动环境写入；`环境.节日` 模型、prompt/schema 和命令路径仍待删 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
-| Music Library | 背景音乐曲库、曲目信息读取、设置存储 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器和 `music_tracks` 存储键；历史 IndexedDB 数据后续强迁移丢弃 |
+| Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
 | Diagnostic | 上下文诊断、日志、报告 | `services/diagnostic*`, `components/features/Settings/WorkflowGraphSettings.tsx` | 保留开发态 | 可从玩家 UI 隐藏，研发保留 |
 
@@ -196,7 +196,7 @@
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |
 | 背包/装备/货币 | 保留/重构候选 | 账务最适合代码接管 | 优先规则化交易、消耗、装备穿脱 |
 | 时间 | 重构候选 | 仍可能需要轻量时间轴，但不能占用过多上下文 | 单独设计轻量时间系统 |
-| 音乐播放 | 已移除 | 与 homebrew 核心体验无关，且增加设置、持久化和 UI 面板负担 | Phase 1 已删除 MusicProvider、播放器、音乐设置、默认曲库、元数据工具和存储键 |
+| 音乐/音频提示 | 已移除 | 与 homebrew 核心体验无关，且增加设置、持久化、媒体资产和 UI 面板负担 | Phase 1 已删除 MusicProvider、播放器、音乐设置、默认曲库、元数据工具、回合提示音、音频资产和存储键 |
 | 天气 | 准备移除/降级 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 从结构化状态和强制上下文中移除 |
 | 节日 | 入口已移除/模型提示词待删 | 意义小且占上下文 | Phase 1 已删除默认节日表、节日设置页、TopBar 节日卡和自动写入环境节日的副作用；后续删除 `环境.节日`、prompt/schema 和旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
@@ -250,7 +250,7 @@
 
 Phase 1 删到这里算完：
 
-1. 已明确废弃模块不再有玩家可见入口：同人/小说分解、云同步/云端游玩、社区 UGC、公共在线状态/在线榜、移动端、APK、旧战斗、拍卖行、音乐、节日、天气游戏系统、武侠/修仙专属入口。
+1. 已明确废弃模块不再有玩家可见入口：同人/小说分解、云同步/云端游玩、社区 UGC、公共在线状态/在线榜、移动端、APK、旧战斗、拍卖行、音乐/音频提示、节日、天气游戏系统、武侠/修仙专属入口。
 2. 已明确废弃模块不再有顶层自动副作用：例如应用启动时的心跳、首页定时请求、保存后自动云同步等。
 3. 对于一次删不完的模块，必须在 `docs/homebrew-dead-feature-registry.md` 写明剩余后端、prompt、storage key、测试、静态页或迁移点。
 4. Phase 1 可以允许 `backend_pending`，但不允许“入口删了、残留没登记”。

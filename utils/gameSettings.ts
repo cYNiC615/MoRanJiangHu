@@ -189,7 +189,6 @@ export const 默认游戏设置: 游戏设置结构 = {
     启用标签协议失败自动回炉: true,
     禁用APK自动更新: false,
     启用回合结束自动存档: true,
-    启用回合提示音: true,
     启用繁体模式: false,
     启用非流式输出: false,
     启用NSFW模式: false,

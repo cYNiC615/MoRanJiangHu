@@ -535,17 +535,6 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
                         ariaLabel="切换每回合结束自动存档"
                     />
                 </div>
-                <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <div className="text-sm text-wuxia-cyan font-bold">回合提示音</div>
-                        <div className="text-xs text-gray-400 mt-1">开启后，每回合生成结束时播放短促提示音。网页和 APK 均支持。</div>
-                    </div>
-                    <ToggleSwitch
-                        checked={form.启用回合提示音 !== false}
-                        onChange={(next) => 实时应用更新({ 启用回合提示音: next })}
-                        ariaLabel="切换回合提示音"
-                    />
-                </div>
             </div>
 
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">

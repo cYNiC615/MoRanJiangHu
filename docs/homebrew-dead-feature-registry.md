@@ -163,9 +163,10 @@ in:
 ## Feature: `music_playback`
 
 - Decision: retire.
-- Reason: Background music and playlist management are not part of the
-  homebrew core loop. They add UI, IndexedDB state, media metadata parsing, and
-  mobile drawer complexity without helping the AI-RPG engine direction.
+- Reason: Background music, playlist management, and turn-completion audio cues
+  are not part of the homebrew core loop. They add UI, IndexedDB state, media
+  metadata parsing, media assets, and mobile drawer complexity without helping
+  the AI-RPG engine direction.
 - Current status: `entrypoint_removed`, `backend_removed`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
@@ -181,6 +182,8 @@ in:
   settings tab.
 - `components/features/Settings/mobile/MobileSettingsModal.tsx`: removed the
   mobile `music` settings tab.
+- `components/features/Settings/GameSettings.tsx`: removed the turn-completion
+  notification sound toggle.
 
 ### Runtime And Data Removed
 
@@ -190,9 +193,14 @@ in:
 - Deleted `components/features/Settings/MusicSettings.tsx`.
 - Deleted `data/defaultMusicTracks.ts`.
 - Deleted `utils/musicMetadata.ts`.
+- Deleted `utils/turnNotificationSound.ts`.
+- Deleted `public/sounds/turn-notify.mp3`.
+- Removed `hooks/useGame.ts` turn-completion audio playback side effect.
 - Removed `utils/settingsSchema.ts` key: `music_tracks`.
 - Removed `services/dbService.ts` summary handling for `music_tracks`.
-- Removed `models/system.ts` music settings fields and `MusicTrack`.
+- Removed `utils/gameSettings.ts` default turn notification setting.
+- Removed `models/system.ts` music settings fields, turn notification setting,
+  and `MusicTrack`.
 - Removed `hooks/useGameState.ts` `activeTab` union entry: `music`.
 
 ### Storage And Migration Notes
@@ -201,6 +209,8 @@ in:
 - Old visual settings fields for background music may remain in historical
   saves/settings JSON until the strong migration pass, but active code no
   longer reads them.
+- Old `启用回合提示音` game settings may remain in historical settings JSON until
+  the strong migration pass, but active code no longer reads them.
 
 ## Feature: `auction_house`
 

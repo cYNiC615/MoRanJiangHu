@@ -546,15 +546,6 @@ export const useGame = () => {
         刷新NPC记忆总结队列(Array.isArray(社交) ? 社交 : [], { 静默: NPC记忆总结阶段 === 'processing' || NPC记忆总结阶段 === 'review' });
     }, [社交, memoryConfig]);
 
-    const prevLoadingRef = useRef(false);
-    useEffect(() => {
-        const wasLoading = prevLoadingRef.current;
-        prevLoadingRef.current = loading;
-        if (wasLoading && !loading && view === 'game' && gameConfig.启用回合提示音 !== false) {
-            import('../utils/turnNotificationSound').then(m => m.playTurnNotificationSound()).catch(() => {});
-        }
-    }, [loading, view, gameConfig.启用回合提示音]);
-
     // --- Actions ---
     const 深拷贝 = <T,>(data: T): T => {
         if (data === undefined || data === null) {

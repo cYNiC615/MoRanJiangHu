@@ -20,8 +20,23 @@ For each retired feature:
 
 1. Remove or disable the visible entrypoint first.
 2. Register all remaining backend/storage/prompt/test surfaces here.
-3. Only mark `fully_removed` after typecheck/tests pass and the registry entry
-   no longer lists pending surfaces.
+3. Only mark `fully_removed` after typecheck/tests pass, avoidable build
+   warnings are gone, and the registry entry no longer lists pending surfaces.
+
+## Project Quality Gate
+
+The repository currently has substantial pre-existing type debt: `npx tsc
+--noEmit` reports many errors across tests, Cloudflare worker types, auction
+house, map/location, save/sync, currency, NPC, and novel decomposition code.
+
+Final homebrew simplification is not complete until:
+
+- `npx tsc --noEmit` is back to 0 errors.
+- Routine tests are back to 0 failures.
+- Vite/build warnings that are under project control are either removed or
+  explicitly tracked with a removal plan.
+- Retired feature tests, prompts, types, storage keys, and fixtures are deleted
+  or migrated instead of left behind as permanent type debt.
 
 ## Feature: `novel_decomposition`
 
@@ -140,3 +155,95 @@ in:
 - `components/features/Story/NovelExportModal.tsx` exports play history as prose.
   It is not a novel decomposition/fanfiction ingestion path. Decide separately
   whether this remains useful for the homebrew project.
+
+## Feature: `music_playback`
+
+- Decision: retire.
+- Reason: Background music and playlist management are not part of the
+  homebrew core loop. They add UI, IndexedDB state, media metadata parsing, and
+  mobile drawer complexity without helping the AI-RPG engine direction.
+- Current status: `entrypoint_pending`, `backend_pending`.
+- Good candidate for the next lightweight frontend deletion pass.
+
+### Entrypoints Pending
+
+- `App.tsx`: wraps the app in `MusicProvider`, owns `showMobileMusic`, opens
+  `MobileMusicPlayer`, and handles the `music` / `音乐` menu action.
+- `components/layout/RightPanel.tsx`: imports `useMusic` and
+  `MusicPlayerUI`.
+- `components/layout/MobileQuickMenu.tsx`: exposes the `music` quick menu item.
+- `components/features/Settings/SettingsModal.tsx`: exposes the `music`
+  settings tab.
+- `components/features/Settings/mobile/MobileSettingsModal.tsx`: exposes the
+  mobile `music` settings tab.
+
+### Backend And Data Pending
+
+- `components/features/Music/MusicProvider.tsx`
+- `components/features/Music/MusicPlayerUI.tsx`
+- `components/features/Music/mobile/MobileMusicPlayer.tsx`
+- `components/features/Settings/MusicSettings.tsx`
+- `data/defaultMusicTracks.ts`
+- `utils/musicMetadata.ts`
+- `utils/settingsSchema.ts` key: `music_tracks`
+- `models/system.ts` music settings fields and `MusicTrack`
+- `hooks/useGameState.ts` `activeTab` union entry: `music`
+
+### Storage And Migration Notes
+
+- Existing IndexedDB `music_tracks` data can be dropped in a strong migration.
+- Remove visual settings fields for background music at the same time, or keep
+  a short compatibility normalization that ignores them.
+
+## Feature: `auction_house`
+
+- Decision: retire.
+- Reason: The homebrew project will not keep auction-house gameplay, nor
+  convert it into a modern market in this pass. A future lightweight trade or
+  opposition economy can be designed separately if needed.
+- Current status: `entrypoint_pending`, `backend_pending`.
+
+### Entrypoints Pending
+
+- `App.tsx`: imports auction service helpers, owns auction state/scope,
+  processes world pending auction items, handles bag-item listing, opens
+  `AuctionHouseModal`, and passes sell handlers into inventory/equipment UI.
+- `components/layout/RightPanel.tsx`: exposes the auction/market action.
+- `components/layout/MobileQuickMenu.tsx`: exposes `auction_house`.
+- `components/features/Inventory/InventoryModal.tsx`: exposes send-to-auction
+  behavior and copy.
+- `components/features/Inventory/MobileInventoryModal.tsx`: same mobile path.
+- `components/features/AuctionHouse/AuctionHouseModal.tsx`: main modal.
+
+### Backend And Data Pending
+
+- `services/auctionHouse.ts`
+- `data/defaultAuctionItemImages.ts`
+- `scripts/generate-gpt-image2-auction-images.mjs`
+- `__tests__/auctionHouse.test.ts`
+- `models/world.ts` field: `拍卖行待投放物品`
+- `models/item.ts` source type: `拍卖行`
+- `models/imageGeneration.ts` source location: `拍卖行`
+- `utils/stateHelpers.ts` world root field: `拍卖行待投放物品`
+- `data/workshopThemes/topicModeThemeData.ts` auction/market labels
+- `components/features/Settings/ImageGenerationSettings.tsx` auto item image
+  copy that mentions auction-house items.
+- Image manager source-location references in social image management can be
+  removed once auction item image generation is gone.
+
+### Prompt References Pending
+
+- `prompts/runtime/worldDataSchema.ts`
+- `prompts/runtime/worldGeneration.ts`
+- `prompts/runtime/variableCalibrationReference.ts`
+- `prompts/runtime/worldEvolution.ts`
+- `prompts/runtime/worldEvolutionCot.ts`
+
+### Storage And Migration Notes
+
+- Existing auction-house state can be dropped in a strong migration.
+- Remove `世界.拍卖行待投放物品` from AI-writable world state before deleting
+  bridge code in `App.tsx`, otherwise world evolution may continue to emit
+  unused auction payloads.
+- Inventory sell-to-auction actions should disappear with the feature, not be
+  silently redirected into a new economy system.

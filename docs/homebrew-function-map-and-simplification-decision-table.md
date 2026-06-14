@@ -29,6 +29,7 @@
 - 社交/NPC 关系是核心体验，甚至可能扩展；但当前 AI 驱动的位置管理和在场判定 bug 很多，后续要停用、强约束或重做，暂不急着拍板具体实现。
 - 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。
 - 时间仍可能需要保留，但应设计成轻量、低上下文占用的系统。
+- 工程健康本身也是 Phase 目标。当前 `npx tsc --noEmit` 暴露了大量仓库既有类型债，最终完成整体精简后要求回到 0 error / 0 warning 的验证状态；后续每个模块删除都不能继续扩大类型债。
 
 外部概念参照：
 
@@ -52,6 +53,18 @@
 | 云端/发布/API | Cloudflare Functions、OAuth、同步、社区、APK、图床代理 | `functions/api`, `scripts`, `wrangler.jsonc` | 大部分进入删除/暂缓；Cloudflare 托管能力暂缓 |
 | Android/APK | Capacitor、Android 壳、APK 发布和更新 | `android`, `capacitor.config.ts`, `services/appUpdate.ts`, `services/nativeApkUpdater.ts` | 已确认移除方向 |
 | 测试 | 单测、E2E、构建验证 | `tests`, `*.test.ts`, `playwright.config.ts` | 保留测试框架，后续删掉废弃功能测试 |
+
+## 2.1 工程健康门禁
+
+当前项目可以通过 `npx vite build` 完成实际前端打包，但 `npx tsc --noEmit` 已暴露大量既有类型债，覆盖测试夹具、Cloudflare 类型、拍卖行、地图、存档、货币、NPC、小说分解等多个区域。
+
+精简完成后的目标不是“能跑就行”，而是：
+
+1. `npx tsc --noEmit` 回到 0 error。
+2. 常用测试命令回到 0 failure。
+3. 前端打包保留 0 fatal error；可消除的 warning 要清掉。
+4. 删除废弃模块时同步删除或修正对应测试、类型、prompt、storage key，不能把废弃功能留下来继续污染类型检查。
+5. 每一轮模块删除都要登记“新增验证失败 / 既有验证失败 / 已解决验证失败”，避免把旧债和新问题混在一起。
 
 ## 3. 主运行链路地图
 
@@ -122,11 +135,12 @@
 | Map | 地图层级、地点浏览、NPC 位置 | `components/features/Map`, `utils/mapSpatial.ts`, `utils/mapNpcLocation.ts` | 保留但重做边界 | 地点/移动可保留；NPC 位置和在场判定暂列重做，不急着让 AI 继续写 |
 | Social | NPC、关系、社交档案、立绘 | `components/features/Social`, `models/social.ts` | 核心保留并可能扩展 | 社交/关系保留；位置管理和在场判定作为问题子系统单独重做 |
 | Inventory/Equipment | 背包、装备、物品、画像展示 | `components/features/Inventory`, `components/features/Equipment`, `models/item.ts` | 保留；规则化候选 | 交易、消耗、装备变更优先转本地规则 |
-| AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 暂缓/瘦身 | 现代都市不一定需要拍卖行；可先冻结入口 |
+| AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 准备移除 | 用户明确不做拍卖行；删除入口、世界待投放字段、寄售按钮、prompt 引用和测试 |
 | Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 准备移除 | 不做功法/站位/传统对打；后续另做新的轻量级系统化对抗 |
 | Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 准备移除 | 武侠/修仙完全不要；组织/能力以后另行设计 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
-| Music/Visual/Image Manager | 音乐、视觉设置、图片资源管理 | `components/features/Music`, `components/features/Settings`, `hooks/useGame/*Image*` | 暂缓 | 等视觉方向确认，不继续扩功能 |
+| Music | 背景音乐、播放器、音乐设置、曲库持久化 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts` | 准备移除 | 用户明确音乐播放相关全删；可作为下一批轻量前端模块 |
+| Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 准备移除 | 若不做云同步和社区，账号体系可删 |
 | NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 准备移除 | 第一批移除入口，第二批删服务/模型/提示词 |
 
@@ -145,7 +159,8 @@
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 准备移除 | 分布很广，适合分批删 |
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 准备移除 | 与创意工坊、提示词、设置耦合 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 准备移除/降级 | 节日直接删除；天气不作为游戏状态，只保留正文氛围 |
-| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `services/ai/itemImageGeneration.ts` | 暂缓/瘦身 | 可改成现代都市二手市场/交易系统，或删 |
+| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
+| Music Library | 背景音乐曲库、曲目信息读取、设置存储 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/settingsSchema.ts` | 准备移除 | 删除播放器和 `music_tracks` 存储键 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
 | Diagnostic | 上下文诊断、日志、报告 | `services/diagnostic*`, `components/features/Settings/WorkflowGraphSettings.tsx` | 保留开发态 | 可从玩家 UI 隐藏，研发保留 |
 
@@ -174,11 +189,12 @@
 | Cloudflare Worker | 暂缓/冻结 | 可能仍有托管/API 代理价值 | 不新增依赖；删除社区/同步/API 后再评估 |
 | 图片生成 | 暂缓/冻结 | 可能提升体验，但链路很重 | 暂不扩展；等确定视觉目标 |
 | 旧战斗系统 | 准备移除 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | 删除入口和上下文，再分批删模型/UI |
-| 拍卖行/市场 | 暂缓/重构候选 | 有交易规则化价值，但武侠拍卖口径不一定适合现代都市 | 可先隐藏入口，后续改二手市场/交易 |
+| 拍卖行/市场 | 准备移除 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | 删除 UI、服务、世界状态字段、prompt 引用、Inventory 寄售入口和测试 |
 | 社交/NPC 关系 | 核心保留/重构候选 | 男性向恋爱、亲密关系和重要 NPC 互动是核心体验 | 保留并扩展关系体验；位置/在场系统单独重做 |
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |
 | 背包/装备/货币 | 保留/重构候选 | 账务最适合代码接管 | 优先规则化交易、消耗、装备穿脱 |
 | 时间 | 重构候选 | 仍可能需要轻量时间轴，但不能占用过多上下文 | 单独设计轻量时间系统 |
+| 音乐播放 | 准备移除 | 与 homebrew 核心体验无关，且增加设置、持久化和 UI 面板负担 | 删除 MusicProvider、播放器、音乐设置、默认曲库和存储键 |
 | 天气 | 准备移除/降级 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 从结构化状态和强制上下文中移除 |
 | 节日 | 准备移除 | 意义小且占上下文 | 直接删除节日系统 |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
@@ -191,6 +207,7 @@
 | 在线状态/云端游玩 | 准备移除 | 更像公共运营功能 | 删除心跳、副作用和相关 API |
 | 管理后台/公共运营 | 准备移除或开发态隐藏 | 不服务个人 homebrew 主体验 | 先从玩家入口隐藏 |
 | 旧存档兼容 | 不保留 | 当前 fork 暂时个人使用，保兼容会拖慢精简 | 迁移只服务当前 homebrew 默认状态，不兼容旧武侠存档 |
+| 全局类型债与 warning | 准备治理 | 当前 `npx tsc --noEmit` 已不可作为绿色验证；整体精简后必须回到 0 error / 0 warning | 每次删模块同步修测试和类型，最终设为硬门禁 |
 
 ## 9. 真实代码化候选表
 
@@ -222,7 +239,7 @@
 
 ### Phase 1：先断入口，不急着删深层代码
 
-- 从 `App.tsx`、`SettingsModal.tsx`、`NewGame`、`CreativeWorkshopModal.tsx` 断开小说分解、同人、云同步、社区、移动/APK、战斗、节日、武侠/修仙入口。
+- 从 `App.tsx`、`SettingsModal.tsx`、`NewGame`、`CreativeWorkshopModal.tsx` 断开小说分解、同人、云同步、社区、移动/APK、战斗、拍卖行、音乐、节日、武侠/修仙入口。
 - 保证核心聊天、存档、世界书、提示词、记忆、设置仍可工作。
 - 这一阶段目标是“用户看不到已废弃功能”，不是一次性删除所有文件。
 
@@ -253,13 +270,19 @@
 - 时间系统单独设计，尽量少占 AI 上下文。
 - AI 仍负责自然语言描述，但关键状态变化由本地规则确认或执行。
 
+### Phase 6：验证归零
+
+- 清理所有因废弃模块残留导致的测试、类型和 prompt 失败。
+- 把 `npx tsc --noEmit` 恢复成可用硬门禁。
+- 消除可控 build warning，保留的 warning 必须有明确登记和去除计划。
+- 结束标准是 0 error / 0 warning，而不是只保证 Vite 能打包。
+
 ## 11. 当前最值得立即讨论的问题
 
 1. 图片生成是否是 homebrew 核心体验，还是可以整体冻结？
 2. 现代都市是否包含低玄/近未来科幻能力体系，还是先严格现实都市？
-3. 拍卖行是否改成现代交易/二手市场/黑市，还是删除？
-4. NPC 位置/在场系统是先停用 AI 写入，还是先加本地 guard，再整体重做？
-5. 时间系统保留哪些最小字段，怎样避免挤占 AI 交互上下文？
-6. 第一轮实现要选“断入口瘦 UI”，还是直接改默认现代都市并强制迁移世界书/提示词？
+3. NPC 位置/在场系统是先停用 AI 写入，还是先加本地 guard，再整体重做？
+4. 时间系统保留哪些最小字段，怎样避免挤占 AI 交互上下文？
+5. 第一轮实现要选“断入口瘦 UI”，还是直接改默认现代都市并强制迁移世界书/提示词？
 
 我的建议是：先做 Phase 1 的“断入口瘦 UI”，再做现代都市默认化。这样风险最小，也能最快让项目从“原作者大杂烩”变成“我们自己的 homebrew 外壳”。

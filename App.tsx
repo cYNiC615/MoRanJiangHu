@@ -28,8 +28,8 @@ import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImp
 import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
 import { APK仅手动更新已启用 } from './utils/appUpdatePreferences';
 import { RELEASE_INFO } from './data/releaseInfo';
-import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 投放事件拍卖品, 构建拍卖行存储作用域, 上架背包物品, 创建交易记录, 结算玩家寄售, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
-import { 获取货币显示模式, 规范化角色金钱 } from './utils/currencyDisplay';
+import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 构建拍卖行存储作用域, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
+import { 规范化角色金钱 } from './utils/currencyDisplay';
 import { 获取题材界面文案 } from './utils/resourceLabels';
 import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
@@ -331,7 +331,6 @@ const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summar
 const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowMobileModal'));
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
 const CloudPlayModal = 创建可预加载懒组件('cloud-play-modal', () => import('./components/features/Auth/CloudPlayModal'));
-const AuctionHouseModal = 创建可预加载懒组件('auction-house-modal', () => import('./components/features/AuctionHouse/AuctionHouseModal'));
 
 
 type 可选网络信息 = {
@@ -359,7 +358,6 @@ const 桌面轻量预热目标 = [
     MemoryModal,
     SaveLoadModal,
     CloudPlayModal,
-    AuctionHouseModal,
     NovelExportModal
 ] as const;
 
@@ -380,8 +378,7 @@ const 移动端轻量预热目标 = [
     MobileHeroinePlanModal,
     MobileMemory,
     SaveLoadModal,
-    CloudPlayModal,
-    AuctionHouseModal
+    CloudPlayModal
 ] as const;
 
 const 网络较慢或节省流量 = (connection?: 可选网络信息 | null): boolean => {
@@ -490,7 +487,6 @@ const App: React.FC = () => {
     const [showWorldbookManager, setShowWorldbookManager] = React.useState(false);
     const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
-    const [showAuctionHouse, setShowAuctionHouse] = React.useState(false);
     const [showCloudPlay, setShowCloudPlay] = React.useState(false);
     const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => {
         try {
@@ -506,10 +502,6 @@ const App: React.FC = () => {
             }, { 允许系统补货: false });
         }
     });
-    const auctionCurrencyOptions = React.useMemo(() => ({
-        货币模式: 获取货币显示模式(state.开局配置, state.角色),
-        runtimeProfile: state.开局配置?.modeRuntimeProfile || null
-    }), [state.开局配置, state.角色]);
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
     const [sceneQuickGenToastVisible, setSceneQuickGenToastVisible] = React.useState(false);
@@ -548,7 +540,6 @@ const App: React.FC = () => {
     const autoItemImageBackendCooldownUntilRef = React.useRef(0);
     const autoItemImageWakeTimerRef = React.useRef<number | null>(null);
     const [autoItemImageWakeTick, setAutoItemImageWakeTick] = React.useState(0);
-    const auctionSettlementHandledRef = React.useRef<Set<string>>(new Set());
     const 最近运行报错提示IDRef = React.useRef('');
     const 最近运行报错提示时间Ref = React.useRef(0);
     const legacyImageMigrationNoticeStageRef = React.useRef(legacyImageMigrationStatus.stage);
@@ -673,7 +664,6 @@ const App: React.FC = () => {
         window.addEventListener('moranjianghu:auction-house-loaded', handleAuctionLoaded);
         return () => window.removeEventListener('moranjianghu:auction-house-loaded', handleAuctionLoaded);
     }, []);
-    const auctionBridgeHandledRef = React.useRef<Set<string>>(new Set());
     function handleMobileMenuAction(menu: string) {
         const isActive = activeMobileWindowId === menu;
         closeAllPanels();
@@ -732,9 +722,6 @@ const App: React.FC = () => {
                 break;
             case 'export_novel':
                 setShowNovelExport(true);
-                break;
-            case 'auction_house':
-                setShowAuctionHouse(true);
                 break;
             case 'image_manager':
                 void openImageManagerWithCheck();
@@ -1230,21 +1217,6 @@ const App: React.FC = () => {
             Array.isArray(response.dynamic_world) ? response.dynamic_world.join('\n') : '',
         ].filter(Boolean).join('\n').slice(0, 1200);
     }, [latestAssistantMessage]);
-    React.useEffect(() => {
-        if (!latestAssistantMessage?.structuredResponse) return;
-        const signature = `${latestAssistantMessage.timestamp || 0}-${latestAssistantMessage.gameTime || ''}`;
-        if (auctionSettlementHandledRef.current.has(signature)) return;
-        auctionSettlementHandledRef.current.add(signature);
-        setAuctionHouseState((prev) => {
-            const settled = 结算玩家寄售(prev, state.角色, latestAssistantMessage.timestamp || Date.now(), auctionCurrencyOptions);
-            if (!settled.settledCount) return prev;
-            保存拍卖行状态(settled.nextState, auctionHouseScope);
-            setters.setCharacter(settled.nextCharacter);
-            void actions.performAutoSave?.({ role: settled.nextCharacter, force: true });
-            actions.pushNotification({ title: '寄售成交', message: settled.message, tone: 'success' });
-            return settled.nextState;
-        });
-    }, [actions, auctionCurrencyOptions, auctionHouseScope, latestAssistantMessage, setters, state.角色]);
     // [已移除] 拍卖行物品不再从主角剧情正文中提取，改为从世界势力互动事件中自然流出。
     // 旧逻辑：从剧情响应构建拍卖行投放参数列表 → 投放事件拍卖品
     // 新逻辑：世界演化 → 势力互动 → 世界.拍卖行待投放物品 → 从势力互动投放拍卖品
@@ -1579,7 +1551,6 @@ const App: React.FC = () => {
         () => 获取题材界面文案(state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile),
         [state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile]
     );
-    const 当前题材市场名称 = 题材界面文案.菜单.auctionHouse;
     const 组织入口显示名称 = 题材界面文案.组织.组织入口;
     const 功法显示名称 = 题材界面文案.菜单.kungfu;
     const activeMobileWindow =
@@ -1600,7 +1571,6 @@ const App: React.FC = () => {
         state.showHeroinePlan ? 题材界面文案.菜单.plan :
         state.showMemory ? 题材界面文案.菜单.memory :
         showNovelExport ? '导出小说' :
-        showAuctionHouse ? 当前题材市场名称 :
         showCloudPlay ? '云端游玩' :
         showImageManager ? '图册' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
@@ -1625,7 +1595,6 @@ const App: React.FC = () => {
         state.showHeroinePlan ? 'plan' :
         state.showMemory ? 'memory' :
         showNovelExport ? 'export_novel' :
-        showAuctionHouse ? 'auction_house' :
         showCloudPlay ? 'cloud_play' :
         showImageManager ? 'image_manager' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
@@ -1650,7 +1619,6 @@ const App: React.FC = () => {
         || state.showHeroinePlan
         || state.showMemory
         || showNovelExport
-        || showAuctionHouse
         || showCloudPlay
         || showImageManager
         || safeShowSaveLoad.show
@@ -1758,7 +1726,6 @@ const App: React.FC = () => {
         setters.setShowHeroinePlan(false);
         setters.setShowMemory(false);
         setShowNovelExport(false);
-        setShowAuctionHouse(false);
         setShowCloudPlay(false);
         setShowImageManager(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
@@ -2087,31 +2054,6 @@ const App: React.FC = () => {
         closeAllPanels();
         setters.setShowMemory(true);
     }, [closeAllPanels, setters]);
-    const openAuctionHouse = React.useCallback(() => {
-        closeAllPanels();
-        setShowAuctionHouse(true);
-    }, [closeAllPanels]);
-    const handleSellBagItemToAuction = React.useCallback((itemId: string) => {
-        const result = 上架背包物品(state.角色, itemId, undefined, '底层货币', auctionHouseState.行情列表 || [], 1, auctionCurrencyOptions);
-        if (!result.ok) {
-            actions.pushNotification({ title: '寄售失败', message: result.message, tone: 'error' });
-            return { ok: false as const, message: result.message };
-        }
-        const nextState: 拍卖行状态 = {
-            ...auctionHouseState,
-            拍卖品列表: [result.auction, ...(auctionHouseState.拍卖品列表 || [])],
-            交易记录: [
-                创建交易记录('寄售', '背包寄售', result.message),
-                ...(auctionHouseState.交易记录 || []),
-            ].slice(0, 40),
-        };
-        setAuctionHouseState(nextState);
-        保存拍卖行状态(nextState, auctionHouseScope);
-        setters.setCharacter(result.nextCharacter);
-        void actions.performAutoSave?.({ role: result.nextCharacter, force: true });
-        actions.pushNotification({ title: '已送入拍卖行', message: result.message, tone: 'success' });
-        return { ok: true as const, message: result.message };
-    }, [actions, auctionCurrencyOptions, auctionHouseScope, auctionHouseState, setters, state.角色]);
     const handleDiscardBagItem = React.useCallback((itemId: string) => {
         const result = 丢弃背包物品(state.角色, itemId);
         if (!result.ok) {
@@ -2123,47 +2065,6 @@ const App: React.FC = () => {
         actions.pushNotification({ title: '已丢弃物品', message: result.message, tone: 'success' });
         return { ok: true as const, message: result.message };
     }, [actions, setters, state.角色]);
-    const handleSellAllMiscItems = React.useCallback(() => {
-        const sourceItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
-        const miscItems = sourceItems.filter(是否杂物类物品);
-        if (miscItems.length <= 0) {
-            const message = '背包中没有可一键出售的杂物。';
-            actions.pushNotification({ title: '没有杂物', message, tone: 'info' });
-            return { ok: false as const, message };
-        }
-        let nextCharacter: any = state.角色;
-        const newAuctions: any[] = [];
-        const messages: string[] = [];
-        for (const item of miscItems) {
-            const itemId = String(item?.ID || '');
-            if (!itemId) continue;
-            const result = 上架背包物品(nextCharacter, itemId, undefined, '底层货币', auctionHouseState.行情列表 || [], Number.POSITIVE_INFINITY, auctionCurrencyOptions);
-            if (!result.ok) continue;
-            nextCharacter = result.nextCharacter;
-            newAuctions.push(result.auction);
-            messages.push(result.message);
-        }
-        if (newAuctions.length <= 0) {
-            const message = '杂物出售失败，请稍后再试。';
-            actions.pushNotification({ title: '出售失败', message, tone: 'error' });
-            return { ok: false as const, message };
-        }
-        const nextState: 拍卖行状态 = {
-            ...auctionHouseState,
-            拍卖品列表: [...newAuctions, ...(auctionHouseState.拍卖品列表 || [])],
-            交易记录: [
-                创建交易记录('寄售', '杂物一键寄售', `已寄售 ${newAuctions.length} 组杂物，下回合自动成交。`),
-                ...(auctionHouseState.交易记录 || []),
-            ].slice(0, 40),
-        };
-        setAuctionHouseState(nextState);
-        保存拍卖行状态(nextState, auctionHouseScope);
-        setters.setCharacter(nextCharacter);
-        void actions.performAutoSave?.({ role: nextCharacter, force: true });
-        const message = `已寄售 ${newAuctions.length} 组杂物，下回合自动成交。`;
-        actions.pushNotification({ title: '杂物已寄售', message, tone: 'success' });
-        return { ok: true as const, message: messages.length > 1 ? message : messages[0] || message };
-    }, [actions, auctionCurrencyOptions, auctionHouseScope, auctionHouseState, setters, state.角色]);
     const handleDiscardAllMiscItems = React.useCallback(() => {
         const sourceItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
         const miscItems = sourceItems.filter(是否杂物类物品);
@@ -3159,8 +3060,6 @@ const App: React.FC = () => {
                                 onOpenHeroinePlan={openHeroinePlan}
                                 onOpenMemory={openMemory}
                                 onOpenNovelExport={openNovelExport}
-                                onOpenAuctionHouse={openAuctionHouse}
-                                auctionHouseLabel={当前题材市场名称}
                                 sectLabel={组织入口显示名称}
                                 uiLabels={题材界面文案}
                                 onOpenImageManager={openImageManagerWithCheck}
@@ -3293,7 +3192,6 @@ const App: React.FC = () => {
                         enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
                         enableKungfu={启用修炼体系}
                         enableImageManager={true}
-                        auctionHouseLabel={当前题材市场名称}
                         sectLabel={组织入口显示名称}
                         uiLabels={题材界面文案}
                     />
@@ -3811,9 +3709,7 @@ const App: React.FC = () => {
                                         setters.setCharacter(nextCharacter);
                                         void actions.performAutoSave?.({ role: nextCharacter, force: true });
                                     }}
-                                    onSellItem={handleSellBagItemToAuction}
                                     onDiscardItem={handleDiscardBagItem}
-                                    onSellAllMisc={handleSellAllMiscItems}
                                     onDiscardAllMisc={handleDiscardAllMiscItems}
                                     onRegenerateItemImage={handleRegenerateBagItemImage}
                                     onClose={() => setters.setShowInventory(false)} 
@@ -3827,34 +3723,12 @@ const App: React.FC = () => {
                                         setters.setCharacter(nextCharacter);
                                         void actions.performAutoSave?.({ role: nextCharacter, force: true });
                                     }}
-                                    onSellItem={handleSellBagItemToAuction}
                                     onDiscardItem={handleDiscardBagItem}
-                                    onSellAllMisc={handleSellAllMiscItems}
                                     onDiscardAllMisc={handleDiscardAllMiscItems}
                                     onRegenerateItemImage={handleRegenerateBagItemImage}
                                     onClose={() => setters.setShowInventory(false)} 
                                 />
                             )}
-                        </懒加载边界>
-                    )}
-
-                    {showAuctionHouse && (
-                        <懒加载边界>
-                            <AuctionHouseModal
-                                character={state.角色}
-                                auctionState={auctionHouseState}
-                                onAuctionStateChange={setAuctionHouseState}
-                                storageScope={auctionHouseScope}
-                                onCharacterChange={(nextCharacter: any) => {
-                                    setters.setCharacter(nextCharacter);
-                                    void actions.performAutoSave?.({ role: nextCharacter, force: true });
-                                }}
-                                onNotify={(title, message, tone) => actions.pushNotification({ title, message, tone })}
-                                onClose={() => setShowAuctionHouse(false)}
-                                isMobile={isMobile}
-                                apiConfig={state.apiConfig}
-                                openingConfig={state.开局配置}
-                            />
                         </懒加载边界>
                     )}
 

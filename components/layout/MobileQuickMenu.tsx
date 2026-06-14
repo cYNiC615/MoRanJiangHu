@@ -19,7 +19,6 @@ type MenuId =
     | 'plan'
     | 'memory'
     | 'export_novel'
-    | 'auction_house'
     | 'image_manager'
     | 'save'
     | 'load'
@@ -35,7 +34,6 @@ interface Props {
     enablePlanningPanel?: boolean;
     enableKungfu?: boolean;
     enableImageManager?: boolean;
-    auctionHouseLabel?: string;
     sectLabel?: string;
     uiLabels?: 题材界面文案;
 }
@@ -88,7 +86,6 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     memory: { id: 'memory', label: '记忆', icon: 'memory' },
     export_novel: { id: 'export_novel', label: '导出', icon: 'novel' },
     image_manager: { id: 'image_manager', label: '图册', icon: 'grid' },
-    auction_house: { id: 'auction_house', label: '拍卖', icon: 'grid' },
     save: { id: 'save', label: '保存', icon: 'save' },
     load: { id: 'load', label: '读取', icon: 'load' },
     settings: { id: 'settings', label: '设置', icon: 'settings' },
@@ -103,7 +100,6 @@ const MobileQuickMenu: React.FC<Props> = ({
     enablePlanningPanel = true,
     enableKungfu = true,
     enableImageManager = false,
-    auctionHouseLabel = '拍卖',
     sectLabel = '门派',
     uiLabels
 }) => {
@@ -113,7 +109,6 @@ const MobileQuickMenu: React.FC<Props> = ({
     const labelFor = (id: Exclude<MenuId, 'more'>, fallback = MENU_META[id].label) => {
         const labels = uiLabels?.菜单;
         if (!labels) return fallback;
-        if (id === 'auction_house') return labels.auctionHouse || fallback;
         if (id === 'image_manager') return labels.imageManager || fallback;
         return (labels as Record<string, string>)[id] || fallback;
     };
@@ -124,7 +119,6 @@ const MobileQuickMenu: React.FC<Props> = ({
         metaFor(MENU_META.battle),
         metaFor(MENU_META.equipment),
         metaFor(MENU_META.inventory),
-        { ...MENU_META.auction_house, label: auctionHouseLabel },
         metaFor(MENU_META.social),
         ...(enableKungfu ? [metaFor(MENU_META.kungfu)] : []),
         metaFor(MENU_META.map),
@@ -135,14 +129,13 @@ const MobileQuickMenu: React.FC<Props> = ({
         metaFor(MENU_META.story),
         metaFor(MENU_META.save),
         metaFor(MENU_META.settings),
-    ]), [auctionHouseLabel, enableKungfu, enableWorldPanel, sectLabel, uiLabels]);
+    ]), [enableKungfu, enableWorldPanel, sectLabel, uiLabels]);
 
     const allMenus = useMemo<MenuMeta[]>(() => ([
         metaFor(MENU_META.character),
         metaFor(MENU_META.battle),
         metaFor(MENU_META.equipment),
         metaFor(MENU_META.inventory),
-        { ...MENU_META.auction_house, label: auctionHouseLabel },
         metaFor(MENU_META.social),
         ...(enableKungfu ? [metaFor(MENU_META.kungfu)] : []),
         metaFor(MENU_META.map),
@@ -159,7 +152,7 @@ const MobileQuickMenu: React.FC<Props> = ({
         metaFor(MENU_META.save),
         metaFor(MENU_META.load),
         metaFor(MENU_META.settings),
-    ]), [auctionHouseLabel, enableHeroinePlan, enableImageManager, enableKungfu, enablePlanningPanel, enableWorldPanel, sectLabel, uiLabels]);
+    ]), [enableHeroinePlan, enableImageManager, enableKungfu, enablePlanningPanel, enableWorldPanel, sectLabel, uiLabels]);
 
     const handleMenuClick = (menu: MenuId) => {
         onMenuClick(menu);

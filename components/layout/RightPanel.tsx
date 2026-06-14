@@ -20,8 +20,6 @@ interface Props {
     onOpenMemory: () => void;
     onOpenNovelExport?: () => void;
     onOpenImageManager?: () => void;
-    onOpenAuctionHouse?: () => void;
-    auctionHouseLabel?: string;
     sectLabel?: string;
     uiLabels?: 题材界面文案;
     worldEvolutionEnabled?: boolean;
@@ -57,8 +55,6 @@ const RightPanel: React.FC<Props> = ({
     onOpenMemory,
     onOpenNovelExport,
     onOpenImageManager,
-    onOpenAuctionHouse,
-    auctionHouseLabel = '拍卖行',
     sectLabel = '门派',
     uiLabels,
     worldEvolutionEnabled = false,
@@ -103,7 +99,6 @@ const RightPanel: React.FC<Props> = ({
         { label: menuLabel?.battle || '战斗', action: onOpenBattle, color: 'primary' as const, changeKeys: ['战斗'] },
         { label: menuLabel?.equipment || '装备', action: onOpenEquipment, color: 'primary' as const, changeKeys: ['装备'] },
         { label: menuLabel?.inventory || '背包', action: onOpenInventory, color: 'primary' as const, changeKeys: ['背包'] },
-        ...(onOpenAuctionHouse ? [{ label: auctionHouseLabel, action: onOpenAuctionHouse, color: 'primary' as const }] : []),
         { label: menuLabel?.social || '社交', action: onOpenSocial, color: 'primary' as const, changeKeys: ['社交'] },
         ...(enableWorldPanel ? [{
             label: worldEvolutionUpdating ? `${menuLabel?.world || '世界'}·更新中` : (menuLabel?.world || '世界'),

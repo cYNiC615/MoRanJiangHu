@@ -208,22 +208,30 @@ in:
 - Reason: The homebrew project will not keep auction-house gameplay, nor
   convert it into a modern market in this pass. A future lightweight trade or
   opposition economy can be designed separately if needed.
-- Current status: `entrypoint_pending`, `backend_pending`.
+- Current status: `entrypoint_removed`, `backend_pending`.
 
-### Entrypoints Pending
+### Entrypoints Removed In This Pass
 
-- `App.tsx`: imports auction service helpers, owns auction state/scope,
-  processes world pending auction items, handles bag-item listing, opens
-  `AuctionHouseModal`, and passes sell handlers into inventory/equipment UI.
-- `components/layout/RightPanel.tsx`: exposes the auction/market action.
-- `components/layout/MobileQuickMenu.tsx`: exposes `auction_house`.
-- `components/features/Inventory/InventoryModal.tsx`: exposes send-to-auction
-  behavior and copy.
-- `components/features/Inventory/MobileInventoryModal.tsx`: same mobile path.
-- `components/features/AuctionHouse/AuctionHouseModal.tsx`: main modal.
+- `App.tsx`: no longer lazy-loads or mounts `AuctionHouseModal`.
+- `App.tsx`: no longer handles the `auction_house` mobile menu action.
+- `App.tsx`: no longer passes auction open handlers into `RightPanel`.
+- `App.tsx`: no longer passes sell-to-auction handlers into desktop or mobile
+  inventory.
+- `components/layout/RightPanel.tsx`: removed the auction/market action.
+- `components/layout/MobileQuickMenu.tsx`: removed the `auction_house` quick
+  menu item.
+- `components/features/Inventory/InventoryModal.tsx`: removed individual
+  sell-to-auction and bulk misc sell controls.
+- `components/features/Inventory/MobileInventoryModal.tsx`: removed the same
+  mobile controls.
 
 ### Backend And Data Pending
 
+- `App.tsx`: still imports auction service helpers, owns auction state/scope,
+  processes world pending auction items, and feeds auction items into item
+  image generation history. This is no longer player-visible, but must be
+  removed with the backend/prompt pass.
+- `components/features/AuctionHouse/AuctionHouseModal.tsx`
 - `services/auctionHouse.ts`
 - `data/defaultAuctionItemImages.ts`
 - `scripts/generate-gpt-image2-auction-images.mjs`

@@ -72,4 +72,49 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('storage_pending');
         expect(registry).toContain('music_tracks');
     });
+
+    it('removes auction house player-visible entrypoints', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('AuctionHouseModal');
+        expect(app).not.toContain('showAuctionHouse');
+        expect(app).not.toContain("case 'auction_house'");
+        expect(app).not.toContain('openAuctionHouse');
+        expect(app).not.toContain('onOpenAuctionHouse');
+        expect(app).not.toContain('auctionHouseLabel');
+        expect(app).not.toContain('onSellItem={handleSellBagItemToAuction}');
+        expect(app).not.toContain('onSellAllMisc={handleSellAllMiscItems}');
+        expect(app).not.toContain('已送入拍卖行');
+        expect(app).not.toContain('杂物已寄售');
+
+        const rightPanel = readProjectFile('components/layout/RightPanel.tsx');
+        expect(rightPanel).not.toContain('onOpenAuctionHouse');
+        expect(rightPanel).not.toContain('auctionHouseLabel');
+
+        const mobileMenu = readProjectFile('components/layout/MobileQuickMenu.tsx');
+        expect(mobileMenu).not.toContain("| 'auction_house'");
+        expect(mobileMenu).not.toContain('auction_house');
+        expect(mobileMenu).not.toContain('auctionHouseLabel');
+
+        const inventory = readProjectFile('components/features/Inventory/InventoryModal.tsx');
+        expect(inventory).not.toContain('onSellItem');
+        expect(inventory).not.toContain('onSellAllMisc');
+        expect(inventory).not.toContain('拍卖行');
+        expect(inventory).not.toContain('寄售');
+
+        const mobileInventory = readProjectFile('components/features/Inventory/MobileInventoryModal.tsx');
+        expect(mobileInventory).not.toContain('onSellItem');
+        expect(mobileInventory).not.toContain('onSellAllMisc');
+        expect(mobileInventory).not.toContain('拍卖行');
+        expect(mobileInventory).not.toContain('寄售');
+    });
+
+    it('records auction house backend and prompts as pending removal after entrypoints are gone', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('auction_house');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('services/auctionHouse.ts');
+        expect(registry).toContain('models/world.ts');
+        expect(registry).toContain('prompts/runtime/worldDataSchema.ts');
+    });
 });

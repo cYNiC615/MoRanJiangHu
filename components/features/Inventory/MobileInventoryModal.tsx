@@ -20,9 +20,7 @@ interface Props {
     openingConfig?: any;
     onClose: () => void;
     onCharacterChange?: (nextCharacter: any) => void;
-    onSellItem?: (itemId: string) => { ok: boolean; message: string } | void;
     onDiscardItem?: (itemId: string) => { ok: boolean; message: string } | void;
-    onSellAllMisc?: () => { ok: boolean; message: string } | void;
     onDiscardAllMisc?: () => { ok: boolean; message: string } | void;
     onRegenerateItemImage?: (item: any, extraPrompt?: string) => Promise<void> | void;
     initialSelectedItemRef?: string;
@@ -116,7 +114,7 @@ const MobileDetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ 
     </div>
 );
 
-const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange, onSellItem, onDiscardItem, onSellAllMisc, onDiscardAllMisc, onRegenerateItemImage, initialSelectedItemRef = '' }) => {
+const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange, onDiscardItem, onDiscardAllMisc, onRegenerateItemImage, initialSelectedItemRef = '' }) => {
     const [activeCategory, setActiveCategory] = useState<ItemCategory>('全部');
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [actionMessage, setActionMessage] = useState('');
@@ -217,15 +215,6 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
         setActionMessage('已卸下装备');
     };
 
-    const handleSellSelected = () => {
-        if (!selectedItem || !onSellItem) return;
-        const itemRef = getSafeText(selectedItem?.ID);
-        if (!itemRef) return;
-        const result = onSellItem(itemRef);
-        setActionMessage(result?.message || '已送入拍卖行寄卖');
-        if (!result || result.ok) setSelectedItem(null);
-    };
-
     const handleDiscardSelected = () => {
         if (!selectedItem || !onDiscardItem) return;
         const itemRef = getSafeText(selectedItem?.ID);
@@ -240,13 +229,6 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
         const extraPrompt = customPrompt.trim();
         await onRegenerateItemImage(selectedItem, extraPrompt);
         setActionMessage(extraPrompt ? '已提交自定义提示词重生图' : '已提交物品重生图');
-    };
-
-    const handleSellAllMisc = () => {
-        if (!onSellAllMisc) return;
-        const result = onSellAllMisc();
-        setActionMessage(result?.message || '已一键寄售杂物');
-        if (!result || result.ok) setSelectedItem(null);
     };
 
     const handleDiscardAllMisc = () => {
@@ -299,14 +281,6 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                             {category} {getCategoryCount(items, category)}
                         </button>
                     ))}
-                    <button
-                        type="button"
-                        onClick={handleSellAllMisc}
-                        disabled={!onSellAllMisc || getCategoryCount(items, '杂物') <= 0}
-                        className="shrink-0 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-100 disabled:opacity-40"
-                    >
-                        杂物全售
-                    </button>
                     <button
                         type="button"
                         onClick={handleDiscardAllMisc}
@@ -468,7 +442,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                             <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-2">
                                 <div className="mb-2 flex items-center justify-between gap-2">
                                     <span className="text-[10px] font-bold text-emerald-200">图标操作</span>
-                                    <span className="truncate text-[10px] text-gray-500">可重生图或进入拍卖行</span>
+                                    <span className="truncate text-[10px] text-gray-500">可重新生成物品图标</span>
                                 </div>
                                 <textarea
                                     value={customPrompt}
@@ -476,7 +450,7 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                                     placeholder="可选：输入额外提示词"
                                     className="mb-2 h-16 w-full resize-none rounded border border-gray-700 bg-black/25 px-2 py-1.5 text-xs leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-cyan-400/60"
                                 />
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 gap-2">
                                     <button
                                         type="button"
                                         onClick={handleRegenerateSelectedImage}
@@ -484,14 +458,6 @@ const MobileInventoryModal: React.FC<Props> = ({ character, openingConfig, onClo
                                         className="rounded bg-cyan-700/40 px-3 py-2 text-xs font-bold text-cyan-100 disabled:opacity-40"
                                     >
                                         重生图
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleSellSelected}
-                                        disabled={!onSellItem}
-                                        className="rounded bg-emerald-700/40 px-3 py-2 text-xs font-bold text-emerald-100 disabled:opacity-40"
-                                    >
-                                        出售
                                     </button>
                                 </div>
                             </div>

@@ -21,9 +21,7 @@ interface Props {
     openingConfig?: any;
     onClose: () => void;
     onCharacterChange?: (nextCharacter: any) => void;
-    onSellItem?: (itemId: string) => { ok: boolean; message: string } | void;
     onDiscardItem?: (itemId: string) => { ok: boolean; message: string } | void;
-    onSellAllMisc?: () => { ok: boolean; message: string } | void;
     onDiscardAllMisc?: () => { ok: boolean; message: string } | void;
     onRegenerateItemImage?: (item: any, extraPrompt?: string) => Promise<void> | void;
     initialSelectedItemRef?: string;
@@ -187,7 +185,7 @@ const renderItemIcon = (type: string, className: string) => {
     return icons[type] || icons.杂物;
 };
 
-const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange, onSellItem, onDiscardItem, onSellAllMisc, onDiscardAllMisc, onRegenerateItemImage, initialSelectedItemRef = '' }) => {
+const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, onCharacterChange, onDiscardItem, onDiscardAllMisc, onRegenerateItemImage, initialSelectedItemRef = '' }) => {
     const [activeCategory, setActiveCategory] = useState<ItemCategory>('全部');
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [actionMessage, setActionMessage] = useState('');
@@ -348,15 +346,6 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
         setActionMessage(result.message);
     };
 
-    const handleSellSelected = () => {
-        if (!selectedItem || !onSellItem) return;
-        const itemRef = getSafeText(selectedItem?.ID);
-        if (!itemRef) return;
-        const result = onSellItem(itemRef);
-        setActionMessage(result?.message || '已送入拍卖行寄卖');
-        if (!result || result.ok) setSelectedItem(null);
-    };
-
     const handleDiscardSelected = () => {
         if (!selectedItem || !onDiscardItem) return;
         const itemRef = getSafeText(selectedItem?.ID);
@@ -371,13 +360,6 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
         const extraPrompt = customPrompt.trim();
         await onRegenerateItemImage(selectedItem, extraPrompt);
         setActionMessage(extraPrompt ? '已提交自定义提示词重生图' : '已提交物品重生图');
-    };
-
-    const handleSellAllMisc = () => {
-        if (!onSellAllMisc) return;
-        const result = onSellAllMisc();
-        setActionMessage(result?.message || '已一键寄售杂物');
-        if (!result || result.ok) setSelectedItem(null);
     };
 
     const handleDiscardAllMisc = () => {
@@ -486,24 +468,14 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                             >
                                 自动穿戴最佳
                             </button>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleSellAllMisc}
-                                    disabled={!onSellAllMisc || getCategoryCount(items, '杂物') <= 0}
-                                    className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-300/60 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    杂物全售
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleDiscardAllMisc}
-                                    disabled={!onDiscardAllMisc || getCategoryCount(items, '杂物') <= 0}
-                                    className="rounded-lg border border-red-400/30 bg-red-500/10 px-2 py-2 text-xs font-semibold text-red-100 transition hover:border-red-300/60 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    杂物全弃
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={handleDiscardAllMisc}
+                                disabled={!onDiscardAllMisc || getCategoryCount(items, '杂物') <= 0}
+                                className="w-full rounded-lg border border-red-400/30 bg-red-500/10 px-2 py-2 text-xs font-semibold text-red-100 transition hover:border-red-300/60 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                杂物全弃
+                            </button>
                             {actionMessage ? (
                                 <div className="rounded border border-white/10 bg-black/35 px-2 py-1.5 text-xs text-gray-300">{actionMessage}</div>
                             ) : null}
@@ -681,7 +653,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                                     <div className="col-start-1 row-start-2 rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3">
                                         <div className="mb-2 flex items-center justify-between gap-3">
                                             <span className="text-sm font-bold tracking-[0.12em] text-emerald-100">图标操作</span>
-                                            <span className="truncate text-xs text-gray-300">可重生图或进入拍卖行</span>
+                                            <span className="truncate text-xs text-gray-300">可重新生成物品图标</span>
                                         </div>
                                         <textarea
                                             value={customPrompt}
@@ -689,7 +661,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                                             placeholder="可选：输入额外提示词，例如“更古朴、木纹更明显、背景更淡”"
                                             className="mb-2 h-16 w-full resize-none rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-cyan-400/50"
                                         />
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 gap-2">
                                             <button
                                                 type="button"
                                                 onClick={handleRegenerateSelectedImage}
@@ -697,14 +669,6 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
                                                 className="rounded-lg border border-cyan-400/35 bg-cyan-500/10 px-3 py-2.5 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/60 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                                             >
                                                 重生图
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleSellSelected}
-                                                disabled={!onSellItem}
-                                                className="rounded-lg border border-emerald-400/35 bg-emerald-500/10 px-3 py-2.5 text-sm font-semibold text-emerald-50 transition hover:border-emerald-300/60 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                                            >
-                                                出售
                                             </button>
                                         </div>
                                     </div>

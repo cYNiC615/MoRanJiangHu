@@ -65,8 +65,6 @@ import { 提取响应规划文本 } from './thinkingContext';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化记忆系统, 规范化记忆配置, 构建即时记忆条目, 构建短期记忆条目, 写入四段记忆 } from './memoryUtils';
 import { 构建世界演变上下文文本, 规范化世界演变命令列表, 整理客户可见世界大事 } from './worldEvolutionUtils';
-import { 获取开局小说拆分注入文本, 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
-import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
@@ -641,12 +639,6 @@ export const 执行开场剧情生成工作流 = async (
             同人女主剧情规划: deps.规范化同人女主剧情规划状态((contextData as any).同人女主剧情规划 ?? deps.同人女主剧情规划),
             开局配置: options?.开局配置
         };
-        const openingNovelDecompositionPrompt = await 获取开局小说拆分注入文本(
-            deps.apiConfig,
-            options?.开局配置,
-            openingStatePayload.剧情,
-            openingStatePayload?.角色?.姓名 || deps.角色?.姓名 || ''
-        );
 
         const openingGameConfig = 规范化游戏设置(deps.gameConfig);
         const 开局独立阶段自动重试已启用 = deps.游戏设置启用自动重试(openingGameConfig);
@@ -807,13 +799,6 @@ export const 执行开场剧情生成工作流 = async (
             .filter(Boolean)
             .join('\n\n')
             .trim(), openingGameConfig);
-        const filteredOpeningNovelDecompositionPrompt = 按功能开关过滤提示词内容(
-            openingNovelDecompositionPrompt,
-            openingGameConfig
-        );
-        const openingNovelDecompositionSystemPrompt = filteredOpeningNovelDecompositionPrompt
-            ? `【小说分解章节锚点】\n${filteredOpeningNovelDecompositionPrompt}`
-            : '';
 
         const openingContext = await deps.构建系统提示词(
             openingPromptSnapshot,
@@ -827,7 +812,6 @@ export const 执行开场剧情生成工作流 = async (
                 世界书作用域: openingTavernPresetModeEnabled ? ['opening', 'tavern'] : ['opening'],
                 世界书附加文本: [
                     openingTaskPromptWithFandom,
-                    openingNovelDecompositionSystemPrompt,
                     构建开局配置提示词(options?.开局配置),
                     typeof options?.开局额外要求 === 'string' ? options.开局额外要求 : '',
                     (openingGameConfig as any)?.activeModuleExtraRules || ''
@@ -986,7 +970,6 @@ export const 执行开场剧情生成工作流 = async (
                 playerName: openingStatePayload?.角色?.姓名 || deps.角色?.姓名 || '',
                 playerRole: openingStatePayload?.角色 || deps.角色,
                 overrideCotPrompt: openingCotPromptForTavern,
-                overrideStoryAppendPrompt: openingNovelDecompositionSystemPrompt,
                 worldbookExtraTexts: [
                     openingPerspectivePrompt,
                     openingStyleAssistantPrompt,
@@ -1012,7 +995,6 @@ export const 执行开场剧情生成工作流 = async (
             pushOpening('system', openingContext.contextPieces.worldPrompt);
             pushOpening('system', openingContext.contextPieces.同人设定摘要);
             pushOpening('system', openingContext.contextPieces.境界体系提示词);
-            pushOpening('system', openingNovelDecompositionSystemPrompt);
             pushOpening('system', openingContext.contextPieces.otherPrompts);
             pushOpening('system', openingContext.contextPieces.难度设置提示词);
             pushOpening('system', openingContext.contextPieces.叙事人称提示词);
@@ -1606,18 +1588,10 @@ export const 执行开场剧情生成工作流 = async (
                         history: [],
                         extraTexts: [openingBodyText, openingPlanText, ...worldCommandTexts]
                     }).combinedText, openingGameConfig);
-                    const worldNovelDecompositionPrompt = await 获取激活小说拆分注入文本(
-                        deps.apiConfig,
-                        'world_evolution',
-                        options?.开局配置,
-                        simulatedOpeningState.剧情,
-                        simulatedOpeningState.角色?.姓名 || deps.角色?.姓名 || ''
-                    );
                     const worldExtraPrompt = [
                         开局世界演变初始化附加提示词,
                         worldInitContext,
                         worldbookExtra,
-                        按功能开关过滤提示词内容(worldNovelDecompositionPrompt, openingGameConfig),
                         按功能开关过滤提示词内容(openingRuntimeFandomBundle.同人设定摘要, openingGameConfig),
                         启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : '',
                         openingTraditionalChinesePrompt
@@ -1873,18 +1847,10 @@ export const 执行开场剧情生成工作流 = async (
                         history: [],
                         extraTexts: [openingBodyText, openingPlanText]
                     }).combinedText, openingGameConfig);
-                    const planningNovelDecompositionPrompt = await 获取激活小说拆分注入文本(
-                        deps.apiConfig,
-                        'planning',
-                        options?.开局配置,
-                        simulatedOpeningState.剧情,
-                        simulatedOpeningState.角色?.姓名 || deps.角色?.姓名 || ''
-                    );
                     const genderRatioConstraintText = 构建规划性别比例约束摘要(options?.开局配置?.modeRuntimeProfile?.npc?.genderRatio);
                     const planningExtraPrompt = [
                         开局规划初始化附加提示词,
                         planningWorldbookExtra,
-                        按功能开关过滤提示词内容(planningNovelDecompositionPrompt, openingGameConfig),
                         按功能开关过滤提示词内容(openingRuntimeFandomBundle.同人设定摘要, openingGameConfig),
                         启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : '',
                         openingTraditionalChinesePrompt
@@ -2082,16 +2048,11 @@ export const 执行开场剧情生成工作流 = async (
         const openingTime = openingCanonicalTime
             || 环境时间转标准串(contextData?.环境)
             || '未知时间';
-        const openingStoryAfterCalibration = await 同步剧情小说分解时间校准({
-            nextStory: deps.规范化剧情状态(openingStateAfterCommands.剧情, openingStateAfterCommands.环境),
-            currentGameTime: openingTime,
-            openingConfig: options?.开局配置,
-            allowBootstrapCurrentGroup: true
-        });
+        const openingStoryAfterCommands = deps.规范化剧情状态(openingStateAfterCommands.剧情, openingStateAfterCommands.环境);
         if (openingCanonicalTime) {
             deps.设置游戏初始时间(openingCanonicalTime);
         }
-        deps.设置剧情(openingStoryAfterCalibration);
+        deps.设置剧情(openingStoryAfterCommands);
         const openingFreshMemory: 记忆系统结构 = {
             回忆档案: [],
             即时记忆: [],
@@ -2183,7 +2144,7 @@ export const 执行开场剧情生成工作流 = async (
             sect: opening玩家门派,
             tasks: opening任务列表,
             agreements: opening约定列表,
-            story: openingStoryAfterCalibration,
+            story: openingStoryAfterCommands,
             storyPlan: openingStateAfterCommands.剧情规划,
             heroinePlan: openingStateAfterCommands.女主剧情规划,
             fandomStoryPlan: openingStateAfterCommands.同人剧情规划,

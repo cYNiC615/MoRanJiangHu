@@ -18,9 +18,7 @@ import { applyStateCommand } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 提取响应规划文本 } from './thinkingContext';
 import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
-import { 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
-import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
 import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
@@ -464,16 +462,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             worldbookCount: Array.isArray(deps.worldbooks) ? deps.worldbooks.length : 0,
             auditFocusCount: auditFocus.length
         });
-        const novelDecompositionPrompt = await probe.timeAsync('构建规划小说拆分注入', async () => 按功能开关过滤提示词内容(await 获取激活小说拆分注入文本(
-            deps.apiConfig,
-            'planning',
-            deps.开局配置,
-            alignedStoryForPlanning,
-            deps.角色?.姓名 || ''
-        ), normalizedGameConfig));
         const planningExtraPrompt = [
             worldbookExtra,
-            novelDecompositionPrompt,
             按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, normalizedGameConfig),
             启用修炼体系 ? fandomPromptBundle.境界母板补丁 : '',
             获取繁体输出指令(normalizedGameConfig)
@@ -628,12 +618,6 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             fandomStoryPlan: params.state.同人剧情规划,
             fandomHeroinePlan: params.state.同人女主剧情规划
         }), { commandCount: commands.length }));
-        const syncedPatchedStory = await probe.timeAsync('同步小说分解时间校准', () => 同步剧情小说分解时间校准({
-            previousStory: params.state.剧情,
-            nextStory: patched.story,
-            currentGameTime: params.gameTime,
-            openingConfig: deps.开局配置
-        }));
         if (params.shouldApply && !params.shouldApply()) {
             probe.mark('丢弃：补丁应用后结果过期');
             return {
@@ -649,7 +633,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         await 后台让出主线程();
         检查规划分析中断(params.signal);
         probe.time('写入规划分析状态', () => {
-            deps.设置剧情(syncedPatchedStory);
+            deps.设置剧情(patched.story);
             if (fandomEnabled) {
                 deps.设置同人剧情规划(patched.fandomStoryPlan);
             } else {
@@ -664,7 +648,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         });
         probe.mark('调度规划分析自动存档');
         void deps.performAutoSave({
-            story: syncedPatchedStory,
+            story: patched.story,
             storyPlan: patched.storyPlan,
             heroinePlan: !fandomEnabled && heroineEnabled ? patched.heroinePlan : undefined,
             fandomStoryPlan: patched.fandomStoryPlan,

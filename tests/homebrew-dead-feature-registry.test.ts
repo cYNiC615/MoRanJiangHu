@@ -28,6 +28,30 @@ describe('homebrew dead feature registry', () => {
         expect(readProjectFile('components/features/Settings/mobile/MobileSettingsModal.tsx')).not.toContain('novel_decomposition');
     });
 
+    it('removes active novel decomposition injection from AI request paths', () => {
+        const activeWorkflowFiles = [
+            'hooks/useGame/sendWorkflow.ts',
+            'hooks/useGame/mainStoryRequest.ts',
+            'hooks/useGame/contextSnapshot.ts',
+            'hooks/useGame/planningUpdateWorkflow.ts',
+            'hooks/useGame/worldEvolutionWorkflow.ts',
+            'hooks/useGame/openingStoryWorkflow.ts',
+            'hooks/useGame/runtimeVariableWorkflow.ts',
+            'hooks/useGame/historyTurnWorkflow.ts'
+        ];
+
+        for (const relativePath of activeWorkflowFiles) {
+            const content = readProjectFile(relativePath);
+            expect(content, relativePath).not.toContain('获取激活小说拆分注入文本');
+            expect(content, relativePath).not.toContain('获取开局小说拆分注入文本');
+            expect(content, relativePath).not.toContain('同步剧情小说分解时间校准');
+            expect(content, relativePath).not.toContain('novelDecompositionPrompt');
+            expect(content, relativePath).not.toContain('小说分解注入');
+            expect(content, relativePath).not.toContain('小说拆分注入');
+            expect(content, relativePath).not.toContain('overrideStoryAppendPrompt');
+        }
+    });
+
     it('records the remaining novel decomposition backend as pending removal', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('novel_decomposition');

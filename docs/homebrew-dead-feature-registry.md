@@ -91,6 +91,25 @@ Final homebrew simplification is not complete until:
   same visible new-game path. Mobile itself remains a larger removal target,
   but the retired fandom/novel injection controls are no longer player-visible.
 
+### Active Injection Side Effects Removed In This Pass
+
+- `hooks/useGame/mainStoryRequest.ts`: no longer accepts or pushes a
+  novel-decomposition prompt into main-story request messages.
+- `hooks/useGame/contextSnapshot.ts`: no longer reads active
+  novel-decomposition injection while previewing request context.
+- `hooks/useGame/sendWorkflow.ts`: no longer fetches the active
+  novel-decomposition injection or applies novel-decomposition time calibration
+  after the main story command pipeline.
+- `hooks/useGame/openingStoryWorkflow.ts`: no longer injects opening
+  novel-decomposition anchors into the opening story, opening world-evolution,
+  or opening planning-analysis requests.
+- `hooks/useGame/planningUpdateWorkflow.ts` and
+  `hooks/useGame/worldEvolutionWorkflow.ts`: no longer add active
+  novel-decomposition text to independent planning/world extra prompts.
+- `hooks/useGame/runtimeVariableWorkflow.ts` and
+  `hooks/useGame/historyTurnWorkflow.ts`: no longer call
+  novel-decomposition calibration when writing or rebuilding story state.
+
 ### Backend And Data Still Pending
 
 Keep these visible in future cleanup work:

@@ -116,7 +116,6 @@ export const 构建主剧情请求参数 = (
         updatedMemSys: 记忆系统结构;
         sendInput: string;
         recallTag?: string;
-        novelDecompositionPrompt?: string;
         playerRole?: 角色数据结构;
         builtinPromptEntries?: 内置提示词条目结构[];
         worldbooks?: 世界书结构[];
@@ -175,7 +174,6 @@ export const 构建主剧情请求参数 = (
             : params.sendInput,
         runtimeGameConfig
     );
-    const novelDecompositionPrompt = (params.novelDecompositionPrompt || '').trim();
     const messageEntries: 主剧情消息条目[] = [];
 
     if (tavernPresetModeEnabled) {
@@ -206,8 +204,7 @@ export const 构建主剧情请求参数 = (
                 tavernRuntimeExtraPrompt,
                 disclaimerRequirementPrompt || '',
                 tavernOutputProtocolPrompt
-            ],
-            overrideStoryAppendPrompt: novelDecompositionPrompt
+            ]
         });
         tavernMessages.forEach((message, index) => {
             const trimmed = (message?.content || '').trim();
@@ -258,7 +255,6 @@ export const 构建主剧情请求参数 = (
         pushEntry('memory_long', '长期记忆', '记忆', 'system', params.builtContext.contextPieces.长期记忆);
         pushEntry('memory_mid', '中期记忆', '记忆', 'system', params.builtContext.contextPieces.中期记忆);
         pushEntry('story_plan', '剧情安排', '系统', 'system', params.builtContext.contextPieces.剧情安排);
-        pushEntry('novel_decomposition', '小说分解注入', '系统', 'system', novelDecompositionPrompt);
         pushEntry('npc_present', '以下为在场角色', '系统', 'system', params.builtContext.contextPieces.在场NPC档案);
         pushEntry('heroine_plan', '女主剧情规划', '系统', 'system', params.builtContext.contextPieces.女主剧情规划状态);
         pushEntry('state_world', '世界', '系统', 'system', params.builtContext.contextPieces.世界状态);

@@ -10,7 +10,6 @@ import type {
     角色数据结构,
     记忆系统结构
 } from '../../types';
-import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 
 type 回合快照结构 = {
     玩家输入: string;
@@ -207,13 +206,6 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
 
         const newState = deps.processResponseCommands(effectiveParsed, baseState);
         const nextGameTime = deps.环境时间转标准串(newState.环境) || '未知时间';
-        const syncedStory = await 同步剧情小说分解时间校准({
-            previousStory: snapshot.回档前状态.剧情,
-            nextStory: newState.剧情,
-            currentGameTime: nextGameTime,
-            openingConfig: deps.获取开局配置(),
-            allowBootstrapCurrentGroup: true
-        });
         const displayParsed: GameResponse = options?.displayResponse
             ? {
                 ...options.displayResponse,
@@ -239,7 +231,7 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
         const patchedState = {
             ...newState,
             社交: mergedSocial,
-            剧情: syncedStory
+            剧情: newState.剧情
         };
         deps.设置剧情(deps.深拷贝(patchedState.剧情));
         deps.设置玩家门派(deps.深拷贝(patchedState.玩家门派));

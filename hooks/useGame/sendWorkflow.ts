@@ -19,8 +19,6 @@ import type { 自动存档快照结构 } from './saveCoordinator';
 import type { 世界演变触发参数, 世界演变执行结果 } from './worldEvolutionWorkflow';
 import type { 地图更新执行结果 } from './mapUpdateWorkflow';
 import { 生成地图更新 } from './mapUpdateWorkflow';
-import { 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
-import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
 
@@ -1365,13 +1363,6 @@ export const 执行主剧情发送工作流 = async (
             updatedMemSys,
             sendInput,
             recallTag,
-            novelDecompositionPrompt: await 获取激活小说拆分注入文本(
-                currentState.apiConfig,
-                'main_story',
-                currentState.开局配置,
-                deps.规范化剧情状态(currentState.剧情, currentState.环境),
-                currentState.角色?.姓名 || ''
-            ),
             playerRole: currentState.角色,
             builtinPromptEntries: currentState.内置提示词列表,
             worldbooks: currentState.世界书列表
@@ -2435,17 +2426,6 @@ export const 执行主剧情发送工作流 = async (
                     () => deps.processResponseCommands(finalParsedResponse, mainCommandBaseState),
                     { commandCount: 获取响应命令数量(finalParsedResponse) }
                 );
-                const calibratedFinalStory = await 同步剧情小说分解时间校准({
-                    previousStory: currentState.剧情,
-                    nextStory: finalState.剧情,
-                    currentGameTime: 环境时间转标准串(finalState.环境) || currentGameTime,
-                    openingConfig: currentState.开局配置
-                });
-                finalState = {
-                    ...finalState,
-                    剧情: deps.规范化剧情状态(calibratedFinalStory, finalState.环境)
-                };
-                deps.设置剧情(finalState.剧情);
                 finalDisplayResponse = {
                     ...finalDisplayResponse,
                     logs: displayAiData.logs || finalDisplayResponse.logs

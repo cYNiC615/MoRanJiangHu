@@ -7,7 +7,6 @@ import { 剧情回忆检索COT提示词, 剧情回忆检索输出格式提示词
 import { 构建剧情回忆检索上下文 } from './memoryRecall';
 import { 构建COT伪装提示词 } from './promptRuntime';
 import { countOpenAIChatMessagesTokensWithBreakdown } from '../../utils/tokenEstimate';
-import { 获取激活小说拆分注入文本 } from '../../services/novelDecompositionInjection';
 
 export type 运行时提示词状态 = {
     当前启用: boolean;
@@ -117,14 +116,6 @@ export const 构建上下文快照数据 = async (params: 构建上下文快照�
         ?.content
         ?.trim() || '暂无';
 
-    const novelDecompositionPrompt = await 获取激活小说拆分注入文本(
-        params.apiConfig,
-        'main_story',
-        params.开局配置,
-        normalizedStory,
-        params.角色?.姓名 || ''
-    );
-
     const { messageEntries } = 构建主剧情请求参数({
         gameConfig: params.gameConfig,
         apiConfig: params.apiConfig,
@@ -132,7 +123,6 @@ export const 构建上下文快照数据 = async (params: 构建上下文快照�
         updatedContextHistory: snapshotScriptHistory,
         updatedMemSys: normalizedMem,
         sendInput: latestUserInput,
-        novelDecompositionPrompt,
         playerRole: params.角色,
         builtinPromptEntries: params.内置提示词列表,
         worldbooks: params.世界书列表

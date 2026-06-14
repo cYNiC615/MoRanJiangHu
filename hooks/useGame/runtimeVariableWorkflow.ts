@@ -1,6 +1,5 @@
 import type { TavernCommand } from '../../types';
 import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
-import { 同步剧情小说分解时间校准 } from '../../services/novelDecompositionCalibration';
 import { preserveInventoryOnUnsafeRoleReplace, sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 同步角色与门派状态 } from './storyState';
 
@@ -87,20 +86,6 @@ const 是否女主规划命令 = (rawKey: string): boolean => {
 
 export const 创建运行时变量工作流 = (deps: 运行时变量工作流依赖) => {
     const 女主规划允许写入 = () => deps.女主规划已启用?.() !== false;
-
-    const 同步剧情时间校准 = async (params: {
-        previousStory: any;
-        nextStory: any;
-        envLike: any;
-    }) => {
-        return 同步剧情小说分解时间校准({
-            previousStory: deps.规范化剧情状态(params.previousStory),
-            nextStory: deps.规范化剧情状态(params.nextStory),
-            currentGameTime: deps.环境时间转标准串(params.envLike) || '',
-            openingConfig: deps.获取开局配置(),
-            allowBootstrapCurrentGroup: true
-        });
-    };
 
     const 解析嵌套路径片段 = (path: string): Array<string | number> => (
         (path || '')
@@ -223,13 +208,8 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             }
             case '剧情': {
                 const nextValue = deps.规范化剧情状态(value);
-                const syncedStory = await 同步剧情时间校准({
-                    previousStory: 当前状态.剧情,
-                    nextStory: nextValue,
-                    envLike: 当前状态.环境
-                });
-                deps.设置剧情(syncedStory);
-                void deps.performAutoSave({ story: syncedStory, history: 历史记录, force: true });
+                deps.设置剧情(nextValue);
+                void deps.performAutoSave({ story: nextValue, history: 历史记录, force: true });
                 return;
             }
             case '剧情规划': {

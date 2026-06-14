@@ -32,7 +32,6 @@ import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolu
 import { 分配角色属性点, type 可分配六维属性键 } from './utils/characterAttributePoints';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, 执行延迟上传队列, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
-import { 等待云端后台同步完成, 确保本地存档已同步到云端, 确保最新本地存档已同步到云端 } from './services/cloudPlayService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
@@ -1456,27 +1455,6 @@ const App: React.FC = () => {
         };
     }, [state.apiConfig]);
     const mainStoryApiLabel = `主剧情：${mainStoryApiInfo.channelName} / ${mainStoryApiInfo.modelName}`;
-    const 尝试返回首页云端同步 = React.useCallback(async (returnHomeSave: Awaited<ReturnType<typeof actions.performAutoSave>>) => {
-        const syncTask = (async () => {
-            await 等待云端后台同步完成();
-            if (returnHomeSave) {
-                await 确保本地存档已同步到云端(returnHomeSave);
-                return;
-            }
-            await 确保最新本地存档已同步到云端();
-        })();
-        let timeoutId: number | null = null;
-        try {
-            await Promise.race([
-                syncTask,
-                new Promise<never>((_, reject) => {
-                    timeoutId = window.setTimeout(() => reject(new Error('云端同步等待超过 15 秒，已改为后台继续同步。')), 15000);
-                })
-            ]);
-        } finally {
-            if (timeoutId) window.clearTimeout(timeoutId);
-        }
-    }, [actions]);
     const desktopRightDetailWidth = React.useMemo(() => clampDesktopDetailWidth(
         desktopDetailWidths[desktopRightDetailId] ?? getDesktopDetailDefaultWidth(desktopRightDetailId)
     ), [desktopDetailWidths, desktopRightDetailId, viewportWidth]);
@@ -2011,20 +1989,11 @@ const App: React.FC = () => {
         setReturnHomeSaving(true);
         actions.pushNotification({
             title: '正在保存存档',
-            message: '正在保存当前进度并同步存档，请稍候。',
+            message: '正在保存当前进度，请稍候。',
             tone: 'info'
         });
         try {
-            const returnHomeSave = await actions.performAutoSave({ force: true });
-            try {
-                await 尝试返回首页云端同步(returnHomeSave);
-            } catch (syncError: any) {
-                actions.pushNotification({
-                    title: '本地存档已保存',
-                    message: `云端同步将在后台继续重试：${syncError?.message || '同步暂时未完成'}`,
-                    tone: 'info'
-                });
-            }
+            await actions.performAutoSave({ force: true });
             closeAllPanels();
             void 执行延迟上传队列();
             actions.handleReturnToHome();
@@ -2034,7 +2003,7 @@ const App: React.FC = () => {
         } finally {
             setReturnHomeSaving(false);
         }
-    }, [actions, closeAllPanels, returnHomeSaving, setters, 尝试返回首页云端同步]);
+    }, [actions, closeAllPanels, returnHomeSaving, setters]);
     const handleReturnToHomeFromSettings = React.useCallback(async () => {
         const ok = await requestConfirm({
             title: '返回首页',
@@ -2597,7 +2566,7 @@ const App: React.FC = () => {
                             <div className="max-w-sm rounded-lg border border-amber-900/20 bg-[#fff9ec]/95 px-6 py-5 shadow-[0_18px_50px_rgba(70,45,15,0.22)]">
                                 <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-amber-900/25 border-t-amber-800" aria-hidden="true" />
                                 <div className="font-serif text-lg font-bold text-amber-950">正在保存存档中</div>
-                                <div className="mt-2 text-sm leading-6 text-stone-700">正在保存当前进度并同步存档，完成后会自动返回首页。</div>
+                                <div className="mt-2 text-sm leading-6 text-stone-700">正在保存当前进度，完成后会自动返回首页。</div>
                             </div>
                         </div>
                     )}

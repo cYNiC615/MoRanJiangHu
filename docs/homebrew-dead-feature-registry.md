@@ -9,6 +9,9 @@ hide backend code, stored data, prompts, or tests that still need a later pass.
 - `entrypoint_removed`: User-facing route/menu/modal access has been removed.
 - `entrypoint_pending`: A visible path still exists, usually because it is tied
   to a larger feature family that should be removed in a separate pass.
+- `automatic_side_effect_removed`: Startup, save, navigation, timer, heartbeat,
+  or background side effects for a retired feature have been disconnected from
+  active player flows.
 - `backend_removed`: Runtime files, services, model fields, storage schema
   readers, or tests for the feature have been deleted from active code paths.
 - `backend_pending`: Services, prompts, models, API routes, storage keys, or
@@ -444,7 +447,8 @@ in:
 - Reason: The homebrew project does not need cloud play, GitHub/WebDAV/Object
   multi-device sync, account-based sync entrypoints, or public sync workflows.
   Local settings, local saves, and ZIP import/export stay intact.
-- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -464,6 +468,16 @@ in:
   "convert local save to cloud play" buttons, cloud-play status copy, and direct
   imports of cloud/object-storage sync services.
 
+### Automatic Side Effects Removed In This Pass
+
+- `App.tsx`: returning home after auto-save no longer waits for cloud sync or
+  pushes a background cloud-sync retry notification.
+- `App.tsx`: return-home saving copy now describes only local save completion.
+- `hooks/useGame/saveCoordinator.ts`: manual saves no longer call
+  `后台同步存档到云端`.
+- `hooks/useGame/saveCoordinator.ts`: automatic saves no longer call
+  `后台同步存档到云端`.
+
 ### Entrypoints Still Pending
 
 These are adjacent cloud/community surfaces and should be removed in later
@@ -481,11 +495,6 @@ focused passes:
 
 ### Backend And Data Pending
 
-- `App.tsx`: return-home flow still calls
-  `等待云端后台同步完成`, `确保本地存档已同步到云端`, and
-  `确保最新本地存档已同步到云端`.
-- `hooks/useGame/saveCoordinator.ts`: still imports and calls
-  `后台同步存档到云端`.
 - `services/cloudPlayService.ts`
 - `services/githubSync.ts`
 - `services/objectStorageSync.ts`

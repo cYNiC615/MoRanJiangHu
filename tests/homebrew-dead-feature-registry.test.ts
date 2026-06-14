@@ -135,6 +135,13 @@ describe('homebrew dead feature registry', () => {
         expect(app).not.toContain('openCloudPlay');
         expect(app).not.toContain('onCloudPlay');
         expect(app).not.toContain('读取云端游玩存储模式');
+        expect(app).not.toContain('services/cloudPlayService');
+        expect(app).not.toContain('等待云端后台同步完成');
+        expect(app).not.toContain('确保本地存档已同步到云端');
+        expect(app).not.toContain('确保最新本地存档已同步到云端');
+        expect(app).not.toContain('尝试返回首页云端同步');
+        expect(app).not.toContain('云端同步将在后台继续重试');
+        expect(app).not.toContain('正在保存当前进度并同步存档');
 
         const landing = readProjectFile('components/layout/LandingPage.tsx');
         expect(landing).not.toContain('GitHubSyncButton');
@@ -159,12 +166,17 @@ describe('homebrew dead feature registry', () => {
         expect(saveLoad).not.toContain('云端游玩');
         expect(saveLoad).not.toContain('转云端');
         expect(saveLoad).not.toContain('对象存储');
+
+        const saveCoordinator = readProjectFile('hooks/useGame/saveCoordinator.ts');
+        expect(saveCoordinator).not.toContain('后台同步存档到云端');
+        expect(saveCoordinator).not.toContain('services/cloudPlayService');
     });
 
     it('records cloud play and sync backend as pending removal after entrypoints are gone', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('cloud_play_and_sync');
         expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('automatic_side_effect_removed');
         expect(registry).toContain('backend_pending');
         expect(registry).toContain('services/cloudPlayService.ts');
         expect(registry).toContain('services/githubSync.ts');

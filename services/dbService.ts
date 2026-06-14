@@ -316,8 +316,6 @@ const 估算设置摘要 = (key: string, value: unknown): string => {
                 return `${value.length} 条提示词`;
             case 设置键.内置提示词:
                 return `${value.length} 条内置提示词`;
-            case 设置键.节日配置:
-                return `${value.length} 个节日`;
             case 设置键.小说分解数据集:
                 return `${value.length} 组分解数据`;
             case 设置键.小说分解任务:

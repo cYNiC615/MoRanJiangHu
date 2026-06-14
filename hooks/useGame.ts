@@ -6,7 +6,6 @@ import {
     接口设置结构,
     提示词结构,
     视觉设置结构,
-    节日结构,
     GameResponse,
     游戏设置结构,
     记忆配置结构,
@@ -101,7 +100,7 @@ import { 创建主角图片工作流 } from './useGame/playerImageWorkflow';
 import { 创建运行时变量工作流 } from './useGame/runtimeVariableWorkflow';
 import { 创建变量校准协调器 as 创建变量生成协调器 } from './useGame/variableCalibrationCoordinator';
 import { use世界演变控制 } from './useGame/worldEvolutionControl';
-import { normalizeCanonicalGameTime, 环境时间转标准串, 提取环境月日, 结构化时间转标准串 } from './useGame/timeUtils';
+import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './useGame/timeUtils';
 import { 构建NPC上下文, 提取NPC生图基础数据, 提取NPC香闺秘档部位生图数据, 提取主角生图基础数据 } from './useGame/npcContext';
 import { 应用NPC记忆总结, 构建手动NPC记忆总结候选, 构建自动NPC记忆总结候选, 构建NPC记忆总结回退文案 } from './useGame/npcMemorySummary';
 import { 规范化游戏设置 } from '../utils/gameSettings';
@@ -414,7 +413,6 @@ export const useGame = () => {
         memoryConfig, setMemoryConfig,
         prompts, setPrompts,
         ensurePromptsLoaded,
-        festivals, setFestivals,
         currentTheme, setCurrentTheme,
         scrollRef, abortControllerRef, recallAbortControllerRef, variableGenerationAbortControllerRef
     } = gameState;
@@ -804,37 +802,6 @@ export const useGame = () => {
             应用场景图片档案到状态(深拷贝(snapshot.回档前持久态?.场景图片档案 || {}));
         }
     };
-
-    // Frontend联动：当游戏时间命中节日设定时，自动同步“名称/简介/效果”到环境
-    useEffect(() => {
-        const md = 提取环境月日(环境);
-        const matched = md ? festivals.find(f => f.月 === md.month && f.日 === md.day) : undefined;
-        const nextFestival = matched
-            ? {
-                名称: matched.名称?.trim() || '',
-                简介: matched.描述?.trim() || '',
-                效果: matched.效果?.trim() || ''
-            }
-            : null;
-
-        const currentFestival = 环境?.节日 || null;
-        const sameFestival = !!(
-            (!currentFestival && !nextFestival) ||
-            (
-                currentFestival &&
-                nextFestival &&
-                (currentFestival.名称 || '') === (nextFestival.名称 || '') &&
-                (currentFestival.简介 || '') === (nextFestival.简介 || '') &&
-                (currentFestival.效果 || '') === (nextFestival.效果 || '')
-            )
-        );
-
-        if (sameFestival) return;
-        设置环境(prev => ({
-            ...prev,
-            节日: nextFestival
-        }));
-    }, [环境?.时间, 环境?.节日, festivals, 设置环境]);
 
     useEffect(() => {
         if (游戏初始时间) return;
@@ -1431,8 +1398,7 @@ export const useGame = () => {
         importPresets,
         saveGameSettings,
         saveMemorySettings,
-        updatePrompts,
-        updateFestivals
+        updatePrompts
     } = 创建设置持久化工作流({
         获取接口配置: () => apiConfigRef.current,
         同步接口配置: (config) => {
@@ -1497,8 +1463,7 @@ export const useGame = () => {
         获取场景图历史上限,
         设置游戏设置: setGameConfig,
         设置记忆配置: setMemoryConfig,
-        设置提示词池: setPrompts,
-        设置节日列表: setFestivals
+        设置提示词池: setPrompts
     });
 
     useEffect(() => {
@@ -3974,7 +3939,7 @@ export const useGame = () => {
             saveSettings, saveVisualSettings, saveImageManagerSettings, saveGameSettings, saveMemorySettings,
             saveBuiltinPromptEntries,
             saveWorldbooks, saveWorldbookPresetGroups,
-            updatePrompts, updateFestivals,
+            updatePrompts,
             handleSaveGame, handleLoadGame, performAutoSave,
             updateHistoryItem,
             updateMemorySystem,

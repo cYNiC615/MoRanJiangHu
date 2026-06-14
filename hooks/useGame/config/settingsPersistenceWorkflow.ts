@@ -8,7 +8,6 @@ import type {
     接口设置结构,
     提示词结构,
     游戏设置结构,
-    节日结构,
     模型词组转化器预设结构,
     画师串预设结构,
     视觉设置结构,
@@ -41,7 +40,6 @@ type 设置持久化工作流依赖 = {
     设置游戏设置: (config: 游戏设置结构) => void;
     设置记忆配置: (config: 记忆配置结构) => void;
     设置提示词池: (prompts: 提示词结构[]) => void;
-    设置节日列表: (festivals: 节日结构[]) => void;
 };
 
 const 生成预设ID = (): string => `preset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -375,11 +373,6 @@ export const 创建设置持久化工作流 = (deps: 设置持久化工作流依
         await dbService.保存设置(设置键.提示词池, newPrompts);
     };
 
-    const updateFestivals = async (newFestivals: 节日结构[]) => {
-        deps.设置节日列表(newFestivals);
-        await dbService.保存设置(设置键.节日配置, newFestivals);
-    };
-
     return {
         loadBuiltinPromptEntries,
         loadWorldbooks,
@@ -402,7 +395,6 @@ export const 创建设置持久化工作流 = (deps: 设置持久化工作流依
         importPresets,
         saveGameSettings,
         saveMemorySettings,
-        updatePrompts,
-        updateFestivals
+        updatePrompts
     };
 };

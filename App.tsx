@@ -2826,7 +2826,6 @@ const App: React.FC = () => {
                             环境={state.环境} 
                             游戏初始时间={state.游戏初始时间}
                             timeFormat={effectiveTopBarTimeFormat}
-                            festivals={state.festivals}
                             visualConfig={effectiveVisualConfig}
                         />
                     </div>
@@ -3269,7 +3268,6 @@ const App: React.FC = () => {
                             gameConfig={state.gameConfig}
                             memoryConfig={state.memoryConfig}
                             prompts={state.prompts}
-                            festivals={state.festivals}
                             currentTheme={state.currentTheme}
                             history={state.历史记录}
                             memorySystem={state.记忆系统}
@@ -3294,7 +3292,6 @@ const App: React.FC = () => {
                             onReplaceVariableSection={actions.updateRuntimeVariableSection}
                             onApplyVariableCommand={actions.applyRuntimeVariableCommand}
                             onUpdatePrompts={actions.updatePrompts}
-                            onUpdateFestivals={actions.updateFestivals}
                             onThemeChange={setters.setCurrentTheme}
                             requestConfirm={requestConfirm}
                             onReturnToHome={handleReturnToHomeFromSettings}
@@ -3311,7 +3308,6 @@ const App: React.FC = () => {
                             gameConfig={state.gameConfig}
                             memoryConfig={state.memoryConfig}
                             prompts={state.prompts}
-                            festivals={state.festivals}
                             currentTheme={state.currentTheme}
                             history={state.历史记录}
                             memorySystem={state.记忆系统}
@@ -3336,7 +3332,6 @@ const App: React.FC = () => {
                             onReplaceVariableSection={actions.updateRuntimeVariableSection}
                             onApplyVariableCommand={actions.applyRuntimeVariableCommand}
                             onUpdatePrompts={actions.updatePrompts}
-                            onUpdateFestivals={actions.updateFestivals}
                             onThemeChange={setters.setCurrentTheme}
                             requestConfirm={requestConfirm}
                             onReturnToHome={handleReturnToHomeFromSettings}

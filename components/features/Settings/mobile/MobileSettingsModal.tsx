@@ -1,7 +1,7 @@
 import React from 'react';
 import { lazyImportWithReload } from '../../../../utils/lazyImportWithReload';
 import {
-    接口设置结构, 提示词结构, ThemePreset, 视觉设置结构, 节日结构, 聊天记录结构,
+    接口设置结构, 提示词结构, ThemePreset, 视觉设置结构, 聊天记录结构,
     游戏设置结构, 记忆配置结构, 记忆系统结构, NPC结构, TavernCommand, OpeningConfig, 剧情系统结构
 } from '../../../../types';
 
@@ -11,7 +11,6 @@ const PromptManager = React.lazy(() => lazyImportWithReload('mobile-settings-pro
 const StorageManager = React.lazy(() => lazyImportWithReload('mobile-settings-storage-manager', () => import('../StorageManager')));
 const ThemeSettings = React.lazy(() => lazyImportWithReload('mobile-settings-theme', () => import('../ThemeSettings')));
 const VisualSettings = React.lazy(() => lazyImportWithReload('mobile-settings-visual', () => import('../VisualSettings')));
-const WorldSettings = React.lazy(() => lazyImportWithReload('mobile-settings-world', () => import('../WorldSettings')));
 const GameSettings = React.lazy(() => lazyImportWithReload('mobile-settings-game', () => import('../GameSettings')));
 const RealitySettings = React.lazy(() => lazyImportWithReload('mobile-settings-reality', () => import('../RealitySettings')));
 const TavernPresetSettings = React.lazy(() => lazyImportWithReload('mobile-settings-tavern-preset', () => import('../TavernPresetSettings')));
@@ -65,7 +64,6 @@ interface Props {
     gameConfig?: 游戏设置结构;
     memoryConfig?: 记忆配置结构;
     prompts: 提示词结构[];
-    festivals: 节日结构[];
     currentTheme: ThemePreset;
     history: 聊天记录结构[];
     memorySystem?: 记忆系统结构;
@@ -90,7 +88,6 @@ interface Props {
     onReplaceVariableSection: (section: keyof RuntimeStateSections, value: unknown) => void;
     onApplyVariableCommand: (command: TavernCommand) => void;
     onUpdatePrompts: (prompts: 提示词结构[]) => void;
-    onUpdateFestivals: (festivals: 节日结构[]) => void;
     onThemeChange: (theme: ThemePreset) => void;
     onReturnToHome?: () => void;
     isHome?: boolean;
@@ -100,15 +97,14 @@ interface Props {
 
 const MobileSettingsModal: React.FC<Props> = ({
     activeTab, onTabChange, onClose,
-    apiConfig, visualConfig, gameConfig, memoryConfig, prompts, festivals, currentTheme, history, memorySystem, socialList, runtimeState, currentStory, openingConfig, contextSnapshot,
-    onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onRestoreNpcBackup, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onUpdateFestivals, onThemeChange,
+    apiConfig, visualConfig, gameConfig, memoryConfig, prompts, currentTheme, history, memorySystem, socialList, runtimeState, currentStory, openingConfig, contextSnapshot,
+    onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onRestoreNpcBackup, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onThemeChange,
     onReturnToHome, isHome, returnHomeSaving = false, requestConfirm
 }) => {
     const tabItems = [
         { id: 'game', label: '游戏' },
         { id: 'reality', label: '真实' },
         { id: 'tavern_preset', label: '酒馆' },
-        { id: 'world', label: '世界' },
         { id: 'memory', label: '记忆' },
         { id: 'visual', label: '视觉' },
         { id: 'npc_management', label: 'NPC' },
@@ -162,7 +158,6 @@ const MobileSettingsModal: React.FC<Props> = ({
         if (activeTab === 'planning_model') return <PlanningModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'independent_api_gpt' && gameConfig && onSaveGame) return <IndependentApiGptModeSettings settings={gameConfig} onSave={onSaveGame} />;
         if (activeTab === 'prompt') return <PromptManager prompts={prompts} onUpdate={onUpdatePrompts} requestConfirm={requestConfirm} runtimePromptStates={contextSnapshot?.runtimePromptStates} />;
-        if (activeTab === 'world') return <WorldSettings festivals={festivals || []} onUpdate={onUpdateFestivals} requestConfirm={requestConfirm} />;
         if (activeTab === 'theme') return <ThemeSettings currentTheme={currentTheme} onThemeChange={onThemeChange} />;
         if (activeTab === 'visual') return <VisualSettings settings={visualConfig} onSave={onSaveVisual} />;
         if (activeTab === 'npc_management') {

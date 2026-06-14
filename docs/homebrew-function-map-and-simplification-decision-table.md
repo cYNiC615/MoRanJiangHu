@@ -27,7 +27,7 @@
 - 武侠和修仙完全不要，不只是“不作为默认”。
 - 旧战斗系统不要。后续需要一个新的轻量级对抗系统替代它，可能会更偏系统玩法；但不保留功法、站位、传统对打体系作为目标。
 - 社交/NPC 关系是核心体验，甚至可能扩展；但当前 AI 驱动的位置管理和在场判定 bug 很多，后续要停用、强约束或重做，暂不急着拍板具体实现。
-- 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。
+- 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。Phase 1 已先移除节日设置、默认节日表、TopBar 展示和自动写入环境节日的副作用。
 - 时间仍可能需要保留，但应设计成轻量、低上下文占用的系统。
 - 工程健康本身也是 Phase 目标。当前 `npx tsc --noEmit` 暴露了大量仓库既有类型债，最终完成整体精简后要求回到 0 error / 0 warning 的验证状态；后续每个模块删除都不能继续扩大类型债。
 
@@ -160,7 +160,7 @@
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 准备移除 | 保留本地模式包时要拆分 local/cloud |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 准备移除 | 分布很广，适合分批删 |
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 准备移除 | 与创意工坊、提示词、设置耦合 |
-| Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 准备移除/降级 | 节日直接删除；天气不作为游戏状态，只保留正文氛围 |
+| Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 节日入口已移除/天气待降级 | Phase 1 已删除节日默认数据、设置入口、TopBar 节日展示和自动环境写入；`环境.节日` 模型、prompt/schema 和命令路径仍待删 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
 | Music Library | 背景音乐曲库、曲目信息读取、设置存储 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器和 `music_tracks` 存储键；历史 IndexedDB 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
@@ -198,7 +198,7 @@
 | 时间 | 重构候选 | 仍可能需要轻量时间轴，但不能占用过多上下文 | 单独设计轻量时间系统 |
 | 音乐播放 | 已移除 | 与 homebrew 核心体验无关，且增加设置、持久化和 UI 面板负担 | Phase 1 已删除 MusicProvider、播放器、音乐设置、默认曲库、元数据工具和存储键 |
 | 天气 | 准备移除/降级 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 从结构化状态和强制上下文中移除 |
-| 节日 | 准备移除 | 意义小且占上下文 | 直接删除节日系统 |
+| 节日 | 入口已移除/模型提示词待删 | 意义小且占上下文 | Phase 1 已删除默认节日表、节日设置页、TopBar 节日卡和自动写入环境节日的副作用；后续删除 `环境.节日`、prompt/schema 和旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
 | 同人/原著融合 | 准备移除 | 用户明确不做同人 | 删入口，再删模型/提示词/服务 |
 | 小说分解 | 准备移除 | 用户明确不做小说分解 | 第一批移除 UI，第二批删服务和 prompts |

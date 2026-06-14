@@ -6,7 +6,6 @@ export const 设置键 = {
     应用主题: 'app_theme',
     API配置: 'api_settings',
     提示词池: 'prompts',
-    节日配置: 'festivals',
     视觉设置: 'visual_settings',
     图片管理设置: 'image_manager_settings',
     游戏设置: 'game_settings',
@@ -71,7 +70,7 @@ export const 设置分类定义表: Record<设置分类类型, 设置分类定�
     world: {
         id: 'world',
         label: '世界与场景',
-        description: '节日、场景图片档案等世界展示相关数据。',
+        description: '场景图片档案等世界展示相关数据。',
         order: 30
     },
     gameplay: {
@@ -158,18 +157,11 @@ export const 设置项定义列表: 设置项定义[] = [
         order: 60
     },
     {
-        key: 设置键.节日配置,
-        label: '节日配置',
-        category: 'world',
-        description: '世界日期对应的节日列表。',
-        order: 70
-    },
-    {
         key: 设置键.场景图片档案,
         label: '场景图片档案',
         category: 'world',
         description: '场景背景图和场景图片归档。',
-        order: 80
+        order: 70
     },
     {
         key: 设置键.游戏设置,

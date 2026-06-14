@@ -7,7 +7,6 @@ import {
     提示词结构,
     ThemePreset,
     视觉设置结构,
-    节日结构,
     NPC结构,
     世界数据结构,
     详细门派结构,
@@ -26,7 +25,6 @@ import {
     OpeningConfig,
 } from '../types';
 import { 默认中期转长期提示词, 默认短期转中期提示词, 默认NPC记忆总结提示词 } from '../prompts/runtime/defaults';
-import { 节日列表 } from '../data/world'; 
 import * as dbService from '../services/dbService';
 import { THEMES, 应用主题到根元素 } from '../styles/themes';
 import { 创建空接口设置, 读取接口设置本地镜像, 写入接口设置本地镜像, 规范化接口设置 } from '../utils/apiConfig';
@@ -241,7 +239,6 @@ export const useGameState = () => {
 
     const [prompts, setPrompts] = useState<提示词结构[]>([]);
     const [promptsReady, setPromptsReady] = useState(false);
-    const [festivals, setFestivals] = useState<节日结构[]>(节日列表);
     const [currentTheme, setCurrentTheme] = useState<ThemePreset>('day');
     const scrollRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -309,8 +306,6 @@ export const useGameState = () => {
                     setPrompts(savedPrompts as 提示词结构[]);
                     setPromptsReady(true);
                 }
-                const savedFestivals = await dbService.读取设置(设置键.节日配置);
-                if (savedFestivals) setFestivals(savedFestivals as 节日结构[]);
                 const savedVisual = await dbService.读取设置(设置键.视觉设置);
                 if (savedVisual) {
                     setVisualConfig(规范化视觉设置(savedVisual as Partial<视觉设置结构>));
@@ -431,7 +426,6 @@ export const useGameState = () => {
         prompts, setPrompts,
         promptsReady,
         ensurePromptsLoaded,
-        festivals, setFestivals,
         currentTheme, setCurrentTheme,
         scrollRef, abortControllerRef, recallAbortControllerRef, variableGenerationAbortControllerRef
     };

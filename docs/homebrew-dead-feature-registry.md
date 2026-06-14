@@ -394,3 +394,55 @@ focused passes:
 - Online presence currently overlaps with cloud-play session and public
   operations code. Remove it after the cloud/sync backend pass identifies which
   session helpers are no longer needed.
+
+## Feature: `festival_system`
+
+- Decision: retire.
+- Reason: Festivals should not be a game system in this homebrew fork. If a
+  scene wants seasonal flavor, the AI can mention it in prose without a
+  structured festival config, top-bar card, or automatic state effect.
+- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+
+### Entrypoints And Runtime Effects Removed In This Pass
+
+- Deleted `data/world.ts`, the default festival list.
+- Deleted `components/features/Settings/WorldSettings.tsx`, the festival
+  editor.
+- `components/features/Settings/SettingsModal.tsx`: removed the desktop
+  `世界设定` / festival settings tab and festival props.
+- `components/features/Settings/mobile/MobileSettingsModal.tsx`: removed the
+  same mobile settings path.
+- `App.tsx`: no longer passes festival props into `TopBar` or settings modals.
+- `components/layout/TopBar.tsx`: no longer renders the festival card, detail
+  panel, mobile info button, or festival highlight.
+- `hooks/useGameState.ts`: no longer initializes `festivals` from default data
+  or reads saved festival settings.
+- `hooks/useGame.ts`: removed the automatic date-to-festival effect that wrote
+  `环境.节日`.
+- `hooks/useGame/config/settingsPersistenceWorkflow.ts`: no longer exposes
+  `updateFestivals`.
+- `utils/settingsSchema.ts` and `services/dbService.ts`: no longer list or
+  summarize the active festival setting.
+
+### Backend, Model, And Prompt Residue Pending
+
+- `models/environment.ts`: still contains `环境节日信息结构` and
+  `环境信息结构.节日`.
+- `models/system.ts`: still exports `节日结构`.
+- `hooks/useGame/storyState.ts`: still initializes `环境.节日`.
+- `hooks/useGame/stateTransforms.ts`: still normalizes incoming `节日`.
+- `hooks/useGame/systemPromptBuilder.ts`: still serializes `环境.节日` into AI
+  context.
+- `utils/stateHelpers.ts`: still allows `环境.节日` as a command target.
+- `prompts/core/data.ts`
+- `prompts/core/cotOpening.ts`
+- `prompts/runtime/opening.ts`
+- `prompts/runtime/openingVariableGenerationInit.ts`
+
+### Storage And Migration Notes
+
+- Historical IndexedDB settings key: `festivals`.
+- The old settings key can be deleted during the strong migration pass.
+- Before removing `环境.节日` from models and prompts, clear prompt references
+  so the AI no longer attempts to initialize or update structured festival
+  state.

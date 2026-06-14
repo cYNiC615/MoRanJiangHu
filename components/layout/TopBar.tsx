@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { 环境信息结构, 节日结构, 视觉设置结构 } from '../../types';
+import { 环境信息结构, 视觉设置结构 } from '../../types';
 import { 构建区域文字样式 } from '../../utils/visualSettings';
 import { normalizeCanonicalGameTime } from '../../hooks/useGame/timeUtils';
 import { setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
@@ -9,7 +9,6 @@ interface Props {
     环境: 环境信息结构;
     游戏初始时间?: string;
     timeFormat: '传统' | '数字';
-    festivals?: 节日结构[];
     visualConfig?: 视觉设置结构;
 }
 
@@ -298,7 +297,7 @@ const MobileInfoCard: React.FC<{
     );
 };
 
-type ExpandedType = 'weather' | 'environment' | 'time' | 'location' | 'festival' | 'journey' | null;
+type ExpandedType = 'weather' | 'environment' | 'time' | 'location' | 'journey' | null;
 
 const MobileInfoButton: React.FC<{
     label: string;
@@ -323,7 +322,7 @@ const MobileInfoButton: React.FC<{
     </button>
 );
 
-const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festivals = [], visualConfig }) => {
+const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visualConfig }) => {
     const [expandedType, setExpandedType] = useState<ExpandedType>(null);
     const [fullscreenDetailType, setFullscreenDetailType] = useState<Exclude<ExpandedType, null> | null>(null);
     const [mobileCollapsed, setMobileCollapsed] = useState(false);
@@ -333,8 +332,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
     const derivedDayCount = useMemo(() => {
         return 计算游戏历程天数(parsedTime, parseCanonicalGameTime(游戏初始时间));
     }, [parsedTime, 游戏初始时间]);
-    const month = parsedTime?.month ?? null;
-    const day = parsedTime?.day ?? null;
     const topBarStyle = 构建区域文字样式(visualConfig, '顶部栏');
     const 顶栏基础字号 = parseFloat(String(topBarStyle.fontSize ?? '')) || 14;
     const 顶栏字号 = (ratio: number, min = 13) => `${Math.max(min, Math.round(顶栏基础字号 * ratio))}px`;
@@ -355,16 +352,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
         : '未知日期';
     const mobileClockStr = displayTime;
 
-    const currentFestival = useMemo(() => {
-        if (month == null || day == null) return undefined;
-        return festivals.find(f => f.月 === month && f.日 === day);
-    }, [festivals, month, day]);
-
-    const 环境节日名称 = typeof 环境?.节日?.名称 === 'string' ? 环境.节日.名称.trim() : '';
-    const 环境节日是否匹配当前日期 = !!currentFestival && !!环境节日名称 && 环境节日名称 === currentFestival.名称;
-    const festivalDisplay = currentFestival
-        ? currentFestival.名称
-        : (环境节日是否匹配当前日期 ? 环境节日名称 : '平常日');
     const dateBadge = 构建日期短文本(parsedTime);
     const weatherDisplay = useMemo(() => {
         const rawWeather = (环境 as any)?.天气;
@@ -525,22 +512,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
                 </div>
             ),
         },
-        festival: {
-            title: '今日时节',
-            content: (
-                <div className="space-y-2">
-                    <div className="text-lg font-bold text-wuxia-gold">{festivalDisplay}</div>
-                    <div className="text-wuxia-gold/60" style={{ fontSize: 顶栏字号(0.9, 13) }}>{dateBadge}</div>
-                    <div className="italic opacity-80" style={{ fontSize: 顶栏字号(1, 14) }}>{(currentFestival?.描述) || (环境节日是否匹配当前日期 ? 环境.节日?.简介 : '') || '正是寻常好时节。'}</div>
-                    {((currentFestival?.效果) || (环境节日是否匹配当前日期 ? 环境.节日?.效果 : '')) && (
-                        <div className="mt-3 rounded border border-wuxia-gold/10 bg-wuxia-gold/5 p-2">
-                            <div className="mb-1 text-wuxia-gold/60" style={{ fontSize: 顶栏字号(0.9, 13) }}>时节影响</div>
-                            <div className="text-wuxia-gold" style={{ fontSize: 顶栏字号(1, 14) }}>{currentFestival?.效果 || (环境节日是否匹配当前日期 ? 环境.节日?.效果 : '')}</div>
-                        </div>
-                    )}
-                </div>
-            ),
-        },
         journey: {
             title: '行程历程',
             content: (
@@ -558,7 +529,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
         { type: 'environment' as const, label: '环境', shortLabel: '境', value: environmentDisplay, highlight: false },
         { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge} ${mobileClockStr} / 第${derivedDayCount}天`, highlight: false },
         { type: 'location' as const, label: '地点', shortLabel: '地', value: mobileLocationBadge, highlight: false },
-        { type: 'festival' as const, label: '节日', shortLabel: '节', value: festivalDisplay, highlight: !!currentFestival },
     ];
 
     return (
@@ -703,29 +673,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, festi
 
                 <div className="flex items-center">
                     <div className="flex items-center">
-                        <div className="relative">
-                            <TopItem 
-                                label="节日" 
-                                value={festivalDisplay} 
-                                highlight={!!currentFestival} 
-                                visualConfig={visualConfig} 
-                                isExpanded={expandedType === 'festival'}
-                                onMouseEnter={() => setExpandedType('festival')}
-                                onMouseLeave={() => setExpandedType(null)}
-                            />
-                            {expandedType === 'festival' && (
-                                <DetailCard 
-                                    title={detailConfigs.festival.title}
-                                    className="right-0 origin-top-right"
-                                    onExpand={() => openFullscreenDetail('festival')}
-                                    onMouseEnter={() => setExpandedType('festival')}
-                                    onMouseLeave={() => setExpandedType(null)}
-                                    visualConfig={visualConfig}
-                                    content={detailConfigs.festival.content}
-                                />
-                            )}
-                        </div>
-                        <Divider />
                         <div className="relative">
                             <TopItem
                                 label="历程"

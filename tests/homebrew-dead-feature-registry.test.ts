@@ -187,4 +187,61 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('public/online-ranking.html');
         expect(registry).toContain('tests/online-ranking-session-regression.test.ts');
     });
+
+    it('removes festival settings, top-bar display, and automatic festival side effects', () => {
+        expect(projectFileExists('data/world.ts')).toBe(false);
+        expect(projectFileExists('components/features/Settings/WorldSettings.tsx')).toBe(false);
+
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('festivals={');
+        expect(app).not.toContain('onUpdateFestivals');
+        expect(app).not.toContain('state.festivals');
+        expect(app).not.toContain('actions.updateFestivals');
+
+        const topBar = readProjectFile('components/layout/TopBar.tsx');
+        expect(topBar).not.toContain('节日');
+        expect(topBar).not.toContain('festival');
+        expect(topBar).not.toContain('festivals');
+
+        const settings = readProjectFile('components/features/Settings/SettingsModal.tsx');
+        expect(settings).not.toContain('WorldSettings');
+        expect(settings).not.toContain('onUpdateFestivals');
+        expect(settings).not.toContain('festivals');
+
+        const mobileSettings = readProjectFile('components/features/Settings/mobile/MobileSettingsModal.tsx');
+        expect(mobileSettings).not.toContain('WorldSettings');
+        expect(mobileSettings).not.toContain('onUpdateFestivals');
+        expect(mobileSettings).not.toContain('festivals');
+
+        const useGame = readProjectFile('hooks/useGame.ts');
+        expect(useGame).not.toContain('设置节日列表');
+        expect(useGame).not.toContain('updateFestivals');
+        expect(useGame).not.toContain('festivals');
+        expect(useGame).not.toContain('自动同步“名称/简介/效果”到环境');
+
+        const useGameState = readProjectFile('hooks/useGameState.ts');
+        expect(useGameState).not.toContain('节日列表');
+        expect(useGameState).not.toContain('设置键.节日配置');
+        expect(useGameState).not.toContain('festivals');
+
+        const settingsWorkflow = readProjectFile('hooks/useGame/config/settingsPersistenceWorkflow.ts');
+        expect(settingsWorkflow).not.toContain('设置节日列表');
+        expect(settingsWorkflow).not.toContain('updateFestivals');
+        expect(settingsWorkflow).not.toContain('节日结构');
+
+        const settingsSchema = readProjectFile('utils/settingsSchema.ts');
+        expect(settingsSchema).not.toContain("节日配置: 'festivals'");
+        expect(settingsSchema).not.toContain('节日配置');
+    });
+
+    it('records festival model, prompt, and storage residue as pending removal', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('festival_system');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('models/environment.ts');
+        expect(registry).toContain('prompts/core/data.ts');
+        expect(registry).toContain('hooks/useGame/systemPromptBuilder.ts');
+        expect(registry).toContain('settings key: `festivals`');
+    });
 });

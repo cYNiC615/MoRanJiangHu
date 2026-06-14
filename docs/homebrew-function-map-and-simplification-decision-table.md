@@ -139,7 +139,7 @@
 | Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 准备移除 | 不做功法/站位/传统对打；后续另做新的轻量级系统化对抗 |
 | Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 准备移除 | 武侠/修仙完全不要；组织/能力以后另行设计 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
-| Music | 背景音乐、播放器、音乐设置、曲库持久化 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts` | 准备移除 | 用户明确音乐播放相关全删；可作为下一批轻量前端模块 |
+| Music | 背景音乐、播放器、音乐设置、曲库持久化 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具和 UI 入口；旧存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | `components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 准备移除 | 若不做云同步和社区，账号体系可删 |
 | NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 准备移除 | 第一批移除入口，第二批删服务/模型/提示词 |
@@ -160,7 +160,7 @@
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 准备移除 | 与创意工坊、提示词、设置耦合 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 准备移除/降级 | 节日直接删除；天气不作为游戏状态，只保留正文氛围 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
-| Music Library | 背景音乐曲库、曲目信息读取、设置存储 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/settingsSchema.ts` | 准备移除 | 删除播放器和 `music_tracks` 存储键 |
+| Music Library | 背景音乐曲库、曲目信息读取、设置存储 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器和 `music_tracks` 存储键；历史 IndexedDB 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
 | Diagnostic | 上下文诊断、日志、报告 | `services/diagnostic*`, `components/features/Settings/WorkflowGraphSettings.tsx` | 保留开发态 | 可从玩家 UI 隐藏，研发保留 |
 
@@ -194,7 +194,7 @@
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |
 | 背包/装备/货币 | 保留/重构候选 | 账务最适合代码接管 | 优先规则化交易、消耗、装备穿脱 |
 | 时间 | 重构候选 | 仍可能需要轻量时间轴，但不能占用过多上下文 | 单独设计轻量时间系统 |
-| 音乐播放 | 准备移除 | 与 homebrew 核心体验无关，且增加设置、持久化和 UI 面板负担 | 删除 MusicProvider、播放器、音乐设置、默认曲库和存储键 |
+| 音乐播放 | 已移除 | 与 homebrew 核心体验无关，且增加设置、持久化和 UI 面板负担 | Phase 1 已删除 MusicProvider、播放器、音乐设置、默认曲库、元数据工具和存储键 |
 | 天气 | 准备移除/降级 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 从结构化状态和强制上下文中移除 |
 | 节日 | 准备移除 | 意义小且占上下文 | 直接删除节日系统 |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
@@ -242,6 +242,23 @@
 - 从 `App.tsx`、`SettingsModal.tsx`、`NewGame`、`CreativeWorkshopModal.tsx` 断开小说分解、同人、云同步、社区、移动/APK、战斗、拍卖行、音乐、节日、武侠/修仙入口。
 - 保证核心聊天、存档、世界书、提示词、记忆、设置仍可工作。
 - 这一阶段目标是“用户看不到已废弃功能”，不是一次性删除所有文件。
+
+#### Phase 1 退出标准
+
+Phase 1 完成的定义：
+
+1. 玩家可见入口已清空：主页、右侧面板、设置页、移动快捷菜单、新建角向导、创意工坊等位置不再提供已废弃模块入口。
+2. 已废弃模块至少登记到 `docs/homebrew-dead-feature-registry.md`，并明确区分 `entrypoint_removed`、`entrypoint_pending`、`backend_pending` 和后续存储迁移点。
+3. 核心桌面链路仍能打包：`npx vite build` 不因入口删除失败。
+4. 每一刀都有静态回归测试或等价验证，防止同类入口被悄悄加回。
+5. 本阶段不要求一次性修完全仓库既有 `tsc` 类型债，但不能新增与本轮删除相关的打包错误；废弃模块测试和类型债必须进入 registry 或后续清理列表。
+
+Phase 1 不算完成的情况：
+
+- 只删前端入口但没有登记后端、prompt、storage key 和测试残留。
+- AI prompt 仍主动要求模型写入已废弃模块的核心状态，例如拍卖行待投放、节日、小说分解滑窗。
+- 新建角或设置页仍能配置已明确废弃的模块。
+- 为了让某个删除通过而把错误静默吞掉，却没有登记迁移计划。
 
 ### Phase 2：拆云端和移动外围
 

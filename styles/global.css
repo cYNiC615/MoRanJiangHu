@@ -1698,16 +1698,6 @@ html[data-theme="day"] .right-panel-bottom-fade {
   }
 }
 
-/* Music Disc Animations */
-@keyframes wuxia-music-disc-rotation {
-  from { transform: translateY(-20%) rotate(0deg); }
-  to { transform: translateY(-20%) rotate(360deg); }
-}
-
-.animate-wuxia-music-disc-rotation {
-  animation: wuxia-music-disc-rotation 6s linear infinite !important;
-}
-
 @keyframes wuxia-spin-only {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

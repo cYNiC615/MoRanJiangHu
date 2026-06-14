@@ -31,11 +31,10 @@ const WorldEvolutionModelSettings = React.lazy(() => lazyImportWithReload('setti
 const VariableModelSettings = React.lazy(() => lazyImportWithReload('settings-variable-model', () => import('./VariableModelSettings')));
 const PlanningModelSettings = React.lazy(() => lazyImportWithReload('settings-planning-model', () => import('./PlanningModelSettings')));
 const IndependentApiGptModeSettings = React.lazy(() => lazyImportWithReload('settings-independent-api-gpt-mode', () => import('./IndependentApiGptModeSettings')));
-const MusicSettings = React.lazy(() => lazyImportWithReload('settings-music', () => import('./MusicSettings')));
 const NpcManager = React.lazy(() => lazyImportWithReload('settings-npc-manager', () => import('./NpcManager')));
 const VariableManager = React.lazy(() => lazyImportWithReload('settings-variable-manager', () => import('./VariableManager')));
 
-type SettingsTab = 'api' | 'workflow_graph' | 'image_generation' | 'recall' | 'memory_summary_model' | 'memory_refine_model' | 'map_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'music' | 'npc_management' | 'variable_manager';
+type SettingsTab = 'api' | 'workflow_graph' | 'image_generation' | 'recall' | 'memory_summary_model' | 'memory_refine_model' | 'map_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'npc_management' | 'variable_manager';
 type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统', unknown>;
 
 type ContextSection = {
@@ -124,7 +123,6 @@ const SettingsModal: React.FC<Props> = ({
         { id: 'visual', label: '视觉显示' },
         { id: 'npc_management', label: 'NPC管理' },
         { id: 'variable_manager', label: '变量管理' },
-        { id: 'music', label: '背景音乐' },
         { id: 'history', label: '互动历史' },
         { id: 'context', label: '上下文' },
         { id: 'logs', label: '运行日志' },
@@ -201,7 +199,6 @@ const SettingsModal: React.FC<Props> = ({
                 />
             );
         }
-        if (activeTab === 'music') return <MusicSettings />;
         if (activeTab === 'storage') return <StorageManager requestConfirm={requestConfirm} />;
         if (activeTab === 'history') return <HistoryViewer history={history} memorySystem={memorySystem} onDeleteMemory={onDeleteMemory} onRefineMemories={onRefineMemories} />;
         if (activeTab === 'logs') return <LogViewer />;

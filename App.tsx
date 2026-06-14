@@ -23,7 +23,6 @@ import { 生成物品图标 } from './services/ai/itemImageGeneration';
 import { 合并物品图片档案, 获取物品图标复用Key, 物品已有可用图标, 获取物品已选图标地址 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
-import { MusicProvider } from './components/features/Music/MusicProvider';
 import { isNativeCapacitorEnvironment } from './utils/nativeRuntime';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
 import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress, type AppUpdateProgressState } from './services/appUpdate';
@@ -332,7 +331,6 @@ const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summar
 const NpcMemorySummaryFlowMobileModal = 创建可预加载懒组件('mobile-npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowMobileModal'));
 const SaveLoadModal = 创建可预加载懒组件('save-load-modal', () => import('./components/features/SaveLoad/SaveLoadModal'));
 const CloudPlayModal = 创建可预加载懒组件('cloud-play-modal', () => import('./components/features/Auth/CloudPlayModal'));
-const MobileMusicPlayer = 创建可预加载懒组件('mobile-music-player', () => import('./components/features/Music/mobile/MobileMusicPlayer'));
 const AuctionHouseModal = 创建可预加载懒组件('auction-house-modal', () => import('./components/features/AuctionHouse/AuctionHouseModal'));
 
 
@@ -512,7 +510,6 @@ const App: React.FC = () => {
         货币模式: 获取货币显示模式(state.开局配置, state.角色),
         runtimeProfile: state.开局配置?.modeRuntimeProfile || null
     }), [state.开局配置, state.角色]);
-    const [showMobileMusic, setShowMobileMusic] = React.useState(false);
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
     const [sceneQuickGenToastVisible, setSceneQuickGenToastVisible] = React.useState(false);
@@ -751,9 +748,6 @@ const App: React.FC = () => {
             case 'settings':
                 setters.setActiveTab('game');
                 setters.setShowSettings(true);
-                break;
-            case 'music':
-                setShowMobileMusic(true);
                 break;
             default:
                 break;
@@ -1611,7 +1605,6 @@ const App: React.FC = () => {
         showImageManager ? '图册' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
         state.showSettings ? '设置' :
-        showMobileMusic ? '音乐' :
         null;
 
     const activeMobileWindowId =
@@ -1637,7 +1630,6 @@ const App: React.FC = () => {
         showImageManager ? 'image_manager' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
         state.showSettings ? 'settings' :
-        showMobileMusic ? 'music' :
         null;
 
     const desktopRightDetailPanelOpen = state.view === 'game' && !isMobile && (
@@ -1771,7 +1763,6 @@ const App: React.FC = () => {
         setShowImageManager(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
         setters.setShowSettings(false);
-        setShowMobileMusic(false);
     }, [setters]);
 
     React.useEffect(() => {
@@ -2482,7 +2473,6 @@ const App: React.FC = () => {
         setters.setShowSettings(true);
     }, [closeAllPanels, setters]);
     const closeWorldbookManager = React.useCallback(() => setShowWorldbookManager(false), []);
-    const closeMobileMusic = React.useCallback(() => setShowMobileMusic(false), []);
     const openWorldbookManager = React.useCallback(() => setShowWorldbookManager(true), []);
     const handleStartFromLanding = React.useCallback(() => actions.handleStartNewGameWizard(), [actions]);
     const handleStartFromCloudPlay = React.useCallback(() => {
@@ -2661,9 +2651,6 @@ const App: React.FC = () => {
                 setters.setActiveTab('game');
                 setters.setShowSettings(true);
                 break;
-            case '音乐':
-                setShowMobileMusic(true);
-                break;
             default:
                 break;
         }
@@ -2709,10 +2696,6 @@ const App: React.FC = () => {
             closeNovelExport();
             return true;
         }
-        if (showMobileMusic) {
-            closeMobileMusic();
-            return true;
-        }
         if (safeShowSaveLoad.show) {
             closeSaveLoad();
             return true;
@@ -2738,14 +2721,12 @@ const App: React.FC = () => {
     }, [
         activeMobileWindowId,
         closeAllPanels,
-        closeMobileMusic,
         closeNovelExport,
         closeSaveLoad,
         closeSettings,
         closeWorldbookManager,
         isFullscreen,
         showImageManager,
-        showMobileMusic,
         showNovelExport,
         showWorldbookManager,
         state,
@@ -2872,7 +2853,7 @@ const App: React.FC = () => {
     );
 
     return (
-        <MusicProvider visualConfig={effectiveVisualConfig} onSaveVisual={actions.saveVisualSettings}>
+        <>
             <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} ${isMobile ? 'p-0' : 'p-3'}`} style={appRootStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
                 {legacyImageMigrationNoticeVisible && (
@@ -3394,15 +3375,6 @@ const App: React.FC = () => {
                                 【V{RELEASE_INFO.versionName}】
                             </div>
                         </div>
-                    )}
-                    {/* Mobile Music Player Drawer */}
-                    {isMobile && showMobileMusic && (
-                        <懒加载边界>
-                            <MobileMusicPlayer 
-                                open={true}
-                                onClose={closeMobileMusic} 
-                            />
-                        </懒加载边界>
                     )}
                 </div>
                 </ModalErrorBoundary>
@@ -4293,7 +4265,7 @@ const App: React.FC = () => {
                 </div>
             )}
         </div>
-    </MusicProvider>
+    </>
     );
 };
 

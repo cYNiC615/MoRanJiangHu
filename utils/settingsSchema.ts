@@ -18,7 +18,6 @@ export const 设置键 = {
     内置提示词: 内置提示词存储键,
     世界书列表: 世界书存储键,
     世界书预设组: 世界书预设组存储键,
-    音乐曲库: 'music_tracks',
     自定义天赋: 'new_game_custom_talents',
     自定义背景: 'new_game_custom_backgrounds',
     自定义开局预设: 自定义开局预设存储键,
@@ -37,7 +36,6 @@ export type 设置分类类型 =
     | 'world'
     | 'gameplay'
     | 'memory'
-    | 'media'
     | 'customization'
     | 'system';
 
@@ -87,12 +85,6 @@ export const 设置分类定义表: Record<设置分类类型, 设置分类定�
         label: '记忆系统',
         description: '记忆阈值与长期记忆策略。',
         order: 50
-    },
-    media: {
-        id: 'media',
-        label: '媒体资源',
-        description: '音乐播放列表等媒体型设置。',
-        order: 60
     },
     customization: {
         id: 'customization',
@@ -213,13 +205,6 @@ export const 设置项定义列表: 设置项定义[] = [
         category: 'gameplay',
         description: '主剧情、规划分析、世界演变链路实际使用的小说分解注入内容快照。',
         order: 106
-    },
-    {
-        key: 设置键.音乐曲库,
-        label: '音乐曲库',
-        category: 'media',
-        description: '本地音乐曲目与歌词列表。',
-        order: 110
     },
     {
         key: 设置键.自定义天赋,

@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { useMusic } from '../features/Music/MusicProvider';
 import type { 题材界面文案 } from '../../utils/resourceLabels';
 
 type MenuId =
@@ -26,7 +25,6 @@ type MenuId =
     | 'load'
     | 'settings'
     | 'cloud_play'
-    | 'music'
     | 'more';
 
 interface Props {
@@ -94,7 +92,6 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     save: { id: 'save', label: '保存', icon: 'save' },
     load: { id: 'load', label: '读取', icon: 'load' },
     settings: { id: 'settings', label: '设置', icon: 'settings' },
-    music: { id: 'music', label: '音乐', icon: 'novel' },
     cloud_play: { id: 'cloud_play', label: '云端', icon: 'grid' },
 };
 
@@ -112,12 +109,6 @@ const MobileQuickMenu: React.FC<Props> = ({
 }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [showAllMenus, setShowAllMenus] = useState(false);
-    const { enabled, isPlaying, tracks, currentTrackId } = useMusic();
-
-    const currentTrackCover = useMemo(
-        () => tracks.find((track) => track.id === currentTrackId)?.封面URL || '',
-        [tracks, currentTrackId]
-    );
 
     const labelFor = (id: Exclude<MenuId, 'more'>, fallback = MENU_META[id].label) => {
         const labels = uiLabels?.菜单;
@@ -143,9 +134,8 @@ const MobileQuickMenu: React.FC<Props> = ({
         ...(enableWorldPanel ? [metaFor(MENU_META.world)] : []),
         metaFor(MENU_META.story),
         metaFor(MENU_META.save),
-        ...(enabled ? [MENU_META.music] : []),
         metaFor(MENU_META.settings),
-    ]), [auctionHouseLabel, enableKungfu, enableWorldPanel, enabled, sectLabel, uiLabels]);
+    ]), [auctionHouseLabel, enableKungfu, enableWorldPanel, sectLabel, uiLabels]);
 
     const allMenus = useMemo<MenuMeta[]>(() => ([
         metaFor(MENU_META.character),
@@ -173,9 +163,7 @@ const MobileQuickMenu: React.FC<Props> = ({
 
     const handleMenuClick = (menu: MenuId) => {
         onMenuClick(menu);
-        if (menu !== 'music') {
-            setShowAllMenus(false);
-        }
+        setShowAllMenus(false);
     };
 
     return (
@@ -227,9 +215,6 @@ const MobileQuickMenu: React.FC<Props> = ({
                                     label={menu.label}
                                     active={activeWindow === menu.id}
                                     onClick={() => handleMenuClick(menu.id)}
-                                    isMusic={menu.id === 'music'}
-                                    isPlaying={menu.id === 'music' && isPlaying}
-                                    coverUrl={menu.id === 'music' ? currentTrackCover : ''}
                                 />
                             ))}
 
@@ -252,17 +237,11 @@ const RailButton = ({
     label,
     active,
     onClick,
-    isMusic = false,
-    isPlaying = false,
-    coverUrl = '',
 }: {
     icon: IconName;
     label: string;
     active?: boolean;
     onClick: () => void;
-    isMusic?: boolean;
-    isPlaying?: boolean;
-    coverUrl?: string;
 }) => (
     <button
         type="button"
@@ -271,17 +250,10 @@ const RailButton = ({
             active
                 ? 'border-wuxia-gold/85 bg-wuxia-gold/18 text-[#ffe8a6] shadow-[0_0_18px_rgba(230,200,110,0.28)]'
                 : 'border-wuxia-gold/36 bg-black/62 text-[#f3d985] shadow-[0_0_8px_rgba(0,0,0,0.35)] hover:border-wuxia-gold/65 hover:bg-black/76 hover:text-[#fff0bd]'
-        } ${isPlaying ? 'animate-wuxia-music-disc-rotation' : ''}`}
+        }`}
         aria-label={label}
         title={label}
     >
-        {isMusic && coverUrl ? (
-            <>
-                <img src={coverUrl} alt={label} className="absolute inset-0 h-full w-full object-cover opacity-70" />
-                <div className="absolute inset-0 bg-black/35" />
-                <div className="absolute inset-[28%] rounded-full border border-black/25 bg-black/50" />
-            </>
-        ) : null}
         <span className="relative z-10 flex h-4 w-4 items-center justify-center">
             <IconGlyph name={icon} className="h-3.5 w-3.5 drop-shadow-[0_0_4px_rgba(255,232,166,0.45)]" />
         </span>

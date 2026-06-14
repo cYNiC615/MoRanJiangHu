@@ -482,21 +482,6 @@ export interface 视觉设置结构 {
     字体资源列表?: 字体资源结构[];
     区域文字样式?: Partial<Record<可用视觉区域, 区域文字样式结构>>;
     UI文字样式?: Partial<Record<可用UI文字令牌, UI文字样式结构>>;
-
-    // 背景音乐设置
-    启用背景音乐?: boolean;
-    全局音量?: number; // 0 到 100
-    音频播放模式?: 'list-loop' | 'single-loop' | 'random';
-    当前播放曲目ID?: string;
-}
-
-export interface MusicTrack {
-    id: string;
-    名称: string;
-    URL: string; // Data URL or Blob URL
-    时长: number;
-    封面URL?: string;
-    歌词?: string; // LRC format
 }
 
 export type 剧情风格类型 = '后宫' | '修炼' | '一般' | '修罗场' | '纯爱' | 'NTL后宫';

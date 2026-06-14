@@ -9,8 +9,12 @@ hide backend code, stored data, prompts, or tests that still need a later pass.
 - `entrypoint_removed`: User-facing route/menu/modal access has been removed.
 - `entrypoint_pending`: A visible path still exists, usually because it is tied
   to a larger feature family that should be removed in a separate pass.
+- `backend_removed`: Runtime files, services, model fields, storage schema
+  readers, or tests for the feature have been deleted from active code paths.
 - `backend_pending`: Services, prompts, models, API routes, storage keys, or
   tests still exist and should be deleted or migrated later.
+- `storage_pending`: Historical local data may still exist in IndexedDB or old
+  saves, but active code no longer reads or writes it.
 - `fully_removed`: Entrypoints, backend code, prompt references, tests, and
   local data migration are complete.
 
@@ -162,38 +166,41 @@ in:
 - Reason: Background music and playlist management are not part of the
   homebrew core loop. They add UI, IndexedDB state, media metadata parsing, and
   mobile drawer complexity without helping the AI-RPG engine direction.
-- Current status: `entrypoint_pending`, `backend_pending`.
-- Good candidate for the next lightweight frontend deletion pass.
+- Current status: `entrypoint_removed`, `backend_removed`, `storage_pending`.
 
-### Entrypoints Pending
+### Entrypoints Removed In This Pass
 
-- `App.tsx`: wraps the app in `MusicProvider`, owns `showMobileMusic`, opens
-  `MobileMusicPlayer`, and handles the `music` / `音乐` menu action.
-- `components/layout/RightPanel.tsx`: imports `useMusic` and
+- `App.tsx`: no longer wraps the app in `MusicProvider`, owns
+  `showMobileMusic`, opens `MobileMusicPlayer`, or handles the `music` /
+  `音乐` menu action.
+- `components/layout/RightPanel.tsx`: no longer imports `useMusic` or
   `MusicPlayerUI`.
-- `components/layout/MobileQuickMenu.tsx`: exposes the `music` quick menu item.
-- `components/features/Settings/SettingsModal.tsx`: exposes the `music`
+- `components/layout/MobileQuickMenu.tsx`: no longer exposes the `music` quick
+  menu item.
+- `components/features/Settings/SettingsModal.tsx`: removed the `music`
   settings tab.
-- `components/features/Settings/mobile/MobileSettingsModal.tsx`: exposes the
+- `components/features/Settings/mobile/MobileSettingsModal.tsx`: removed the
   mobile `music` settings tab.
 
-### Backend And Data Pending
+### Runtime And Data Removed
 
-- `components/features/Music/MusicProvider.tsx`
-- `components/features/Music/MusicPlayerUI.tsx`
-- `components/features/Music/mobile/MobileMusicPlayer.tsx`
-- `components/features/Settings/MusicSettings.tsx`
-- `data/defaultMusicTracks.ts`
-- `utils/musicMetadata.ts`
-- `utils/settingsSchema.ts` key: `music_tracks`
-- `models/system.ts` music settings fields and `MusicTrack`
-- `hooks/useGameState.ts` `activeTab` union entry: `music`
+- Deleted `components/features/Music/MusicProvider.tsx`.
+- Deleted `components/features/Music/MusicPlayerUI.tsx`.
+- Deleted `components/features/Music/mobile/MobileMusicPlayer.tsx`.
+- Deleted `components/features/Settings/MusicSettings.tsx`.
+- Deleted `data/defaultMusicTracks.ts`.
+- Deleted `utils/musicMetadata.ts`.
+- Removed `utils/settingsSchema.ts` key: `music_tracks`.
+- Removed `services/dbService.ts` summary handling for `music_tracks`.
+- Removed `models/system.ts` music settings fields and `MusicTrack`.
+- Removed `hooks/useGameState.ts` `activeTab` union entry: `music`.
 
 ### Storage And Migration Notes
 
 - Existing IndexedDB `music_tracks` data can be dropped in a strong migration.
-- Remove visual settings fields for background music at the same time, or keep
-  a short compatibility normalization that ignores them.
+- Old visual settings fields for background music may remain in historical
+  saves/settings JSON until the strong migration pass, but active code no
+  longer reads them.
 
 ## Feature: `auction_house`
 

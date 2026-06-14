@@ -1,7 +1,5 @@
 import React from 'react';
 import GameButton from '../ui/GameButton';
-import { useMusic } from '../features/Music/MusicProvider';
-import MusicPlayerUI from '../features/Music/MusicPlayerUI';
 import type { 题材界面文案 } from '../../utils/resourceLabels';
 
 interface Props {
@@ -77,7 +75,6 @@ const RightPanel: React.FC<Props> = ({
     visualConfig,
     latestChangedSections = []
 }) => {
-    const { enabled, currentLyric } = useMusic();
     const baseFontSize = Number(visualConfig?.['右侧栏']?.fontSize || visualConfig?.fontSize) || 13;
     const scaleFont = (ratio: number, min = 13) => `${Math.max(min, Math.round(baseFontSize * ratio))}px`;
     const [dismissedChangeKeys, setDismissedChangeKeys] = React.useState<Set<string>>(() => new Set());
@@ -146,25 +143,11 @@ const RightPanel: React.FC<Props> = ({
         <div className="right-panel-body h-full flex flex-col p-2 border-l border-wuxia-gold/20 relative bg-transparent">
             <div className="right-panel-ambient absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-700 via-black to-black"></div>
 
-            {enabled ? (
-                <div className="mb-4 pb-4 border-b border-gray-800 shrink-0">
-                    <MusicPlayerUI />
-                </div>
-            ) : (
-                <div className="right-panel-system-header mb-3 text-center border-b border-gray-800 pb-3 relative h-[62px] flex flex-col justify-center shrink-0">
-                    <h1 className="font-black tracking-[0.28em] opacity-90 drop-shadow-md text-wuxia-gold" style={{ fontSize: scaleFont(1.62, 21) }}>{systemHeaderTitle}</h1>
-                    <div className="text-gray-600 tracking-[0.14em] mt-0.5 uppercase" style={{ fontSize: scaleFont(0.86, 11), lineHeight: 1.1 }}>{systemHeaderSubtitle}</div>
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-wuxia-gold/50 to-transparent"></div>
-                </div>
-            )}
-
-            {enabled && currentLyric && (
-                <div className="mb-2 -mt-1 text-center overflow-hidden animate-in fade-in duration-700 h-8 flex items-center justify-center">
-                    <p className="text-wuxia-gold/90 italic tracking-wider leading-tight px-2 line-clamp-2 drop-shadow-[0_0_3px_rgba(230,200,110,0.3)]" style={{ fontSize: scaleFont(1.02, 14) }}>
-                        {currentLyric}
-                    </p>
-                </div>
-            )}
+            <div className="right-panel-system-header mb-3 text-center border-b border-gray-800 pb-3 relative h-[62px] flex flex-col justify-center shrink-0">
+                <h1 className="font-black tracking-[0.28em] opacity-90 drop-shadow-md text-wuxia-gold" style={{ fontSize: scaleFont(1.62, 21) }}>{systemHeaderTitle}</h1>
+                <div className="text-gray-600 tracking-[0.14em] mt-0.5 uppercase" style={{ fontSize: scaleFont(0.86, 11), lineHeight: 1.1 }}>{systemHeaderSubtitle}</div>
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-wuxia-gold/50 to-transparent"></div>
+            </div>
 
             <div className="right-panel-menu-frame flex-1 flex flex-col gap-2 relative py-1 min-h-0">
                 <div className="right-panel-menu-outline absolute inset-0 border border-gray-800 bg-white/[0.02] pointer-events-none">

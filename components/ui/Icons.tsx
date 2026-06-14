@@ -353,18 +353,6 @@ export const IconMountain: React.FC<IconProps> = (props) => {
     );
 };
 
-/** 古琴/箫管（武侠音乐） — 音乐 */
-export const IconMusic: React.FC<IconProps> = (props) => {
-    const { className, width, height } = defaults(props);
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={width} height={height} className={className}>
-            <path d="M3 21 L19 5 C20 4 21 5 20 6 L4 22 Z" fill="currentColor" fillOpacity="0.15" />
-            <path d="M6 16 L8 18 M10 12 L12 14 M14 8 L16 10 M15 4 Q17 2 20 4 T22 9" strokeOpacity={0.5} />
-            <circle cx="22" cy="9" r="0.5" fill="currentColor" />
-        </svg>
-    );
-};
-
 /** 战盔/冠纶（武侠头盔） — 头部装备 */
 export const IconHelmet: React.FC<IconProps> = (props) => {
     const { className, width, height } = defaults(props);

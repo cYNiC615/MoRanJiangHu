@@ -324,8 +324,6 @@ const 估算设置摘要 = (key: string, value: unknown): string => {
                 return `${value.length} 个分解任务`;
             case 设置键.小说分解注入快照:
                 return `${value.length} 个注入快照`;
-            case 设置键.音乐曲库:
-                return `${value.length} 首曲目`;
             case 设置键.世界书列表:
                 return `${value.length} 本世界书`;
             case 设置键.世界书预设组:

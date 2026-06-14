@@ -7,6 +7,8 @@ const readProjectFile = (relativePath: string) => {
     return existsSync(absolutePath) ? readFileSync(absolutePath, 'utf8') : '';
 };
 
+const projectFileExists = (relativePath: string) => existsSync(resolve(process.cwd(), relativePath));
+
 describe('homebrew dead feature registry', () => {
     it('removes player-visible novel decomposition entrypoints', () => {
         const app = readProjectFile('App.tsx');
@@ -33,5 +35,41 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('services/novelDecompositionPipeline.ts');
         expect(registry).toContain('prompts/runtime/novelDecomposition.ts');
         expect(registry).toContain('functions/api/workshop/novel-decomposition.ts');
+    });
+
+    it('removes music playback entrypoints and runtime files', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('MusicProvider');
+        expect(app).not.toContain('MobileMusicPlayer');
+        expect(app).not.toContain('showMobileMusic');
+        expect(app).not.toContain("case 'music'");
+        expect(app).not.toContain("case '音乐'");
+
+        expect(readProjectFile('components/layout/RightPanel.tsx')).not.toContain('MusicPlayerUI');
+        expect(readProjectFile('components/layout/RightPanel.tsx')).not.toContain('useMusic');
+        expect(readProjectFile('components/layout/MobileQuickMenu.tsx')).not.toContain('useMusic');
+        expect(readProjectFile('components/layout/MobileQuickMenu.tsx')).not.toContain("| 'music'");
+        expect(readProjectFile('components/features/Settings/SettingsModal.tsx')).not.toContain("'music'");
+        expect(readProjectFile('components/features/Settings/mobile/MobileSettingsModal.tsx')).not.toContain("'music'");
+        expect(readProjectFile('hooks/useGameState.ts')).not.toContain("'music'");
+        expect(readProjectFile('utils/settingsSchema.ts')).not.toContain('music_tracks');
+        expect(readProjectFile('models/system.ts')).not.toContain('MusicTrack');
+        expect(readProjectFile('models/system.ts')).not.toContain('启用背景音乐');
+
+        expect(projectFileExists('components/features/Music/MusicProvider.tsx')).toBe(false);
+        expect(projectFileExists('components/features/Music/MusicPlayerUI.tsx')).toBe(false);
+        expect(projectFileExists('components/features/Music/mobile/MobileMusicPlayer.tsx')).toBe(false);
+        expect(projectFileExists('components/features/Settings/MusicSettings.tsx')).toBe(false);
+        expect(projectFileExists('data/defaultMusicTracks.ts')).toBe(false);
+        expect(projectFileExists('utils/musicMetadata.ts')).toBe(false);
+    });
+
+    it('records music playback as removed except for storage migration history', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('music_playback');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_removed');
+        expect(registry).toContain('storage_pending');
+        expect(registry).toContain('music_tracks');
     });
 });

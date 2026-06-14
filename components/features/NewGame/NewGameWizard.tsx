@@ -42,7 +42,6 @@ import {
 } from '../../../utils/workshopEngine';
 import { 构建官方模式运行时配置, 构建货币系统模板, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
 import { 构建默认技艺 } from '../../../utils/skillDefaults';
-import { 默认境界母板提示词 } from '../../../prompts/runtime/fandom';
 import { 设置键 } from '../../../utils/settingsSchema';
 import { 根据名称映射天赋抽卡, 根据名称映射抽卡, 补全天赋抽卡名称列表, 补全抽卡名称列表, 天赋抽卡数量, 出身抽卡数量, 抽取天赋卡牌, 抽取卡牌 } from '../../../utils/talentDraw';
 import { 构建开局世界观生成提示词预览 } from '../../../utils/worldGenerationPromptPreview';
@@ -230,7 +229,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const monthRef = useRef<HTMLDivElement>(null);
     const dayRef = useRef<HTMLDivElement>(null);
     const manualWorldPromptInputRef = useRef<HTMLInputElement>(null);
-    const manualRealmPromptInputRef = useRef<HTMLInputElement>(null);
     
     const [stats, setStats] = useState<属性结构>(创建默认属性分配);
     const [openingConfig, setOpeningConfig] = useState<OpeningConfig>(默认开局配置);
@@ -1138,8 +1136,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                         ...prev,
                         ...module.preset!.worldConfig,
                         modeRuntimeProfile,
-                        manualWorldPrompt: prev.manualWorldPrompt || module.preset!.worldConfig.manualWorldPrompt || '',
-                        manualRealmPrompt: prev.manualRealmPrompt || module.preset!.worldConfig.manualRealmPrompt || ''
+                        manualWorldPrompt: prev.manualWorldPrompt || module.preset!.worldConfig.manualWorldPrompt || ''
                     }));
                     if (module.preset.openingConfig?.题材模式) {
                         const normalizedModuleOpening = 规范化开局配置({
@@ -1167,20 +1164,12 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 }
                 const worldExtra = String(extractedPrompts.worldExtraRequirement || (module.payload as any)?.worldExtraRequirement || module.preset?.openingExtraRequirement || worldDetailRequirement || '').trim();
                 if (worldExtra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, worldExtra) }));
-                const realmPrompt = String(extractedPrompts.manualRealmPrompt || (module.payload as any)?.manualRealmPrompt || module.preset?.worldConfig?.manualRealmPrompt || '').trim();
-                if (realmPrompt) {
-                    if (isModePackage) {
-                        setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, realmPrompt) }));
-                    } else {
-                        setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: realmPrompt }));
-                    }
-                }
             } else if (module.type === 'world_rules') {
                 const extra = String((module.payload as any)?.worldExtraRequirement || module.preset?.openingExtraRequirement || content).trim();
                 if (extra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, extra) }));
             } else if (module.type === 'ability') {
-                const realmPrompt = String((module.payload as any)?.manualRealmPrompt || module.preset?.worldConfig?.manualRealmPrompt || content).trim();
-                if (realmPrompt) setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: realmPrompt }));
+                const extra = String(content).trim();
+                if (extra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, extra) }));
             }
             设置创意工坊注入状态(`已注入「${module.title}」的模式专属世界书、身份背景池和天赋池。可在后续步骤继续微调角色与开局要求。`);
         } catch (error: any) {
@@ -1327,7 +1316,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     };
     const 导入手动提示词文件 = async (
         event: React.ChangeEvent<HTMLInputElement>,
-        field: 'manualWorldPrompt' | 'manualRealmPrompt'
+        field: 'manualWorldPrompt'
     ) => {
         const file = event.target.files?.[0];
         event.target.value = '';
@@ -1349,17 +1338,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             return;
         }
         导出文本文件(`${worldConfig.worldName || 'world'}-世界观提示词.txt`, content);
-    };
-    const 导出手动境界提示词 = () => {
-        const content = worldConfig.manualRealmPrompt.trim();
-        if (!content) {
-            alert('当前没有可导出的手动境界提示词。');
-            return;
-        }
-        导出文本文件(`${worldConfig.worldName || 'world'}-境界提示词.txt`, content);
-    };
-    const 导出境界提示词模板 = () => {
-        导出文本文件('境界提示词模板.txt', 默认境界母板提示词);
     };
     const 导出世界观生成请求提示词 = () => {
         导出文本文件(`${worldConfig.worldName || 'world'}-开局世界观生成请求.txt`, 当前世界观生成提示词预览);
@@ -1621,8 +1599,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             worldConfig: {
                 ...worldConfig,
                 worldExtraRequirement: worldConfig.worldExtraRequirement?.trim() || '',
-                manualWorldPrompt: worldConfig.manualWorldPrompt?.trim() || '',
-                manualRealmPrompt: worldConfig.manualRealmPrompt?.trim() || ''
+                manualWorldPrompt: worldConfig.manualWorldPrompt?.trim() || ''
             },
             character: {
                 姓名: charName.trim(),
@@ -2174,11 +2151,11 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         <div>
                                             <div className="text-sm text-wuxia-cyan font-bold">手动提示词文件</div>
                                             <div className="text-[11px] text-gray-500 mt-1 leading-6">
-                                                可直接导入现成的世界观提示词或境界体系提示词。导入后会优先使用手动内容，不再请求对应的生成步骤；若两者都已提供，就会直接进入开局剧情生成。
+                                                可直接导入现成的世界观提示词。导入后会优先使用手动内容，不再请求对应的生成步骤。
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4">
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <label className="text-sm text-gray-200 font-bold">手动世界观提示词</label>
@@ -2223,59 +2200,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                                     className="w-full h-40 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-xs text-white outline-none rounded-md transition-all resize-none"
                                                 />
                                                 <div className="text-[11px] text-gray-500">留空则继续走世界观生成；填写后会直接写入 `core_world`，保存自定义开局方案时也会一并保存。</div>
-                                            </div>
-
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <label className="text-sm text-gray-200 font-bold">手动境界提示词</label>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            ref={manualRealmPromptInputRef}
-                                                            type="file"
-                                                            accept=".txt,.md,text/plain,text/markdown"
-                                                            className="hidden"
-                                                            onChange={(event) => { void 导入手动提示词文件(event, 'manualRealmPrompt'); }}
-                                                        />
-                                                        <GameButton
-                                                            onClick={() => manualRealmPromptInputRef.current?.click()}
-                                                            variant="secondary"
-                                                            className="px-3 py-2 text-xs"
-                                                        >
-                                                            导入文件
-                                                        </GameButton>
-                                                        <GameButton
-                                                            onClick={导出手动境界提示词}
-                                                            variant="secondary"
-                                                            className="px-3 py-2 text-xs"
-                                                            disabled={!worldConfig.manualRealmPrompt.trim()}
-                                                        >
-                                                            导出
-                                                        </GameButton>
-                                                        <GameButton
-                                                            onClick={导出境界提示词模板}
-                                                            variant="secondary"
-                                                            className="px-3 py-2 text-xs"
-                                                        >
-                                                            导出模板
-                                                        </GameButton>
-                                                        {worldConfig.manualRealmPrompt.trim() && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: '' }))}
-                                                                className="text-[11px] text-gray-500 hover:text-white"
-                                                            >
-                                                                清空
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <textarea
-                                                    value={worldConfig.manualRealmPrompt}
-                                                    onChange={(e) => setWorldConfig((prev) => ({ ...prev, manualRealmPrompt: e.target.value }))}
-                                                    placeholder="支持直接粘贴 <境界体系>...</境界体系> 或完整的【境界映射母板】结构。"
-                                                    className="w-full h-40 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-xs text-white outline-none rounded-md transition-all resize-none"
-                                                />
-                                                <div className="text-[11px] text-gray-500">这里会复用现有境界体系完整性校验；结构不全时会直接阻止开局。保存自定义开局方案时也会一并保存。</div>
                                             </div>
                                         </div>
                                     </div>
@@ -3081,19 +3005,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                         <div>
-                                            <div className="text-sm text-gray-200">{当前开局配置文案.organizationTitle}</div>
-                                            <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.organizationDescription}</div>
-                                        </div>
-                                        <开关按钮
-                                            checked={openingConfig.开局生成门派 !== false}
-                                            label={openingConfig.开局生成门派 !== false ? '生成' : '不生成'}
-                                            onToggle={() => {
-                                                setOpeningConfig((prev) => ({ ...prev, 开局生成门派: prev.开局生成门派 === false }));
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
-                                        <div>
                                             <div className="text-sm text-gray-200">{当前开局配置文案.memberTitle}</div>
                                             <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.memberDescription}</div>
                                         </div>
@@ -3155,7 +3066,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <p>难度: <span className="text-white uppercase">{worldConfig.difficulty}</span></p>
                                     <p>世界观草稿/细化要求: <span className="text-white">{worldConfig.worldExtraRequirement.trim() || '无'}</span></p>
                                     <p>手动世界观提示词: <span className="text-white">{worldConfig.manualWorldPrompt.trim() ? '已提供' : '未提供'}</span></p>
-                                    <p>手动境界提示词: <span className="text-white">{worldConfig.manualRealmPrompt.trim() ? '已提供' : '未提供'}</span></p>
                                     <p>主角: <span className="text-white">{charName.trim() || '未填写姓名'}</span> <span className='text-gray-500'>({charGender.trim() || '未填写性别'}, {charAge}岁)</span></p>
                                     <p>外貌: <span className="text-white">{charAppearance.trim() || '未填写'}</span></p>
                                     <p>性格: <span className="text-white">{charPersonality.trim() || '未填写'}</span></p>

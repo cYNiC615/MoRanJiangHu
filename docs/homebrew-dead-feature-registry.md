@@ -368,6 +368,76 @@ in:
 - Before deleting the model field, remove `战斗` from AI-writable command roots
   and prompt schemas so new turns stop producing legacy battle commands.
 
+## Feature: `wuxia_cultivation_system`
+
+- Decision: retire.
+- Reason: The homebrew project will not keep wuxia/cultivation/realm/kungfu or
+  sect-specific gameplay. Future organization, abilities, and opposition
+  systems should be redesigned for the modern-urban / near-future direction
+  instead of inheriting the old cultivation surface.
+- Current status: `entrypoint_removed`, `backend_pending`.
+
+### Entrypoints Removed In This Pass
+
+- `App.tsx`: no longer lazy-loads, preloads, opens, or mounts
+  `KungfuModal`, `MobileKungfuModal`, `SkillsPanel`,
+  `MobileSkillsPanel`, `SectModal`, or `MobileSect`.
+- `App.tsx`: removed the `kungfu`, `skills`, `sect`, `功法`, `技艺`, and
+  `门派` menu handling paths.
+- `App.tsx`: removed front-end sect book learning, sect exchange, monthly
+  stipend, and NPC recruitment-to-sect handlers.
+- `components/layout/RightPanel.tsx`: removed the desktop kungfu and sect menu
+  buttons.
+- `components/layout/MobileQuickMenu.tsx`: removed the mobile `kungfu`,
+  `skills`, and `sect` quick-menu ids and icons.
+- `components/features/Settings/GameSettings.tsx`: removed the player-facing
+  cultivation-system toggle.
+- `components/features/NewGame/NewGameWizard.tsx`: removed the desktop manual
+  realm prompt UI and the start-with-sect toggle.
+- `components/features/NewGame/mobile/MobileNewGameWizard.tsx`: removed the
+  same mobile new-game entrypoints.
+- `components/features/NewGame/NewGameDiyTools.tsx`: removed realm DIY and AI
+  realm generation tools.
+
+### Backend, Model, Prompt, And Test Residue Pending
+
+- `components/features/Kungfu`
+- `components/features/Sect`
+- `components/features/Skills`
+- `models/kungfu.ts`
+- `models/sect.ts`
+- `models/character.ts` kungfu, realm, and sect-related character fields
+- `models/system.ts` cultivation and opening-organization configuration fields
+- `types.ts` exported cultivation/sect/new-game structures
+- `hooks/useGameState.ts` `showKungfu`, `showSkills`, and `showSect` UI state
+  residue
+- `hooks/useGame.ts` save/load and command-application paths that still carry
+  cultivation, kungfu, realm, and sect state
+- `utils/newGameDiy.ts` realm draft helpers
+- `utils/openingConfig.ts` start-with-organization normalization and copy
+- `utils/topicRealmDefaults.ts`
+- `utils/worldGenerationPromptPreview.ts`
+- `data/workshopThemes/*` wuxia/cultivation labels and defaults
+- `data/presets.ts` cultivation defaults
+- `prompts/stats/kungfu.ts`
+- `prompts/core/realm.ts`
+- `prompts/core/cotCombat.ts`
+- `prompts/runtime/worldGeneration.ts`
+- Other `prompts/core` and `prompts/runtime` references that ask AI to maintain
+  realms, kungfu lists, sects, inner power, or cultivation progress
+
+### Storage And Migration Notes
+
+- Existing saves and custom new-game presets may still contain `玩家门派`,
+  character kungfu lists, realm fields, manual realm prompt data, and opening
+  organization settings.
+- This fork does not preserve old wuxia/cultivation save compatibility, so a
+  later strong migration can drop or normalize these fields after prompts and
+  command roots stop producing them.
+- Remove AI-writable paths for cultivation and sect state before deleting the
+  models, otherwise the variable-generation and world-generation prompts may
+  continue to emit unused commands.
+
 ## Feature: `cloud_play_and_sync`
 
 - Decision: retire.

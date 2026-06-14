@@ -118,7 +118,7 @@
 | 女主规划 | 支撑男性向恋爱/亲密关系体验与重要女角色推进 | `models/heroinePlan.ts`, `prompts/core/heroinePlan*.ts` | 保留并优化；后宫模式下弱化“唯一主推女主”的副作用 |
 | 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 新建角入口已移除/后端待删 |
 | 小说分解提示词 | 小说章节拆解、滑窗、拆分 COT、工作台注入 | `prompts/runtime/novelDecomposition*.ts`, `services/novelDecomposition*` | 入口已移除/后端待删 |
-| 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 准备移除，不保留为默认或兼容目标 |
+| 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 入口已移除/后端待删，不保留为默认或兼容目标 |
 
 ## 6. 前端功能地图
 
@@ -127,7 +127,7 @@
 | Home/Game Shell | 主页、游戏视图、面板挂载、全局弹窗 | `App.tsx`, `components/layout` | 保留但瘦身 | 拆掉移动/APK/更新/云同步/小说分解挂载 |
 | Chat | 主聊天、输入、行动选项、回合队列状态 | `components/features/Chat` | 核心保留 | 保留桌面体验，删移动专用适配 |
 | Settings | API、流程图、记忆、世界书、提示词、存储、模型配置等 | `components/features/Settings` | 保留但大幅瘦身 | 先隐藏/删除小说分解、云同步、APK/移动、社区相关 tab |
-| NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | Phase 1 已移除桌面/移动新建角里的同人融合、角色替换和附加小说分解可见入口；默认现代都市和移动向导删除仍待后续 |
+| NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | Phase 1 已移除桌面/移动新建角里的同人融合、角色替换、附加小说分解、手动境界提示词、境界 DIY 和开局生成门派可见入口；默认现代都市和移动向导删除仍待后续 |
 | Worldbook | 世界书管理、导入、编辑 | `components/features/Worldbook` | 核心保留 | 保留本地世界书，不接社区 UGC |
 | Workshop | 模式包/创意工坊/云端投稿/Comfy 工作流 | `components/features/Workshop`, `services/creativeWorkshop.ts`, `data/creativeWorkshopModules.ts` | 保留本地模式包，移除社区投稿 | 改名或重新定位为“模式包/本地扩展” |
 | SaveLoad | 存档读写、导入导出 | `components/features/SaveLoad`, `services/saveArchiveService.ts` | 必须保留 | 已移除“转云端游玩”入口；保留 ZIP 导入导出、本地时间树、删除与存档保护 |
@@ -137,7 +137,7 @@
 | Inventory/Equipment | 背包、装备、物品、画像展示 | `components/features/Inventory`, `components/features/Equipment`, `models/item.ts` | 保留；规则化候选 | 交易、消耗、装备变更优先转本地规则 |
 | AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 入口已移除/后端待删 | Phase 1 已删除右栏、移动快捷菜单、弹窗挂载和背包寄售入口；世界待投放字段、prompt、服务和测试仍待后端清理 |
 | Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 入口已移除/后端待删 | Phase 1 已删除桌面/移动战斗面板入口、App 挂载和预加载；后续另做新的轻量级系统化对抗，不复用旧功法/站位/传统对打 |
-| Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 准备移除 | 武侠/修仙完全不要；组织/能力以后另行设计 |
+| Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 入口已移除/后端待删 | Phase 1 已删除 App 挂载、右栏、移动快捷菜单、设置开关、新建角手动境界/开局门派和境界 DIY 入口；组件目录、模型、prompt、命令根、存档字段和测试仍待后端清理 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
 | Music / Audio Cues | 背景音乐、播放器、音乐设置、曲库持久化、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/turnNotificationSound.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具、回合提示音开关、播放副作用和音频资产；旧存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
@@ -192,6 +192,7 @@
 | 图片生成 | 暂缓/冻结 | 可能提升体验，但链路很重 | 暂不扩展；等确定视觉目标 |
 | 旧战斗系统 | 入口已移除/后端待删 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | Phase 1 已删除 App/RightPanel/MobileQuickMenu 战斗入口；后续删除模型、prompt、命令根、UI 文件和旧测试 |
 | 拍卖行/市场 | 入口已移除/后端待删 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | Phase 1 已删除 UI 入口和 Inventory 寄售入口；后续删除服务、世界状态字段、prompt 引用和测试 |
+| 武侠/修炼/功法/门派 | 入口已移除/后端待删 | 用户明确不做武侠修仙；未来组织、能力和对抗都应按现代都市/近未来方向重设 | Phase 1 已删除功法/技艺/门派面板入口、修炼体系设置、新建角手动境界与开局门派入口；后续删除模型、prompt、命令根、组件目录、存档字段和相关测试 |
 | 社交/NPC 关系 | 核心保留/重构候选 | 男性向恋爱、亲密关系和重要 NPC 互动是核心体验 | 保留并扩展关系体验；位置/在场系统单独重做 |
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |
 | 背包/装备/货币 | 保留/重构候选 | 账务最适合代码接管 | 优先规则化交易、消耗、装备穿脱 |

@@ -6,12 +6,9 @@ type MenuId =
     | 'equipment'
     | 'inventory'
     | 'social'
-    | 'kungfu'
-    | 'skills'
     | 'world'
     | 'map'
     | 'team'
-    | 'sect'
     | 'task'
     | 'agreement'
     | 'story'
@@ -30,9 +27,7 @@ interface Props {
     enableWorldPanel?: boolean;
     enableHeroinePlan?: boolean;
     enablePlanningPanel?: boolean;
-    enableKungfu?: boolean;
     enableImageManager?: boolean;
-    sectLabel?: string;
     uiLabels?: 题材界面文案;
 }
 
@@ -41,12 +36,10 @@ type IconName =
     | 'equipment'
     | 'bag'
     | 'social'
-    | 'kungfu'
     | 'world'
     | 'map'
     | 'more'
     | 'team'
-    | 'sect'
     | 'task'
     | 'agreement'
     | 'story'
@@ -69,12 +62,9 @@ const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     equipment: { id: 'equipment', label: '装备', icon: 'equipment' },
     inventory: { id: 'inventory', label: '背包', icon: 'bag' },
     social: { id: 'social', label: '社交', icon: 'social' },
-    kungfu: { id: 'kungfu', label: '功法', icon: 'kungfu' },
-    skills: { id: 'skills', label: '技艺', icon: 'kungfu' },
     world: { id: 'world', label: '世界', icon: 'world' },
     map: { id: 'map', label: '地图', icon: 'map' },
     team: { id: 'team', label: '队伍', icon: 'team' },
-    sect: { id: 'sect', label: '门派', icon: 'sect' },
     task: { id: 'task', label: '任务', icon: 'task' },
     agreement: { id: 'agreement', label: '约定', icon: 'agreement' },
     story: { id: 'story', label: '剧情', icon: 'story' },
@@ -93,9 +83,7 @@ const MobileQuickMenu: React.FC<Props> = ({
     enableWorldPanel = true,
     enableHeroinePlan = false,
     enablePlanningPanel = true,
-    enableKungfu = true,
     enableImageManager = false,
-    sectLabel = '门派',
     uiLabels
 }) => {
     const [collapsed, setCollapsed] = useState(false);
@@ -114,26 +102,22 @@ const MobileQuickMenu: React.FC<Props> = ({
         metaFor(MENU_META.equipment),
         metaFor(MENU_META.inventory),
         metaFor(MENU_META.social),
-        ...(enableKungfu ? [metaFor(MENU_META.kungfu)] : []),
         metaFor(MENU_META.map),
         metaFor(MENU_META.team),
-        { ...MENU_META.sect, label: sectLabel },
         metaFor(MENU_META.task),
         ...(enableWorldPanel ? [metaFor(MENU_META.world)] : []),
         metaFor(MENU_META.story),
         metaFor(MENU_META.save),
         metaFor(MENU_META.settings),
-    ]), [enableKungfu, enableWorldPanel, sectLabel, uiLabels]);
+    ]), [enableWorldPanel, uiLabels]);
 
     const allMenus = useMemo<MenuMeta[]>(() => ([
         metaFor(MENU_META.character),
         metaFor(MENU_META.equipment),
         metaFor(MENU_META.inventory),
         metaFor(MENU_META.social),
-        ...(enableKungfu ? [metaFor(MENU_META.kungfu)] : []),
         metaFor(MENU_META.map),
         metaFor(MENU_META.team),
-        { ...MENU_META.sect, label: sectLabel },
         metaFor(MENU_META.task),
         metaFor(MENU_META.agreement),
         ...(enableWorldPanel ? [metaFor(MENU_META.world)] : []),
@@ -145,7 +129,7 @@ const MobileQuickMenu: React.FC<Props> = ({
         metaFor(MENU_META.save),
         metaFor(MENU_META.load),
         metaFor(MENU_META.settings),
-    ]), [enableHeroinePlan, enableImageManager, enableKungfu, enablePlanningPanel, enableWorldPanel, sectLabel, uiLabels]);
+    ]), [enableHeroinePlan, enableImageManager, enablePlanningPanel, enableWorldPanel, uiLabels]);
 
     const handleMenuClick = (menu: MenuId) => {
         onMenuClick(menu);
@@ -285,8 +269,6 @@ const IconGlyph = ({ name, className }: { name: IconName; className?: string }) 
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M7 8h10l-1 11H8L7 8Z" /><path d="M9.5 8V7a2.5 2.5 0 0 1 5 0v1" /></svg>;
         case 'social':
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 6.5h15v9h-7l-4 3v-3h-4z" /></svg>;
-        case 'kungfu':
-            return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 6.5h6.5v11H4.5zM13 6.5h6.5v11H13z" /><path d="M11 7.5c.7-.6 1.4-.9 2-.9" /></svg>;
         case 'world':
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="8" /><path d="M4.6 12h14.8M12 4.2c2.5 2.3 2.5 13.3 0 15.6M12 4.2c-2.5 2.3-2.5 13.3 0 15.6" /></svg>;
         case 'map':
@@ -295,8 +277,6 @@ const IconGlyph = ({ name, className }: { name: IconName; className?: string }) 
             return <svg viewBox="0 0 24 24" className={svgClass} fill="currentColor"><circle cx="6" cy="6" r="1.6" /><circle cx="12" cy="6" r="1.6" /><circle cx="18" cy="6" r="1.6" /><circle cx="6" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="18" cy="12" r="1.6" /><circle cx="6" cy="18" r="1.6" /><circle cx="12" cy="18" r="1.6" /><circle cx="18" cy="18" r="1.6" /></svg>;
         case 'team':
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="9" r="2.5" /><circle cx="15.5" cy="10.5" r="2" /><path d="M4.8 18c.8-2.5 2.4-3.8 4.8-3.8s4 .9 5 2.8" /></svg>;
-        case 'sect':
-            return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 9h15" /><path d="M6.5 9v8M12 9v8M17.5 9v8" /><path d="m4 9 8-4 8 4M4.5 19h15" /></svg>;
         case 'task':
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="6" y="4.5" width="12" height="15" rx="1.5" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>;
         case 'agreement':

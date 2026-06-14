@@ -8,10 +8,8 @@ interface Props {
     onOpenEquipment: () => void;
     onOpenTeam: () => void;
     onOpenSocial: () => void;
-    onOpenKungfu: () => void;
     onOpenWorld: () => void;
     onOpenMap: () => void;
-    onOpenSect: () => void;
     onOpenTask: () => void;
     onOpenAgreement: () => void;
     onOpenStory: () => void;
@@ -19,15 +17,12 @@ interface Props {
     onOpenMemory: () => void;
     onOpenNovelExport?: () => void;
     onOpenImageManager?: () => void;
-    sectLabel?: string;
     uiLabels?: 题材界面文案;
     worldEvolutionEnabled?: boolean;
     worldEvolutionUpdating?: boolean;
     enableWorldPanel?: boolean;
     enableHeroinePlan?: boolean;
     enablePlanningPanel?: boolean;
-    enableKungfu?: boolean;
-    kungfuLabel?: string;
     onSave: () => void;
     onLoad: () => void;
     onReturnToHome?: () => void;
@@ -42,10 +37,8 @@ const RightPanel: React.FC<Props> = ({
     onOpenEquipment,
     onOpenTeam,
     onOpenSocial,
-    onOpenKungfu,
     onOpenWorld,
     onOpenMap,
-    onOpenSect,
     onOpenTask,
     onOpenAgreement,
     onOpenStory,
@@ -53,15 +46,12 @@ const RightPanel: React.FC<Props> = ({
     onOpenMemory,
     onOpenNovelExport,
     onOpenImageManager,
-    sectLabel = '门派',
     uiLabels,
     worldEvolutionEnabled = false,
     worldEvolutionUpdating = false,
     enableWorldPanel = true,
     enableHeroinePlan = false,
     enablePlanningPanel = true,
-    enableKungfu = true,
-    kungfuLabel = '功法',
     onSave,
     onLoad,
     onReturnToHome,
@@ -107,9 +97,7 @@ const RightPanel: React.FC<Props> = ({
                 : ''
         }] : []),
         { label: menuLabel?.team || '队伍', action: onOpenTeam, color: 'primary' as const, changeKeys: ['队伍'] },
-        ...(enableKungfu ? [{ label: kungfuLabel, action: onOpenKungfu, color: 'primary' as const, changeKeys: ['功法'] }] : []),
         { label: menuLabel?.map || '地图', action: onOpenMap, color: 'primary' as const, changeKeys: ['地图'] },
-        { label: sectLabel, action: onOpenSect, color: 'primary' as const, changeKeys: ['玩家门派'] },
         { label: menuLabel?.task || '任务', action: onOpenTask, color: 'primary' as const, changeKeys: ['任务列表'] },
         { label: menuLabel?.agreement || '约定', action: onOpenAgreement, color: 'primary' as const, changeKeys: ['约定列表'] },
         { label: menuLabel?.story || '剧情', action: onOpenStory, color: 'primary' as const, changeKeys: ['剧情'] },

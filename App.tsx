@@ -29,7 +29,6 @@ import { checkForAppUpdate, downloadLatestApkPackage, subscribeAppUpdateProgress
 import { APK仅手动更新已启用 } from './utils/appUpdatePreferences';
 import { RELEASE_INFO } from './data/releaseInfo';
 import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 构建拍卖行存储作用域, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
-import { 规范化角色金钱 } from './utils/currencyDisplay';
 import { 获取题材界面文案 } from './utils/resourceLabels';
 import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
@@ -40,7 +39,6 @@ import { 等待云端后台同步完成, 确保本地存档已同步到云端, �
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
-import type { 功法结构, 功法类型, 功法品质, 消耗类型, 伤害类型, 目标类型 } from './models/kungfu';
 
 const RELEASE_NOTES_SUPPRESS_DATE_KEY = 'moranjianghu.releaseNotesSuppressDate';
 const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths.v3';
@@ -301,16 +299,10 @@ const MobileImageManagerModal = 创建可预加载懒组件('mobile-image-manage
 const WorldbookManagerModal = 创建可预加载懒组件('worldbook-manager-modal', () => import('./components/features/Worldbook/WorldbookManagerModal'));
 const TeamModal = 创建可预加载懒组件('team-modal', () => import('./components/features/Team/TeamModal'));
 const MobileTeamModal = 创建可预加载懒组件('mobile-team-modal', () => import('./components/features/Team/MobileTeamModal'));
-const KungfuModal = 创建可预加载懒组件('kungfu-modal', () => import('./components/features/Kungfu/KungfuModal'));
-const MobileKungfuModal = 创建可预加载懒组件('mobile-kungfu-modal', () => import('./components/features/Kungfu/MobileKungfuModal'));
-const SkillsPanel = 创建可预加载懒组件('skills-panel', () => import('./components/features/Skills/SkillsPanel'));
-const MobileSkillsPanel = 创建可预加载懒组件('mobile-skills-panel', () => import('./components/features/Skills/MobileSkillsPanel'));
 const WorldModal = 创建可预加载懒组件('world-modal', () => import('./components/features/World/WorldModal'));
 const MobileWorldModal = 创建可预加载懒组件('mobile-world-modal', () => import('./components/features/World/MobileWorldModal'));
 const MapModal = 创建可预加载懒组件('map-modal', () => import('./components/features/Map/MapModal'));
 const MobileMapModal = 创建可预加载懒组件('mobile-map-modal', () => import('./components/features/Map/MobileMapModal'));
-const SectModal = 创建可预加载懒组件('sect-modal', () => import('./components/features/Sect/SectModal'));
-const MobileSect = 创建可预加载懒组件('mobile-sect', () => import('./components/features/Sect/MobileSect'));
 const TaskModal = 创建可预加载懒组件('task-modal', () => import('./components/features/Task/TaskModal'));
 const MobileTask = 创建可预加载懒组件('mobile-task', () => import('./components/features/Task/MobileTask'));
 const AgreementModal = 创建可预加载懒组件('agreement-modal', () => import('./components/features/Agreement/AgreementModal'));
@@ -342,10 +334,8 @@ const 桌面轻量预热目标 = [
     EquipmentModal,
     TeamModal,
     SocialModal,
-    KungfuModal,
     WorldModal,
     MapModal,
-    SectModal,
     TaskModal,
     AgreementModal,
     StoryModal,
@@ -361,10 +351,8 @@ const 移动端轻量预热目标 = [
     MobileInventoryModal,
     MobileTeamModal,
     MobileSocial,
-    MobileKungfuModal,
     MobileWorldModal,
     MobileMapModal,
-    MobileSect,
     MobileTask,
     MobileAgreementModal,
     MobileStory,
@@ -669,14 +657,6 @@ const App: React.FC = () => {
             case 'social':
                 setters.setShowSocial(true);
                 break;
-            case 'kungfu':
-                if (启用修炼体系) {
-                    setters.setShowKungfu(true);
-                }
-                break;
-            case 'skills':
-                setters.setShowSkills(true);
-                break;
             case 'world':
                 setters.setShowWorld(true);
                 break;
@@ -685,9 +665,6 @@ const App: React.FC = () => {
                 break;
             case 'team':
                 setters.setShowTeam(true);
-                break;
-            case 'sect':
-                setters.setShowSect(true);
                 break;
             case 'task':
                 setters.setShowTask(true);
@@ -1016,7 +993,6 @@ const App: React.FC = () => {
         () => state.开局配置?.同人融合?.enabled === true && state.开局配置?.同人融合?.启用附加小说 === true,
         [state.开局配置]
     );
-    const 启用修炼体系 = state.gameConfig?.启用修炼体系 !== false;
     const 当前剧情规划 = 启用同人模式 ? state.同人剧情规划 : state.剧情规划;
     const 当前女主剧情规划 = 启用同人模式 ? state.同人女主剧情规划 : state.女主剧情规划;
 
@@ -1525,41 +1501,14 @@ const App: React.FC = () => {
         () => 获取题材界面文案(state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile),
         [state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile]
     );
-    const 组织入口显示名称 = 题材界面文案.组织.组织入口;
-    const 功法显示名称 = 题材界面文案.菜单.kungfu;
-    const activeMobileWindow =
-        showCharacter ? 题材界面文案.菜单.character :
-        state.showEquipment ? 题材界面文案.菜单.equipment :
-        state.showInventory ? 题材界面文案.菜单.inventory :
-        state.showSocial ? 题材界面文案.菜单.social :
-        (启用修炼体系 && state.showKungfu) ? 功法显示名称 :
-        state.showSkills ? 题材界面文案.菜单.skills :
-        state.showWorld ? 题材界面文案.菜单.world :
-        state.showMap ? 题材界面文案.菜单.map :
-        state.showTeam ? 题材界面文案.菜单.team :
-        state.showSect ? 组织入口显示名称 :
-        state.showTask ? 题材界面文案.菜单.task :
-        state.showAgreement ? 题材界面文案.菜单.agreement :
-        state.showStory ? 题材界面文案.菜单.story :
-        state.showHeroinePlan ? 题材界面文案.菜单.plan :
-        state.showMemory ? 题材界面文案.菜单.memory :
-        showNovelExport ? '导出小说' :
-        showImageManager ? '图册' :
-        safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? '保存' : '读取') :
-        state.showSettings ? '设置' :
-        null;
-
     const activeMobileWindowId =
         showCharacter ? 'character' :
         state.showEquipment ? 'equipment' :
         state.showInventory ? 'inventory' :
         state.showSocial ? 'social' :
-        (启用修炼体系 && state.showKungfu) ? 'kungfu' :
-        state.showSkills ? 'skills' :
         state.showWorld ? 'world' :
         state.showMap ? 'map' :
         state.showTeam ? 'team' :
-        state.showSect ? 'sect' :
         state.showTask ? 'task' :
         state.showAgreement ? 'agreement' :
         state.showStory ? 'story' :
@@ -1577,11 +1526,8 @@ const App: React.FC = () => {
         || state.showInventory
         || state.showSocial
         || state.showTeam
-        || (启用修炼体系 && state.showKungfu)
-        || state.showSkills
         || state.showWorld
         || state.showMap
-        || state.showSect
         || state.showTask
         || state.showAgreement
         || state.showStory
@@ -1673,11 +1619,8 @@ const App: React.FC = () => {
         setters.setShowEquipment(false);
         setters.setShowTeam(false);
         setters.setShowSocial(false);
-        setters.setShowKungfu(false);
-        setters.setShowSkills(false);
         setters.setShowWorld(false);
         setters.setShowMap(false);
-        setters.setShowSect(false);
         setters.setShowTask(false);
         setters.setShowAgreement(false);
         setters.setShowStory(false);
@@ -1784,15 +1727,6 @@ const App: React.FC = () => {
             });
         }
     }, [actions, closeAllPanels, setters, state.社交]);
-    const openKungfu = React.useCallback(() => {
-        if (!启用修炼体系) return;
-        closeAllPanels();
-        setters.setShowKungfu(true);
-    }, [closeAllPanels, setters, 启用修炼体系]);
-    const openSkills = React.useCallback(() => {
-        closeAllPanels();
-        setters.setShowSkills(true);
-    }, [closeAllPanels, setters]);
     const openWorld = React.useCallback(() => {
         closeAllPanels();
         setters.setShowWorld(true);
@@ -1801,16 +1735,6 @@ const App: React.FC = () => {
         closeAllPanels();
         setters.setShowMap(true);
     }, [closeAllPanels, setters]);
-    const openSect = React.useCallback(() => {
-        closeAllPanels();
-        setters.setShowSect(true);
-    }, [closeAllPanels, setters]);
-    const learnedSectBookIds = React.useMemo(() => {
-        const currentSkills = Array.isArray(state.角色?.功法列表) ? state.角色.功法列表 : [];
-        return currentSkills
-            .map((skill: any) => String(skill?.来源藏经ID || '').trim())
-            .filter(Boolean);
-    }, [state.角色?.功法列表]);
     const [chatDraftRequest, setChatDraftRequest] = React.useState<{ text: string; token: number } | null>(null);
     const chatDraftTokenRef = React.useRef(0);
     const insertChatDraft = React.useCallback((text: string) => {
@@ -1820,136 +1744,6 @@ const App: React.FC = () => {
         setChatDraftRequest({ text: draft, token: chatDraftTokenRef.current });
         actions.pushNotification({ title: '已写入输入框', message: '行动文本已放入对话框，可直接发送或继续编辑。', tone: 'success' });
     }, [actions]);
-    const handleLearnSectBook = React.useCallback((book: any) => {
-        if (!book?.id) return;
-        const currentSkills = Array.isArray(state.角色?.功法列表) ? state.角色.功法列表 : [];
-        if (currentSkills.some((skill: any) => skill?.来源藏经ID === book.id || skill?.ID === `sect_${book.id}` || skill?.名称 === book.名称)) {
-            actions.pushNotification({ title: '已学过', message: `「${book.名称 || '此典籍'}」已经在功法列表中。`, tone: 'info' });
-            return;
-        }
-        const typeMap: Record<string, 功法类型> = { 功法: '绝技', 剑法: '绝技', 刀法: '绝技', 拳法: '绝技', 身法: '轻功', 心法: '内功', 杂学: '被动' };
-        const bookName = String(book.名称 || '');
-        const inferredType = bookName.includes('剑') ? '剑法' : book.类型;
-        const quality = ['凡品', '良品', '上品', '极品', '绝世', '传说'].includes(book.品阶) ? book.品阶 : '凡品';
-        const learnedSkill = {
-            ID: `sect_${book.id}`,
-            来源藏经ID: book.id,
-            名称: book.名称 || '未命名典籍',
-            描述: book.简介 || '藏经阁所藏典籍。',
-            类型: (typeMap[inferredType] || '绝技') as 功法类型,
-            品质: quality as 功法品质,
-            来源: `${state.玩家门派?.名称 || '门派'}藏经阁`,
-            当前重数: 1,
-            最高重数: 10,
-            当前熟练度: 0,
-            升级经验: 100,
-            突破条件: '勤修不辍，实战参悟',
-            境界限制: book.要求职位 || '无',
-            大成方向: '稳固根基',
-            圆满效果: `${book.名称 || '此典籍'}圆满后可强化对应武学表现。`,
-            武器限制: [],
-            消耗类型: (inferredType === '心法' ? '内力' : '精力') as 消耗类型,
-            消耗数值: 0,
-            施展耗时: '1息',
-            冷却时间: '0息',
-            基础伤害: 0,
-            加成属性: inferredType === '身法' ? '敏捷' : inferredType === '心法' ? '根骨' : '力量',
-            加成系数: 0,
-            内力系数: inferredType === '心法' ? 1 : 0,
-            伤害类型: (inferredType === '心法' ? '内功' : '物理') as 伤害类型,
-            目标类型: '自身' as 目标类型,
-            最大目标数: 1,
-            重数描述映射: [{ 重数: 1, 描述: book.简介 || '初窥门径。' }],
-            附带效果: [],
-            被动修正: [],
-            境界特效: []
-        };
-        const nextCharacter = {
-            ...state.角色,
-            功法列表: [learnedSkill, ...currentSkills]
-        };
-        setters.setCharacter(nextCharacter as any);
-        void actions.performAutoSave?.({ role: nextCharacter, force: true });
-        actions.pushNotification({ title: `${题材界面文案.组织.能力库}${题材界面文案.组织.学习动作}成功`, message: `已${题材界面文案.组织.学习动作}「${learnedSkill.名称}」，可在${功法显示名称}页查看。`, tone: 'success' });
-    }, [actions, setters, state.玩家门派?.名称, state.角色, 题材界面文案.组织.能力库, 题材界面文案.组织.学习动作, 功法显示名称]);
-    const handleSectExchange = React.useCallback((goodId: string, price: number) => {
-        const sect = state.玩家门派;
-        if (!sect) return;
-        const good = (sect.兑换列表 || []).find((g: any) => g.id === goodId);
-        if (!good) return;
-        const currentContribution = Math.max(0, Number(sect.玩家贡献 || 0));
-        if (currentContribution < price) {
-            actions.pushNotification({ title: '兑换失败', message: '当前贡献不足。', tone: 'error' });
-            return;
-        }
-        if (good.库存 <= 0) {
-            actions.pushNotification({ title: '兑换失败', message: '库存不足。', tone: 'error' });
-            return;
-        }
-        const nextSect = {
-            ...sect,
-            玩家贡献: currentContribution - price,
-            兑换列表: sect.兑换列表.map((g: any) => g.id === goodId ? { ...g, 库存: Math.max(0, (g.库存 || 1) - 1) } : g)
-        };
-        const newItem = {
-            ID: `exchange_${goodId}_${Date.now()}`,
-            名称: good.物品名称 || '兑换物品',
-            描述: good.描述 || '',
-            类型: good.类型 || '消耗品',
-            品质: good.品质 || '良品',
-            重量: good.重量 || 0.5,
-            堆叠数量: 1,
-            是否可堆叠: false
-        };
-        const currentItems = Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : [];
-        const nextCharacter = { ...state.角色, 物品列表: [...currentItems, newItem] };
-        setters.setPlayerSect(nextSect);
-        setters.setCharacter(nextCharacter);
-        void actions.performAutoSave?.({ sect: nextSect, role: nextCharacter, force: true });
-        actions.pushNotification({ title: '兑换成功', message: `已兑换「${newItem.名称}」，消耗 ${price} 贡献。`, tone: 'success' });
-    }, [actions, setters, state.玩家门派, state.角色]);
-    const handleClaimMonthlyStipend = React.useCallback(() => {
-        const sect = state.玩家门派;
-        const rule = sect?.月俸规则;
-        if (!sect || !rule) return;
-        const match = String(state.环境?.时间 || '').match(/^(\d{1,6})[:/-](\d{1,2})/);
-        const year = match ? Number(match[1]) : 1;
-        const month = match ? Number(match[2]) : 1;
-        const monthKey = `${year}:${String(month).padStart(2, '0')}`;
-        if (String((sect as any).上次俸禄月份 || '').trim() === monthKey) {
-            actions.pushNotification({ title: 题材界面文案.组织.已领取补给, message: `${题材界面文案.组织.补给名称}已经领取过了，下期再来。`, tone: 'info' });
-            return;
-        }
-        const amount = Math.max(0,
-            Number(rule.基础俸禄 || 0)
-            + Math.floor(Number(sect.累计贡献 || sect.玩家贡献 || 0) * Number(rule.贡献系数 || 0))
-            + Math.floor(Number(sect.弟子总数 || 0) * Number(rule.规模系数 || 0))
-        );
-        const sectText = JSON.stringify(sect);
-        const stipendAsContribution = /主神|轮回|奖励点|支线剧情|营地|补给|信用|组织|团队|队伍|额度/u.test(sectText);
-        const currentContribution = Math.max(0, Number(sect.玩家贡献 || 0));
-        const currentTotalContribution = Math.max(currentContribution, Number(sect.累计贡献 || 0));
-        const nextSect = stipendAsContribution
-            ? {
-                ...sect,
-                上次俸禄月份: monthKey,
-                玩家贡献: currentContribution + amount,
-                累计贡献: currentTotalContribution + amount
-            }
-            : { ...sect, 上次俸禄月份: monthKey };
-        const currentMoney = 规范化角色金钱(state.角色?.金钱);
-        const nextCharacter = stipendAsContribution
-            ? state.角色
-            : { ...state.角色, 金钱: 规范化角色金钱({ ...currentMoney, 底层货币: Math.max(0, Number(currentMoney.底层货币 || 0)) + amount }) };
-        setters.setPlayerSect(nextSect);
-        setters.setCharacter(nextCharacter);
-        void actions.performAutoSave?.({ role: nextCharacter, sect: nextSect, force: true });
-        actions.pushNotification({
-            title: `${题材界面文案.组织.补给名称}已领取`,
-            message: amount > 0 ? `已到账 ${amount}。` : '本月领取记录已更新。',
-            tone: 'success'
-        });
-    }, [actions, setters, state.玩家门派, state.环境?.时间, state.角色, 题材界面文案.组织.已领取补给, 题材界面文案.组织.补给名称]);
     const handleLearnNpcSkill = React.useCallback((npc: any, skill: any) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '该人物').trim();
         const skillName = String(skill?.名称 || '技艺').trim();
@@ -1971,15 +1765,6 @@ const App: React.FC = () => {
             tone: 'success'
         });
     }, [actions, state.角色?.技艺]);
-    const handleRecruitNpcToSect = React.useCallback((npc: any) => {
-        const npcName = String(npc?.姓名 || npc?.名称 || '此人').trim();
-        const sectName = String(state.玩家门派?.名称 || state.角色?.所属门派ID || '我的组织').trim();
-        const isApocalypseSect = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(state.玩家门派 || {}));
-        const actionLabel = isApocalypseSect ? '营地邀入' : '门派招揽';
-        const orgLabel = isApocalypseSect ? '营地' : '门派';
-        insertChatDraft(`[${actionLabel}] 我尝试邀请「${npcName}」加入「${sectName}」。请结合对方身份、关系、利益诉求、当前剧情、${orgLabel}等级/规模/名声、我的交涉表现与相关技艺，判定是否成功，并在成功时更新社交、玩家门派重要成员、弟子总数和${orgLabel}等级；如果对方本来就是同${isApocalypseSect ? '营地' : '门派'}成员，正文应明确说明无需重复邀入，只同步其关系状态。`);
-        setters.setShowSocial(false);
-    }, [insertChatDraft, setters, state.玩家门派, state.角色?.所属门派ID]);
     const handleStealFromNpc = React.useCallback((npc: any, target?: string) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '目标').trim();
         const targetText = String(target || '随机随身物品').trim() || '随机随身物品';
@@ -2415,80 +2200,6 @@ const App: React.FC = () => {
         setShowImageManager(true);
     }, [closeAllPanels, requestConfirm, setters, state.apiConfig]);
 
-    const handleMobileMenuClick = React.useCallback((menu: string) => {
-        const isActive = activeMobileWindow === menu;
-        closeAllPanels();
-        if (isActive) return;
-
-        switch (menu) {
-            case '角色':
-                setShowCharacter(true);
-                break;
-            case '装备':
-                setters.setShowEquipment(true);
-                break;
-            case '背包':
-                setters.setShowInventory(true);
-                break;
-            case '社交':
-                setters.setShowSocial(true);
-                break;
-            case '功法':
-                if (启用修炼体系) {
-                    setters.setShowKungfu(true);
-                }
-                break;
-            case '技艺':
-                setters.setShowSkills(true);
-                break;
-            case '世界':
-                setters.setShowWorld(true);
-                break;
-            case '地图':
-                setters.setShowMap(true);
-                break;
-            case '队伍':
-                setters.setShowTeam(true);
-                break;
-            case '门派':
-                setters.setShowSect(true);
-                break;
-            case '任务':
-                setters.setShowTask(true);
-                break;
-            case '约定':
-                setters.setShowAgreement(true);
-                break;
-            case '剧情':
-                setters.setShowStory(true);
-                break;
-            case '规划':
-                setters.setShowHeroinePlan(true);
-                break;
-            case '记忆':
-                setters.setShowMemory(true);
-                break;
-            case '导出小说':
-                setShowNovelExport(true);
-                break;
-            case '图册':
-                void openImageManagerWithCheck();
-                break;
-            case '保存':
-                setters.setShowSaveLoad({ show: true, mode: 'save' });
-                break;
-            case '读取':
-                setters.setShowSaveLoad({ show: true, mode: 'load' });
-                break;
-            case '设置':
-                setters.setActiveTab('game');
-                setters.setShowSettings(true);
-                break;
-            default:
-                break;
-        }
-    }, [activeMobileWindow, closeAllPanels, openImageManagerWithCheck, setters, 启用修炼体系]);
-
     const toggleAppFullscreen = React.useCallback(async () => {
         const doc = document as Document & {
             webkitFullscreenElement?: Element;
@@ -2632,11 +2343,6 @@ const App: React.FC = () => {
         };
     }, [isMobile]);
 
-    React.useEffect(() => {
-        if (!启用修炼体系 && state.showKungfu) {
-            setters.setShowKungfu(false);
-        }
-    }, [启用修炼体系, setters, state.showKungfu]);
     const appUpdateProgressPercent = React.useMemo(() => {
         const explicitPercent = Number(appUpdateProgress?.percent || 0);
         if (Number.isFinite(explicitPercent) && explicitPercent > 0) {
@@ -2966,17 +2672,14 @@ const App: React.FC = () => {
                                 onOpenEquipment={openEquipment} 
                                 onOpenTeam={openTeam}
                                 onOpenSocial={openSocial}
-                                onOpenKungfu={openKungfu}
                                 onOpenWorld={openWorld}
                                 onOpenMap={openMap}
-                                onOpenSect={openSect}
                                 onOpenTask={openTask} 
                                 onOpenAgreement={openAgreement} 
                                 onOpenStory={openStory}
                                 onOpenHeroinePlan={openHeroinePlan}
                                 onOpenMemory={openMemory}
                                 onOpenNovelExport={openNovelExport}
-                                sectLabel={组织入口显示名称}
                                 uiLabels={题材界面文案}
                                 onOpenImageManager={openImageManagerWithCheck}
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
@@ -2984,8 +2687,6 @@ const App: React.FC = () => {
                                 enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
                                 enableHeroinePlan={safeGameConfig?.启用女主剧情规划 === true}
                                 enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
-                                enableKungfu={启用修炼体系}
-                                kungfuLabel={功法显示名称}
                                 onSave={openSave}
                                 onLoad={openLoad}
                                 onReturnToHome={() => { void handleReturnToHomeWithAutoSave(); }}
@@ -3106,9 +2807,7 @@ const App: React.FC = () => {
                         enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
                         enableHeroinePlan={safeGameConfig?.启用女主剧情规划 === true}
                         enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
-                        enableKungfu={启用修炼体系}
                         enableImageManager={true}
-                        sectLabel={组织入口显示名称}
                         uiLabels={题材界面文案}
                     />
 
@@ -3469,7 +3168,7 @@ const App: React.FC = () => {
                         <MobileImageManagerModal
                             socialList={state.社交}
                             playerCharacter={state.角色}
-                            cultivationSystemEnabled={启用修炼体系}
+                            cultivationSystemEnabled={false}
                             itemImageSequence={itemImageSequence}
                             queue={meta.imageGenerationQueue || []}
                             sceneArchive={meta.sceneImageArchive || {}}
@@ -3535,7 +3234,7 @@ const App: React.FC = () => {
                         <ImageManagerModal
                             socialList={state.社交}
                             playerCharacter={state.角色}
-                            cultivationSystemEnabled={启用修炼体系}
+                            cultivationSystemEnabled={false}
                             itemImageSequence={itemImageSequence}
                             queue={meta.imageGenerationQueue || []}
                             sceneArchive={meta.sceneImageArchive || {}}
@@ -3714,7 +3413,7 @@ const App: React.FC = () => {
                             {isMobile ? (
                                 <MobileSocial
                                     socialList={state.社交}
-                                    cultivationSystemEnabled={启用修炼体系}
+                                    cultivationSystemEnabled={false}
                                     openingConfig={state.开局配置}
                                     onClose={() => setters.setShowSocial(false)}
                                     selectedNpcId={selectedSocialNpcId}
@@ -3726,15 +3425,14 @@ const App: React.FC = () => {
                                     onTogglePresence={actions.updateNpcPresence}
                                      onDeleteNpc={actions.removeNpc}
                                      onLearnSkill={handleLearnNpcSkill}
-                                     onRecruitToSect={handleRecruitNpcToSect}
-                                    onStealFromNpc={handleStealFromNpc}
+                                     onStealFromNpc={handleStealFromNpc}
                                      onRetryImage={actions.retryNpcImageGeneration}
                                      playerSect={state.玩家门派}
                                   />
                             ) : (
                                 <SocialModal
                                     socialList={state.社交}
-                                    cultivationSystemEnabled={启用修炼体系}
+                                    cultivationSystemEnabled={false}
                                     openingConfig={state.开局配置}
                                     onClose={() => setters.setShowSocial(false)}
                                     selectedNpcId={selectedSocialNpcId}
@@ -3746,49 +3444,10 @@ const App: React.FC = () => {
                                     onTogglePresence={actions.updateNpcPresence}
                                      onDeleteNpc={actions.removeNpc}
                                      onLearnSkill={handleLearnNpcSkill}
-                                     onRecruitToSect={handleRecruitNpcToSect}
                                       onStealFromNpc={handleStealFromNpc}
                                       onRetryImage={actions.retryNpcImageGeneration}
                                       playerSect={state.玩家门派}
                                   />
-                            )}
-                        </懒加载边界>
-                    )}
-
-                    {启用修炼体系 && state.showKungfu && (
-                        <懒加载边界>
-                            {isMobile ? (
-                                <MobileKungfuModal
-                                    skills={safeCharacter?.功法列表 || []}
-                                    topicMode={state.开局配置?.题材模式}
-                                    onClose={() => setters.setShowKungfu(false)}
-                                />
-                            ) : (
-                                <KungfuModal
-                                    skills={safeCharacter?.功法列表 || []}
-                                    topicMode={state.开局配置?.题材模式}
-                                    onClose={() => setters.setShowKungfu(false)}
-                                />
-                            )}
-                        </懒加载边界>
-                    )}
-
-                    {state.showSkills && (
-                        <懒加载边界>
-                            {isMobile ? (
-                                <MobileSkillsPanel
-                                    技艺列表={safeCharacter?.技艺 || []}
-                                    社交列表={state.社交}
-                                    典籍列表={safeCharacter?.功法列表 || []}
-                                    onClose={() => setters.setShowSkills(false)}
-                                />
-                            ) : (
-                                <SkillsPanel
-                                    技艺列表={safeCharacter?.技艺 || []}
-                                    社交列表={state.社交}
-                                    典籍列表={safeCharacter?.功法列表 || []}
-                                    onClose={() => setters.setShowSkills(false)}
-                                />
                             )}
                         </懒加载边界>
                     )}
@@ -3858,36 +3517,6 @@ const App: React.FC = () => {
                                     onInsertCommand={insertChatDraft}
                                     rawResponse={mapRegenerateRawText}
                                     onClose={() => setters.setShowMap(false)}
-                                />
-                            )}
-                        </懒加载边界>
-                    )}
-
-                    {state.showSect && (
-                        <懒加载边界>
-                            {isMobile ? (
-                                <MobileSect
-                                    sectData={state.玩家门派}
-                                    env={state.环境}
-                                    onOpenNpc={openNpcDetailFromRecord}
-                                    onLearnBook={handleLearnSectBook}
-                                    onClaimMonthlyStipend={handleClaimMonthlyStipend}
-                                    onExchange={handleSectExchange}
-                                    learnedBookIds={learnedSectBookIds}
-                                    onClose={() => setters.setShowSect(false)}
-                                    socialList={state.社交}
-                                />
-                            ) : (
-                                <SectModal
-                                    sectData={state.玩家门派}
-                                    env={state.环境}
-                                    onOpenNpc={openNpcDetailFromRecord}
-                                    onLearnBook={handleLearnSectBook}
-                                    onClaimMonthlyStipend={handleClaimMonthlyStipend}
-                                    onExchange={handleSectExchange}
-                                    learnedBookIds={learnedSectBookIds}
-                                    onClose={() => setters.setShowSect(false)}
-                                    socialList={state.社交}
                                 />
                             )}
                         </懒加载边界>

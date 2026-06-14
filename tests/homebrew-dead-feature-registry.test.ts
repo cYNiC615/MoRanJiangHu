@@ -317,4 +317,76 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('prompts/runtime');
         expect(registry).toContain('lightweight opposition system');
     });
+
+    it('removes wuxia cultivation, kungfu, skills, and sect player-visible entrypoints', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('KungfuModal');
+        expect(app).not.toContain('MobileKungfuModal');
+        expect(app).not.toContain('SkillsPanel');
+        expect(app).not.toContain('MobileSkillsPanel');
+        expect(app).not.toContain('SectModal');
+        expect(app).not.toContain('MobileSect');
+        expect(app).not.toContain('showKungfu');
+        expect(app).not.toContain('showSkills');
+        expect(app).not.toContain('showSect');
+        expect(app).not.toContain('openKungfu');
+        expect(app).not.toContain('openSkills');
+        expect(app).not.toContain('openSect');
+        expect(app).not.toContain('onOpenKungfu');
+        expect(app).not.toContain('onOpenSect');
+        expect(app).not.toContain('handleLearnSectBook');
+        expect(app).not.toContain('handleSectExchange');
+        expect(app).not.toContain('handleRecruitNpcToSect');
+        expect(app).not.toContain('cultivationSystemEnabled={启用修炼体系}');
+
+        const rightPanel = readProjectFile('components/layout/RightPanel.tsx');
+        expect(rightPanel).not.toContain('onOpenKungfu');
+        expect(rightPanel).not.toContain('onOpenSect');
+        expect(rightPanel).not.toContain('enableKungfu');
+        expect(rightPanel).not.toContain('kungfuLabel');
+        expect(rightPanel).not.toContain("changeKeys: ['功法']");
+        expect(rightPanel).not.toContain("changeKeys: ['玩家门派']");
+
+        const mobileMenu = readProjectFile('components/layout/MobileQuickMenu.tsx');
+        expect(mobileMenu).not.toContain("| 'kungfu'");
+        expect(mobileMenu).not.toContain("| 'skills'");
+        expect(mobileMenu).not.toContain("| 'sect'");
+        expect(mobileMenu).not.toContain("id: 'kungfu'");
+        expect(mobileMenu).not.toContain("id: 'skills'");
+        expect(mobileMenu).not.toContain("id: 'sect'");
+        expect(mobileMenu).not.toContain("case 'kungfu'");
+        expect(mobileMenu).not.toContain("case 'skills'");
+        expect(mobileMenu).not.toContain("case 'sect'");
+
+        const gameSettings = readProjectFile('components/features/Settings/GameSettings.tsx');
+        expect(gameSettings).not.toContain('修炼体系相关内容');
+        expect(gameSettings).not.toContain('启用修炼体系');
+
+        const desktopWizard = readProjectFile('components/features/NewGame/NewGameWizard.tsx');
+        const mobileWizard = readProjectFile('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
+        for (const wizard of [desktopWizard, mobileWizard]) {
+            expect(wizard).not.toContain('开局生成门派');
+            expect(wizard).not.toContain('境界体系提示词');
+            expect(wizard).not.toContain('manualRealmPrompt');
+        }
+
+        const diyTools = readProjectFile('components/features/NewGame/NewGameDiyTools.tsx');
+        expect(diyTools).not.toContain('境界体系');
+        expect(diyTools).not.toContain('启用修炼体系');
+        expect(diyTools).not.toContain('generateFandomRealmData');
+    });
+
+    it('records wuxia cultivation backend and prompt residue as pending removal', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('wuxia_cultivation_system');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('components/features/Kungfu');
+        expect(registry).toContain('components/features/Sect');
+        expect(registry).toContain('components/features/Skills');
+        expect(registry).toContain('models/kungfu.ts');
+        expect(registry).toContain('models/sect.ts');
+        expect(registry).toContain('prompts/stats/kungfu.ts');
+        expect(registry).toContain('prompts/core/realm.ts');
+    });
 });

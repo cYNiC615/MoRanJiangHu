@@ -312,6 +312,62 @@ in:
 - Inventory sell-to-auction actions should disappear with the feature, not be
   silently redirected into a new economy system.
 
+## Feature: `legacy_battle_system`
+
+- Decision: retire and replace later.
+- Reason: The homebrew project will not keep the old battle UI, kungfu/realm
+  combat math, stance-like tactical panel, or traditional wuxia confrontation
+  loop. A future lightweight opposition system can be designed separately and
+  should not inherit this legacy battle surface by default.
+- Current status: `entrypoint_removed`, `backend_pending`.
+
+### Entrypoints Removed In This Pass
+
+- `App.tsx`: no longer lazy-loads or mounts `BattleModal` /
+  `MobileBattleModal`.
+- `App.tsx`: no longer handles the `battle` / `战斗` menu action or owns an
+  `openBattle` UI callback.
+- `components/layout/RightPanel.tsx`: removed the desktop battle system menu
+  button.
+- `components/layout/MobileQuickMenu.tsx`: removed the mobile battle quick-menu
+  item and icon.
+
+### Backend, Model, Prompt, And Test Residue Pending
+
+- `components/features/Battle`
+- `models/battle.ts`
+- `types.ts` export of battle state structures
+- `hooks/useGameState.ts` `showBattle` / `setShowBattle` UI state residue
+- `hooks/useGame.ts` battle state initialization, save/load, command
+  application, and auto-clear paths
+- `hooks/useGame/storyState.ts` battle normalization and empty battle helpers
+- `hooks/useGame/systemPromptBuilder.ts` battle context serialization
+- `hooks/useGame/responseCommandProcessor.ts` battle command application
+- `hooks/useGame/variableModelWorkflow.ts` battle state payload and command
+  surface
+- `utils/rulebook.ts` battle visualization helpers
+- `prompts/runtime` combat, variable, world-generation, and calibration
+  references that ask the AI to maintain `战斗`
+- `prompts/core` command/write rules that list `战斗` as an active writable root
+- `prompts/stats/combat.ts`
+- `__tests__/*battle*.test.ts`
+- `tests/battle-order-display.spec.mjs`
+
+### Replacement Direction
+
+- Do not convert this old system into the new design in place.
+- Later design a new lightweight opposition system around modern-urban
+  conflicts, danger pressure, social/physical stakes, and local-state
+  settlement. It may still let AI narrate the scene, but the code should own the
+  critical counters and resolution gates.
+
+### Storage And Migration Notes
+
+- Existing save data under root `战斗` can be dropped or normalized to an inert
+  empty object during a later strong migration.
+- Before deleting the model field, remove `战斗` from AI-writable command roots
+  and prompt schemas so new turns stop producing legacy battle commands.
+
 ## Feature: `cloud_play_and_sync`
 
 - Decision: retire.

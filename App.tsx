@@ -294,8 +294,6 @@ const MobileSettingsModal = 创建可预加载懒组件('mobile-settings-modal',
 const InventoryModal = 创建可预加载懒组件('inventory-modal', () => import('./components/features/Inventory/InventoryModal'));
 const MobileInventoryModal = 创建可预加载懒组件('mobile-inventory-modal', () => import('./components/features/Inventory/MobileInventoryModal'));
 const EquipmentModal = 创建可预加载懒组件('equipment-modal', () => import('./components/features/Equipment/EquipmentModal'));
-const BattleModal = 创建可预加载懒组件('battle-modal', () => import('./components/features/Battle/BattleModal'));
-const MobileBattleModal = 创建可预加载懒组件('mobile-battle-modal', () => import('./components/features/Battle/MobileBattleModal'));
 const SocialModal = 创建可预加载懒组件('social-modal', () => import('./components/features/Social/SocialModal'));
 const MobileSocial = 创建可预加载懒组件('mobile-social', () => import('./components/features/Social/MobileSocial'));
 const ImageManagerModal = 创建可预加载懒组件('image-manager-modal', () => import('./components/features/Social/ImageManagerModal'));
@@ -342,7 +340,6 @@ const 桌面轻量预热目标 = [
     SettingsModal,
     InventoryModal,
     EquipmentModal,
-    BattleModal,
     TeamModal,
     SocialModal,
     KungfuModal,
@@ -362,7 +359,6 @@ const 移动端轻量预热目标 = [
     MobileCharacter,
     MobileSettingsModal,
     MobileInventoryModal,
-    MobileBattleModal,
     MobileTeamModal,
     MobileSocial,
     MobileKungfuModal,
@@ -545,9 +541,6 @@ const App: React.FC = () => {
         环境信息: state.环境,
         历史记录: state.历史记录
     }), [state.游戏初始时间, state.角色, state.环境, state.历史记录]);
-    const currentRealmPrompt = React.useMemo(() => (
-        (state.prompts || []).find((prompt) => prompt?.id === 'core_realm')?.内容 || ''
-    ), [state.prompts]);
     const 唤醒物品自动生图扫描 = React.useCallback((delayMs = 0) => {
         if (typeof window === 'undefined') return;
         if (autoItemImageWakeTimerRef.current !== null) {
@@ -669,9 +662,6 @@ const App: React.FC = () => {
                 break;
             case 'equipment':
                 setters.setShowEquipment(true);
-                break;
-            case 'battle':
-                setters.setShowBattle(true);
                 break;
             case 'inventory':
                 setters.setShowInventory(true);
@@ -1201,16 +1191,6 @@ const App: React.FC = () => {
         });
         return [...bagRecords, ...auctionRecords];
     }, [state.角色?.物品列表, auctionHouseState?.拍卖品列表]);
-    const latestBattleContextText = React.useMemo(() => {
-        const response = latestAssistantMessage?.structuredResponse;
-        if (!response) return '';
-        return [
-            Array.isArray(response.logs) ? response.logs.map((log) => `${log?.sender || '旁白'}：${log?.text || ''}`).join('\n') : '',
-            response.t_state || '',
-            response.t_branch || '',
-            Array.isArray(response.dynamic_world) ? response.dynamic_world.join('\n') : '',
-        ].filter(Boolean).join('\n').slice(0, 1200);
-    }, [latestAssistantMessage]);
     // [已移除] 拍卖行物品不再从主角剧情正文中提取，改为从世界势力互动事件中自然流出。
     // 旧逻辑：从剧情响应构建拍卖行投放参数列表 → 投放事件拍卖品
     // 新逻辑：世界演化 → 势力互动 → 世界.拍卖行待投放物品 → 从势力互动投放拍卖品
@@ -1549,7 +1529,6 @@ const App: React.FC = () => {
     const 功法显示名称 = 题材界面文案.菜单.kungfu;
     const activeMobileWindow =
         showCharacter ? 题材界面文案.菜单.character :
-        state.showBattle ? 题材界面文案.菜单.battle :
         state.showEquipment ? 题材界面文案.菜单.equipment :
         state.showInventory ? 题材界面文案.菜单.inventory :
         state.showSocial ? 题材界面文案.菜单.social :
@@ -1572,7 +1551,6 @@ const App: React.FC = () => {
 
     const activeMobileWindowId =
         showCharacter ? 'character' :
-        state.showBattle ? 'battle' :
         state.showEquipment ? 'equipment' :
         state.showInventory ? 'inventory' :
         state.showSocial ? 'social' :
@@ -1595,7 +1573,6 @@ const App: React.FC = () => {
 
     const desktopRightDetailPanelOpen = state.view === 'game' && !isMobile && (
         showCharacter
-        || state.showBattle
         || state.showEquipment
         || state.showInventory
         || state.showSocial
@@ -1692,7 +1669,6 @@ const App: React.FC = () => {
     const closeAllPanels = React.useCallback(() => {
         setDesktopDetailFullscreen(false);
         setShowCharacter(false);
-        setters.setShowBattle(false);
         setters.setShowInventory(false);
         setters.setShowEquipment(false);
         setters.setShowTeam(false);
@@ -1757,10 +1733,6 @@ const App: React.FC = () => {
     const openEquipment = React.useCallback(() => {
         closeAllPanels();
         setters.setShowEquipment(true);
-    }, [closeAllPanels, setters]);
-    const openBattle = React.useCallback(() => {
-        closeAllPanels();
-        setters.setShowBattle(true);
     }, [closeAllPanels, setters]);
     const openTeam = React.useCallback(() => {
         closeAllPanels();
@@ -2455,9 +2427,6 @@ const App: React.FC = () => {
             case '装备':
                 setters.setShowEquipment(true);
                 break;
-            case '战斗':
-                setters.setShowBattle(true);
-                break;
             case '背包':
                 setters.setShowInventory(true);
                 break;
@@ -2995,7 +2964,6 @@ const App: React.FC = () => {
                                 onOpenSettings={openSettings} 
                                 onOpenInventory={openInventory}
                                 onOpenEquipment={openEquipment} 
-                                onOpenBattle={openBattle}
                                 onOpenTeam={openTeam}
                                 onOpenSocial={openSocial}
                                 onOpenKungfu={openKungfu}
@@ -3718,31 +3686,6 @@ const App: React.FC = () => {
                                 }}
                                 onClose={() => setters.setShowEquipment(false)} 
                             />
-                        </懒加载边界>
-                    )}
-
-                    {state.showBattle && (
-                        <懒加载边界>
-                            {isMobile ? (
-                                <MobileBattleModal
-                                    character={state.角色}
-                                    battle={state.战斗}
-                                    contextText={latestBattleContextText}
-                                    openingConfig={state.开局配置}
-                                    realmPrompt={currentRealmPrompt}
-                                    onClose={() => setters.setShowBattle(false)}
-                                />
-                            ) : (
-                                <BattleModal
-                                    character={state.角色}
-                                    battle={state.战斗}
-                                    teammates={state.社交}
-                                    contextText={latestBattleContextText}
-                                    openingConfig={state.开局配置}
-                                    realmPrompt={currentRealmPrompt}
-                                    onClose={() => setters.setShowBattle(false)}
-                                />
-                            )}
                         </懒加载边界>
                     )}
 

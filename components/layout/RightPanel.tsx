@@ -6,7 +6,6 @@ interface Props {
     onOpenSettings: () => void;
     onOpenInventory: () => void;
     onOpenEquipment: () => void;
-    onOpenBattle: () => void;
     onOpenTeam: () => void;
     onOpenSocial: () => void;
     onOpenKungfu: () => void;
@@ -41,7 +40,6 @@ const RightPanel: React.FC<Props> = ({
     onOpenSettings,
     onOpenInventory,
     onOpenEquipment,
-    onOpenBattle,
     onOpenTeam,
     onOpenSocial,
     onOpenKungfu,
@@ -96,7 +94,6 @@ const RightPanel: React.FC<Props> = ({
     const systemHeaderTitle = titleLabel?.系统菜单题头 || '天机';
     const systemHeaderSubtitle = titleLabel?.系统菜单副题 || 'System Menu';
     const menuItems = [
-        { label: menuLabel?.battle || '战斗', action: onOpenBattle, color: 'primary' as const, changeKeys: ['战斗'] },
         { label: menuLabel?.equipment || '装备', action: onOpenEquipment, color: 'primary' as const, changeKeys: ['装备'] },
         { label: menuLabel?.inventory || '背包', action: onOpenInventory, color: 'primary' as const, changeKeys: ['背包'] },
         { label: menuLabel?.social || '社交', action: onOpenSocial, color: 'primary' as const, changeKeys: ['社交'] },

@@ -283,4 +283,38 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('prompts/runtime/fandom*.ts');
         expect(registry).toContain('data/creativeWorkshopModules.ts');
     });
+
+    it('removes legacy battle player-visible entrypoints', () => {
+        const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('BattleModal');
+        expect(app).not.toContain('MobileBattleModal');
+        expect(app).not.toContain('showBattle');
+        expect(app).not.toContain("case 'battle'");
+        expect(app).not.toContain("case '战斗'");
+        expect(app).not.toContain('openBattle');
+        expect(app).not.toContain('onOpenBattle');
+        expect(app).not.toContain('latestBattleContextText');
+        expect(app).not.toContain('battle={state.战斗}');
+
+        const rightPanel = readProjectFile('components/layout/RightPanel.tsx');
+        expect(rightPanel).not.toContain('onOpenBattle');
+        expect(rightPanel).not.toContain('menuLabel?.battle');
+        expect(rightPanel).not.toContain("changeKeys: ['战斗']");
+
+        const mobileMenu = readProjectFile('components/layout/MobileQuickMenu.tsx');
+        expect(mobileMenu).not.toContain("| 'battle'");
+        expect(mobileMenu).not.toContain("id: 'battle'");
+        expect(mobileMenu).not.toContain("case 'battle'");
+    });
+
+    it('records legacy battle backend and replacement direction as pending removal', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('legacy_battle_system');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('components/features/Battle');
+        expect(registry).toContain('models/battle.ts');
+        expect(registry).toContain('prompts/runtime');
+        expect(registry).toContain('lightweight opposition system');
+    });
 });

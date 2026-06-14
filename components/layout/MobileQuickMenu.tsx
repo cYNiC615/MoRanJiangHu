@@ -3,7 +3,6 @@ import type { 题材界面文案 } from '../../utils/resourceLabels';
 
 type MenuId =
     | 'character'
-    | 'battle'
     | 'equipment'
     | 'inventory'
     | 'social'
@@ -39,7 +38,6 @@ interface Props {
 
 type IconName =
     | 'profile'
-    | 'battle'
     | 'equipment'
     | 'bag'
     | 'social'
@@ -68,7 +66,6 @@ type MenuMeta = {
 
 const MENU_META: Record<Exclude<MenuId, 'more'>, MenuMeta> = {
     character: { id: 'character', label: '角色', icon: 'profile' },
-    battle: { id: 'battle', label: '战斗', icon: 'battle' },
     equipment: { id: 'equipment', label: '装备', icon: 'equipment' },
     inventory: { id: 'inventory', label: '背包', icon: 'bag' },
     social: { id: 'social', label: '社交', icon: 'social' },
@@ -114,7 +111,6 @@ const MobileQuickMenu: React.FC<Props> = ({
 
     const visibleMenus = useMemo<MenuMeta[]>(() => ([
         metaFor(MENU_META.character),
-        metaFor(MENU_META.battle),
         metaFor(MENU_META.equipment),
         metaFor(MENU_META.inventory),
         metaFor(MENU_META.social),
@@ -131,7 +127,6 @@ const MobileQuickMenu: React.FC<Props> = ({
 
     const allMenus = useMemo<MenuMeta[]>(() => ([
         metaFor(MENU_META.character),
-        metaFor(MENU_META.battle),
         metaFor(MENU_META.equipment),
         metaFor(MENU_META.inventory),
         metaFor(MENU_META.social),
@@ -284,8 +279,6 @@ const IconGlyph = ({ name, className }: { name: IconName; className?: string }) 
     switch (name) {
         case 'profile':
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="3.2" /><path d="M5.5 19c1.2-3.1 3.4-4.7 6.5-4.7s5.3 1.6 6.5 4.7" /></svg>;
-        case 'battle':
-            return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m7 5 4.5 4.5L8 13l-3.5-3.5L7 5Z" /><path d="m17 5-4.5 4.5L16 13l3.5-3.5L17 5Z" /><path d="M9 15h6M8 19h8" /></svg>;
         case 'equipment':
             return <svg viewBox="0 0 24 24" className={svgClass} fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m4.5 7 4-2.5 2.5 2.5-2.5 4z" /><path d="m10 10 7 7" /><path d="m16.5 16.5-2 2" /></svg>;
         case 'bag':

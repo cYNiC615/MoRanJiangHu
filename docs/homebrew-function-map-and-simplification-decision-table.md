@@ -136,7 +136,7 @@
 | Social | NPC、关系、社交档案、立绘 | `components/features/Social`, `models/social.ts` | 核心保留并可能扩展 | 社交/关系保留；位置管理和在场判定作为问题子系统单独重做 |
 | Inventory/Equipment | 背包、装备、物品、画像展示 | `components/features/Inventory`, `components/features/Equipment`, `models/item.ts` | 保留；规则化候选 | 交易、消耗、装备变更优先转本地规则 |
 | AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 入口已移除/后端待删 | Phase 1 已删除右栏、移动快捷菜单、弹窗挂载和背包寄售入口；世界待投放字段、prompt、服务和测试仍待后端清理 |
-| Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 准备移除 | 不做功法/站位/传统对打；后续另做新的轻量级系统化对抗 |
+| Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 入口已移除/后端待删 | Phase 1 已删除桌面/移动战斗面板入口、App 挂载和预加载；后续另做新的轻量级系统化对抗，不复用旧功法/站位/传统对打 |
 | Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 准备移除 | 武侠/修仙完全不要；组织/能力以后另行设计 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
 | Music / Audio Cues | 背景音乐、播放器、音乐设置、曲库持久化、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/turnNotificationSound.ts` | 已移除 | Phase 1 已删除播放器、设置 tab、默认曲库、元数据工具、回合提示音开关、播放副作用和音频资产；旧存储数据待强迁移清理 |
@@ -190,7 +190,7 @@
 | 本地模式包 | 保留但瘦身 | 可作为题材/风味扩展机制 | 从“创意工坊”改为本地扩展，不接社区 |
 | Cloudflare Worker | 暂缓/冻结 | 可能仍有托管/API 代理价值 | 不新增依赖；删除社区/同步/API 后再评估 |
 | 图片生成 | 暂缓/冻结 | 可能提升体验，但链路很重 | 暂不扩展；等确定视觉目标 |
-| 旧战斗系统 | 准备移除 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | 删除入口和上下文，再分批删模型/UI |
+| 旧战斗系统 | 入口已移除/后端待删 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | Phase 1 已删除 App/RightPanel/MobileQuickMenu 战斗入口；后续删除模型、prompt、命令根、UI 文件和旧测试 |
 | 拍卖行/市场 | 入口已移除/后端待删 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | Phase 1 已删除 UI 入口和 Inventory 寄售入口；后续删除服务、世界状态字段、prompt 引用和测试 |
 | 社交/NPC 关系 | 核心保留/重构候选 | 男性向恋爱、亲密关系和重要 NPC 互动是核心体验 | 保留并扩展关系体验；位置/在场系统单独重做 |
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |

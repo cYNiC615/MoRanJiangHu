@@ -30,6 +30,33 @@ const deps = {
     战斗结束自动清空: (value?: any) => value || {}
 };
 
+describe('responseCommandProcessor retired environment systems', () => {
+    it('ignores AI commands that try to maintain structured weather or festival state', () => {
+        const state = 构建基础状态();
+        state.环境 = {
+            时间: '1:01:01:08:00',
+            天气: { 天气: '晴', 结束日期: '1:01:01:12:00' },
+            节日: { 名称: '旧节日', 简介: '旧描述', 效果: '旧效果' },
+            环境变量: []
+        } as any;
+
+        const result = 执行响应命令处理({
+            logs: [{ sender: '旁白', text: '雨声只作为正文氛围出现，没有成为游戏状态。' }],
+            tavern_commands: [
+                { action: 'set', key: '环境.天气', value: { 天气: '暴雨', 结束日期: '1:01:01:18:00' } },
+                { action: 'set', key: '环境.节日', value: { 名称: '雨祭', 简介: '雨中节日', 效果: '影响行动' } },
+                { action: 'set', key: '天气', value: { 天气: '暴雨' } },
+                { action: 'set', key: '节日.名称', value: '雨祭' }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect((result.环境 as any).天气).toEqual({ 天气: '晴', 结束日期: '1:01:01:12:00' });
+        expect((result.环境 as any).节日).toEqual({ 名称: '旧节日', 简介: '旧描述', 效果: '旧效果' });
+        expect((result as any).天气).toBeUndefined();
+        expect((result as any).节日).toBeUndefined();
+    });
+});
+
 describe('responseCommandProcessor dialogue social sync', () => {
     it('does not promote new dialogue speakers into long-term social records without stronger structured evidence', () => {
         const state = 构建基础状态();

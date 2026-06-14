@@ -40,7 +40,7 @@ const 次级按钮样式 = 'rounded-lg border border-gray-700/80 px-3 py-2 text-
 
 const 分区列表: Array<{ key: 变量根键; label: string; description: string }> = [
     { key: '角色', label: '角色', description: '主角角色档案、属性、装备和状态。' },
-    { key: '环境', label: '环境', description: '时间、地点、天气与环境变量。' },
+    { key: '环境', label: '环境', description: '时间、地点与环境变量。' },
     { key: '社交', label: '社交', description: 'NPC 列表与其动态状态。' },
     { key: '世界', label: '世界', description: '活跃NPC、事件、势力、江湖史册等。' },
     { key: '地图系统', label: '地图系统', description: '地图层级、建筑、道路、人物等空间数据。' },

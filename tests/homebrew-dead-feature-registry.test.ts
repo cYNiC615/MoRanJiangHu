@@ -304,6 +304,56 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('settings key: `festivals`');
     });
 
+    it('removes structured weather and festival AI context entrypoints', () => {
+        const topBar = readProjectFile('components/layout/TopBar.tsx');
+        expect(topBar).not.toContain("'weather'");
+        expect(topBar).not.toContain('weatherDisplay');
+        expect(topBar).not.toContain('当前天气');
+        expect(topBar).not.toContain('预计结束');
+        expect(topBar).not.toContain('label="天气"');
+        expect(topBar).not.toContain("label: '天气'");
+
+        const systemPromptBuilder = readProjectFile('hooks/useGame/systemPromptBuilder.ts');
+        expect(systemPromptBuilder).not.toContain('天气原始');
+        expect(systemPromptBuilder).not.toContain('天气结束日期');
+        expect(systemPromptBuilder).not.toContain('节日原始');
+        expect(systemPromptBuilder).not.toContain('取文本(天气原始?.天气)');
+        expect(systemPromptBuilder).not.toContain('取文本(节日原始?.名称)');
+
+        const stateHelpers = readProjectFile('utils/stateHelpers.ts');
+        expect(stateHelpers).not.toContain("'天气', '环境变量'");
+        expect(stateHelpers).not.toContain("'节日', '时间'");
+
+        const worldEvolutionUtils = readProjectFile('hooks/useGame/worldEvolutionUtils.ts');
+        expect(worldEvolutionUtils).not.toContain('环境.天气');
+
+        expect(readProjectFile('prompts/core/data.ts')).not.toContain('├─ 天气');
+        expect(readProjectFile('prompts/core/data.ts')).not.toContain('├─ 节日');
+        expect(readProjectFile('prompts/core/cotOpening.ts')).not.toContain('规划天气');
+        expect(readProjectFile('prompts/core/cotOpening.ts')).not.toContain('环境变量、节日');
+        expect(readProjectFile('prompts/runtime/opening.ts')).not.toContain('节日/天气');
+        expect(readProjectFile('prompts/runtime/opening.ts')).not.toContain('`天气` 使用对象结构');
+        expect(readProjectFile('prompts/runtime/openingVariableGenerationInit.ts')).not.toContain('天气、节日');
+        expect(readProjectFile('prompts/runtime/worldEvolution.ts')).not.toContain('环境.天气');
+        expect(readProjectFile('prompts/runtime/worldEvolution.ts')).not.toContain('天气整体变化');
+        expect(readProjectFile('prompts/runtime/worldEvolutionCot.ts')).not.toContain('环境.天气');
+        expect(readProjectFile('prompts/runtime/variableCot.ts')).not.toContain('天气、环境变量');
+        expect(readProjectFile('prompts/stats/recovery.ts')).not.toContain('环境.天气');
+        expect(readProjectFile('prompts/stats/others.ts')).not.toContain('环境.天气');
+        expect(readProjectFile('prompts/difficulty/physiology.ts')).not.toContain('环境天气');
+    });
+
+    it('records weather game system as downgraded to prose atmosphere only', () => {
+        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
+        expect(registry).toContain('weather_game_system');
+        expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('automatic_side_effect_removed');
+        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('prose_atmosphere_only');
+        expect(registry).toContain('models/environment.ts');
+        expect(registry).toContain('hooks/useGame/stateTransforms.ts');
+    });
+
     it('removes new-game fandom and novel-injection player-visible entrypoints', () => {
         const desktopWizard = readProjectFile('components/features/NewGame/NewGameWizard.tsx');
         const mobileWizard = readProjectFile('components/features/NewGame/mobile/MobileNewGameWizard.tsx');

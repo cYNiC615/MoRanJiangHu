@@ -18,6 +18,8 @@ hide backend code, stored data, prompts, or tests that still need a later pass.
   tests still exist and should be deleted or migrated later.
 - `storage_pending`: Historical local data may still exist in IndexedDB or old
   saves, but active code no longer reads or writes it.
+- `prose_atmosphere_only`: The concept may appear in generated prose or visual
+  descriptions, but is no longer maintained as structured game state.
 - `fully_removed`: Entrypoints, backend code, prompt references, tests, and
   local data migration are complete.
 
@@ -695,9 +697,10 @@ focused passes:
 - Reason: Festivals should not be a game system in this homebrew fork. If a
   scene wants seasonal flavor, the AI can mention it in prose without a
   structured festival config, top-bar card, or automatic state effect.
-- Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`, `prose_atmosphere_only`.
 
-### Entrypoints And Runtime Effects Removed In This Pass
+### Entrypoints, Context, And Runtime Effects Removed In This Pass
 
 - Deleted `data/world.ts`, the default festival list.
 - Deleted `components/features/Settings/WorldSettings.tsx`, the festival
@@ -717,26 +720,84 @@ focused passes:
   `updateFestivals`.
 - `utils/settingsSchema.ts` and `services/dbService.ts`: no longer list or
   summarize the active festival setting.
+- `hooks/useGame/systemPromptBuilder.ts`: no longer serializes `环境.节日` into
+  active AI context.
+- `utils/stateHelpers.ts`: no longer treats relative `节日` as an environment
+  command target, and ignores commands targeting `环境.节日`.
+- `utils/variableRegistry.ts`: rejects variable commands targeting
+  `环境.节日`.
+- `prompts/core/data.ts`, `prompts/core/cotOpening.ts`,
+  `prompts/runtime/opening.ts`, and
+  `prompts/runtime/openingVariableGenerationInit.ts`: no longer ask the AI to
+  initialize structured festival state.
 
-### Backend, Model, And Prompt Residue Pending
+### Backend And Model Residue Pending
 
 - `models/environment.ts`: still contains `环境节日信息结构` and
   `环境信息结构.节日`.
 - `models/system.ts`: still exports `节日结构`.
 - `hooks/useGame/storyState.ts`: still initializes `环境.节日`.
 - `hooks/useGame/stateTransforms.ts`: still normalizes incoming `节日`.
-- `hooks/useGame/systemPromptBuilder.ts`: still serializes `环境.节日` into AI
-  context.
-- `utils/stateHelpers.ts`: still allows `环境.节日` as a command target.
-- `prompts/core/data.ts`
-- `prompts/core/cotOpening.ts`
-- `prompts/runtime/opening.ts`
-- `prompts/runtime/openingVariableGenerationInit.ts`
 
 ### Storage And Migration Notes
 
 - Historical IndexedDB settings key: `festivals`.
 - The old settings key can be deleted during the strong migration pass.
-- Before removing `环境.节日` from models and prompts, clear prompt references
-  so the AI no longer attempts to initialize or update structured festival
-  state.
+- `环境.节日` can be dropped or normalized during the strong environment-schema
+  migration because active prompts and command processing no longer maintain it.
+
+## Feature: `weather_game_system`
+
+- Decision: downgrade to prose atmosphere only.
+- Reason: Weather should not be a structured game concept in this homebrew
+  fork. If rain, heat, wind, or light matter in a scene, the AI can describe
+  them in prose without maintaining a weather object, top-bar card, or expiry
+  timestamp.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`, `prose_atmosphere_only`.
+
+### Entrypoints, Context, And Runtime Effects Removed In This Pass
+
+- `components/layout/TopBar.tsx`: removed the weather card, detail panel,
+  mobile info button, fullscreen detail, and desktop divider slot.
+- `hooks/useGame/systemPromptBuilder.ts`: no longer serializes `环境.天气` into
+  active AI context.
+- `utils/stateHelpers.ts`: no longer treats relative `天气` as an environment
+  command target, and ignores commands targeting `环境.天气`.
+- `utils/variableRegistry.ts`: rejects variable commands targeting
+  `环境.天气`.
+- `hooks/useGame/worldEvolutionUtils.ts`: world evolution no longer allows
+  `环境.天气` as a writable prefix.
+- `prompts/core/data.ts`, `prompts/core/cotOpening.ts`,
+  `prompts/runtime/opening.ts`,
+  `prompts/runtime/openingVariableGenerationInit.ts`,
+  `prompts/runtime/worldEvolution.ts`,
+  `prompts/runtime/worldEvolutionCot.ts`,
+  `prompts/runtime/variableCot.ts`,
+  `prompts/stats/recovery.ts`, `prompts/stats/others.ts`, and
+  `prompts/difficulty/physiology.ts`: no longer ask the AI to initialize,
+  update, or use structured weather state.
+- `hooks/useGame/sceneImageTriggerWorkflow.ts`: no longer reads stale
+  `环境.天气` into the scene fingerprint or image context.
+- `utils/visualSettings.ts` and
+  `components/features/Settings/VariableManager.tsx`: copy no longer presents
+  weather as a managed UI/status field.
+
+### Backend And Model Residue Pending
+
+- `models/environment.ts`: still contains `天气信息结构` and
+  `环境信息结构.天气`.
+- `hooks/useGame/storyState.ts`: still initializes `环境.天气`.
+- `hooks/useGame/stateTransforms.ts`: still normalizes incoming `天气`.
+- Historical saves may still contain `环境.天气`.
+- Parser or diagnostic text may still mention weather as ordinary prose or
+  leakage-filter vocabulary; those mentions do not make weather an active game
+  system.
+
+### Storage And Migration Notes
+
+- Existing weather objects in saves can be dropped or ignored during the strong
+  environment-schema migration.
+- Do not add a replacement local weather generator in Phase 1. Future scene
+  atmosphere can stay prose-only unless a later design explicitly reintroduces
+  a lightweight environmental pressure system.

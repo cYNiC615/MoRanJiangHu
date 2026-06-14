@@ -68,7 +68,7 @@ const 深合并对象 = (left: any, right: any): any => {
 };
 
 const 世界相对根字段 = ['活跃NPC列表', '待执行事件', '进行中事件', '已结算事件', '世界镜头规划', '江湖史册', '地图', '建筑', '地图层级', '地图建筑', '地图道路', '地图人物', '势力列表', '势力互动历史', '拍卖行待投放物品'];
-const 环境相对根字段 = ['天气', '环境变量', '大地点', '中地点', '小地点', '具体地点', '节日', '时间'];
+const 环境相对根字段 = ['环境变量', '大地点', '中地点', '小地点', '具体地点', '时间'];
 const 剧情相对根字段 = ['当前章节', '下一章预告', '历史卷宗'];
 const 剧情规划相对根字段 = ['当前章目标', '当前章任务', '跨章延续事项', '待触发事件', '镜头规划', '换章规则'];
 const 女主规划相对根字段 = ['阶段推进', '女主条目', '女主互动事件', '女主镜头规划'];
@@ -85,12 +85,22 @@ const 兼容值路径别名 = (rawPath: string): string => {
 };
 
 const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
+const 废弃环境字段 = new Set(['天气', '节日']);
 
 export const 是否废弃世界地图字段路径 = (normalizedKey: string): boolean => {
     const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
     const match = comparable.match(/^世界(?:\.|\[|$)([^.\[]*)/u);
     if (!match) return false;
     return 废弃世界地图字段.has(match[1] || '');
+};
+
+export const 是否废弃环境字段路径 = (normalizedKey: string): boolean => {
+    const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
+    const root = comparable.split(/[.\[]/u)[0] || '';
+    if (废弃环境字段.has(root)) return true;
+    const match = comparable.match(/^环境(?:\.|\[|$)([^.\[]*)/u);
+    if (!match) return false;
+    return 废弃环境字段.has(match[1] || '');
 };
 
 export const normalizeStateCommandKey = (rawKey: string): string => {
@@ -312,6 +322,10 @@ export const applyStateCommand = (
     };
 
     if (!parsed) {
+        return result;
+    }
+
+    if (是否废弃环境字段路径(normalizedKey)) {
         return result;
     }
 

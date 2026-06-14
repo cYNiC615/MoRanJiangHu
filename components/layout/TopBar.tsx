@@ -185,10 +185,6 @@ const DetailCard: React.FC<{
     );
 };
 
-const Divider = () => (
-    <div className="h-4 md:h-5 w-px bg-gradient-to-b from-transparent via-wuxia-gold/30 to-transparent mx-0.5 md:mx-1"></div>
-);
-
 const parseEnvTime = (env?: 环境信息结构): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     if (!env || typeof env !== 'object') return null;
     const canonical = normalizeCanonicalGameTime((env as any)?.时间);
@@ -297,7 +293,7 @@ const MobileInfoCard: React.FC<{
     );
 };
 
-type ExpandedType = 'weather' | 'environment' | 'time' | 'location' | 'journey' | null;
+type ExpandedType = 'environment' | 'time' | 'location' | 'journey' | null;
 
 const MobileInfoButton: React.FC<{
     label: string;
@@ -353,14 +349,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
     const mobileClockStr = displayTime;
 
     const dateBadge = 构建日期短文本(parsedTime);
-    const weatherDisplay = useMemo(() => {
-        const rawWeather = (环境 as any)?.天气;
-        if (rawWeather && typeof rawWeather === 'object') {
-            const current = typeof rawWeather?.天气 === 'string' ? rawWeather.天气.trim() : '';
-            return current || '未知';
-        }
-        return '未知';
-    }, [环境]);
     const environmentDisplay = useMemo(() => {
         const envVars = Array.isArray(环境?.环境变量)
             ? 环境.环境变量
@@ -378,7 +366,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
         return '无';
     }, [环境?.环境变量]);
 
-    const weatherEnd = (环境 as any)?.天气?.结束日期 || '长久';
     const locationBadge = useMemo(() => {
         const rawSmall = typeof 环境?.小地点 === 'string' ? 环境.小地点.trim() : '';
         const rawSpecific = typeof 环境?.具体地点 === 'string' ? 环境.具体地点.trim() : '';
@@ -467,15 +454,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
         : (环境?.环境变量 && typeof 环境.环境变量 === 'object' ? [环境.环境变量 as any] : []);
 
     const detailConfigs: Record<Exclude<ExpandedType, null>, { title: string; content: React.ReactNode }> = {
-        weather: {
-            title: '天象变更',
-            content: (
-                <>
-                    <p><span className="text-wuxia-gold/60">当前天气：</span>{weatherDisplay}</p>
-                    <p><span className="text-wuxia-gold/60">预计结束：</span>{weatherEnd}</p>
-                </>
-            ),
-        },
         environment: {
             title: '周遭环境',
             content: (
@@ -525,7 +503,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
     };
 
     const mobileItems = [
-        { type: 'weather' as const, label: '天气', shortLabel: '气', value: weatherDisplay, highlight: false },
         { type: 'environment' as const, label: '环境', shortLabel: '境', value: environmentDisplay, highlight: false },
         { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge} ${mobileClockStr} / 第${derivedDayCount}天`, highlight: false },
         { type: 'location' as const, label: '地点', shortLabel: '地', value: mobileLocationBadge, highlight: false },
@@ -586,41 +563,6 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
             <div className="hidden md:flex items-center justify-between w-full px-20 relative z-10 h-full">
                 <div className="flex items-center">
                     <div className="flex items-center">
-                        <div className="relative">
-                            <TopItem 
-                                label="天气" 
-                                value={weatherDisplay} 
-                                visualConfig={visualConfig} 
-                                isExpanded={expandedType === 'weather'}
-                                onMouseEnter={() => setExpandedType('weather')}
-                                onMouseLeave={() => setExpandedType(null)}
-                            />
-                            {expandedType === 'weather' && (
-                                <DetailCard 
-                                    title={detailConfigs.weather.title}
-                                    className="left-0"
-                                    onExpand={() => openFullscreenDetail('weather')}
-                                    onMouseEnter={() => setExpandedType('weather')}
-                                    onMouseLeave={() => setExpandedType(null)}
-                                    visualConfig={visualConfig}
-                                    content={
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 flex items-center justify-center bg-wuxia-gold/10 rounded-full border border-wuxia-gold/20">
-                                                <svg viewBox="0 0 64 64" className="w-8 h-8">
-                                                    <circle fill="#fbbf24" r="5" cy="24" cx="19"></circle>
-                                                    <path d="M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z" fill="#f3f7fe"></path>
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p className="text-lg font-bold">{weatherDisplay}</p>
-                                                <p className="text-wuxia-gold/60" style={{ fontSize: 顶栏字号(0.96, 13) }}>预计结束：{weatherEnd}</p>
-                                            </div>
-                                        </div>
-                                    }
-                                />
-                            )}
-                        </div>
-                        <Divider />
                         <div className="relative">
                             <TopItem 
                                 label="环境" 

@@ -32,8 +32,6 @@ WuXiaSaveData
 环境
 ├─ 时间: string(YYYY:MM:DD:HH:MM)
 ├─ 大地点/中地点/小地点/具体地点: string（环境当前位置文本；具体地点不是地图层级）
-├─ 节日: { 名称:string, 简介:string, 效果:string } | null
-├─ 天气: { 天气:string, 结束日期:string(YYYY:MM:DD:HH:MM) }
 └─ 环境变量: Array<{ 名称:string, 描述:string, 效果:string }>
 
 ## 3. 角色

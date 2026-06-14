@@ -11,7 +11,7 @@ import type {
 import { 规范化记忆配置 } from './memoryUtils';
 import { 格式化短期记忆展示文本 } from './memoryUtils';
 import { 构建NPC上下文 } from './npcContext';
-import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './timeUtils';
+import { normalizeCanonicalGameTime, 环境时间转标准串 } from './timeUtils';
 import { 计算游戏历程天数 } from '../../utils/gameTimeJourney';
 
 const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
@@ -363,24 +363,9 @@ export const 构建系统提示词 = ({
         );
         const 当前坐标X = typeof role?.当前坐标X === 'number' && Number.isFinite(role.当前坐标X) ? role.当前坐标X : 0;
         const 当前坐标Y = typeof role?.当前坐标Y === 'number' && Number.isFinite(role.当前坐标Y) ? role.当前坐标Y : 0;
-        const 节日原始 = env?.节日 && typeof env.节日 === 'object' ? env.节日 : null;
-        const 天气原始: any = env?.天气 && typeof env.天气 === 'object' ? env.天气 : {};
         const 环境变量列表原始 = Array.isArray(env?.环境变量)
             ? env.环境变量
             : (env?.环境变量 && typeof env.环境变量 === 'object' ? [env.环境变量] : []);
-        const 天气结束日期 = (() => {
-            if (typeof 天气原始?.结束日期 === 'string') {
-                const canonical = normalizeCanonicalGameTime(天气原始.结束日期);
-                return canonical || 天气原始.结束日期;
-            }
-            const structured = 结构化时间转标准串(天气原始?.结束日期);
-            if (structured) {
-                const canonical = normalizeCanonicalGameTime(structured);
-                return canonical || structured;
-            }
-            const fallback = 环境时间转标准串(env);
-            return fallback || '';
-        })();
         const orderedEnv = {
             时间: 当前时间标准串,
             开局时间: 开局时间标准串,
@@ -390,17 +375,6 @@ export const 构建系统提示词 = ({
             小地点: 取文本(env?.小地点),
             具体地点: 取文本(env?.具体地点),
             当前坐标: `[${当前坐标X},${当前坐标Y}]`,
-            节日: 节日原始
-                ? {
-                    名称: 取文本(节日原始?.名称),
-                    简介: 取文本(节日原始?.简介),
-                    效果: 取文本(节日原始?.效果)
-                }
-                : null,
-            天气: {
-                天气: 取文本(天气原始?.天气),
-                结束日期: 天气结束日期
-            },
             环境变量: 环境变量列表原始
                 .map((item: any, idx: number) => ({
                     索引: idx,

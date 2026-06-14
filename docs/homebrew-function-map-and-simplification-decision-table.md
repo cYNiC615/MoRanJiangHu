@@ -27,7 +27,7 @@
 - 武侠和修仙完全不要，不只是“不作为默认”。
 - 旧战斗系统不要。后续需要一个新的轻量级对抗系统替代它，可能会更偏系统玩法；但不保留功法、站位、传统对打体系作为目标。
 - 社交/NPC 关系是核心体验，甚至可能扩展；但当前 AI 驱动的位置管理和在场判定 bug 很多，后续要停用、强约束或重做，暂不急着拍板具体实现。
-- 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。Phase 1 已先移除节日设置、默认节日表、TopBar 展示和自动写入环境节日的副作用。
+- 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。Phase 1 已移除节日设置、默认节日表、天气/节日 TopBar 展示、强制上下文、prompt/schema 写入要求和自动写入环境节日的副作用。
 - 时间仍可能需要保留，但应设计成轻量、低上下文占用的系统。
 - 工程健康本身也是 Phase 目标。当前 `npx tsc --noEmit` 暴露了大量仓库既有类型债，最终完成整体精简后要求回到 0 error / 0 warning 的验证状态；后续每个模块删除都不能继续扩大类型债。
 
@@ -160,7 +160,7 @@
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 入口和自动列表已移除/后端待删 | `列出创意工坊模块` 不再 fetch 云端列表；保留本地模式包时后续删除 publish/edit/delete/download API |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口已移除/后端待删 | 前端可见入口已断；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 新建角入口已移除/后端待删 | 新建角同人配置入口已断；创意工坊、提示词、设置和 API 残留后续清理 |
-| Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 节日入口已移除/天气待降级 | Phase 1 已删除节日默认数据、设置入口、TopBar 节日展示和自动环境写入；`环境.节日` 模型、prompt/schema 和命令路径仍待删 |
+| Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 已降级为正文氛围/模型待删 | Phase 1 已删除节日默认数据、设置入口、天气/节日 TopBar 展示、强制上下文、prompt/schema 写入要求、AI 命令写入路径和自动环境写入；`环境.节日` / `环境.天气` 模型字段和旧存档残留待强迁移 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 准备移除 | 不改二手市场，不保留拍卖行；后续若要交易系统另起轻量设计 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
@@ -198,8 +198,8 @@
 | 背包/装备/货币 | 保留/重构候选 | 账务最适合代码接管 | 优先规则化交易、消耗、装备穿脱 |
 | 时间 | 重构候选 | 仍可能需要轻量时间轴，但不能占用过多上下文 | 单独设计轻量时间系统 |
 | 音乐/音频提示 | 已移除 | 与 homebrew 核心体验无关，且增加设置、持久化、媒体资产和 UI 面板负担 | Phase 1 已删除 MusicProvider、播放器、音乐设置、默认曲库、元数据工具、回合提示音、音频资产和存储键 |
-| 天气 | 准备移除/降级 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 从结构化状态和强制上下文中移除 |
-| 节日 | 入口已移除/模型提示词待删 | 意义小且占上下文 | Phase 1 已删除默认节日表、节日设置页、TopBar 节日卡和自动写入环境节日的副作用；后续删除 `环境.节日`、prompt/schema 和旧 settings key |
+| 天气 | 已降级/模型待删 | 不作为游戏概念；AI 正文写了就有，不写就没有 | Phase 1 已移除 TopBar、强制上下文、prompt/schema 写入要求、命令写入和场景图读取旧天气；后续删除 `环境.天气` 模型字段与旧存档残留 |
+| 节日 | 已降级/模型待删 | 意义小且占上下文 | Phase 1 已删除默认节日表、节日设置页、TopBar 节日卡、强制上下文、prompt/schema 写入要求、命令写入和自动写入副作用；后续删除 `环境.节日` 模型字段与旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
 | 同人/原著融合 | 新建角入口已移除/后端待删 | 用户明确不做同人 | Phase 1 已删除新建角同人融合、角色替换和摘要入口；后续删除模型/提示词/服务/API |
 | 小说分解 | 入口已移除/后端待删 | 用户明确不做小说分解 | Phase 1 已移除工作台、设置、创意工坊和新建角附加小说入口；第二批删服务、模型、prompts、tests 和 storage keys |
@@ -275,8 +275,8 @@ Phase 1 全局完成的标准：下面所有明确废弃功能族都至少达到
 | 旧战斗 | 删除旧战斗面板和菜单；后续另做轻量级对抗系统 | 已断入口，后端/prompt/model 待删 |
 | 拍卖行 | 删除拍卖行面板和背包寄售入口 | 已断入口，后端/prompt/model 待删 |
 | 音乐/音频提示 | 删除播放器、音乐设置、曲库、提示音和播放副作用 | 已删除运行时代码，仅历史存储迁移待处理 |
-| 节日 | 删除节日设置、TopBar 展示和自动写入副作用 | 已断入口和副作用，环境模型/prompt 待删 |
-| 天气游戏系统 | 降级为正文氛围，不作为结构化游戏概念 | 待 Phase 1 切除或降级 |
+| 节日 | 删除节日设置、TopBar 展示、强制上下文和自动写入副作用 | 已断入口、上下文和命令写入；模型/storage 待删 |
+| 天气游戏系统 | 降级为正文氛围，不作为结构化游戏概念 | 已移除 UI、上下文、prompt/schema 和命令写入；模型/storage 待删 |
 | 武侠/修仙专属入口 | 删除功法、技艺、门派、境界配置和新建角武侠专属入口 | 已断入口，后端/prompt/model 待删 |
 
 #### Phase 1 范围边界
@@ -302,7 +302,7 @@ Phase 1 完成的定义：
 Phase 1 不算完成的情况：
 
 - 只删前端入口但没有登记后端、prompt、storage key 和测试残留。
-- AI prompt 仍主动要求模型写入已废弃模块的核心状态，例如拍卖行待投放、节日、小说分解滑窗。
+- AI prompt 仍主动要求模型写入已废弃模块的核心状态，例如拍卖行待投放、节日/天气结构化状态、小说分解滑窗。
 - 新建角或设置页仍能配置已明确废弃的模块。
 - 为了让某个删除通过而把错误静默吞掉，却没有登记迁移计划。
 

@@ -74,8 +74,7 @@ const 生成场景摘要 = (bodyText: string, envLike: any, 环境时间转标�
         .filter((item) => typeof item === 'string' && item.trim().length > 0)
         .join(' / ');
     const timeText = 环境时间转标准串(envLike) || (typeof envLike?.时间 === 'string' ? envLike.时间.trim() : '');
-    const weather = typeof envLike?.天气?.天气 === 'string' ? envLike.天气.天气.trim() : '';
-    return [location, weather, timeText, body.slice(0, 80)].filter(Boolean).join(' · ');
+    return [location, timeText, body.slice(0, 80)].filter(Boolean).join(' · ');
 };
 
 const 提取正文包裹片段 = (bodyText: string): string[] => {
@@ -194,7 +193,6 @@ export const 创建场景生图触发工作流 = (deps: 场景生图触发工作
             具体地点: envSnapshot?.具体地点 || '',
             时间: deps.环境时间转标准串(envSnapshot) || envSnapshot?.时间 || '未知时间',
             地点: deps.构建完整地点文本(envSnapshot),
-            天气: envSnapshot?.天气?.天气 || '',
             玩家输入: params.playerInput || '',
             最新正文: bodyText,
             场景目标: effectiveComposition === '剧照'

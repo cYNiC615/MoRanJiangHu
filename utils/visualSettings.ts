@@ -47,7 +47,7 @@ export const 视觉区域列表: Array<{ key: 可用视觉区域; label: string;
     { key: '旁白', label: '旁白', description: '剧情叙述、环境描写与小说式段落。' },
     { key: '角色对话', label: '角色对话', description: '角色气泡、姓名牌与对白正文。' },
     { key: '判定', label: '判定卡', description: '判定结果、数值与修饰项卡片。' },
-    { key: '顶部栏', label: '顶部栏', description: '天气、时间、节日与地点牌匾。' },
+    { key: '顶部栏', label: '顶部栏', description: '时间、地点与环境牌匾。' },
     { key: '左侧栏', label: '左侧栏', description: '角色面板、状态条、装备区。' },
     { key: '右侧栏', label: '右侧栏', description: '系统菜单与操作入口。' },
     { key: '角色档案', label: '角色档案', description: '角色档案弹窗与文牒信息。' }

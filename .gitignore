@@ -65,6 +65,8 @@ lerna-debug.log*
 # Local tooling state
 /.wrangler/
 /.codex/
+/.agents/
+/.claude/
 /.mimocode/
 
 # Sensitive local data, save packages, debug outputs, and generated app bundles

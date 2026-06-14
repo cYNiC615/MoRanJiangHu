@@ -16,17 +16,17 @@ describe('worldEvolution visible events', () => {
             '建立活跃 NPC 列表：初始化杨镇远（叔父）作为后台活跃对象，正在演武场准备考校。',
             '建立待执行事件：将“晨间剑法考校”正式纳入后台待执行事件池，计划 07:00 触发。',
             '青云门与铁衣帮在洛水渡口争夺镖路，三家商队暂停北上。',
-            '黑市传出玄铁残卷流入临安拍卖行，引动数派暗探。'
+            '黑市传出玄铁残卷被旧契牵连，引动数派暗探。'
         ]);
 
         expect(updates).toEqual([
             '青云门与铁衣帮在洛水渡口争夺镖路，三家商队暂停北上。',
-            '黑市传出玄铁残卷流入临安拍卖行，引动数派暗探。'
+            '黑市传出玄铁残卷被旧契牵连，引动数派暗探。'
         ]);
         expect(是否后台世界工程描述('建立活跃 NPC 列表：初始化杨镇远（叔父）作为后台活跃对象。')).toBe(true);
     });
 
-    it('synthesizes Jianghu-scale visible news from faction commands when model notes are internal', () => {
+    it('synthesizes visible news from faction commands and ignores retired market buffers', () => {
         const commands = 规范化世界演变命令列表([
             {
                 action: 'push',
@@ -45,19 +45,23 @@ describe('worldEvolution visible events', () => {
             }
         ] as any);
 
+        expect(commands.map((cmd) => cmd.key)).toEqual([
+            'gameState.世界.势力互动历史'
+        ]);
+
         const updates = 整理客户可见世界大事([
             '建立待执行事件：将“晨间剑法考校”正式纳入后台待执行事件池。'
         ], commands);
 
         expect(updates[0]).toContain('青云门、铁衣帮发生争夺');
-        expect(updates[1]).toContain('玄铁残卷');
+        expect(updates.join('\n')).not.toContain('玄铁残卷');
         expect(updates.join('\n')).not.toContain('待执行事件');
     });
 
-    it('allows faction-related world evolution paths', () => {
+    it('allows faction-related world evolution paths and rejects the retired market buffer', () => {
         expect(normalizeStateCommandKey('势力列表')).toBe('gameState.世界.势力列表');
         expect(normalizeStateCommandKey('势力互动历史')).toBe('gameState.世界.势力互动历史');
-        expect(normalizeStateCommandKey('拍卖行待投放物品')).toBe('gameState.世界.拍卖行待投放物品');
+        expect(normalizeStateCommandKey('拍卖行待投放物品')).not.toBe('gameState.世界.拍卖行待投放物品');
 
         const commands = 规范化世界演变命令列表([
             {
@@ -79,8 +83,7 @@ describe('worldEvolution visible events', () => {
 
         expect(commands.map((cmd) => cmd.key)).toEqual([
             'gameState.世界.势力列表',
-            'gameState.世界.势力互动历史',
-            'gameState.世界.拍卖行待投放物品'
+            'gameState.世界.势力互动历史'
         ]);
     });
 
@@ -111,7 +114,7 @@ describe('worldEvolution visible events', () => {
         });
 
         expect(updates.join('\n')).toContain('青云门、铁衣帮发生争夺');
-        expect(updates.join('\n')).toContain('玄铁残卷');
+        expect(updates.join('\n')).not.toContain('玄铁残卷');
         expect(updates.join('\n')).not.toContain('晨间剑法考校');
         expect(updates.join('\n')).not.toContain('演武场');
     });
@@ -127,8 +130,7 @@ describe('worldEvolution visible events', () => {
             约定列表: [],
             世界: {
                 势力列表: [],
-                势力互动历史: [],
-                拍卖行待投放物品: []
+                势力互动历史: []
             }
         };
 
@@ -137,6 +139,11 @@ describe('worldEvolution visible events', () => {
             key: '世界.势力列表',
             value: [{ ID: 'qingyun', 名称: '青云门' }]
         }, baseState as any).allowed).toBe(true);
+        expect(校验变量命令是否登记({
+            action: 'push',
+            key: '世界.拍卖行待投放物品',
+            value: { 名称: '玄铁残卷' }
+        }, baseState as any).allowed).toBe(false);
     });
 
     it('surfaces new faction-like names from current story text for world-evolution backfill', () => {

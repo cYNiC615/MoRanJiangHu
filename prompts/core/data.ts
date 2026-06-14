@@ -127,7 +127,7 @@ CurrencyUnit = { id:string, name:string, symbol?:string, baseRate:number, order:
 - 角色.金钱 的金元宝/银子/铜钱三层兼容字段必须保留；baseAmount 是程序结算用最小单位，可缺省由程序补齐。
 - 现代/都市可用单币种元、信用点；古代/武侠可用金/银/铜；修仙可用极品/上品/中品/下品灵石；末世可用信用点、物资券、瓶盖、子弹；无限流可用奖励点、支线剧情。
 - 所有 baseRate 必须是正整数；baseUnitId 对应单位的 baseRate 必须为 1；order 越大表示越高等级货币；普通世界 1-4 个单位即可。
-- 交易、购买、出售和拍卖结算由程序按 baseAmount 处理，AI 不要在剧情或变量里手动乱算汇率。
+- 交易、购买和出售结算由程序按 baseAmount 处理，AI 不要在剧情或变量里手动乱算汇率。
 
 ## 4. 社交
 社交[i]

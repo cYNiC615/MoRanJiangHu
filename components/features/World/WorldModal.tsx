@@ -91,7 +91,6 @@ const WorldModal: React.FC<Props> = ({
     const 江湖史册 = Array.isArray(world?.江湖史册) ? world.江湖史册 : [];
     const 势力列表 = Array.isArray(world?.势力列表) ? world.势力列表 : [];
     const 势力互动历史 = Array.isArray(world?.势力互动历史) ? world.势力互动历史 : [];
-    const 拍卖行待投放物品 = Array.isArray(world?.拍卖行待投放物品) ? world.拍卖行待投放物品 : [];
 
     const handleForceUpdate = async () => {
         if (!onForceUpdate || worldEvolutionUpdating) return;
@@ -362,8 +361,8 @@ const WorldModal: React.FC<Props> = ({
                                     )}
                                 </section>
 
-                                {(势力互动历史.length > 0 || 拍卖行待投放物品.length > 0) && (
-                                    <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                {势力互动历史.length > 0 && (
+                                    <section>
                                         <div className="rounded-2xl border border-gray-800 bg-black/35 p-5">
                                             <div className="text-sm font-serif font-bold text-wuxia-gold tracking-[0.25em] mb-4">势力风闻</div>
                                             <div className="space-y-3">
@@ -377,22 +376,6 @@ const WorldModal: React.FC<Props> = ({
                                                     </div>
                                                 ))}
                                                 {势力互动历史.length === 0 && <div className="text-xs text-gray-600 italic">暂无势力互动传闻。</div>}
-                                            </div>
-                                        </div>
-                                        <div className="rounded-2xl border border-gray-800 bg-black/35 p-5">
-                                            <div className="text-sm font-serif font-bold text-purple-300 tracking-[0.25em] mb-4">市面风声</div>
-                                            <div className="space-y-3">
-                                                {拍卖行待投放物品.slice(0, 8).map((item, idx) => (
-                                                    <div key={`market-item-${item.名称 || idx}`} className="rounded-xl border border-purple-900/25 bg-purple-950/10 p-4">
-                                                        <div className="flex items-center justify-between gap-3">
-                                                            <div className="text-sm font-semibold text-purple-100">{item.名称 || `未知物品 ${idx + 1}`}</div>
-                                                            <div className="rounded-full border border-purple-900/40 px-2 py-0.5 text-[10px] text-purple-300">{item.品质 || '未知品质'}</div>
-                                                        </div>
-                                                        <div className="mt-2 text-xs text-gray-400">{item.类型 || '物品'}</div>
-                                                        {取文本(item.描述) && <div className="mt-2 text-sm leading-6 text-gray-300">{item.描述}</div>}
-                                                    </div>
-                                                ))}
-                                                {拍卖行待投放物品.length === 0 && <div className="text-xs text-gray-600 italic">暂无拍卖风声。</div>}
                                             </div>
                                         </div>
                                     </section>

@@ -135,7 +135,7 @@
 | Map | 地图层级、地点浏览、NPC 位置 | `components/features/Map`, `utils/mapSpatial.ts`, `utils/mapNpcLocation.ts` | 保留但重做边界 | 地点/移动可保留；NPC 位置和在场判定暂列重做，不急着让 AI 继续写 |
 | Social | NPC、关系、社交档案、立绘 | `components/features/Social`, `models/social.ts` | 核心保留并可能扩展 | 社交/关系保留；位置管理和在场判定作为问题子系统单独重做 |
 | Inventory/Equipment | 背包、装备、物品、画像展示 | `components/features/Inventory`, `components/features/Equipment`, `models/item.ts` | 保留；规则化候选 | 交易、消耗、装备变更优先转本地规则 |
-| AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 入口已移除/后端待删 | Phase 1 已删除右栏、移动快捷菜单、弹窗挂载和背包寄售入口；世界待投放字段、prompt、服务和测试仍待后端清理 |
+| AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 入口和副作用已移除/后端待删 | Phase 1 已删除右栏、移动快捷菜单、弹窗挂载、背包寄售入口、App 状态/补货/桥接、存档读写、世界演化写入路径和桌面世界面板展示；服务、旧组件、模型字段和测试仍待深删 |
 | Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 入口已移除/后端待删 | Phase 1 已删除桌面/移动战斗面板入口、App 挂载和预加载；后续另做新的轻量级系统化对抗，不复用旧功法/站位/传统对打 |
 | Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills`, `models/sect.ts`, `models/kungfu.ts` | 入口已移除/后端待删 | Phase 1 已删除 App 挂载、右栏、移动快捷菜单、设置开关、新建角手动境界/开局门派和境界 DIY 入口；组件目录、模型、prompt、命令根、存档字段和测试仍待后端清理 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
@@ -161,7 +161,7 @@
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口已移除/后端待删 | 前端可见入口已断；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
 | Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 新建角入口已移除/后端待删 | 新建角同人配置入口已断；创意工坊、提示词、设置和 API 残留后续清理 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 已降级为正文氛围/模型待删 | Phase 1 已删除节日默认数据、设置入口、天气/节日 TopBar 展示、强制上下文、prompt/schema 写入要求、AI 命令写入路径和自动环境写入；`环境.节日` / `环境.天气` 模型字段和旧存档残留待强迁移 |
-| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口已移除/后端待删 | 不改二手市场，不保留拍卖行；Phase 1 已断玩家入口，服务、图片数据、脚本、prompt 和模型字段后续深删 |
+| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口和副作用已移除/后端待删 | 不改二手市场，不保留拍卖行；Phase 1 已断玩家入口、自动补货、存档桥接、AI 待投放写入和自动物品生图副作用，服务/图片数据/脚本/模型字段后续深删 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
 | Diagnostic | 上下文诊断、日志、报告 | `services/diagnostic*`, `components/features/Settings/WorkflowGraphSettings.tsx` | 保留开发态 | 可从玩家 UI 隐藏，研发保留 |
@@ -191,7 +191,7 @@
 | Cloudflare Worker | 暂缓/冻结 | 可能仍有托管/API 代理价值 | 不新增依赖；删除社区/同步/API 后再评估 |
 | 图片生成 | 暂缓/冻结 | 可能提升体验，但链路很重 | 暂不扩展；等确定视觉目标 |
 | 旧战斗系统 | 入口已移除/后端待删 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | Phase 1 已删除 App/RightPanel/MobileQuickMenu 战斗入口；后续删除模型、prompt、命令根、UI 文件和旧测试 |
-| 拍卖行/市场 | 入口已移除/后端待删 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | Phase 1 已删除 UI 入口和 Inventory 寄售入口；后续删除服务、世界状态字段、prompt 引用和测试 |
+| 拍卖行/市场 | 入口和副作用已移除/后端待删 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | Phase 1 已删除 UI 入口、Inventory 寄售入口、App 运行时桥接/补货、存档读写、世界演化待投放写入、旧市场 prompt 口径和桌面世界面板展示；后续删除服务、模型字段、题材 profile 残留和测试 |
 | 武侠/修炼/功法/门派 | 入口已移除/后端待删 | 用户明确不做武侠修仙；未来组织、能力和对抗都应按现代都市/近未来方向重设 | Phase 1 已删除功法/技艺/门派面板入口、修炼体系设置、新建角手动境界与开局门派入口；后续删除模型、prompt、命令根、组件目录、存档字段和相关测试 |
 | 社交/NPC 关系 | 核心保留/重构候选 | 男性向恋爱、亲密关系和重要 NPC 互动是核心体验 | 保留并扩展关系体验；位置/在场系统单独重做 |
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |
@@ -273,7 +273,7 @@ Phase 1 全局完成的标准：下面所有明确废弃功能族都至少达到
 | 移动端 | 删除移动入口、移动布局和移动组件挂载 | App 壳入口已断，移动组件/Capacitor/测试待删 |
 | Android/APK | 删除更新检查、下载、发布面板、APK 设置入口和自动检查 | 已断入口和自动效果，后端/release/android 待删 |
 | 旧战斗 | 删除旧战斗面板和菜单；后续另做轻量级对抗系统 | 已断入口，后端/prompt/model 待删 |
-| 拍卖行 | 删除拍卖行面板和背包寄售入口 | 已断入口，后端/prompt/model 待删 |
+| 拍卖行 | 删除拍卖行面板、背包寄售入口、App 自动副作用、存档桥接和 AI 待投放写入 | 已断入口和活跃副作用，后端/model/storage/test 待删 |
 | 音乐/音频提示 | 删除播放器、音乐设置、曲库、提示音和播放副作用 | 已删除运行时代码，仅历史存储迁移待处理 |
 | 节日 | 删除节日设置、TopBar 展示、强制上下文和自动写入副作用 | 已断入口、上下文和命令写入；模型/storage 待删 |
 | 天气游戏系统 | 降级为正文氛围，不作为结构化游戏概念 | 已移除 UI、上下文、prompt/schema 和命令写入；模型/storage 待删 |

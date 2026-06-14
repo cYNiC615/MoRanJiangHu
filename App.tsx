@@ -22,7 +22,6 @@ import { 生图最大自动重试次数, 执行生图模型调用带重试, 读�
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
 import { RELEASE_INFO } from './data/releaseInfo';
-import { 读取拍卖行状态, 保存拍卖行状态, 清理并补货, 构建拍卖行存储作用域, 从势力互动投放拍卖品, type 拍卖行状态 } from './services/auctionHouse';
 import { 获取题材界面文案 } from './utils/resourceLabels';
 import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
@@ -46,7 +45,7 @@ const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
     return DESKTOP_DETAIL_MAX_WIDTH;
 };
 
-const 获取物品自动生图Key = (_scope: 'bag' | 'auction', item: any): string => 获取物品图标复用Key(item);
+const 获取物品自动生图Key = (item: any): string => 获取物品图标复用Key(item);
 
 const 是同类物品图标复用目标 = (left: any, right: any): boolean => (
     获取物品图标复用Key(left) === 获取物品图标复用Key(right)
@@ -427,20 +426,6 @@ const App: React.FC = () => {
     const [showWorldbookManager, setShowWorldbookManager] = React.useState(false);
     const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
-    const [auctionHouseState, setAuctionHouseState] = React.useState<拍卖行状态>(() => {
-        try {
-            return 读取拍卖行状态();
-        } catch (error) {
-            recordDiagnosticLog('warn', ['拍卖行初始化失败，已使用空状态兜底', error]);
-            return 清理并补货({
-                拍卖品列表: [],
-                交易记录: [],
-                最近补货时间: 0,
-                行情列表: [],
-                最近行情时间: 0
-            }, { 允许系统补货: false });
-        }
-    });
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
     const [sceneQuickGenToastVisible, setSceneQuickGenToastVisible] = React.useState(false);
@@ -469,12 +454,6 @@ const App: React.FC = () => {
     const 最近运行报错提示时间Ref = React.useRef(0);
     const legacyImageMigrationNoticeStageRef = React.useRef(legacyImageMigrationStatus.stage);
     const legacySaveLineageMigrationNoticeStageRef = React.useRef(legacySaveLineageMigrationStatus.stage);
-    const auctionHouseScope = React.useMemo(() => 构建拍卖行存储作用域({
-        游戏初始时间: state.游戏初始时间,
-        角色数据: state.角色,
-        环境信息: state.环境,
-        历史记录: state.历史记录
-    }), [state.游戏初始时间, state.角色, state.环境, state.历史记录]);
     const 唤醒物品自动生图扫描 = React.useCallback((delayMs = 0) => {
         if (typeof window === 'undefined') return;
         if (autoItemImageWakeTimerRef.current !== null) {
@@ -554,20 +533,6 @@ const App: React.FC = () => {
         });
         return unsubscribe;
     }, [actions]);
-    React.useEffect(() => {
-        const next = 清理并补货(读取拍卖行状态(auctionHouseScope), { 题材模式: state.开局配置?.题材模式 });
-        setAuctionHouseState(next);
-        保存拍卖行状态(next, auctionHouseScope);
-    }, [auctionHouseScope, state.开局配置?.题材模式]);
-    React.useEffect(() => {
-        const handleAuctionLoaded = (event: Event) => {
-            const detail = (event as CustomEvent<{ scope?: string; state?: 拍卖行状态 }>).detail;
-            if (!detail?.state) return;
-            setAuctionHouseState(detail.state);
-        };
-        window.addEventListener('moranjianghu:auction-house-loaded', handleAuctionLoaded);
-        return () => window.removeEventListener('moranjianghu:auction-house-loaded', handleAuctionLoaded);
-    }, []);
     React.useEffect(() => {
         const shouldBuildSnapshot = state.showSettings
             && (state.activeTab === 'context' || state.activeTab === 'prompt');
@@ -896,73 +861,8 @@ const App: React.FC = () => {
                 最终负向提示词: record?.最终负向提示词
             }));
         });
-        const auctionRecords = (Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : []).flatMap((entry: any) => {
-            const item = entry?.物品;
-            const history = Array.isArray(item?.图片档案?.生图历史) ? item.图片档案.生图历史 : [];
-            return history.map((record: any, index: number) => ({
-                ...record,
-                id: `auction_${entry?.ID || 'item'}_${record?.id || record?.生成时间 || index}`,
-                原记录ID: record?.id,
-                物品名称: item?.名称 || '未命名物品',
-                物品类型: item?.类型,
-                物品品质: item?.品质,
-                生成时间: record?.生成时间,
-                状态: record?.状态 || 'success',
-                构图: record?.构图,
-                来源位置: '拍卖行' as const,
-                错误信息: typeof record?.错误信息 === 'string' ? record.错误信息.trim() : '',
-                调试链路: Array.isArray(record?.调试链路) ? record.调试链路 : undefined,
-                图片URL: record?.图片URL,
-                本地路径: record?.本地路径,
-                最终正向提示词: record?.最终正向提示词,
-                最终负向提示词: record?.最终负向提示词
-            }));
-        });
-        return [...bagRecords, ...auctionRecords];
-    }, [state.角色?.物品列表, auctionHouseState?.拍卖品列表]);
-    // [已移除] 拍卖行物品不再从主角剧情正文中提取，改为从世界势力互动事件中自然流出。
-    // 旧逻辑：从剧情响应构建拍卖行投放参数列表 → 投放事件拍卖品
-    // 新逻辑：世界演化 → 势力互动 → 世界.拍卖行待投放物品 → 从势力互动投放拍卖品
-
-    // 从世界势力互动中投放物品到拍卖行
-    const factionAuctionHandledRef = React.useRef<number>(0);
-    React.useEffect(() => {
-        const pendingItems = Array.isArray(state.世界?.拍卖行待投放物品) ? state.世界.拍卖行待投放物品 : [];
-        if (pendingItems.length === 0) return;
-        // 用长度+首项名称作为去重签名，避免重复投放
-        const signature = `${pendingItems.length}_${pendingItems[0]?.名称 || ''}`;
-        const signatureHash = signature.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
-        if (factionAuctionHandledRef.current === signatureHash) return;
-        factionAuctionHandledRef.current = signatureHash;
-        // 投放到拍卖行
-        setAuctionHouseState((prev) => {
-            const next = 从势力互动投放拍卖品(prev, pendingItems, { scope: auctionHouseScope, 题材模式: state.开局配置?.题材模式 });
-            return next;
-        });
-        console.info('[拍卖行桥接] 已从势力互动投放', pendingItems.length, '件物品');
-    }, [state.世界?.拍卖行待投放物品, auctionHouseScope, state.开局配置?.题材模式]);
-
-    const auctionRollHandledRef = React.useRef<string>('');
-    React.useEffect(() => {
-        if (state.view !== 'game' || latestAssistantMessage?.role !== 'assistant') return;
-        const signature = `${latestAssistantMessage.timestamp || 0}_${latestAssistantMessage.gameTime || ''}`;
-        if (!signature.trim() || auctionRollHandledRef.current === signature) return;
-        auctionRollHandledRef.current = signature;
-        setAuctionHouseState((prev) => {
-            const activeCount = (prev.拍卖品列表 || []).filter((entry) => entry.状态 === '上架中').length;
-            const shouldRoll = activeCount < 4 || Math.random() < 0.55;
-            if (!shouldRoll) return prev;
-            const next = 清理并补货(prev, {
-                允许系统补货: true,
-                最大系统补货数量: activeCount < 4 ? 2 : 1,
-                目标在售数量: 12,
-                题材模式: state.开局配置?.题材模式
-            });
-            if (next === prev || next.拍卖品列表 === prev.拍卖品列表) return prev;
-            保存拍卖行状态(next, auctionHouseScope);
-            return next;
-        });
-    }, [auctionHouseScope, latestAssistantMessage, state.view, state.开局配置?.题材模式]);
+        return bagRecords;
+    }, [state.角色?.物品列表]);
 
     React.useEffect(() => {
         const feature = state.apiConfig?.功能模型占位;
@@ -988,29 +888,16 @@ const App: React.FC = () => {
         const candidates: Array<{
             key: string;
             item: 游戏物品;
-            sourceLocation: '背包' | '拍卖行';
-            auctionId?: string;
+            sourceLocation: '背包';
         }> = [];
 
         bagItems.forEach((item: 游戏物品) => {
             if (!item) return;
             if (物品已有可用图标(item)) return;
             candidates.push({
-                key: 获取物品自动生图Key('bag', item),
+                key: 获取物品自动生图Key(item),
                 item,
                 sourceLocation: '背包'
-            });
-        });
-        const auctionItems = Array.isArray(auctionHouseState?.拍卖品列表) ? auctionHouseState.拍卖品列表 : [];
-        auctionItems.forEach((entry: any) => {
-            const item = entry?.物品 as 游戏物品 | undefined;
-            if (!item || entry?.状态 !== '上架中') return;
-            if (物品已有可用图标(item)) return;
-            candidates.push({
-                key: 获取物品自动生图Key('auction', item),
-                item,
-                sourceLocation: '拍卖行',
-                auctionId: entry?.ID
             });
         });
 
@@ -1055,24 +942,6 @@ const App: React.FC = () => {
                     }
                 }
                 return;
-            }
-            if (candidate.sourceLocation === '拍卖行' && candidate.auctionId) {
-                setAuctionHouseState((prev) => {
-                    const list = Array.isArray(prev?.拍卖品列表) ? prev.拍卖品列表 : [];
-                    const nextList = list.map((entry: any) => {
-                        if (entry?.ID === candidate.auctionId) return { ...entry, 物品: nextItem };
-                        const item = entry?.物品;
-                        if (!item || 物品已有可用图标(item)) return entry;
-                        return 是同类物品图标复用目标(item, candidate.item)
-                            ? { ...entry, 物品: 复用物品图片档案(item, nextItem) }
-                            : entry;
-                    });
-                    const changed = nextList.some((entry: any, index: number) => entry !== list[index]);
-                    if (!changed) return prev;
-                    const nextState = { ...prev, 拍卖品列表: nextList };
-                    if (shouldSave) 保存拍卖行状态(nextState, auctionHouseScope);
-                    return nextState;
-                });
             }
         };
 
@@ -1248,7 +1117,7 @@ const App: React.FC = () => {
             autoItemImageScheduledRef.current.delete(candidate.key);
             window.clearTimeout(idleTimer);
         };
-    }, [state.view, state.apiConfig, state.角色, setters, actions, auctionHouseState, auctionHouseScope, autoItemImageWakeTick, 唤醒物品自动生图扫描]);
+    }, [state.view, state.apiConfig, state.角色, setters, actions, autoItemImageWakeTick, 唤醒物品自动生图扫描]);
 
     const 题材界面文案 = React.useMemo(
         () => 获取题材界面文案(state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile),

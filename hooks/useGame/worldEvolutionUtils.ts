@@ -38,7 +38,6 @@ export const 规范化世界演变命令列表 = (commands: 世界演变命令[]
         '世界.江湖史册',
         '世界.势力列表',
         '世界.势力互动历史',
-        '世界.拍卖行待投放物品',
         '环境.环境变量',
         '环境.大地点',
         '环境.中地点',
@@ -119,17 +118,6 @@ const 取对象文本字段 = (value: any, fields: string[]): string => {
     return '';
 };
 
-const 取物品名称列表 = (value: any): string[] => {
-    const list = Array.isArray(value) ? value : [value];
-    return list
-        .map((item) => {
-            if (typeof item === 'string') return item.trim();
-            if (item && typeof item === 'object' && typeof item.名称 === 'string') return item.名称.trim();
-            return '';
-        })
-        .filter(Boolean);
-};
-
 const 从世界命令生成可见大事 = (commands: 世界演变命令[]): string[] => {
     const results: string[] = [];
     (Array.isArray(commands) ? commands : []).forEach((cmd) => {
@@ -143,14 +131,6 @@ const 从世界命令生成可见大事 = (commands: 世界演变命令[]): stri
             const type = typeof value?.类型 === 'string' ? value.类型.trim() : '势力互动';
             if (summary) {
                 results.push(factions ? `${factions}发生${type}：${summary}` : summary);
-            }
-            return;
-        }
-
-        if (key.startsWith('世界.拍卖行待投放物品')) {
-            const names = 取物品名称列表(value).slice(0, 3);
-            if (names.length > 0) {
-                results.push(`市场传出风声：${names.join('、')}开始流入市面，引动多方打探。`);
             }
             return;
         }
@@ -218,7 +198,6 @@ const 构建世界状态可见命令 = (worldLike: any): 世界演变命令[] =>
         commands.push({ action: 'set', key: '世界.势力列表', value: world.势力列表 });
     }
     pushArray('世界.势力互动历史', world.势力互动历史);
-    pushArray('世界.拍卖行待投放物品', world.拍卖行待投放物品);
     pushArray('世界.进行中事件', world.进行中事件);
     pushArray('世界.已结算事件', world.已结算事件);
     pushArray('世界.江湖史册', world.江湖史册);

@@ -84,12 +84,20 @@ describe('homebrew dead feature registry', () => {
 
     it('removes auction house player-visible entrypoints', () => {
         const app = readProjectFile('App.tsx');
+        expect(app).not.toContain('services/auctionHouse');
         expect(app).not.toContain('AuctionHouseModal');
         expect(app).not.toContain('showAuctionHouse');
+        expect(app).not.toContain('auctionHouseState');
+        expect(app).not.toContain('auctionHouseScope');
         expect(app).not.toContain("case 'auction_house'");
         expect(app).not.toContain('openAuctionHouse');
         expect(app).not.toContain('onOpenAuctionHouse');
         expect(app).not.toContain('auctionHouseLabel');
+        expect(app).not.toContain('moranjianghu:auction-house-loaded');
+        expect(app).not.toContain('从势力互动投放拍卖品');
+        expect(app).not.toContain('拍卖行桥接');
+        expect(app).not.toContain('世界.拍卖行待投放物品');
+        expect(app).not.toContain("sourceLocation: '拍卖行'");
         expect(app).not.toContain('onSellItem={handleSellBagItemToAuction}');
         expect(app).not.toContain('onSellAllMisc={handleSellAllMiscItems}');
         expect(app).not.toContain('已送入拍卖行');
@@ -115,16 +123,49 @@ describe('homebrew dead feature registry', () => {
         expect(mobileInventory).not.toContain('onSellAllMisc');
         expect(mobileInventory).not.toContain('拍卖行');
         expect(mobileInventory).not.toContain('寄售');
+
+        const saveCoordinator = readProjectFile('hooks/useGame/saveCoordinator.ts');
+        expect(saveCoordinator).not.toContain('services/auctionHouse');
+        expect(saveCoordinator).not.toContain('moranjianghu:auction-house-loaded');
+        expect(saveCoordinator).not.toContain('拍卖行:');
+
+        const worldEvolution = readProjectFile('hooks/useGame/worldEvolutionUtils.ts');
+        expect(worldEvolution).not.toContain('世界.拍卖行待投放物品');
+
+        const stateHelpers = readProjectFile('utils/stateHelpers.ts');
+        expect(stateHelpers).not.toContain('拍卖行待投放物品');
+
+        const worldPrompt = readProjectFile('prompts/stats/world.ts');
+        expect(worldPrompt).not.toContain('世界.拍卖行待投放物品');
+        expect(worldPrompt).not.toContain('拍卖行物品');
+
+        expect(readProjectFile('prompts/runtime/worldEvolution.ts')).not.toContain('世界.拍卖行待投放物品');
+        expect(readProjectFile('prompts/runtime/worldEvolutionCot.ts')).not.toContain('世界.拍卖行待投放物品');
+        expect(readProjectFile('prompts/runtime/worldDataSchema.ts')).not.toContain('世界.拍卖行待投放物品');
+        expect(readProjectFile('prompts/runtime/openingWorldEvolutionInit.ts')).not.toContain('拍卖行待投放物品');
+        expect(readProjectFile('prompts/runtime/openingConfig.ts')).not.toContain('auctionName');
+        expect(readProjectFile('prompts/runtime/worldSetup.ts')).not.toContain('auctionName');
+        expect(readProjectFile('prompts/runtime/worldGeneration.ts')).not.toContain('auctionName');
+        expect(readProjectFile('prompts/runtime/variableCalibrationReference.ts')).not.toContain('拍卖行');
+        expect(readProjectFile('prompts/core/data.ts')).not.toContain('拍卖');
+        expect(readProjectFile('components/features/Settings/ImageGenerationSettings.tsx')).not.toContain('拍卖行里没有图标');
+
+        const worldModal = readProjectFile('components/features/World/WorldModal.tsx');
+        expect(worldModal).not.toContain('拍卖行待投放物品');
+        expect(worldModal).not.toContain('拍卖风声');
     });
 
-    it('records auction house backend and prompts as pending removal after entrypoints are gone', () => {
+    it('records auction house backend and storage residue after active paths are gone', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('auction_house');
         expect(registry).toContain('entrypoint_removed');
+        expect(registry).toContain('automatic_side_effect_removed');
         expect(registry).toContain('backend_pending');
+        expect(registry).toContain('storage_pending');
         expect(registry).toContain('services/auctionHouse.ts');
         expect(registry).toContain('models/world.ts');
-        expect(registry).toContain('prompts/runtime/worldDataSchema.ts');
+        expect(registry).toContain('hooks/useGame/storyState.ts');
+        expect(registry).toContain('__tests__/auctionHouse.test.ts');
     });
 
     it('removes cloud play and cloud sync player-visible entrypoints', () => {

@@ -17,7 +17,6 @@ export const 构建题材模式提示词 = (openingConfig?: OpeningConfig | null
         `- 世界版图口径：${profile.mapPrompt}`,
         `- 交易/货币口径：${profile.currencyPrompt}`,
         `- 统一换算口径：${profile.currencyExchangePrompt}`,
-        `- 市场入口名称：${profile.auctionName}；相关物品应自然${profile.marketVerb}，不要使用与题材冲突的市场术语。`,
         `- 运行时时间口径：${runtime.time.narrativeStyle}`,
         `- 正文时间表达允许：${runtime.time.allowedTimeTerms.join('、') || '无'}；禁止：${runtime.time.bannedTimeTerms.join('、') || '无'}。环境.时间仍是唯一真值，必须固定写成 \`YYYY:MM:DD:HH:MM\`。`,
         `- 时间推进口径：${runtime.time.progressionPrompt}`,

@@ -2918,7 +2918,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <div className="text-base font-bold text-emerald-200">物品自动生图</div>
-                                <div className="mt-1 text-xs leading-6 text-emerald-100/70">开启后，背包和拍卖行里没有图标的物品会自动排队生成图标；物品生图历史可在图片管理器的“物品生图序列”中清理。</div>
+                                <div className="mt-1 text-xs leading-6 text-emerald-100/70">开启后，背包里没有图标的物品会自动排队生成图标；物品生图历史可在图片管理器的“物品生图序列”中清理。</div>
                             </div>
                             <ToggleSwitch
                                 checked={form.功能模型占位.物品生图启用}

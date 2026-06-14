@@ -25,13 +25,6 @@ import { 核心_世界观 } from '../../prompts/core/world';
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 设置键 } from '../../utils/settingsSchema';
 import { 环境时间转标准串 } from './timeUtils';
-import {
-    读取拍卖行状态,
-    保存拍卖行状态,
-    清理并补货,
-    构建拍卖行存储作用域,
-    type 拍卖行状态
-} from '../../services/auctionHouse';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 import { buildHistoryDebugSummary, buildSaveDebugSummary, collectLargestStrings, collectValueStats, recordSaveLoadTrace } from '../../utils/saveLoadTrace';
@@ -82,7 +75,6 @@ const 后台缓存当前存档图床图片 = (save: 存档结构): void => {
     收集图床图片地址(save.社交, urls);
     收集图床图片地址(save.场景图片档案, urls);
     收集图床图片地址(save.世界, urls);
-    收集图床图片地址(save.拍卖行, urls);
     if (urls.size === 0) return;
 
     const native = isNativeCapacitorEnvironment();
@@ -129,7 +121,6 @@ export type 自动存档快照结构 = {
     openingConfig?: OpeningConfig;
     visualConfig?: 视觉设置结构;
     sceneImageArchive?: 场景图片档案;
-    auctionHouse?: 拍卖行状态;
     force?: boolean;
 };
 
@@ -541,13 +532,6 @@ export const 创建存档数据 = (
     清理内嵌图片冗余字段(roleSource, { maxNodes: 50000 });
     清理内嵌图片冗余字段(socialSource, { maxNodes: 70000 });
     清理内嵌图片冗余字段(sceneImageArchiveSource, { maxNodes: 20000 });
-    const auctionHouseScope = 构建拍卖行存储作用域({
-        游戏初始时间: currentState.游戏初始时间,
-        角色数据: roleSource,
-        环境信息: envSource,
-        历史记录: historySnapshot
-    });
-    const auctionHouseSource = snapshot?.auctionHouse || 清理并补货(读取拍卖行状态(auctionHouseScope), { 题材模式: currentState.开局配置?.题材模式 });
     const filteredSceneImageArchive = 过滤当前存档场景图片档案(sceneImageArchiveSource, historySnapshot, deps);
     const filteredCharacterAnchors = 过滤当前存档角色锚点(
         currentState.角色锚点列表,
@@ -605,8 +589,7 @@ export const 创建存档数据 = (
         场景图片档案: filteredSceneImageArchive,
         核心提示词快照,
         角色锚点列表: deps.深拷贝(filteredCharacterAnchors.anchors),
-        当前角色锚点ID: filteredCharacterAnchors.currentAnchorId,
-        拍卖行: deps.深拷贝(auctionHouseSource)
+        当前角色锚点ID: filteredCharacterAnchors.currentAnchorId
     };
 };
 
@@ -908,17 +891,6 @@ export const 执行读取存档 = async (
         anchors: loadedAnchors.anchors.length,
         currentAnchorId: loadedAnchors.currentAnchorId
     });
-    const auctionScope = 构建拍卖行存储作用域(save);
-    const loadedAuctionState = save.拍卖行 && typeof save.拍卖行 === 'object'
-        ? 清理并补货(save.拍卖行 as 拍卖行状态, { 题材模式: save.开局配置?.题材模式 })
-        : 清理并补货(读取拍卖行状态(auctionScope), { 题材模式: save.开局配置?.题材模式 });
-    保存拍卖行状态(loadedAuctionState, auctionScope);
-    trace('auction.set.done');
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('moranjianghu:auction-house-loaded', {
-            detail: { scope: auctionScope, state: loadedAuctionState }
-        }));
-    }
     const restoredRerollSnapshot = deps.推入重Roll快照 ? 构建读档后重Roll快照(save, {
         role: loadedRole,
         env: normalizedEnv,

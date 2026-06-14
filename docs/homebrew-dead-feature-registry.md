@@ -54,7 +54,8 @@ Final homebrew simplification is not complete until:
 - Decision: retire.
 - Reason: The homebrew project will not support fanfiction/original-work
   adaptation, novel decomposition, or novel-decomposition workshop sharing.
-- Current status: `entrypoint_removed`, `backend_pending`.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -170,7 +171,8 @@ in:
 - Decision: retire.
 - Reason: The homebrew project will not support fanfiction/original-work
   adaptation or fandom blending as a new-game configuration path.
-- Current status: `entrypoint_removed`, `backend_pending`.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -264,7 +266,8 @@ in:
 - Reason: The homebrew project will not keep auction-house gameplay, nor
   convert it into a modern market in this pass. A future lightweight trade or
   opposition economy can be designed separately if needed.
-- Current status: `entrypoint_removed`, `backend_pending`.
+- Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
+  `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -281,12 +284,39 @@ in:
 - `components/features/Inventory/MobileInventoryModal.tsx`: removed the same
   mobile controls.
 
+### Automatic Side Effects Removed In This Pass
+
+- `App.tsx`: no longer imports auction-house service helpers, owns auction
+  state/scope, reads or saves auction-house state on startup, listens for
+  `moranjianghu:auction-house-loaded`, or restocks auction items after assistant
+  messages.
+- `App.tsx`: no longer bridges `世界.拍卖行待投放物品` into auction-house records.
+- `App.tsx`: no longer feeds auction-house item images into the image manager
+  history or automatic item-image generation queue.
+- `hooks/useGame/saveCoordinator.ts`: no longer stores `拍卖行` in new save
+  payloads, restores old auction-house state on load, saves auction-house
+  state separately, or dispatches the auction-house load event.
+- `hooks/useGame/worldEvolutionUtils.ts`: world-evolution commands targeting
+  `世界.拍卖行待投放物品` are no longer allowed or summarized as player-visible
+  world news.
+- `utils/stateHelpers.ts`: relative `拍卖行待投放物品` commands no longer normalize
+  into `gameState.世界.*`.
+- `prompts/stats/world.ts`, `prompts/runtime/worldEvolution.ts`,
+  `prompts/runtime/worldEvolutionCot.ts`,
+  `prompts/runtime/openingWorldEvolutionInit.ts`, and
+  `prompts/runtime/worldDataSchema.ts`: no longer ask AI world evolution to
+  write the retired pending-auction buffer.
+- Opening/world-generation/runtime reference prompts no longer use the old
+  auction/market runtime profile wording as an AI-facing system concept.
+- `prompts/core/data.ts`: currency instructions no longer describe auction
+  settlement as a structured program concept.
+- `components/features/World/WorldModal.tsx`: no longer shows the retired
+  pending-auction/market-rumor list inside the active desktop world panel.
+- `components/features/Settings/ImageGenerationSettings.tsx`: item automatic
+  image generation copy now only describes bag items.
+
 ### Backend And Data Pending
 
-- `App.tsx`: still imports auction service helpers, owns auction state/scope,
-  processes world pending auction items, and feeds auction items into item
-  image generation history. This is no longer player-visible, but must be
-  removed with the backend/prompt pass.
 - `components/features/AuctionHouse/AuctionHouseModal.tsx`
 - `services/auctionHouse.ts`
 - `data/defaultAuctionItemImages.ts`
@@ -295,27 +325,21 @@ in:
 - `models/world.ts` field: `拍卖行待投放物品`
 - `models/item.ts` source type: `拍卖行`
 - `models/imageGeneration.ts` source location: `拍卖行`
-- `utils/stateHelpers.ts` world root field: `拍卖行待投放物品`
+- `hooks/useGame/storyState.ts` still initializes and normalizes the retired
+  world field for historical save shapes.
+- `components/features/World/MobileWorldModal.tsx` still contains the old
+  mobile-only display residue; the mobile frontend is already unmounted and is
+  tracked by `mobile_frontend`.
 - `data/workshopThemes/topicModeThemeData.ts` auction/market labels
-- `components/features/Settings/ImageGenerationSettings.tsx` auto item image
-  copy that mentions auction-house items.
 - Image manager source-location references in social image management can be
   removed once auction item image generation is gone.
-
-### Prompt References Pending
-
-- `prompts/runtime/worldDataSchema.ts`
-- `prompts/runtime/worldGeneration.ts`
-- `prompts/runtime/variableCalibrationReference.ts`
-- `prompts/runtime/worldEvolution.ts`
-- `prompts/runtime/worldEvolutionCot.ts`
 
 ### Storage And Migration Notes
 
 - Existing auction-house state can be dropped in a strong migration.
-- Remove `世界.拍卖行待投放物品` from AI-writable world state before deleting
-  bridge code in `App.tsx`, otherwise world evolution may continue to emit
-  unused auction payloads.
+- Active AI-writable paths for `世界.拍卖行待投放物品` have been removed from the
+  world-evolution prompts and command filters; the remaining model/save residue
+  can be dropped during the strong schema migration.
 - Inventory sell-to-auction actions should disappear with the feature, not be
   silently redirected into a new economy system.
 

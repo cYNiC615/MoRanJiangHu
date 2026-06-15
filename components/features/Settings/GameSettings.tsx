@@ -22,7 +22,6 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
     ];
     const 剧情风格选项: Array<{ value: 游戏设置结构['剧情风格']; label: string }> = [
         { value: '后宫', label: '后宫' },
-        { value: '修炼', label: '修炼' },
         { value: '一般', label: '一般' },
         { value: '修罗场', label: '修罗场' },
         { value: '纯爱', label: '纯爱' },

@@ -33,6 +33,8 @@ import { 数值_其他设定 } from '../prompts/stats/others';
 import { 构建系统提示词 } from '../hooks/useGame/systemPromptBuilder';
 import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelector';
 import { 按功能开关过滤提示词内容 } from '../utils/promptFeatureToggles';
+import { 规范化内置提示词列表, 创建默认内置提示词列表 } from '../utils/builtinPrompts';
+import { 创建内置预设世界书, 规范化世界书列表 } from '../utils/worldbook';
 
 const readProjectFile = (relativePath: string) => {
     const absolutePath = resolve(process.cwd(), relativePath);
@@ -858,6 +860,7 @@ describe('homebrew dead feature registry', () => {
         const gameSettings = readProjectFile('components/features/Settings/GameSettings.tsx');
         expect(gameSettings).not.toContain('修炼体系相关内容');
         expect(gameSettings).not.toContain('启用修炼体系');
+        expect(gameSettings).not.toContain("{ value: '修炼'");
 
         const desktopWizard = readProjectFile('components/features/NewGame/NewGameWizard.tsx');
         const mobileWizard = readProjectFile('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
@@ -871,6 +874,45 @@ describe('homebrew dead feature registry', () => {
         expect(diyTools).not.toContain('境界体系');
         expect(diyTools).not.toContain('启用修炼体系');
         expect(diyTools).not.toContain('generateFandomRealmData');
+    });
+
+    it('removes retired cultivation style from visible builtin prompt slots', () => {
+        const gameSettings = readProjectFile('utils/gameSettings.ts');
+        expect(gameSettings).not.toContain("value === '修炼'");
+
+        const builtinBook = 创建内置预设世界书();
+        const builtinWorldbookEntries = builtinBook.条目 || [];
+        expect(builtinWorldbookEntries.map((entry) => entry.标题)).not.toContain('叙事风格 · 修炼');
+        expect(builtinWorldbookEntries.map((entry) => entry.内置槽位 || entry.id)).not.toContain('builtin_slot_style_cultivation');
+
+        const builtinPromptEntries = 创建默认内置提示词列表();
+        expect(builtinPromptEntries.map((entry) => entry.标题)).not.toContain('叙事风格 · 修炼');
+        expect(builtinPromptEntries.map((entry) => entry.槽位ID)).not.toContain('builtin_slot_style_cultivation');
+
+        const normalizedWorldbooks = 规范化世界书列表([{
+            id: 'legacy_builtin_override',
+            标题: '旧内置覆盖',
+            条目: [{
+                id: 'builtin_slot_style_cultivation',
+                标题: '叙事风格 · 修炼',
+                内容: '修炼风格',
+                内置: true,
+                内置槽位: 'builtin_slot_style_cultivation',
+                内置分类: '常驻'
+            }]
+        }]);
+        expect(normalizedWorldbooks.flatMap((book) => book.条目).map((entry) => entry.内置槽位 || entry.id))
+            .not.toContain('builtin_slot_style_cultivation');
+
+        const normalizedBuiltinPrompts = 规范化内置提示词列表([{
+            id: 'builtin_slot_style_cultivation',
+            槽位ID: 'builtin_slot_style_cultivation',
+            标题: '叙事风格 · 修炼',
+            分类: '常驻',
+            内容: '修炼风格',
+            启用: true
+        }]);
+        expect(normalizedBuiltinPrompts.map((entry) => entry.槽位ID)).not.toContain('builtin_slot_style_cultivation');
     });
 
     it('records wuxia cultivation backend and prompt residue as pending removal', () => {

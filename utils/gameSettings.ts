@@ -64,14 +64,24 @@ const 规范化叙事人称 = (
         : fallback
 );
 
+const 可用剧情风格集合 = new Set<游戏设置结构['剧情风格']>([
+    '后宫',
+    '一般',
+    '修罗场',
+    '纯爱',
+    'NTL后宫'
+]);
+
 const 规范化剧情风格 = (
     value: unknown,
     fallback: 游戏设置结构['剧情风格']
-): 游戏设置结构['剧情风格'] => (
-    value === '后宫' || value === '修炼' || value === '一般' || value === '修罗场' || value === '纯爱' || value === 'NTL后宫'
-        ? value
-        : fallback
-);
+): 游戏设置结构['剧情风格'] => {
+    if (typeof value === 'string' && 可用剧情风格集合.has(value as 游戏设置结构['剧情风格'])) {
+        return value as 游戏设置结构['剧情风格'];
+    }
+    if (可用剧情风格集合.has(fallback)) return fallback;
+    return '一般';
+};
 
 const 规范化NTL档位 = (
     value: unknown,

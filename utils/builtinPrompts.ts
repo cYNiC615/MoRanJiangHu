@@ -22,7 +22,8 @@ const 读取文本 = (value: unknown): string => (typeof value === 'string' ? va
 const 生成ID = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 const 排除槽位集合 = new Set<string>([
-    世界书本体槽位.主剧情世界观
+    世界书本体槽位.主剧情世界观,
+    'builtin_slot_style_cultivation'
 ]);
 
 const 变量模型用户槽位集合 = new Set<string>([

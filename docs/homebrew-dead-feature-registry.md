@@ -36,8 +36,10 @@ Phase 1 retires feature families from the active game loop:
    structured state.
 4. Remaining residue is tracked here as current cleanup inventory only.
 
-Phase 1.5 deletes unreachable frontend residue after Phase 1 build and manual
-play verification:
+Phase 1 implementation-side closeout is complete. Phase 1.5 is not started
+yet; run one manual play smoke before deleting more frontend residue.
+
+Phase 1.5 deletes unreachable frontend residue:
 
 - unmounted components and modals;
 - mobile-only files and old panels;
@@ -77,20 +79,23 @@ done until:
 | `festival_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
 | `weather_game_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
 
-Phase 1 is currently in closeout audit. Static closeout checks are green:
+Phase 1 implementation-side checks are green:
 
 - retired command roots are rejected/no-op by registry/apply logic;
 - active system and Tavern context no longer serialize `战斗`, `玩家门派`,
   fandom decomposition fields, or cultivation-only character fields;
-- targeted registry/runtime tests and production build pass.
+- visible settings and builtin worldbook slots no longer expose the retired
+  cultivation style;
+- targeted registry/runtime tests and production build pass;
+- browser smoke confirms the homepage, settings, game-style dropdown, and
+  worldbook manager do not expose retired feature entrypoints.
 
-The remaining check is browser/manual play smoke before Phase 1.5:
+Before Phase 1.5, do a user-side manual play smoke:
 
-1. confirm no retired feature can still be triggered from the desktop playable
-   flow;
-2. confirm the main local desktop flow still reaches the playable shell and
-   key retained surfaces such as settings, save/load, worldbook, prompt, and
-   memory views.
+1. send at least one real main-story turn with the user's normal local model
+   settings;
+2. confirm save/load, worldbook, prompt, memory, and settings surfaces still
+   fit the actual play workflow.
 
 ## Phase 1.5 Frontend Cleanup Queue
 

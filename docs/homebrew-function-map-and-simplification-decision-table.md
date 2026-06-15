@@ -149,7 +149,7 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | Home/Game Shell | 主页、游戏视图、面板挂载、全局弹窗 | `App.tsx`, `components/layout` | 保留但瘦身 | APK 更新/下载与更新弹窗入口已断；移动布局仍待后续 |
 | Chat | 主聊天、输入、行动选项、回合队列状态 | `components/features/Chat` | 核心保留 | 保留桌面体验，删移动专用适配 |
 | Settings | API、流程图、记忆、世界书、提示词、存储、模型配置等 | `components/features/Settings` | 保留但大幅瘦身 | 已移除小说分解、音乐、节日、修炼体系、APK 手动更新、社区工坊发布等入口；云/移动仍待后续 |
-| PromptManager | 旧提示词池管理、运行时注入状态展示 | `components/features/Settings/PromptManager.tsx`, `prompts/index.ts` | Phase 1.5 高优先级瘦身 | `core_realm` 等退役提示词仍可见且可能标“运行时注入”，需要隐藏/归档，避免误导为当前活跃上下文 |
+| PromptManager | 旧提示词池管理、当前上下文状态展示 | `components/features/Settings/PromptManager.tsx`, `prompts/index.ts` | Phase 1.5 首刀已完成 | 已隐藏/归档 `core_realm`、`stat_kungfu`、`stat_cultivation` 等退役提示词可见项，并把“运行时注入/接管”口径改成当前上下文状态；旧 prompt 文件、模型字段和本地快照留到后续深删 |
 | NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | 废弃题材/同人/小说分解入口当前不可达；当前默认一路向下仍生成武侠世界，归入 Phase 2 现代都市默认化 |
 | Worldbook | 世界书管理、导入、编辑 | `components/features/Worldbook` | 核心保留 | 保留本地世界书，不接社区 UGC |
 | Workshop | 本地模式包、JSON 导入导出、Comfy 工作流、本地注入预览 | `components/features/Workshop`, `services/creativeWorkshop.ts`, `data/creativeWorkshopModules.ts` | 保留本地模式包，社区入口已移除 | 后续改名或重新定位为“模式包/本地扩展” |
@@ -301,7 +301,7 @@ Phase 1.5 从当前状态开始。它只清理已经不可达或不应继续暴�
 Phase 1.5 当前目标：
 
 1. 主页瘦身：删除发布、社区、客服、公共项目链接等不服务个人 homebrew 的入口。
-2. 设置/提示词瘦身：隐藏或归档退役提示词池条目，尤其是 `core_realm`、`stat_kungfu`、`stat_cultivation`，并修正“运行时注入”误导。
+2. 设置/提示词瘦身：PromptManager 首刀已隐藏/归档 `core_realm`、`stat_kungfu`、`stat_cultivation`，并修正“运行时注入/接管”误导；后续继续清理其它设置残骸。
 3. 删除未挂载组件、弹窗、移动端组件、旧面板、仅服务废弃功能的设置页和新建角页。
 4. 清理对应 lazy import、hook UI state、props、图标、样式、测试和类型残留。
 5. 保留桌面主体验里仍实际使用的 UI；不要为了目录好看误伤聊天、存档、世界书、记忆、设置或本地模式包。
@@ -310,7 +310,7 @@ Phase 1.5 优先候选：
 
 | 候选 | 适合原因 | 边界 |
 | --- | --- | --- |
-| 提示词管理退役项 | `core_realm` 等退役提示词仍在设置里可见，会让人误以为仍在运行时注入 | 先隐藏/归档和修正文案；彻底删除 prompt 文件、模型字段和旧存档提示词池留到后续深删 |
+| 提示词管理退役项 | `core_realm`、`stat_kungfu`、`stat_cultivation` 已从 PromptManager 可见列表隐藏，状态标签改为当前上下文状态 | 前端首刀完成；彻底删除 prompt 文件、模型字段和旧存档提示词池留到后续深删 |
 | 主页公共入口 | `更新日志`、教程、反馈、GitHub/Discord 等偏公开发布产品，不服务个人 homebrew 主界面 | 不动核心入口：本地游玩、模式包/本地扩展、图片管理、世界书管理、设置 |
 | 移动端组件 | App 移动挂载已断，范围集中在 `components/features/*/mobile` 和移动 layout 分支 | 不同时深删 Capacitor/native helper |
 | 旧战斗前端 | 玩家入口已断，未来会另做轻量对抗系统 | 不复用旧功法/站位/传统战斗模型 |
@@ -335,8 +335,7 @@ Phase 1.5 优先候选：
 | 问题 | 当前判断 | 归属 |
 | --- | --- | --- |
 | 默认新建仍是武侠 | 用户实测“一路向下”仍会生成武侠世界；这与 homebrew 锚点冲突，但不是 Phase 1 的 active retirement 范围 | Phase 2 高优先级 |
-| 提示词管理仍显示境界体系 | `PromptManager` 里旧 `core_realm` 仍可见且可能标“运行时注入”；正常配置下有 gate，不等于实际活跃注入，但 UI 误导必须清理 | Phase 1.5 高优先级 |
-| 旧 prompt 文件和模型字段仍多 | `prompts/core/realm.ts`、修炼/功法/战斗/同人相关 prompt、model、schema 仍存在 | Phase 3 |
+| 旧 prompt 文件和模型字段仍多 | PromptManager 已不再显示退役修炼提示词，但 `prompts/core/realm.ts`、修炼/功法/战斗/同人相关 prompt、model、schema 仍存在 | Phase 3 |
 | IndexedDB 旧世界书/内置提示词接管 | 本地保存过的 `builtin_prompt_entries` / `extra_worldbooks` 可能覆盖代码 fallback | Phase 3 强迁移/重置策略 |
 | 创意工坊命名和定位 | 目前保留本地模式包能力，但“工坊”这个公开 UGC 语义不适合 homebrew | Phase 1.5 或 Phase 2 |
 | NPC 位置/在场判定 | 当前 AI 驱动 bug 多；需要决定停用 AI 写入、强约束，还是重做本地判定 | Phase 5 |
@@ -346,6 +345,6 @@ Phase 1.5 优先候选：
 
 ## 12. 当前下一步
 
-当前最合理的下一步是进入 Phase 1.5。建议第一刀优先处理“提示词管理退役项”和“主页公共入口瘦身”二选一；前者更能减少误解，后者更能快速改变 homebrew 主界面气质。
+当前已进入 Phase 1.5，并完成提示词管理退役项首刀。下一步可在“主页公共入口瘦身”和“删除不可达移动/旧面板前端”之间选一个小切片；前者更能快速改变 homebrew 主界面气质，后者更能减少不可达代码面。
 
 默认现代都市不是 Phase 1.5 的主要目标，应作为 Phase 2 单独推进，避免把新建流程、prompt、题材 profile、世界书和模式包重写混进前端残骸清理。

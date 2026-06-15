@@ -106,7 +106,7 @@ schema migrations.
 
 | Candidate | Current frontend residue | Boundary |
 | --- | --- | --- |
-| `prompt_manager_retired_prompts` | `components/features/Settings/PromptManager.tsx` still exposes retired prompt-pool items such as `core_realm`, and may mark them as runtime injected | First hide/archive and fix labels; later delete prompt files, models, and storage snapshots |
+| `prompt_manager_retired_prompts` | Phase 1.5 frontend slice complete: `components/features/Settings/PromptManager.tsx` hides `core_realm`, `stat_kungfu`, and `stat_cultivation`, and labels prompt state as active-context state instead of runtime injection/control | Later delete prompt files, models, storage snapshots, and strong migrations |
 | `homepage_public_links` | Landing-page public release/community/support links such as changelog, tutorials, feedback, GitHub, Discord, and API-sharing copy | Keep local play, local mode packages, image manager, worldbook manager, and settings |
 | `mobile_frontend` | `components/layout/MobileQuickMenu.tsx`, `components/features/NewGame/mobile/MobileNewGameWizard.tsx`, `components/features/Settings/mobile/MobileSettingsModal.tsx`, plus other unmounted mobile modals | Do not deep-delete Capacitor/native helpers in the same slice |
 | `legacy_battle_system` | `components/features/Battle` and related unmounted battle UI | Future replacement is a new lightweight opposition system, not the old stance/kungfu battle model |
@@ -189,8 +189,6 @@ reuse the old stance/kungfu/formation battle model as the target design.
 
 Current residue:
 
-- `components/features/Settings/PromptManager.tsx` visible retired prompt-pool
-  entries such as `core_realm`
 - `components/features/Kungfu`
 - `components/features/Sect`
 - `components/features/Skills`
@@ -199,6 +197,10 @@ Current residue:
 - `prompts/stats/kungfu.ts`
 - `prompts/core/realm.ts`
 - historical save fields and legacy prompt/model surfaces
+
+PromptManager no longer shows the retired cultivation prompt-pool entries
+`core_realm`, `stat_kungfu`, or `stat_cultivation`; stored local snapshots can
+still contain those ids until the later prompt/storage cleanup.
 
 The homebrew default is modern urban with optional near-future sci-fi. Wuxia
 and cultivation compatibility is not preserved.

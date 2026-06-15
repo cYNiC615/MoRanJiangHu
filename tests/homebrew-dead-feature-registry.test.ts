@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { 核心_剧情推动 } from '../prompts/core/story';
 import { 核心_思维链 } from '../prompts/core/cot';
@@ -35,6 +37,8 @@ import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelecto
 import { 按功能开关过滤提示词内容 } from '../utils/promptFeatureToggles';
 import { 规范化内置提示词列表, 创建默认内置提示词列表 } from '../utils/builtinPrompts';
 import { 创建内置预设世界书, 规范化世界书列表 } from '../utils/worldbook';
+import PromptManager from '../components/features/Settings/PromptManager';
+import { 默认提示词 } from '../prompts';
 
 const readProjectFile = (relativePath: string) => {
     const absolutePath = resolve(process.cwd(), relativePath);
@@ -913,6 +917,30 @@ describe('homebrew dead feature registry', () => {
             启用: true
         }]);
         expect(normalizedBuiltinPrompts.map((entry) => entry.槽位ID)).not.toContain('builtin_slot_style_cultivation');
+    });
+
+    it('hides retired cultivation prompt-manager entries and avoids runtime-injection wording', () => {
+        const runtimePromptStates = Object.fromEntries(默认提示词.map((prompt) => [
+            prompt.id,
+            {
+                当前启用: prompt.id === 'core_world',
+                原始启用: prompt.启用,
+                受运行时接管: prompt.id === 'core_world',
+                运行时注入: prompt.id === 'core_world'
+            }
+        ]));
+        const rendered = renderToStaticMarkup(React.createElement(PromptManager, {
+            prompts: 默认提示词,
+            onUpdate: () => undefined,
+            runtimePromptStates
+        }));
+
+        expect(rendered).not.toContain('境界体系设定');
+        expect(rendered).not.toContain('功法体系');
+        expect(rendered).not.toContain('累计境界修炼体系');
+        expect(rendered).not.toContain('运行时接管');
+        expect(rendered).not.toContain('运行时注入');
+        expect(rendered).toContain('上下文状态: 已启用');
     });
 
     it('records wuxia cultivation backend and prompt residue as pending removal', () => {

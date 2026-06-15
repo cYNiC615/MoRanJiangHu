@@ -22,6 +22,20 @@ interface Props {
 const CATEGORIES: PromptCategory[] = ['核心设定', '数值设定', '难度设定', '写作设定', '自定义'];
 const THINKING_OPEN_TAG_SOURCE = '<\\s*thinking\\s*>';
 const THINKING_CLOSE_TAG_SOURCE = '<\\s*\\/\\s*thinking\\s*>';
+const RETIRED_PROMPT_MANAGER_IDS = new Set([
+    'core_realm',
+    'stat_kungfu',
+    'stat_cultivation'
+]);
+
+const 是退役提示词管理条目 = (prompt: Pick<提示词结构, 'id'>): boolean => (
+    RETIRED_PROMPT_MANAGER_IDS.has(prompt.id)
+);
+
+const 获取上下文状态标签 = (runtimeState?: RuntimePromptState): string => {
+    if (!runtimeState?.受运行时接管 && !runtimeState?.运行时注入) return '';
+    return `上下文状态: ${runtimeState.当前启用 ? '已启用' : '未启用'}`;
+};
 
 const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, runtimePromptStates }) => {
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -141,10 +155,14 @@ const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, run
     };
 
     // Grouping logic
+    const visiblePrompts = useMemo(() => (
+        prompts.filter(p => !是退役提示词管理条目(p))
+    ), [prompts]);
+
     const filteredPrompts = useMemo(() => {
-        if (activeCategory === 'ALL') return prompts;
-        return prompts.filter(p => p.类型 === activeCategory);
-    }, [prompts, activeCategory]);
+        if (activeCategory === 'ALL') return visiblePrompts;
+        return visiblePrompts.filter(p => p.类型 === activeCategory);
+    }, [visiblePrompts, activeCategory]);
 
     if (editingId && editForm) {
         return (
@@ -229,6 +247,7 @@ const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, run
                     const runtimeState = runtimePromptStates?.[p.id];
                     const displayEnabled = runtimeState ? runtimeState.当前启用 : p.启用;
                     const runtimeControlled = runtimeState?.受运行时接管 === true;
+                    const contextStateLabel = 获取上下文状态标签(runtimeState);
                     return (
                         <div key={p.id} className={`flex justify-between items-center bg-black/30 p-3 border-l-2 transition-colors group ${displayEnabled ? 'border-wuxia-gold bg-wuxia-gold/5' : 'border-gray-700 opacity-60 hover:opacity-100'}`}>
                             <div className="flex items-center gap-3">
@@ -243,7 +262,7 @@ const PromptManager: React.FC<Props> = ({ prompts, onUpdate, requestConfirm, run
                                         {p.标题}
                                     </div>
                                     <div className="text-[10px] text-gray-500 mt-0.5">
-                                        {p.类型} | Chars: {p.内容.length}{runtimeControlled ? ' | 运行时接管' : ''}
+                                        {p.类型} | Chars: {p.内容.length}{contextStateLabel ? ` | ${contextStateLabel}` : ''}
                                     </div>
                                 </div>
                             </div>

@@ -1,12 +1,98 @@
-import {
-    APK_CORS_HEADERS,
-    buildSignedObjectUrl,
-    normalizeObjectKey
-} from '../apk/_shared';
-
+const encoder = new TextEncoder();
+const PRESET_IMAGE_CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept'
+};
 const PRESET_IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const PRESET_IMAGE_ERROR_CACHE_CONTROL = 'public, max-age=60';
 const PRESET_IMAGE_PATTERN = /^s3_[0-9]+_[0-9a-z]+\.(png|jpe?g|webp|gif|bmp)$/i;
+
+const readEnvString = (env: any, name: string, fallback = ''): string => (
+    typeof env?.[name] === 'string' && env[name].trim() ? env[name].trim() : fallback
+);
+
+const normalizeObjectKey = (value: string): string => (
+    value.replace(/^\/+/, '').replace(/\/+/g, '/')
+);
+
+const encodeS3Path = (value: string): string => value
+    .split('/')
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
+    .join('/');
+
+const bytesToHex = (bytes: ArrayBuffer): string => (
+    Array.from(new Uint8Array(bytes)).map((item) => item.toString(16).padStart(2, '0')).join('')
+);
+
+const sha256Hex = async (data: string): Promise<string> => (
+    bytesToHex(await crypto.subtle.digest('SHA-256', encoder.encode(data)))
+);
+
+const hmac = async (key: ArrayBuffer | Uint8Array, data: string): Promise<ArrayBuffer> => {
+    const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    return crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data));
+};
+
+const deriveSigningKey = async (secretKey: string, dateStamp: string, region: string, service: string): Promise<ArrayBuffer> => {
+    const kDate = await hmac(encoder.encode(`AWS4${secretKey}`), dateStamp);
+    const kRegion = await hmac(kDate, region);
+    const kService = await hmac(kRegion, service);
+    return hmac(kService, 'aws4_request');
+};
+
+const formatAmzDate = (date: Date): { amzDate: string; dateStamp: string } => {
+    const iso = date.toISOString().replace(/[:-]|\.\d{3}/g, '');
+    return { amzDate: iso, dateStamp: iso.slice(0, 8) };
+};
+
+const buildSignedObjectUrl = async (
+    env: any,
+    key: string,
+    expiresSeconds = 1800,
+    method: 'GET' | 'HEAD' = 'GET'
+): Promise<string> => {
+    const endpoint = readEnvString(env, 'MORAN_OSS_ENDPOINT', 'https://s3.hi168.com').replace(/\/+$/, '');
+    const bucket = readEnvString(env, 'MORAN_OSS_BUCKET');
+    const accessKey = readEnvString(env, 'MORAN_OSS_ACCESS_KEY');
+    const secretKey = readEnvString(env, 'MORAN_OSS_SECRET_KEY');
+    const region = readEnvString(env, 'MORAN_OSS_REGION', 'auto');
+    const service = 's3';
+    if (!bucket || !accessKey || !secretKey) throw new Error('Preset image object storage credentials are not configured');
+
+    const target = new URL(`${endpoint}/${encodeURIComponent(bucket)}/${encodeS3Path(normalizeObjectKey(key))}`);
+    const { amzDate, dateStamp } = formatAmzDate(new Date());
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+    target.searchParams.set('X-Amz-Algorithm', 'AWS4-HMAC-SHA256');
+    target.searchParams.set('X-Amz-Credential', `${accessKey}/${credentialScope}`);
+    target.searchParams.set('X-Amz-Date', amzDate);
+    target.searchParams.set('X-Amz-Expires', String(Math.max(60, Math.min(604800, expiresSeconds))));
+    target.searchParams.set('X-Amz-SignedHeaders', 'host');
+
+    const canonicalQuery = Array.from(target.searchParams.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`)
+        .join('&');
+    const canonicalRequest = [
+        method,
+        target.pathname,
+        canonicalQuery,
+        `host:${target.host}\n`,
+        'host',
+        'UNSIGNED-PAYLOAD'
+    ].join('\n');
+    const stringToSign = [
+        'AWS4-HMAC-SHA256',
+        amzDate,
+        credentialScope,
+        await sha256Hex(canonicalRequest)
+    ].join('\n');
+    const signingKey = await deriveSigningKey(secretKey, dateStamp, region, service);
+    const signature = bytesToHex(await hmac(signingKey, stringToSign));
+    target.searchParams.set('X-Amz-Signature', signature);
+    return target.toString();
+};
 
 const readPresetImageKey = (request: Request, params: any): string => {
     const rawParam = Array.isArray(params?.path)
@@ -28,7 +114,7 @@ const buildErrorResponse = (message: string, status = 400): Response => (
         headers: {
             'Content-Type': 'text/plain; charset=utf-8',
             'Cache-Control': PRESET_IMAGE_ERROR_CACHE_CONTROL,
-            ...APK_CORS_HEADERS
+            ...PRESET_IMAGE_CORS_HEADERS
         }
     })
 );
@@ -77,7 +163,7 @@ const buildPresetImageResponse = async (
         headers.set('CDN-Cache-Control', PRESET_IMAGE_CACHE_CONTROL);
         headers.set('Cloudflare-CDN-Cache-Control', PRESET_IMAGE_CACHE_CONTROL);
         headers.set('X-Moran-Preset-Image-Cache', 'miss');
-        Object.entries(APK_CORS_HEADERS).forEach(([name, value]) => headers.set(name, value));
+        Object.entries(PRESET_IMAGE_CORS_HEADERS).forEach(([name, value]) => headers.set(name, value));
 
         const response = new Response(method === 'HEAD' ? null : upstream.body, {
             status: upstream.status,
@@ -94,7 +180,7 @@ const buildPresetImageResponse = async (
 };
 
 export function onRequestOptions(): Response {
-    return new Response(null, { status: 204, headers: APK_CORS_HEADERS });
+    return new Response(null, { status: 204, headers: PRESET_IMAGE_CORS_HEADERS });
 }
 
 export const onRequestGet = (context: any): Promise<Response> => buildPresetImageResponse(context, 'GET');

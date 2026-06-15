@@ -1,91 +1,14 @@
 import { 创意工坊模块列表, 整合创意工坊模式包, type 创意工坊模块条目, type 创意工坊模块类型 } from '../data/creativeWorkshopModules';
-import { RELEASE_INFO } from '../data/releaseInfo';
-import { buildCreativeWorkshopContentFingerprint, filterCreativeWorkshopDuplicates, isOfficialCreativeWorkshopDuplicate } from '../utils/creativeWorkshopDedupe';
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
+import { filterCreativeWorkshopDuplicates } from '../utils/creativeWorkshopDedupe';
 import { 规范化模式运行时配置 } from '../utils/modeRuntimeProfile';
 import { 规范化ComfyUI工作流JSON } from './ai/comfyWorkflowTools';
-import { 读取云端游玩会话 } from './cloudPlayService';
 
 export const 已启用创意工坊模块存储键 = 'creative_workshop_enabled_modules';
 export const 本地创意工坊模块存储键 = 'creative_workshop_local_modules';
 
-export interface 发布创意工坊模块参数 {
-    module: 创意工坊模块条目;
-    contributor?: string;
-    anonymous?: boolean;
-}
-
-export interface 编辑创意工坊模块参数 {
-    id: string;
-    patch: Partial<Pick<创意工坊模块条目, 'title' | 'subtitle' | 'description' | 'tags' | 'contributor'>>;
-    anonymous?: boolean;
-}
-
-const API_PATH = '/api/workshop/modules';
-const HTML_FALLBACK_ERROR = '创意工坊接口没有命中服务端函数，当前请求被网站首页兜底处理。请刷新页面或更新到最新版本后重试。';
-
-const 看起来像HTML页面 = (text: string): boolean => /^\s*<!doctype\s+html\b/i.test(text) || /^\s*<html\b/i.test(text);
-
-export const 获取创意工坊API基础地址 = (): string => {
-    if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
-        return window.location.origin.replace(/\/+$/, '');
-    }
-    const configured = typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl.trim() : '';
-    return (configured || 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
-};
-
-const 构建创意工坊API地址 = (search = ''): string => {
-    const base = 获取创意工坊API基础地址();
-    const suffix = search ? `${API_PATH}${search.startsWith('?') ? search : `?${search}`}` : API_PATH;
-    return `${base}${suffix}`;
-};
-
-const 读取响应JSON = async (response: Response): Promise<any> => {
-    const text = await response.text();
-    if (看起来像HTML页面(text)) return { ok: false, error: HTML_FALLBACK_ERROR };
-    try {
-        return text ? JSON.parse(text) : {};
-    } catch {
-        const preview = text.trim().slice(0, 200);
-        return { ok: false, error: preview ? `创意工坊接口返回了非 JSON 内容：${preview}` : '创意工坊接口返回了空响应' };
-    }
-};
-
-const 构建账号载荷 = (anonymous?: boolean) => {
-    const session = (() => {
-        try {
-            return 读取云端游玩会话();
-        } catch {
-            return null;
-        }
-    })();
-    if (!session?.username || !session.password) return {};
-    return {
-        auth: {
-            username: session.username,
-            password: session.password
-        },
-        anonymous: anonymous === true
-    };
-};
-
-const 构建必需账号载荷 = (anonymous?: boolean) => {
-    const payload = 构建账号载荷(anonymous);
-    if (!payload.auth) {
-        throw new Error('请先登录联机账号再发布、编辑或删除创意工坊投稿。匿名发布只隐藏显示署名，仍需要账号绑定用于后续管理。');
-    }
-    return payload;
-};
-
-const 规范化下载地址 = (value: unknown, id: string): string => {
-    const fallback = 构建创意工坊API地址(`action=download&id=${encodeURIComponent(id || '')}`);
+const 规范化下载地址 = (value: unknown, _id: string): string => {
     const raw = typeof value === 'string' ? value.trim() : '';
-    if (!raw) return fallback;
-    try {
-        return new URL(raw, 获取创意工坊API基础地址()).toString();
-    } catch {
-        return fallback;
-    }
+    return raw || '';
 };
 
 const 提取模块正文 = (entry: 创意工坊模块条目): string => {
@@ -317,75 +240,8 @@ export const 列出创意工坊模块 = async (): Promise<创意工坊模块条�
         }));
 };
 
-export const 发布创意工坊模块 = async (params: 发布创意工坊模块参数): Promise<创意工坊模块条目> => {
-    if (isOfficialCreativeWorkshopDuplicate(params.module, 创意工坊模块列表)) {
-        throw new Error('该模块与官方预设完全一致，无需重复贡献社区。');
-    }
-    const response = await fetch(构建创意工坊API地址(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-            module: params.module,
-            contributor: params.contributor || params.module.contributor || '',
-            officialFingerprints: 创意工坊模块列表.map(buildCreativeWorkshopContentFingerprint),
-            ...构建必需账号载荷(params.anonymous)
-        })
-    });
-    const payload = await 读取响应JSON(response);
-    if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.error || `发布创意工坊失败：${response.status}`);
-    }
-    const entry = 规范化当前模块(payload.entry, 'cloud');
-    if (!entry) throw new Error('发布创意工坊失败：服务端没有返回模块信息');
-    return entry;
-};
-
-export const 编辑创意工坊模块 = async (params: 编辑创意工坊模块参数): Promise<创意工坊模块条目> => {
-    const response = await fetch(构建创意工坊API地址(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-            action: 'update',
-            id: params.id,
-            patch: params.patch,
-            ...构建必需账号载荷(params.anonymous)
-        })
-    });
-    const payload = await 读取响应JSON(response);
-    if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.error || `编辑创意工坊失败：${response.status}`);
-    }
-    const entry = 规范化当前模块(payload.entry, 'cloud');
-    if (!entry) throw new Error('编辑创意工坊失败：服务端没有返回模块信息');
-    return entry;
-};
-
-export const 删除创意工坊模块 = async (id: string): Promise<void> => {
-    const response = await fetch(构建创意工坊API地址(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-            action: 'delete',
-            id,
-            ...构建必需账号载荷(false)
-        })
-    });
-    const payload = await 读取响应JSON(response);
-    if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.error || `删除创意工坊失败：${response.status}`);
-    }
-};
-
 export const 下载创意工坊模块 = async (entry: 创意工坊模块条目): Promise<创意工坊模块条目> => {
-    if (entry.source !== 'cloud') return entry;
-    const response = await fetch(entry.downloadUrl || 构建创意工坊API地址(`action=download&id=${encodeURIComponent(entry.id)}`));
-    const payload = await 读取响应JSON(response);
-    if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.error || `下载创意工坊模块失败：${response.status}`);
-    }
-    const module = 规范化当前模块(payload.module || payload.entry || payload, 'cloud');
-    if (!module) throw new Error('下载创意工坊模块失败：模块内容不完整');
-    return module;
+    return entry;
 };
 
 export const 提取ComfyUI工作流模块JSON = (entry: 创意工坊模块条目): string => {
@@ -414,7 +270,7 @@ export const 构建ComfyUI工作流创意工坊模块 = (params: {
         type: 'comfy_workflow',
         title,
         subtitle: `${style} · ${scope === 'nsfw' ? 'NSFW 生图工作流' : scope === 'scene' ? '场景生图工作流' : scope === 'all' ? '通用生图工作流' : '普通生图工作流'}`,
-        description: `玩家贡献的 ${style} ComfyUI API workflow，可在文生图设置中通过下拉框切换使用。`,
+        description: `本地保存的 ${style} ComfyUI API workflow，可在文生图设置中通过下拉框切换使用。`,
         tags: ['ComfyUI', 'Workflow', style, scope],
         payload: {
             workflowJson: normalized,

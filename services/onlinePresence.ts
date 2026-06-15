@@ -1,4 +1,4 @@
-import { RELEASE_INFO } from '../data/releaseInfo';
+import { LOCAL_APP_VERSION_CODE, LOCAL_APP_VERSION_NAME, 获取本地站点基址 } from '../utils/localAppInfo';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { 获取本地图片图床迁移状态 } from './dbService';
 import { 读取云端游玩会话 } from './cloudPlayService';
@@ -14,8 +14,7 @@ const SESSION_RENEW_GRACE_MS = 15 * 1000;
 
 const getOnlineApiBaseUrl = (): string => {
     if (!isNativeCapacitorEnvironment()) return '';
-    const configuredUrl = typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl.trim() : '';
-    return (configuredUrl || 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
+    return 获取本地站点基址();
 };
 
 const buildOnlineHttpUrl = (): string => `${getOnlineApiBaseUrl()}${HEARTBEAT_PATH}`;
@@ -66,8 +65,8 @@ const buildHeartbeatPayload = (sessionId: string) => {
         sessionId,
         path: `${window.location.pathname}${window.location.search}`.slice(0, 240),
         referrer: document.referrer || '',
-        versionName: RELEASE_INFO.versionName,
-        versionCode: RELEASE_INFO.versionCode,
+        versionName: LOCAL_APP_VERSION_NAME,
+        versionCode: LOCAL_APP_VERSION_CODE,
         platform: isNativeCapacitorEnvironment() ? 'capacitor-android' : 'web',
         userId: cloudSession?.userId || '',
         username: cloudSession?.username || '',

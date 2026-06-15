@@ -487,7 +487,6 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('entrypoint_removed');
         expect(registry).toContain('backend_pending');
         expect(registry).toContain('components/features/NewGame/NewGameWizard.tsx');
-        expect(registry).toContain('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
         expect(registry).toContain('models/fandomPlanning');
         expect(registry).toContain('prompts/runtime/fandom*.ts');
         expect(registry).toContain('data/creativeWorkshopModules.ts');
@@ -996,12 +995,10 @@ describe('homebrew dead feature registry', () => {
         expect(settingsPersistence).not.toContain('appUpdatePreferences');
     });
 
-    it('records APK/app-update backend, release, and storage residue as pending removal', () => {
+    it('records APK/app-update and release surfaces as fully removed', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('apk_app_update_system');
-        expect(registry).toContain('entrypoint_removed');
-        expect(registry).toContain('backend_pending');
-        expect(registry).toContain('storage_pending');
+        expect(registry).toContain('fully_removed');
         expect(registry).toContain('services/appUpdate.ts');
         expect(registry).toContain('services/nativeApkUpdater.ts');
         expect(registry).toContain('utils/appUpdatePreferences.ts');
@@ -1009,7 +1006,14 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('functions/api/apk');
         expect(registry).toContain('android');
         expect(registry).toContain('capacitor.config.ts');
-        expect(registry).toContain('moranjianghu.apkAutoUpdateDisabled');
+
+        expect(projectFileExists('services/appUpdate.ts')).toBe(false);
+        expect(projectFileExists('services/nativeApkUpdater.ts')).toBe(false);
+        expect(projectFileExists('utils/appUpdatePreferences.ts')).toBe(false);
+        expect(projectFileExists('components/ui/ReleaseNotesModal.tsx')).toBe(false);
+        expect(projectFileExists('functions/api/apk')).toBe(false);
+        expect(projectFileExists('android')).toBe(false);
+        expect(projectFileExists('capacitor.config.ts')).toBe(false);
     });
 
     it('removes mobile frontend shell entrypoints and app mounts', () => {
@@ -1035,13 +1039,17 @@ describe('homebrew dead feature registry', () => {
         expect(app).not.toContain('handleMobileMenuAction');
     });
 
-    it('records mobile frontend residue as pending deeper deletion', () => {
+    it('records independent mobile frontend files as removed', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('mobile_frontend');
-        expect(registry).toContain('entrypoint_removed');
-        expect(registry).toContain('backend_pending');
+        expect(registry).toContain('frontend_removed');
         expect(registry).toContain('components/layout/MobileQuickMenu.tsx');
         expect(registry).toContain('components/features/NewGame/mobile/MobileNewGameWizard.tsx');
         expect(registry).toContain('components/features/Settings/mobile/MobileSettingsModal.tsx');
+
+        expect(projectFileExists('components/layout/MobileQuickMenu.tsx')).toBe(false);
+        expect(projectFileExists('components/features/NewGame/mobile/MobileNewGameWizard.tsx')).toBe(false);
+        expect(projectFileExists('components/features/Settings/mobile/MobileSettingsModal.tsx')).toBe(false);
+        expect(projectFileExists('components/features/Inventory/MobileInventoryModal.tsx')).toBe(false);
     });
 });

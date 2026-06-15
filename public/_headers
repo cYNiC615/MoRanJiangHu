@@ -1,9 +1,3 @@
-/assets/item-preset-feedback-data.json
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-
-/item-preset-feedback-sw.js
-  Cache-Control: public, max-age=0, must-revalidate
-
 /assets/*
   Access-Control-Allow-Origin: *
 

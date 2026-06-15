@@ -10,7 +10,7 @@ import type {
     小说拆分章节结构,
     小说拆分分段处理状态类型
 } from '../types';
-import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
+import { strFromU8, unzipSync } from 'fflate';
 import * as dbService from './dbService';
 import { 设置键 } from '../utils/settingsSchema';
 import { 默认小说时间线起点, 尝试规范化小说时间锚点, 规范化小说时间锚点 } from './novelDecompositionTime';
@@ -929,27 +929,6 @@ type 小说拆分分享原文文件结构 = {
     datasets: 小说拆分分享原文项结构[];
 };
 
-const 构建小说拆分分享原文项 = (dataset: 小说拆分数据集结构): 小说拆分分享原文项结构 => ({
-    datasetId: dataset.id,
-    原始文件名: dataset.原始文件名 || '',
-    原始文本: dataset.原始文本 || '',
-    章节内容映射: Object.fromEntries((dataset.章节列表 || []).map((chapter) => [chapter.id, chapter.内容 || ''])),
-    分段原文映射: Object.fromEntries((dataset.分段列表 || []).map((segment) => [segment.id, segment.原文内容 || '']))
-});
-
-const 构建小说拆分分享分解数据集 = (dataset: 小说拆分数据集结构): 小说拆分数据集结构 => 规范化小说拆分数据集({
-    ...深拷贝(dataset),
-    原始文本: '',
-    章节列表: (dataset.章节列表 || []).map((chapter) => ({
-        ...chapter,
-        内容: ''
-    })),
-    分段列表: (dataset.分段列表 || []).map((segment) => ({
-        ...segment,
-        原文内容: ''
-    }))
-});
-
 const 合并小说拆分分享原文 = (
     dataset: 小说拆分数据集结构,
     rawEntry?: 小说拆分分享原文项结构
@@ -970,58 +949,6 @@ const 合并小说拆分分享原文 = (
             原文内容: rawEntry.分段原文映射?.[segment.id] || ''
         }))
     });
-};
-
-export const 导出小说拆分分享数据 = async (options?: {
-    datasetId?: string;
-    includeTasks?: boolean;
-    includeSnapshots?: boolean;
-}): Promise<Blob> => {
-    const [datasets, tasks, snapshots] = await Promise.all([
-        读取小说拆分数据集列表(),
-        读取小说拆分任务列表(),
-        读取小说拆分注入快照列表()
-    ]);
-    const targetDatasets = options?.datasetId
-        ? datasets.filter((item) => item.id === options.datasetId)
-        : datasets;
-    if (targetDatasets.length <= 0) {
-        throw new Error('当前没有可导出的小说分解数据集');
-    }
-    const datasetIds = new Set(targetDatasets.map((item) => item.id));
-    const exportedAt = new Date().toISOString();
-    const decompositionPayload: 小说拆分分享分解文件结构 = {
-        schema: 小说拆分分享格式标识,
-        version: 小说拆分分享版本,
-        exportedAt,
-        datasets: targetDatasets.map((item) => 构建小说拆分分享分解数据集(item)),
-        tasks: options?.includeTasks === false
-            ? []
-            : tasks.filter((item) => datasetIds.has(item.数据集ID)).map((item) => 深拷贝(item)),
-        snapshots: options?.includeSnapshots === false
-            ? []
-            : snapshots.filter((item) => datasetIds.has(item.数据集ID)).map((item) => 深拷贝(item))
-    };
-    const rawPayload: 小说拆分分享原文文件结构 = {
-        schema: 小说拆分分享格式标识,
-        version: 小说拆分分享版本,
-        exportedAt,
-        datasets: targetDatasets.map((item) => 构建小说拆分分享原文项(item))
-    };
-    const manifest: 小说拆分分享清单结构 = {
-        format: 小说拆分分享格式标识,
-        version: 小说拆分分享版本,
-        exportedAt,
-        decompositionFile: 小说拆分分享分解文件,
-        rawFile: 小说拆分分享原文文件
-    };
-
-    const files: Record<string, Uint8Array> = {
-        [小说拆分分享清单文件]: strToU8(JSON.stringify(manifest, null, 2)),
-        [小说拆分分享分解文件]: strToU8(JSON.stringify(decompositionPayload, null, 2)),
-        [小说拆分分享原文文件]: strToU8(JSON.stringify(rawPayload, null, 2))
-    };
-    return new Blob([zipSync(files)], { type: 'application/zip' });
 };
 
 export const 导入小说拆分分享数据 = async (

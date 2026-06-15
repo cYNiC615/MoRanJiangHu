@@ -1,4 +1,3 @@
-import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 
@@ -36,6 +35,10 @@ type 原生聊天流事件 = {
     byteLength?: number;
 };
 
+type PluginListenerHandle = {
+    remove: () => Promise<void> | void;
+};
+
 type 原生聊天流插件 = {
     streamChat(options: {
         requestId: string;
@@ -50,7 +53,15 @@ type 原生聊天流插件 = {
     ): Promise<PluginListenerHandle>;
 };
 
-const 原生聊天流 = registerPlugin<原生聊天流插件>('NativeChatStreamer');
+const 原生聊天流: 原生聊天流插件 = {
+    async streamChat() {
+        throw new Error('原生聊天流插件已在 homebrew 版本中停用。');
+    },
+    async cancelStream() {},
+    async addListener() {
+        return { remove: async () => {} };
+    }
+};
 
 export class 协议请求错误 extends Error {
     status?: number;

@@ -1,8 +1,7 @@
-import { RELEASE_INFO } from '../data/releaseInfo';
+import { LOCAL_APP_VERSION_CODE, LOCAL_APP_VERSION_NAME, 获取本地站点基址 } from '../utils/localAppInfo';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { getDiagnosticLogs, type DiagnosticLogEntry } from './diagnosticLog';
 import { recordDiagnosticLog } from './diagnosticLog';
-import { getCurrentAppRelease } from './appUpdate';
 import { buildDiagnosticDebugContext } from './diagnosticContext';
 
 const DAILY_LIMIT = 10;
@@ -60,20 +59,16 @@ export const getDiagnosticReportQuota = (): { used: number; remaining: number; l
 };
 
 const buildApiBaseUrl = (): string => {
-    if (typeof window === 'undefined') return RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net';
+    if (typeof window === 'undefined') return '';
     const protocol = window.location.protocol;
     if ((protocol === 'http:' || protocol === 'https:') && !isNativeCapacitorEnvironment()) {
         return window.location.origin;
     }
-    return RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net';
+    return 获取本地站点基址();
 };
 
 const buildDiagnosticReportEndpoints = (): string[] => {
-    const bases = [
-        buildApiBaseUrl(),
-        RELEASE_INFO.backupWebsiteUrl,
-        RELEASE_INFO.websiteUrl
-    ]
+    const bases = [buildApiBaseUrl()]
         .map((value) => (typeof value === 'string' ? value.trim() : ''))
         .filter(Boolean);
     const uniqueBases = Array.from(new Set(bases));
@@ -165,17 +160,13 @@ const buildReportPayload = async (
     logs: DiagnosticLogEntry[],
     options?: { autoUpload?: boolean; triggerReason?: string }
 ) => {
-    const currentRelease = await getCurrentAppRelease().catch(() => ({
-        versionCode: RELEASE_INFO.versionCode,
-        versionName: RELEASE_INFO.versionName
-    }));
     return {
         app: {
             name: '墨色江湖',
-            versionCode: currentRelease.versionCode,
-            versionName: currentRelease.versionName,
-            releaseChannel: RELEASE_INFO.releaseChannel,
-            websiteUrl: RELEASE_INFO.websiteUrl,
+            versionCode: LOCAL_APP_VERSION_CODE,
+            versionName: LOCAL_APP_VERSION_NAME,
+            releaseChannel: 'homebrew',
+            websiteUrl: 获取本地站点基址(),
             isNative: isNativeCapacitorEnvironment()
         },
         client: {

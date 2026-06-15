@@ -23,11 +23,8 @@ interface Props {
     onToggleMajorRole?: (npcId: string, nextIsMajor: boolean) => void;
     onTogglePresence?: (npcId: string, nextIsPresent: boolean) => void;
     onDeleteNpc?: (npcId: string) => void;
-    onLearnSkill?: (npc: NPC结构, skill: any) => void;
-    onRecruitToSect?: (npc: NPC结构) => void;
     onStealFromNpc?: (npc: NPC结构, target?: string) => void;
     onRetryImage?: (npcId: string, options?: { 构图?: NPC重绘构图 }) => void;
-    playerSect?: any;
     openingConfig?: OpeningConfig;
 }
 
@@ -73,11 +70,8 @@ const SocialModal: React.FC<Props> = ({
     onToggleMajorRole,
     onTogglePresence,
     onDeleteNpc,
-    onLearnSkill,
-    onRecruitToSect,
     onStealFromNpc,
     onRetryImage,
-    playerSect,
     openingConfig
 }) => {
     const sortedSocialList = React.useMemo(() => (
@@ -103,35 +97,10 @@ const SocialModal: React.FC<Props> = ({
     const [stealTargets, setStealTargets] = useState<Record<string, string>>({});
     const 资源文案 = 获取题材资源文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
     const 界面文案 = 获取题材界面文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
-    const 组织名称 = String(playerSect?.名称 || '').trim();
-    const 当前组织为末世营地 = /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(JSON.stringify(playerSect || {}));
-    const 当前组织为无限流 = /主神|轮回|小队|奖励点|支线剧情|基因锁|主神空间|副本/u.test(JSON.stringify(playerSect || {}));
     const 格式化关系状态 = React.useCallback((value?: string) => {
         const text = String(value || '').trim() || '萍水相逢';
-        if (当前组织为末世营地) return text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员');
-        if (当前组织为无限流) return text.replace(/同门/g, '轮回者').replace(/门派成员/g, '小队成员').replace(/宗门成员/g, '轮回者');
         return text;
-    }, [当前组织为末世营地, 当前组织为无限流]);
-    const NPC已属当前组织 = React.useCallback((npc: any): boolean => {
-        if (!npc || !组织名称 || ['none', '无', '无门无派', '未加入', '散人'].includes(组织名称)) return false;
-        const text = [
-            npc?.身份,
-            npc?.关系,
-            npc?.关系状态,
-            npc?.简介,
-            npc?.记忆,
-            npc?.当前任务,
-            npc?.位置路径,
-            npc?.所属组织,
-            npc?.所属门派,
-            npc?.所属营地
-        ].filter(Boolean).join(' ');
-        if (npc?.是否队友 === true) return true;
-        if (text.includes(组织名称)) return true;
-        if (当前组织为末世营地) return /同营|营地成员|营地队友|队伍成员|同队|同伴|同事/u.test(text);
-        if (当前组织为无限流) return /轮回者|小队成员|队友|同队|轮回队友|队伍成员/u.test(text);
-        return /同门|门派成员|宗门成员|同宗|同派/u.test(text);
-    }, [组织名称, 当前组织为末世营地, 当前组织为无限流]);
+    }, []);
 
     useEffect(() => {
         if (sortedSocialList.length === 0) {
@@ -303,7 +272,6 @@ const SocialModal: React.FC<Props> = ({
     const 读取NPC技艺 = (npc: NPC结构) => (
         Array.isArray((npc as any)?.技艺) ? (npc as any).技艺 : []
     ).filter((item: any) => item && typeof item === 'object');
-    const 可请求学艺 = (skill: any): boolean => Number.isFinite(Number(skill?.熟练度));
     const 构建偷窃目标列表 = (npc: NPC结构): string[] => {
         const bagTargets = 读取NPC背包(npc).map((item) => item.名称).filter(Boolean).slice(0, 8);
         return Array.from(new Set([
@@ -895,26 +863,7 @@ const SocialModal: React.FC<Props> = ({
                                                     </svg>
                                                      {currentNPC.是否主要角色 ? '已设重要' : '设为重要'}
                                                  </button>
-                                                 {onRecruitToSect && (() => {
-                                                     const 已属当前组织 = NPC已属当前组织(currentNPC);
-                                                     const inviteLabel = 当前组织为末世营地 ? '邀入营地' : 当前组织为无限流 ? '邀入小队' : '邀入门派';
-                                                     return (
-                                                     <button
-                                                         type="button"
-                                                         onClick={() => onRecruitToSect(currentNPC)}
-                                                         disabled={当前角色已死亡 || 已属当前组织}
-                                                         title={已属当前组织 ? (当前组织为末世营地 ? '已是同营地' : 当前组织为无限流 ? '已是队友' : '已是同门') : inviteLabel}
-                                                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded border transition-all text-xs ${
-                                                             当前角色已死亡 || 已属当前组织
-                                                                 ? 'cursor-not-allowed border-gray-800 bg-black/45 text-gray-600'
-                                                                 : 'border-cyan-500/30 bg-cyan-950/20 text-cyan-100 hover:border-cyan-300/60 hover:bg-cyan-900/35'
-                                                         }`}
-                                                     >
-                                                         {已属当前组织 ? (当前组织为末世营地 ? '已在营地' : 当前组织为无限流 ? '已在小队' : '已入门派') : inviteLabel}
-                                                     </button>
-                                                     );
-                                                 })()}
-                                                 {onStealFromNpc && (
+                                                {onStealFromNpc && (
                                                      <div className="inline-flex items-center rounded border border-amber-500/30 bg-amber-950/15 text-xs text-amber-100 overflow-hidden">
                                                          <select
                                                              value={读取偷窃目标(currentNPC)}
@@ -1050,18 +999,7 @@ const SocialModal: React.FC<Props> = ({
                                                     <div className="grid grid-cols-2 gap-1.5">
                                                         {读取NPC技艺(currentNPC).length > 0 ? 读取NPC技艺(currentNPC).map((skill: any, idx) => (
                                                             <div key={`${skill.名称}-${idx}`} className="rounded border border-sky-900/30 bg-sky-950/10 px-2 py-1">
-                                                                <div className="flex items-start justify-between gap-1">
-                                                                    <div className="min-w-0 text-[10px] text-sky-100">{skill.名称}</div>
-                                                                    {onLearnSkill && 可请求学艺(skill) && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => onLearnSkill(currentNPC, skill)}
-                                                                            className="shrink-0 rounded border border-sky-400/30 bg-sky-900/30 px-1.5 py-0.5 text-[9px] text-sky-100 transition-colors hover:border-sky-300 hover:bg-sky-800/45"
-                                                                        >
-                                                                            学艺
-                                                                        </button>
-                                                                    )}
-                                                                </div>
+                                                                <div className="min-w-0 text-[10px] text-sky-100">{skill.名称}</div>
                                                                 <div className="text-[9px] text-gray-500">{skill.等级 || '未入门'} · {Number(skill.熟练度 || 0)}</div>
                                                             </div>
                                                         )) : <span className="text-xs text-gray-600">暂无技艺</span>}

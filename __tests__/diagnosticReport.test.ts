@@ -1,12 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../services/appUpdate', () => ({
-    getCurrentAppRelease: vi.fn(async () => ({
-        versionCode: 205,
-        versionName: '1.0.204'
-    }))
-}));
-
 vi.mock('../services/dbService', () => ({
     读取存档列表: vi.fn(async () => []),
     计算存档摘要短哈希: vi.fn(() => 'hash-test')
@@ -43,8 +36,9 @@ describe('diagnosticReport', () => {
         });
         vi.stubGlobal('window', {
             location: {
-                protocol: 'capacitor:',
-                href: 'capacitor://localhost'
+                protocol: 'https:',
+                origin: 'https://local.example',
+                href: 'https://local.example'
             },
             screen: {
                 width: 390,
@@ -61,12 +55,8 @@ describe('diagnosticReport', () => {
         vi.unstubAllGlobals();
     });
 
-    it('falls back to the backup diagnostic endpoint when the primary returns HTTP 200 with a non-report body', async () => {
+    it('uploads to the current local diagnostic endpoint', async () => {
         const fetchMock = vi.fn()
-            .mockResolvedValueOnce(new Response('<!doctype html><title>SPA fallback</title>', {
-                status: 200,
-                headers: { 'Content-Type': 'text/html' }
-            }))
             .mockResolvedValueOnce(new Response(JSON.stringify({
                 ok: true,
                 id: 'diag_test',
@@ -92,9 +82,8 @@ describe('diagnosticReport', () => {
             id: 'diag_test',
             remainingToday: 9
         });
-        expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(String(fetchMock.mock.calls[0][0])).toContain('msjh.bacon159.pp.ua/api/diagnostics/report');
-        expect(String(fetchMock.mock.calls[1][0])).toContain('msjh.bacon.de5.net/api/diagnostics/report');
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(String(fetchMock.mock.calls[0][0])).toBe('https://local.example/api/diagnostics/report');
     });
 
     it('uploads full debug context with parse failure raw text and sanitized save snapshot', async () => {

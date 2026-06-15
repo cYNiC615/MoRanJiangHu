@@ -1,9 +1,14 @@
-import { CapacitorHttp } from '@capacitor/core';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import * as dbService from './dbService';
 import { 构建同步API地址, 是否原生Capacitor环境 } from '../utils/nativeRuntime';
 import { 设置键 } from '../utils/settingsSchema';
 import { 解析图片资源引用ID } from '../utils/imageAssets';
+
+const CapacitorHttp: { request: (_options: unknown) => Promise<any> } = {
+    async request() {
+        throw new Error('原生 GitHub 同步 HTTP 分支已在 homebrew 版本中停用。');
+    }
+};
 
 export const GITHUB_TOKEN_KEY = 'github_sync_token';
 export const GITHUB_REPO_KEY = 'github_sync_repo';

@@ -8,23 +8,20 @@ interface Props {
     tasks: 任务结构[];
     onDeleteTask?: (taskIndex: number) => void;
     onClose: () => void;
-    playerSect?: any;
     uiLabels?: 题材界面文案;
     topicMode?: string;
 }
 
-const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect, uiLabels, topicMode }) => {
+const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, topicMode }) => {
     const [filter, setFilter] = useState<任务类型 | '全部'>('全部');
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const safeTasks = 规范化任务列表自动结算(Array.isArray(tasks) ? tasks : []) as 任务结构[];
     const 文案 = uiLabels?.标题;
-    const sectText = JSON.stringify(playerSect || {});
-    const isInfiniteSect = topicMode === '无限流' || /无限流|轮回|主神空间|主神|奖励点|支线剧情|恐怖片|小队/u.test(sectText);
-    const isApocalypseSect = !isInfiniteSect && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
-    const sectName = String(playerSect?.名称 || '').trim();
+    const isInfiniteMode = topicMode === '无限流';
+    const isApocalypseMode = !isInfiniteMode && /末日|废土|丧尸/u.test(String(topicMode || ''));
     const displayType = (type: string) => {
-        if (isInfiniteSect && (type === '门派' || type === '营地')) return '团队';
-        if (isApocalypseSect && type === '门派') return '营地';
+        if (isInfiniteMode && (type === '门派' || type === '营地')) return '团队';
+        if (isApocalypseMode && type === '门派') return '营地';
         return type;
     };
     const getTaskLabels = (task: any): string[] => {
@@ -34,13 +31,13 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect, 
             ...(Array.isArray(task?.任务标签) ? task.任务标签 : [])
         ].map((item) => String(item || '').trim()).filter(Boolean);
         const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点, task?.剧情暗线].filter(Boolean).join(' ');
-        if (isInfiniteSect && /主神|任务世界|恐怖片|奖励点|支线剧情|回归|倒计时/u.test(text)) {
+        if (isInfiniteMode && /主神|任务世界|恐怖片|奖励点|支线剧情|回归|倒计时/u.test(text)) {
             labels.push('主神');
         }
-        if (isInfiniteSect && (task?.类型 === '门派' || text.includes(sectName) || /轮回小队|团队|主神空间/u.test(text))) {
+        if (isInfiniteMode && (task?.类型 === '门派' || /轮回小队|团队|主神空间/u.test(text))) {
             labels.push('团队');
         }
-        if (isApocalypseSect && (task?.类型 === '门派' || text.includes(sectName) || /营地|据点|避难所|安全点|车队/u.test(text))) {
+        if (isApocalypseMode && (task?.类型 === '门派' || /营地|据点|避难所|安全点|车队/u.test(text))) {
             labels.push('营地');
         }
         return Array.from(new Set(labels.map(displayType)));
@@ -57,7 +54,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, playerSect, 
     const currentObjectives = Array.isArray(currentTask?.目标列表) ? currentTask.目标列表 : [];
     const currentRewards = Array.isArray(currentTask?.奖励描述) ? currentTask.奖励描述 : [];
     const getLocationDisplay = (task: any) => {
-        if (isInfiniteSect && 文案?.任务地点字段 === '任务世界') return 提取任务世界(task) || '当前任务世界';
+        if (isInfiniteMode && 文案?.任务地点字段 === '任务世界') return 提取任务世界(task) || '当前任务世界';
         return task?.发布地点 || '';
     };
 

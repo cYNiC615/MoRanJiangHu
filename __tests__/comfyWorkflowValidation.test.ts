@@ -116,11 +116,11 @@ describe('ComfyUI workflow upload validation', () => {
         expect(submittedWorkflow?.['4']?.inputs?.steps).toBe(8);
     });
 
-    it('formats missing-model failures with the model contribution guide', () => {
+    it('formats missing-model failures with a local setup hint', () => {
         const error = new Error('Prompt outputs failed validation: CheckpointLoaderSimple ckpt_name not in list: missing.safetensors');
         expect(判断ComfyUI工作流缺模型错误(error)).toBe(true);
         const message = 格式化ComfyUI工作流校验错误(error);
         expect(message).toContain('缺少这个工作流需要的模型');
-        expect(message).toContain('tutorials.html#comfy');
+        expect(message).toContain('请先在本地生图服务器安装工作流所需模型');
     });
 });

@@ -177,11 +177,8 @@ export const useGameState = () => {
     const [showBattle, setShowBattle] = useState(false);
     const [showSocial, setShowSocial] = useState(false);
     const [showTeam, setShowTeam] = useState(false); 
-    const [showKungfu, setShowKungfu] = useState(false);
-    const [showSkills, setShowSkills] = useState(false);
     const [showWorld, setShowWorld] = useState(false); 
     const [showMap, setShowMap] = useState(false);
-    const [showSect, setShowSect] = useState(false);
     const [showTask, setShowTask] = useState(false);
     const [showAgreement, setShowAgreement] = useState(false);
     const [showStory, setShowStory] = useState(false);
@@ -401,11 +398,8 @@ export const useGameState = () => {
         showBattle, setShowBattle,
         showSocial, setShowSocial,
         showTeam, setShowTeam,
-        showKungfu, setShowKungfu,
-        showSkills, setShowSkills,
         showWorld, setShowWorld,
         showMap, setShowMap,
-        showSect, setShowSect,
         showTask, setShowTask,
         showAgreement, setShowAgreement,
         showStory, setShowStory,

@@ -1,5 +1,5 @@
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
-import { RELEASE_INFO } from '../../data/releaseInfo';
+import { 获取本地站点基址 } from '../../utils/localAppInfo';
 import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 
 type ComfyUI远程探测结果 = {
@@ -17,7 +17,8 @@ const 构建诊断API地址 = (path: string): string => {
     if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
         return `${window.location.origin}${normalizedPath}`;
     }
-    const base = RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net';
+    const base = 获取本地站点基址();
+    if (!base) return normalizedPath;
     return `${base.replace(/\/+$/, '')}${normalizedPath}`;
 };
 
@@ -132,7 +133,7 @@ const 获取运行时代理基础地址 = (): string => {
     if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
         return window.location.origin.replace(/\/+$/, '');
     }
-    return (RELEASE_INFO.websiteUrl || 'https://msjh.bacon.de5.net').replace(/\/+$/, '');
+    return 获取本地站点基址();
 };
 
 const 判断可走ComfyUI运行时代理 = (baseUrlRaw: string): boolean => {

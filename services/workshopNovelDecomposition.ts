@@ -1,5 +1,5 @@
 import { 内置小说分解创意工坊模块 } from '../data/builtinNovelDecompositionWorkshop';
-import { RELEASE_INFO } from '../data/releaseInfo';
+import { 获取本地站点基址 } from '../utils/localAppInfo';
 import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { 读取云端游玩会话 } from './cloudPlayService';
 
@@ -63,8 +63,7 @@ const 获取创意工坊API基础地址 = (): string => {
     if (typeof window !== 'undefined' && /^https?:$/i.test(window.location.protocol) && !isNativeCapacitorEnvironment()) {
         return window.location.origin.replace(/\/+$/, '');
     }
-    const configured = typeof RELEASE_INFO.websiteUrl === 'string' ? RELEASE_INFO.websiteUrl.trim() : '';
-    return (configured || 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
+    return 获取本地站点基址();
 };
 
 const 构建创意工坊API地址 = (search = ''): string => {

@@ -120,7 +120,7 @@ const 渲染模块世界细节要求 = (config: 创意工坊世界细节生成�
     if (config.aiGenerate) return '';
     return [
         '【创意工坊自定义世界细节】',
-        '该模式包要求优先使用贡献者自定义的重要人物、重要势力和地图分布；AI 只能补齐空白与细节，不得另起一套核心世界骨架。',
+        '该模式包要求优先使用本地自定义的重要人物、重要势力和地图分布；AI 只能补齐空白与细节，不得另起一套核心世界骨架。',
         config.importantPeople ? `【重要人物】\n${config.importantPeople}` : '',
         config.importantFactions ? `【重要势力/宗门/组织】\n${config.importantFactions}` : '',
         config.mapDesign ? `【地图层级与地图块介绍】\n${config.mapDesign}` : ''

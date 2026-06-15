@@ -1,5 +1,5 @@
-import { RELEASE_INFO } from '../data/releaseInfo';
 import type { 存档结构 } from '../types';
+import { LOCAL_APP_VERSION_CODE, LOCAL_APP_VERSION_NAME } from '../utils/localAppInfo';
 import { 设置键 } from '../utils/settingsSchema';
 import { 构建同步API地址 } from '../utils/nativeRuntime';
 import { extractSettingsSyncData, restoreSettingsSyncData, type 云同步恢复结果 } from './githubSync';
@@ -583,8 +583,8 @@ const 构建云存档元数据 = async (save: 存档结构, archiveBytes: Uint8A
         syncedAt: new Date().toISOString(),
         deviceType: 获取设备类型(),
         deviceLabel: 获取设备标签(),
-        appVersion: RELEASE_INFO.versionName,
-        versionCode: RELEASE_INFO.versionCode,
+        appVersion: LOCAL_APP_VERSION_NAME,
+        versionCode: LOCAL_APP_VERSION_CODE,
         hash,
         size: archiveBytes.length,
         location: 读取地点文本(save),
@@ -628,8 +628,8 @@ const 构建设置元数据 = async (bytes: Uint8Array): Promise<WebDAV设置同
     syncedAt: new Date().toISOString(),
     deviceType: 获取设备类型(),
     deviceLabel: 获取设备标签(),
-    appVersion: RELEASE_INFO.versionName,
-    versionCode: RELEASE_INFO.versionCode,
+    appVersion: LOCAL_APP_VERSION_NAME,
+    versionCode: LOCAL_APP_VERSION_CODE,
     hash: await 计算SHA256(bytes),
     size: bytes.length
 });

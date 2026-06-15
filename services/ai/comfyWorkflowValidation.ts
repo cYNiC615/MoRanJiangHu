@@ -1,5 +1,4 @@
 import type { 接口设置结构 } from '../../types';
-import { RELEASE_INFO } from '../../data/releaseInfo';
 import { 获取文生图接口配置, type 当前可用接口结构 } from '../../utils/apiConfig';
 import { generateImageByPrompt } from './image';
 import { 规范化ComfyUI工作流JSON } from './comfyWorkflowTools';
@@ -13,8 +12,6 @@ export interface ComfyUI工作流校验结果 {
 }
 
 const COMFY_WORKFLOW_VALIDATION_TIMEOUT_MS = 120_000;
-const COMFY_MODEL_GUIDE_URL = RELEASE_INFO.cnbGuideUrl || 'https://msjh.bacon159.pp.ua/tutorials.html#comfy';
-
 const 读取错误消息 = (error: unknown): string => {
     if (error instanceof Error && error.message) return error.message;
     if (typeof error === 'string') return error;
@@ -34,7 +31,7 @@ export const 格式化ComfyUI工作流校验错误 = (error: unknown): string =>
     const raw = 读取错误消息(error).replace(/\s+/g, ' ').trim();
     const reason = raw.length > 900 ? `${raw.slice(0, 900)}...` : raw;
     if (判断ComfyUI工作流缺模型错误(raw)) {
-        return `工作流校验失败：当前 ComfyUI 缺少这个工作流需要的模型、LoRA、VAE、CLIP 或 safetensors 文件。请先按教程把模型贡献/安装到生图服务器后再上传。教程：${COMFY_MODEL_GUIDE_URL}。原始原因：${reason || '缺少模型'}`;
+        return `工作流校验失败：当前 ComfyUI 缺少这个工作流需要的模型、LoRA、VAE、CLIP 或 safetensors 文件。请先在本地生图服务器安装工作流所需模型后再上传。原始原因：${reason || '缺少模型'}`;
     }
     return `工作流校验失败：${reason || '没有返回可用图片'}`;
 };

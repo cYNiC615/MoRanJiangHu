@@ -8,10 +8,6 @@ const makeSave = (index: number): any => ({
     历史记录: [{ role: 'user', parts: [{ text: `第${index}条记录` }] }]
 });
 
-vi.mock('../data/releaseInfo', () => ({
-    RELEASE_INFO: { versionName: '1.0.test', versionCode: 999 }
-}));
-
 vi.mock('../utils/nativeRuntime', () => ({
     构建同步API地址: () => '/api/object-storage-proxy'
 }));

@@ -420,7 +420,7 @@ const 渲染世界细节生成配置 = (config: 创意工坊世界细节生成�
         ].join('\n');
     }
     return [
-        '世界细节生成模式：贡献者自定义',
+        '世界细节生成模式：本地自定义',
         '开局世界生成必须优先保留下列设定；AI 只能补齐空白、润色描述、修正层级关系，不能另起一套重要人物、势力或地图结构。',
         config.importantPeople?.trim() ? `【重要人物】\n${config.importantPeople.trim()}` : '',
         config.importantFactions?.trim() ? `【重要势力/宗门/组织】\n${config.importantFactions.trim()}` : '',
@@ -442,14 +442,14 @@ const 渲染模式元数据世界书内容 = (draft: 贡献草稿): string => {
         `预设物品关键词：${metadata.presetItemKeywords.join('、')}`,
         `背景建议：${metadata.backgroundSuggestions.join('、')}`,
         `天赋建议：${metadata.talentSuggestions.join('、')}`,
-        `世界细节：${worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '贡献者自定义'}`
+        `世界细节：${worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '本地自定义'}`
     ].filter((line) => !line.endsWith('：')).join('\n');
 };
 
 const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suiteTitle: string): 世界书结构[] => [{
     id: `${suiteId}-worldbook`,
     标题: `${suiteTitle}世界书`,
-    描述: '贡献者可按主世界书逻辑维护的模式专属世界书；切换该模式包时统一注入题材口径、世界规则和能力体系。',
+    描述: '本地可按主世界书逻辑维护的模式专属世界书；切换该模式包时统一注入题材口径、世界规则和能力体系。',
     常驻大纲: draft.description.trim() || `${draft.mode}模式专属规则。`,
     启用: true,
     内置: false,
@@ -567,7 +567,7 @@ const 构建贡献模块 = (draft: 贡献草稿, contributor: string, existingEn
     ];
     const safetyNotes = 分割文本行(draft.safetyNotes);
     const usagePrompt = draft.usagePrompt.trim() || (draft.type === 'comfy_workflow'
-        ? '在文生图设置中选择该工作流；发布前请确认 JSON 可用。'
+        ? '在文生图设置中选择该工作流；保存前请确认 JSON 可用。'
         : draft.type === 'ability'
             ? '作为手动能力/境界提示词注入，用于约束成长体系和战力边界。'
             : '作为手动世界观提示词注入，用于约束开局世界、势力、货币、地图和叙事边界。');
@@ -592,8 +592,8 @@ const 构建贡献模块 = (draft: 贡献草稿, contributor: string, existingEn
         formatVersion: 2,
         workshopKind: 'standard_module',
         title,
-        subtitle: draft.subtitle.trim() || (draft.type === 'comfy_workflow' ? `${style || '自定义风格'} · ${scopeLabel}` : `${draft.mode} · 玩家贡献`),
-        description: draft.description.trim() || `${draft.mode}可用的玩家贡献模块。`,
+        subtitle: draft.subtitle.trim() || (draft.type === 'comfy_workflow' ? `${style || '自定义风格'} · ${scopeLabel}` : `${draft.mode} · 本地模块`),
+        description: draft.description.trim() || `${draft.mode}可用的本地模块。`,
         tags,
         payload: draft.type === 'comfy_workflow'
             ? { schema: 'moranjianghu-creative-workshop-standard-module', version: 2, scope: draft.scope, style, workflowJson: draft.body.trim(), content: draft.body.trim(), contentBlocks, usagePrompt, safetyNotes }
@@ -657,7 +657,7 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
             mapPrompt: [
                 modeMetadata.mapPrompt,
                 !worldDetailGeneration.aiGenerate && worldDetailGeneration.mapDesign.trim()
-                    ? '地图生成必须优先使用贡献者填写的地图层级与地图块介绍。'
+                    ? '地图生成必须优先使用本地填写的地图层级与地图块介绍。'
                     : ''
             ].filter(Boolean).join('\n')
         },
@@ -687,7 +687,7 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
         {
             id: 'world-detail-main',
             title: '世界细节生成策略',
-            purpose: '控制重要人物、重要势力和地图层级是由 AI 默认生成，还是优先使用贡献者自定义内容。',
+            purpose: '控制重要人物、重要势力和地图层级是由 AI 默认生成，还是优先使用本地自定义内容。',
             injectionTarget: 'worldExtraRequirement',
             content: worldDetailContent
         },
@@ -740,7 +740,7 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
             `适用题材：${modeRuntimeProfile.identity.baseMode}`,
             `市场名称：${modeMetadata.auctionName || '未填写'}`,
             `时间口径：${modeRuntimeProfile.time.displayFormat} / ${modeRuntimeProfile.time.narrativeStyle.slice(0, 80)}`,
-            `世界细节：${worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '贡献者自定义'}`,
+            `世界细节：${worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '本地自定义'}`,
             `地图口径：${modeMetadata.mapPrompt.slice(0, 120) || '未填写'}`,
             `题材口径：${draft.topicBody.trim().slice(0, 160)}`,
             `世界规则：${draft.worldRulesBody.trim().slice(0, 160)}`,
@@ -764,7 +764,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
     const [loading, setLoading] = useState(false);
     const [busyId, setBusyId] = useState('');
     const [contributor, setContributor] = useState('');
-    const [anonymousContribution, setAnonymousContribution] = useState(false);
     const [previewEntry, setPreviewEntry] = useState<创意工坊模块条目 | null>(null);
     const [contributionDraft, setContributionDraft] = useState<贡献草稿>(() => 空贡献草稿());
     const [currencySystemJsonDraft, setCurrencySystemJsonDraft] = useState(() => 格式化货币系统Json(空贡献草稿().modeRuntimeProfile));
@@ -1218,7 +1217,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                     <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.045] p-4">
                         <div className="text-xs font-bold tracking-[0.14em] text-emerald-200">世界细节生成</div>
                         <div className="mt-2 text-sm font-bold text-gray-100">
-                            {worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '贡献者自定义'}
+                            {worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '本地自定义'}
                         </div>
                         {worldDetailGeneration.aiGenerate ? (
                             <div className="mt-2 text-xs leading-5 text-gray-400">该模块未锁定重要人物、重要势力或地图分布，开局时会按题材口径自动补全。</div>
@@ -1336,7 +1335,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                             <div className="text-xs font-mono tracking-[0.28em] text-wuxia-gold">CREATIVE WORKSHOP</div>
                             <h2 className="mt-2 text-lg font-serif font-bold tracking-[0.18em] text-wuxia-gold">创意工坊</h2>
                             <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-50/75">
-                                玩家贡献内容的总入口。创意工坊聚焦世界观和天赋背景；开局配置保留在新建存档流程中单独调整。
+                                本地模式包与图片工作流的管理入口。这里保留本地导入、JSON 保存和开局可用的模式包整理。
                             </p>
                         </div>
                     )}
@@ -1375,10 +1374,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                 onChange={(event) => void 导入JSON文件(event)}
                             />
                             <input value={contributor} onChange={(event) => setContributor(event.target.value)} placeholder="作者署名" className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/40" />
-                            <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-gray-200">
-                                <input type="checkbox" checked={anonymousContribution} onChange={(event) => setAnonymousContribution(event.target.checked)} className="h-3.5 w-3.5 accent-wuxia-gold" />
-                                隐藏署名
-                            </label>
                             <button type="button" onClick={() => jsonImportInputRef.current?.click()} disabled={busyId === 'import-json'} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/15 disabled:opacity-50">{busyId === 'import-json' ? '导入中' : '导入 JSON'}</button>
                             <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起编辑表单' : '新建本地模块'}</button>
                             <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新列表'}</button>
@@ -1404,7 +1399,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-3">
                                     <label className="block text-xs text-gray-300">
-                                        贡献类型
+                                        模块类型
                                         <select value={contributionDraft.type} onChange={(event) => setContributionDraft((prev) => ({ ...prev, type: event.target.value as 创意工坊模块类型 }))} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45">
                                             <option value="topic">完整模式包（模式专属世界书）</option>
                                             <option value="comfy_workflow">ComfyUI 工作流</option>
@@ -1517,7 +1512,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                                 <div>
                                                     <div className="text-xs font-bold tracking-[0.14em] text-emerald-200">世界细节生成</div>
-                                                    <div className="mt-1 text-[11px] leading-5 text-gray-400">控制重要人物、重要势力和地图分布由 AI 默认生成，还是由贡献者先写好骨架。</div>
+                                                    <div className="mt-1 text-[11px] leading-5 text-gray-400">控制重要人物、重要势力和地图分布由 AI 默认生成，还是由本地模块先写好骨架。</div>
                                                 </div>
                                                 <label className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-black/20 px-3 py-2 text-xs text-emerald-100">
                                                     <input
@@ -1844,7 +1839,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                 <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">实时预览</div>
                                 <div className="mt-3 text-base font-serif font-bold text-gray-100">{contributionDraft.title.trim() || '未命名预设'}</div>
                                 <div className="mt-1 text-xs text-wuxia-gold/80">{contributionDraft.type === 'comfy_workflow' ? contributionModule.subtitle : `${contributionDraft.mode} · 完整模式包`}</div>
-                                <p className="mt-2 text-sm leading-6 text-gray-300">{contributionDraft.description.trim() || (contributionDraft.type === 'comfy_workflow' ? contributionModule.description : '一次贡献一个模式专属世界书，包含题材口径、世界规则和能力体系。')}</p>
+                                <p className="mt-2 text-sm leading-6 text-gray-300">{contributionDraft.description.trim() || (contributionDraft.type === 'comfy_workflow' ? contributionModule.description : '一次保存一个模式专属世界书，包含题材口径、世界规则和能力体系。')}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {contributionModules[0]?.tags.map((tag) => <span key={tag} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-gray-300">{tag}</span>)}
                                 </div>
@@ -1853,7 +1848,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                     <div className="mt-2 text-xs leading-5 text-gray-300">使用提示：{contributionDraft.type === 'comfy_workflow' ? contributionModule.usagePrompt : '完整模式包会以模式专属世界书的形式统一生效。'}</div>
                                     {contributionDraft.type !== 'comfy_workflow' && (
                                         <div className="mt-2 rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-1.5 text-[11px] leading-5 text-emerald-100">
-                                            世界细节：{contributionDraft.aiGenerateWorldDetails ? 'AI 默认生成' : '贡献者自定义'}
+                                            世界细节：{contributionDraft.aiGenerateWorldDetails ? 'AI 默认生成' : '本地自定义'}
                                         </div>
                                     )}
                                     <ul className="mt-2 space-y-1 text-xs leading-5 text-gray-300">

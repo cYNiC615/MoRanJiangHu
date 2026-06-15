@@ -27,7 +27,7 @@ import {
 import * as dbService from '../dbService';
 import { 压缩图片资源字段, 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
-import { RELEASE_INFO } from '../../data/releaseInfo';
+import { 获取本地站点基址 } from '../../utils/localAppInfo';
 import { buildSyncApiUrl, isNativeCapacitorEnvironment, requiresRemoteSyncApi } from '../../utils/nativeRuntime';
 import {
     判断疑似网络或跨域错误,
@@ -166,7 +166,7 @@ const 获取NovelAI代理基础地址 = (baseUrlRaw: string): string => {
     if (typeof window === 'undefined') return '';
 
     const location = window.location;
-    const websiteUrl = 清理末尾斜杠(String(RELEASE_INFO.websiteUrl || '')) || 'https://msjh.bacon159.pp.ua';
+    const websiteUrl = 清理末尾斜杠(获取本地站点基址());
     if (requiresRemoteSyncApi()) {
         const configured = 清理末尾斜杠(buildSyncApiUrl('/api/novelai'));
         return /^https?:\/\//i.test(configured)

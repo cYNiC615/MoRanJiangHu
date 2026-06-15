@@ -15,7 +15,6 @@ interface Props {
     onOpenStory: () => void;
     onOpenHeroinePlan: () => void;
     onOpenMemory: () => void;
-    onOpenNovelExport?: () => void;
     onOpenImageManager?: () => void;
     uiLabels?: 题材界面文案;
     worldEvolutionEnabled?: boolean;
@@ -44,7 +43,6 @@ const RightPanel: React.FC<Props> = ({
     onOpenStory,
     onOpenHeroinePlan,
     onOpenMemory,
-    onOpenNovelExport,
     onOpenImageManager,
     uiLabels,
     worldEvolutionEnabled = false,
@@ -103,7 +101,6 @@ const RightPanel: React.FC<Props> = ({
         { label: menuLabel?.story || '剧情', action: onOpenStory, color: 'primary' as const, changeKeys: ['剧情'] },
         ...(enablePlanningPanel && enableHeroinePlan ? [{ label: menuLabel?.plan || '规划', action: onOpenHeroinePlan, color: 'primary' as const, changeKeys: ['剧情规划'] }] : []),
         { label: menuLabel?.memory || '记忆', action: onOpenMemory, color: 'primary' as const, changeKeys: ['记忆系统'] },
-        ...(onOpenNovelExport ? [{ label: '导出小说', action: onOpenNovelExport, color: 'secondary' as const }] : []),
         ...(onOpenImageManager ? [{ label: menuLabel?.imageManager || '图册', action: onOpenImageManager, color: 'secondary' as const }] : []),
     ];
 

@@ -22,7 +22,6 @@ import { 合并物品图片档案, 获取物品图标复用Key, 物品已有可�
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
 import { 丢弃背包物品, 是否杂物类物品 } from './utils/inventoryActions';
 import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImportWithReload';
-import { RELEASE_INFO } from './data/releaseInfo';
 import { 获取题材界面文案 } from './utils/resourceLabels';
 import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
@@ -67,7 +66,7 @@ type 物品自动生图近期结果 = {
     nextItem: 游戏物品;
 };
 
-type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '功法' | '地图' | '玩家门派' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
+type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '地图' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
 
 const 旧图迁移阶段文案: Record<本地图片图床迁移状态['stage'], string> = {
     idle: '等待扫描',
@@ -207,13 +206,11 @@ const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] =
         if (!key) return;
         if (key.includes('角色.物品列表')) areas.add('背包');
         if (key.includes('角色.装备')) areas.add('装备');
-        if (key.includes('角色.功法列表')) areas.add('功法');
         if (key.includes('角色.当前坐标') || key.includes('世界.地图')) areas.add('地图');
         if (key.includes('角色.') || key.startsWith('角色.')) areas.add('角色');
         if (key.includes('战斗')) areas.add('战斗');
         if (key.includes('社交')) areas.add('社交');
         if (key.includes('队伍') || key.includes('是否队友')) areas.add('队伍');
-        if (key.includes('玩家门派')) areas.add('玩家门派');
         if (key.includes('任务列表')) areas.add('任务列表');
         if (key.includes('约定列表')) areas.add('约定列表');
         if (key.includes('世界')) areas.add('世界');
@@ -290,7 +287,6 @@ const TaskModal = 创建可预加载懒组件('task-modal', () => import('./comp
 const AgreementModal = 创建可预加载懒组件('agreement-modal', () => import('./components/features/Agreement/AgreementModal'));
 const StoryModal = 创建可预加载懒组件('story-modal', () => import('./components/features/Story/StoryModal'));
 const HeroinePlanModal = 创建可预加载懒组件('heroine-plan-modal', () => import('./components/features/Story/HeroinePlanModal'));
-const NovelExportModal = 创建可预加载懒组件('novel-export-modal', () => import('./components/features/Story/NovelExportModal'));
 const MemoryModal = 创建可预加载懒组件('memory-modal', () => import('./components/features/Memory/MemoryModal'));
 const MemorySummaryFlowModal = 创建可预加载懒组件('memory-summary-flow-modal', () => import('./components/features/Memory/MemorySummaryFlowModal'));
 const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowModal'));
@@ -317,8 +313,7 @@ const 桌面轻量预热目标 = [
     StoryModal,
     HeroinePlanModal,
     MemoryModal,
-    SaveLoadModal,
-    NovelExportModal
+    SaveLoadModal
 ] as const;
 
 const 网络较慢或节省流量 = (connection?: 可选网络信息 | null): boolean => {
@@ -425,7 +420,6 @@ const App: React.FC = () => {
     const [showCharacter, setShowCharacter] = React.useState(false);
     const [showImageManager, setShowImageManager] = React.useState(false);
     const [showWorldbookManager, setShowWorldbookManager] = React.useState(false);
-    const [showNovelExport, setShowNovelExport] = React.useState(false);
     const [mapRegenerateRawText, setMapRegenerateRawText] = React.useState('');
     const [chatContentHidden, setChatContentHidden] = React.useState(false);
     const [sceneQuickGenHint, setSceneQuickGenHint] = React.useState(false);
@@ -593,7 +587,6 @@ const App: React.FC = () => {
         state.环境,
         state.世界,
         state.战斗,
-        state.玩家门派,
         state.任务列表,
         state.约定列表,
         state.剧情,
@@ -800,11 +793,10 @@ const App: React.FC = () => {
         战斗: state.战斗,
         剧情: state.剧情,
         女主剧情规划: state.女主剧情规划,
-        玩家门派: state.玩家门派,
         任务列表: state.任务列表,
         约定列表: state.约定列表,
         记忆系统: state.记忆系统
-    }), [state.角色, state.环境, state.社交, state.世界, state.战斗, state.剧情, state.女主剧情规划, state.玩家门派, state.任务列表, state.约定列表, state.记忆系统]);
+    }), [state.角色, state.环境, state.社交, state.世界, state.战斗, state.剧情, state.女主剧情规划, state.任务列表, state.约定列表, state.记忆系统]);
 
     const latestAssistantMessage = React.useMemo(
         () => [...state.历史记录]
@@ -831,9 +823,6 @@ const App: React.FC = () => {
         }
         if (!Array.isArray(state.约定列表) || state.约定列表.length === 0) {
             areas.delete('约定列表');
-        }
-        if (!Array.isArray(state.角色?.功法列表) || state.角色.功法列表.length === 0) {
-            areas.delete('功法');
         }
         if (!Array.isArray(state.任务列表) || state.任务列表.length === 0) {
             areas.delete('任务列表');
@@ -1137,7 +1126,6 @@ const App: React.FC = () => {
         state.showStory ? 'story' :
         state.showHeroinePlan ? 'plan' :
         state.showMemory ? 'memory' :
-        showNovelExport ? 'export_novel' :
         showImageManager ? 'image_manager' :
         safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
         state.showSettings ? 'settings' :
@@ -1156,7 +1144,6 @@ const App: React.FC = () => {
         || state.showStory
         || state.showHeroinePlan
         || state.showMemory
-        || showNovelExport
         || showImageManager
         || safeShowSaveLoad.show
         || state.showSettings
@@ -1228,7 +1215,6 @@ const App: React.FC = () => {
         setters.setShowStory(false);
         setters.setShowHeroinePlan(false);
         setters.setShowMemory(false);
-        setShowNovelExport(false);
         setShowImageManager(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
         setters.setShowSettings(false);
@@ -1346,27 +1332,6 @@ const App: React.FC = () => {
         setChatDraftRequest({ text: draft, token: chatDraftTokenRef.current });
         actions.pushNotification({ title: '已写入输入框', message: '行动文本已放入对话框，可直接发送或继续编辑。', tone: 'success' });
     }, [actions]);
-    const handleLearnNpcSkill = React.useCallback((npc: any, skill: any) => {
-        const npcName = String(npc?.姓名 || npc?.名称 || '该人物').trim();
-        const skillName = String(skill?.名称 || '技艺').trim();
-        const skillLevel = String(skill?.等级 || '未入门').trim();
-        const proficiency = Number(skill?.熟练度 ?? 0);
-        if (!npcName || !skillName || !Number.isFinite(proficiency)) return;
-        const playerSkill = (Array.isArray(state.角色?.技艺) ? state.角色.技艺 : [])
-            .find((item: any) => item?.名称 === skillName);
-        const playerSkillText = playerSkill
-            ? `主角当前${skillName}：${playerSkill.等级 || '未入门'}，熟练度${Number(playerSkill.熟练度 || 0)}。`
-            : `主角当前尚未稳定记录${skillName}技艺。`;
-        actions.appendSystemMessage?.(
-            `[学艺请求] 玩家已选择向${npcName}学习${skillName}技艺。对方当前${skillName}：${skillLevel}，熟练度${Math.max(0, Math.floor(proficiency))}。${playerSkillText}下一回合 AI 必须在正文中反馈请教过程、对方态度、学习条件与阶段结果；若学习有效，在<变量规划>中更新角色.技艺里${skillName}的熟练度/等级/描述，并按事实同步${npcName}的记忆、好感或关系状态。`,
-            { position: 'after_last_turn' }
-        );
-        actions.pushNotification({
-            title: '学艺请求已记录',
-            message: `下回合将向${npcName}请教「${skillName}」。`,
-            tone: 'success'
-        });
-    }, [actions, state.角色?.技艺]);
     const handleStealFromNpc = React.useCallback((npc: any, target?: string) => {
         const npcName = String(npc?.姓名 || npc?.名称 || '目标').trim();
         const targetText = String(target || '随机随身物品').trim() || '随机随身物品';
@@ -1668,10 +1633,6 @@ const App: React.FC = () => {
         });
         return result.ok;
     }, [actions, handleRegenerateMapFromMemory]);
-    const openNovelExport = React.useCallback(() => {
-        closeAllPanels();
-        setShowNovelExport(true);
-    }, [closeAllPanels]);
     const openSave = React.useCallback(() => {
         closeAllPanels();
         setters.setShowSaveLoad({ show: true, mode: 'save' });
@@ -1681,7 +1642,6 @@ const App: React.FC = () => {
         setters.setShowSaveLoad({ show: true, mode: 'load' });
     }, [closeAllPanels, setters]);
     const closeSettings = React.useCallback(() => setters.setShowSettings(false), [setters]);
-    const closeNovelExport = React.useCallback(() => setShowNovelExport(false), []);
     const handleAllocateAttributePoint = React.useCallback((key: 可分配六维属性键) => {
         const nextCharacter = 分配角色属性点(state.角色, key);
         if (nextCharacter === state.角色) return;
@@ -2014,7 +1974,6 @@ const App: React.FC = () => {
                                 onOpenStory={openStory}
                                 onOpenHeroinePlan={openHeroinePlan}
                                 onOpenMemory={openMemory}
-                                onOpenNovelExport={openNovelExport}
                                 uiLabels={题材界面文案}
                                 onOpenImageManager={openImageManagerWithCheck}
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
@@ -2171,10 +2130,6 @@ const App: React.FC = () => {
                                 )}
                             </div>
 
-                            <div className="shrink-0 text-wuxia-gold font-bold ml-2 z-20 bg-ink-black/90 px-2 flex items-center h-full border-l border-gray-800 text-transparent relative">
-                                <span className="absolute inset-0 flex items-center px-2 text-wuxia-gold">【V{RELEASE_INFO.versionName}】</span>
-                                【V{RELEASE_INFO.versionName}】
-                            </div>
                         </div>
                     )}
                 </div>
@@ -2465,10 +2420,8 @@ const App: React.FC = () => {
                                 onToggleMajorRole={actions.updateNpcMajorRole}
                                 onTogglePresence={actions.updateNpcPresence}
                                 onDeleteNpc={actions.removeNpc}
-                                onLearnSkill={handleLearnNpcSkill}
                                 onStealFromNpc={handleStealFromNpc}
                                 onRetryImage={actions.retryNpcImageGeneration}
-                                playerSect={state.玩家门派}
                             />
                         </懒加载边界>
                     )}
@@ -2515,7 +2468,6 @@ const App: React.FC = () => {
                             <TaskModal
                                 tasks={state.任务列表}
                                 onDeleteTask={actions.removeTask}
-                                playerSect={state.玩家门派}
                                 topicMode={state.开局配置?.题材模式}
                                 uiLabels={题材界面文案}
                                 onClose={() => setters.setShowTask(false)}
@@ -2540,18 +2492,6 @@ const App: React.FC = () => {
                                 storyPlan={当前剧情规划}
                                 isFandomMode={启用同人模式}
                                 onClose={() => setters.setShowStory(false)}
-                            />
-                        </懒加载边界>
-                    )}
-
-                    {showNovelExport && (
-                        <懒加载边界>
-                            <NovelExportModal
-                                isOpen={showNovelExport}
-                                onClose={closeNovelExport}
-                                history={state.历史记录}
-                                apiSettings={state.apiConfig}
-                                onOpenPolishSettings={openPolishSettings}
                             />
                         </懒加载边界>
                     )}

@@ -755,6 +755,8 @@ focused passes:
   "manual APK update only" toggle.
 - `hooks/useGameState.ts`: no longer mirrors the APK auto-update preference
   into localStorage during settings load.
+- `hooks/useGame/config/settingsPersistenceWorkflow.ts`: saving game settings
+  no longer writes the retired APK auto-update preference mirror.
 
 ### Backend, Release, And Data Pending
 

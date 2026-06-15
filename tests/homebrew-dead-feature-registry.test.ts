@@ -692,6 +692,10 @@ describe('homebrew dead feature registry', () => {
         const useGameState = readProjectFile('hooks/useGameState.ts');
         expect(useGameState).not.toContain('写入APK自动更新禁用镜像');
         expect(useGameState).not.toContain('appUpdatePreferences');
+
+        const settingsPersistence = readProjectFile('hooks/useGame/config/settingsPersistenceWorkflow.ts');
+        expect(settingsPersistence).not.toContain('写入APK自动更新禁用镜像');
+        expect(settingsPersistence).not.toContain('appUpdatePreferences');
     });
 
     it('records APK/app-update backend, release, and storage residue as pending removal', () => {

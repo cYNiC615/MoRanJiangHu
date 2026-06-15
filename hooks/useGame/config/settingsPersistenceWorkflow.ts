@@ -21,7 +21,6 @@ import { 规范化游戏设置 } from '../../../utils/gameSettings';
 import { 规范化图片管理设置 } from '../../../utils/imageManagerSettings';
 import { 设置键 } from '../../../utils/settingsSchema';
 import { 写入接口设置本地镜像, 规范化接口设置 } from '../../../utils/apiConfig';
-import { 写入APK自动更新禁用镜像 } from '../../../utils/appUpdatePreferences';
 import { 内置提示词存储键, 规范化内置提示词列表 } from '../../../utils/builtinPrompts';
 import { 世界书存储键, 世界书预设组存储键, 规范化世界书列表, 规范化世界书预设组列表 } from '../../../utils/worldbook';
 import { 规范化记忆配置 } from '../memoryUtils';
@@ -357,7 +356,6 @@ export const 创建设置持久化工作流 = (deps: 设置持久化工作流依
 
     const saveGameSettings = async (newConfig: 游戏设置结构) => {
         const normalized = 规范化游戏设置(newConfig);
-        写入APK自动更新禁用镜像(normalized.禁用APK自动更新 === true);
         deps.设置游戏设置(normalized);
         await dbService.保存设置(设置键.游戏设置, normalized);
     };

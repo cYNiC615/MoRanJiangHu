@@ -53,7 +53,8 @@ describe('planning prompts', () => {
 
         expect(userPrompt).toContain('【女主规划状态】');
         expect(userPrompt).toContain('女主剧情规划未启用');
-        expect(userPrompt).toContain('不得新增、推断、补位、修订或输出任何 `女主剧情规划.*` / `同人女主剧情规划.*` 命令');
+        expect(userPrompt).toContain('不得新增、推断、补位、修订或输出任何 `女主剧情规划.*` 命令');
+        expect(userPrompt).not.toContain('同人女主剧情规划');
         expect(userPrompt).toContain('即使正文提到女性角色，也只能按普通社交、剧情或世界状态处理');
         expect(userPrompt).not.toContain('【当前女主规划树】');
     });

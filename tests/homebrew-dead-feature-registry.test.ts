@@ -1,8 +1,19 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { 核心_剧情推动 } from '../prompts/core/story';
+import { 获取开局思维链提示词 } from '../prompts/core/cotOpening';
 import { 构建同人运行时提示词包 } from '../prompts/runtime/fandom';
 import { 构建世界观同人融合提示词 } from '../prompts/runtime/openingConfig';
+import {
+    构建统一规划分析系统提示词,
+    构建统一规划分析用户提示词,
+    构建规划性别比例约束摘要
+} from '../prompts/runtime/planningAnalysis';
+import { 剧情规划变量结构提示词 } from '../prompts/runtime/storyPlanSchema';
+import { 构建世界演变系统提示词, 构建世界演变用户提示词 } from '../prompts/runtime/worldEvolution';
+import { 构建世界演变COT提示词 } from '../prompts/runtime/worldEvolutionCot';
+import { 数值_世界演化 } from '../prompts/stats/world';
 import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelector';
 
 const readProjectFile = (relativePath: string) => {
@@ -494,6 +505,52 @@ describe('homebrew dead feature registry', () => {
         expect(bundle.变量校准补丁).toBe('');
         expect(构建世界观同人融合提示词(legacyFandomOpeningConfig)).toBe('');
         expect(构建女性姓名黑名单提示词()).not.toMatch(/同人|原著|小说拆分|分解组/);
+    });
+
+    it('removes retired fandom and novel-decomposition labels from always-on prompts', () => {
+        const promptSurfaces = [
+            ['core_story', 核心_剧情推动.内容],
+            ['cot_opening', 获取开局思维链提示词({})],
+            ['story_plan_schema', 剧情规划变量结构提示词],
+            ['planning_system', 构建统一规划分析系统提示词({ heroineEnabled: true })],
+            ['planning_user', 构建统一规划分析用户提示词({
+                currentStoryJson: '{}',
+                currentHeroinePlanJson: '{}',
+                worldJson: '{}',
+                socialJson: '[]',
+                envJson: '{}',
+                recentBodiesText: '无',
+                currentPlanText: '',
+                auditFocusText: '常规回合固定审计',
+                heroineEnabled: true
+            })],
+            ['gender_ratio_constraint', 构建规划性别比例约束摘要('1:1')],
+            ['world_evolution_system', 构建世界演变系统提示词({ fandom: false })],
+            ['world_evolution_user', 构建世界演变用户提示词('世界上下文', { fandom: false })],
+            ['world_evolution_cot', 构建世界演变COT提示词({ fandom: false })],
+            ['world_stat_prompt', 数值_世界演化.内容]
+        ] as const;
+
+        const retiredPhrases = [
+            '同人模式',
+            '同人设定',
+            '同人开局',
+            '同人剧情规划',
+            '同人女主剧情规划',
+            '小说分解',
+            '小说拆分',
+            '小说分解滑窗',
+            '小说分解后的章节滑窗',
+            '原著章节锚点',
+            '原著角色信息',
+            '原著硬约束'
+        ];
+
+        for (const [name, content] of promptSurfaces) {
+            for (const phrase of retiredPhrases) {
+                expect(content, `${name}: ${phrase}`).not.toContain(phrase);
+            }
+        }
     });
 
     it('removes legacy battle player-visible entrypoints', () => {

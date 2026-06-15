@@ -44,8 +44,8 @@ Phase 1 的目标不是“把所有旧代码一次性删光”，而是把已明
 
 1. 入口清零：主页、游戏壳、右栏、设置、新建角、创意工坊、快捷菜单、全局弹窗、移动壳等位置不再能打开已废弃功能。
 2. 活跃副作用清零：启动、回合结束、保存、返回主页、定时器、心跳、后台队列和自动预加载不再替已废弃功能工作。
-3. AI 写入清零：核心 prompt、schema、命令过滤和后台世界演变不再主动要求模型维护已废弃结构化状态；天气只保留正文氛围，节日、拍卖行待投放、小说分解滑窗等不能继续作为游戏概念写入。
-4. 残留可追踪：暂时不删的服务、API、模型字段、storage key、测试、静态资源、迁移点必须登记到 `docs/homebrew-dead-feature-registry.md`，并标明 `backend_pending`、`storage_pending` 或 `prompt_copy_pending` 等状态。
+3. AI 写入清零：核心 prompt、schema、命令过滤和后台世界演变不再主动要求模型维护已废弃结构化状态；天气只保留正文氛围，节日、拍卖行待投放、明确绑定小说分解的章节注入等不能继续作为游戏概念写入。
+4. 残留可追踪：暂时不删的服务、API、模型字段、storage key、测试、静态资源、迁移点必须登记到 `docs/homebrew-dead-feature-registry.md`，并标明 `backend_pending`、`storage_pending` 或 `prompt_copy_pending` 等状态。通用上下文“滑窗/章节窗口”不等同于小说分解；只有与同人、原著改编、小说分解绑定的口径才算退役残留。
 5. 回归有保护：每个功能族至少有静态回归测试或等价验证覆盖入口和关键副作用，防止后续换 session 时只删前端、漏掉后端或 prompt。
 6. 验证不退化：`npx vite build` 不能因本轮删除失败；新增/可控 warning 不得扩大。全项目最终目标仍是 0 error / 0 warning，但既有 `tsc` 类型债允许进入后续统一治理。
 
@@ -131,7 +131,7 @@ Phase 1 可以接受深层 `backend_pending`，尤其是旧模型字段、历史
 | 酒馆预设 | 导入 SillyTavern/酒馆预设，按预设顺序生成消息链 | `components/features/Settings/TavernPresetSettings.tsx`, `hooks/useGame/promptRuntime.ts`, `utils/tavernPreset.ts` | 核心保留 |
 | 剧情规划 | 维护剧情承接、任务、镜头、后续推进 | `models/storyPlan.ts`, `prompts/runtime/planningAnalysis.ts`, `hooks/useGame/planningUpdateWorkflow.ts` | 保留，删除同人/小说分解分支 |
 | 女主规划 | 支撑男性向恋爱/亲密关系体验与重要女角色推进 | `models/heroinePlan.ts`, `prompts/core/heroinePlan*.ts` | 保留并优化；后宫模式下弱化“唯一主推女主”的副作用 |
-| 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/always-on prompt copy 待清理/后端待删 |
+| 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/默认 always-on 标签已清/后端待删 |
 | 小说分解提示词 | 小说章节拆解、滑窗、拆分 COT、工作台注入 | `prompts/runtime/novelDecomposition*.ts`, `services/novelDecomposition*` | 入口和活跃注入已移除/后端待删 |
 | 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 入口已移除/后端待删，不保留为默认或兼容目标 |
 
@@ -174,7 +174,7 @@ Phase 1 可以接受深层 `backend_pending`，尤其是旧模型字段、历史
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 入口已移除/后端待删 | Phase 1 已删除 App 自动检查/下载/进度弹窗、首页 APK 下载/检查、设置开关和本地镜像写入；release scripts/API/Android 仍待删 |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 入口和自动列表已移除/后端待删 | `列出创意工坊模块` 不再 fetch 云端列表；保留本地模式包时后续删除 publish/edit/delete/download API |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口和活跃注入已断/后端待删 | 前端可见入口已断；主剧情、开局、世界演变、规划、回档和运行时变量链路不再注入/校准小说分解；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
-| Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/always-on prompt copy 待清理/后端待删 | 新建角同人配置入口已断；旧 `同人融合.enabled` 配置不再生成运行时同人提示词或世界观融合提示；always-on prompt 里的旧同人/原著/小说滑窗文案仍待清理；创意工坊、提示词、设置和 API 残留后续清理 |
+| Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/默认 always-on 标签已清/后端待删 | 新建角同人配置入口已断；旧 `同人融合.enabled` 配置不再生成运行时同人提示词或世界观融合提示；默认 always-on prompt 不再暴露同人/小说分解命名标签；创意工坊、提示词文件、legacy schema 字段、设置和 API 残留后续清理 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 已降级为正文氛围/模型待删 | Phase 1 已删除节日默认数据、设置入口、天气/节日 TopBar 展示、强制上下文、prompt/schema 写入要求、AI 命令写入路径和自动环境写入；`环境.节日` / `环境.天气` 模型字段和旧存档残留待强迁移 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口和副作用已移除/后端待删 | 不改二手市场，不保留拍卖行；Phase 1 已断玩家入口、自动补货、存档桥接、AI 待投放写入和自动物品生图副作用，服务/图片数据/脚本/模型字段后续深删 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
@@ -216,7 +216,7 @@ Phase 1 可以接受深层 `backend_pending`，尤其是旧模型字段、历史
 | 天气 | 已降级/模型待删 | 不作为游戏概念；AI 正文写了就有，不写就没有 | Phase 1 已移除 TopBar、强制上下文、prompt/schema 写入要求、命令写入和场景图读取旧天气；后续删除 `环境.天气` 模型字段与旧存档残留 |
 | 节日 | 已降级/模型待删 | 意义小且占上下文 | Phase 1 已删除默认节日表、节日设置页、TopBar 节日卡、强制上下文、prompt/schema 写入要求、命令写入和自动写入副作用；后续删除 `环境.节日` 模型字段与旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
-| 同人/原著融合 | 入口和 runtime 注入已钝化/always-on prompt copy 待清理/后端待删 | 用户明确不做同人 | Phase 1 已删除新建角同人融合、角色替换和摘要入口；旧 `同人融合.enabled` 配置不再生成运行时同人提示词、世界观融合提示或女性姓名特殊保留口径；always-on prompt 里的旧同人/原著/小说滑窗文案仍待清理；后续删除模型/提示词/服务/API |
+| 同人/原著融合 | 入口和 runtime 注入已钝化/默认 always-on 标签已清/后端待删 | 用户明确不做同人 | Phase 1 已删除新建角同人融合、角色替换和摘要入口；旧 `同人融合.enabled` 配置不再生成运行时同人提示词、世界观融合提示或女性姓名特殊保留口径；默认 always-on prompt 不再暴露同人/小说分解命名标签；后续删除模型/提示词/服务/API，并迁移 `当前分解组`、`原著*`、`关联分歧线` 等 legacy schema 字段 |
 | 小说分解 | 入口和活跃注入已移除/后端待删 | 用户明确不做小说分解 | Phase 1 已移除工作台、设置、创意工坊和新建角附加小说入口，并断开主剧情、开局、世界演变、规划、回档和运行时变量链路里的小说分解注入/校准；第二批删服务、模型、prompts、tests 和 storage keys |
 | 移动端 UI | 入口已移除/组件待删 | 用户明确不做移动端 | Phase 1 已删除 App 移动组件挂载、移动快捷菜单、移动专用底部 ticker、移动弹窗分支和 native back/fullscreen 壳；移动组件文件、响应式分支、Capacitor/native helper 和移动测试仍待后续深删 |
 | Android/APK | 入口已移除/后端待删 | 用户明确不做 APK | Phase 1 已断玩家可见更新/下载入口；后续删除 scripts、Capacitor、android、app update、APK manifest/API |
@@ -281,7 +281,7 @@ Phase 1 全局完成的标准：下面所有明确废弃功能族都至少达到
 
 | 功能族 | Phase 1 目标 | 当前状态 |
 | --- | --- | --- |
-| 同人/小说分解 | 断开新建角、设置、工坊、全局工作台入口，并断开同人 runtime 注入、小说分解活跃注入/校准 | 已断入口、同人 runtime 注入和小说分解活跃注入；always-on prompt copy 仍待清，后端/prompt/storage 待删 |
+| 同人/小说分解 | 断开新建角、设置、工坊、全局工作台入口，并断开同人 runtime 注入、小说分解活跃注入/校准 | 已断入口、同人 runtime 注入和小说分解活跃注入；默认 always-on prompt 标签已清，后端/prompt/schema/storage 待删 |
 | 云同步/云端游玩 | 断开玩家入口和保存/返回主页自动同步副作用 | 已断入口和副作用，后端/API/storage 待删 |
 | 社区 UGC/云工坊 | 保留本地模式包，移除投稿、社区发布、云端编辑/删除/反馈入口 | 已断入口和自动云端列表，后端/API/storage 待删 |
 | 公共在线状态/在线榜 | 删除心跳、首页在线统计和公开榜入口 | 已断入口、心跳和静态页，后端/API/测试待删 |
@@ -317,7 +317,7 @@ Phase 1 完成的定义：
 Phase 1 不算完成的情况：
 
 - 只删前端入口但没有登记后端、prompt、storage key 和测试残留。
-- AI prompt 仍主动要求模型写入已废弃模块的核心状态，例如拍卖行待投放、节日/天气结构化状态、小说分解滑窗。
+- AI prompt 仍主动要求模型写入已废弃模块的核心状态，例如拍卖行待投放、节日/天气结构化状态、明确绑定小说分解的章节注入。通用上下文窗口/滑窗口径不单独算退役功能。
 - 新建角或设置页仍能配置已明确废弃的模块。
 - 为了让某个删除通过而把错误静默吞掉，却没有登记迁移计划。
 

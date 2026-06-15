@@ -58,7 +58,7 @@ Final homebrew simplification is not complete until:
 - Reason: The homebrew project will not support fanfiction/original-work
   adaptation, novel decomposition, or novel-decomposition workshop sharing.
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
-  `prompt_copy_pending`, `backend_pending`, `storage_pending`.
+  `backend_pending`, `storage_pending`.
 
 ### Entrypoints Removed In This Pass
 
@@ -147,10 +147,17 @@ Keep these visible in future cleanup work:
 - `services/dbService.ts` setting-store handling for the same keys
 - `models/system.ts` feature/model settings fields for `小说拆分*`
 
-### Prompt References Still Pending
+### Prompt And Schema Notes
 
-Later fanfiction removal should clear prompt references to novel decomposition
-in:
+Default always-on prompt surfaces no longer expose the retired fandom /
+novel-decomposition feature labels (`同人模式`, `小说分解`, `小说拆分`,
+`原著章节锚点`, `原著硬约束`, etc.). Generic context-window wording such as
+`滑窗`, `章节窗口`, or `【当前章节内容】 / 【下一章节内容】` is not itself retired;
+it may describe the same context-budgeting / worldbook-like injection technique
+used by the core AI harness.
+
+Later backend cleanup should still delete retired prompt files and conditional
+branches in:
 
 - `prompts/runtime/fandom*.ts`
 - `prompts/runtime/opening*.ts`
@@ -159,6 +166,12 @@ in:
 - `prompts/runtime/worldEvolution*.ts`
 - `prompts/core/cot*.ts`
 - `prompts/core/data.ts`
+
+The active schema still contains legacy fields such as `剧情.当前章节.当前分解组`,
+`剧情.当前章节.原著章节标题`, `世界.*.关联分解组`, and `世界.*.关联分歧线`.
+They are tracked as `backend_pending` model/storage migration work. Do not
+rename these paths only in prompt text before the model, command filters,
+normalizers, UI, and migration plan are updated together.
 
 ### Tests And Scripts Still Pending
 
@@ -249,12 +262,10 @@ in:
   `同人女主剧情规划` state plumbing and type dependencies while the deeper model
   deletion is pending. The runtime fandom prompt bundle is disabled, but these
   fields should still be deleted during the backend/model cleanup.
-- Always-on prompt copy still contains old original-work/fandom/novel-window
-  wording in places such as `prompts/core/story.ts`,
-  `prompts/core/cotOpening.ts`, `prompts/runtime/planningAnalysis.ts`,
-  `prompts/runtime/storyPlanSchema.ts`, and world-evolution prompt files.
-  These prompt surfaces are the next Phase 1 cleanup target because runtime
-  injection is now inert but stale wording can still confuse AI behavior.
+- Default always-on prompt copy has been cleaned of retired fandom /
+  novel-decomposition feature labels. Remaining references are deeper
+  backend/model/prompt files or legacy schema field names that require a
+  coordinated migration.
 
 ## Feature: `music_playback`
 

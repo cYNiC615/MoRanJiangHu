@@ -28,7 +28,6 @@ const 女性性别正则 = /女|女性|女子|少女|女修|姑娘|妇人|夫人
 const 非女性性别正则 = /男娘|男性|男子|少年|男修|公子|汉子|男/;
 const 占位女性姓名正则 = /^(?:角色|同门|随行者|新NPC|未命名NPC|未命名|未知|无名|女子|少女|女修|姑娘|侍女|丫鬟)\d*$/;
 const 模板化女性姓名正则 = /^(?:苏婉儿|苏婉清|苏清婉|沈清婉|林婉儿|林清雪|柳若嫣|叶灵儿|赵灵儿|萧薰儿|云韵|婉儿|清雪|若嫣|灵儿|月儿|芷若|小雅|小柔|小蝶|小环|小翠)$/;
-const 同人姓名保护线索正则 = /同人|原著|小说|动漫|游戏|影视|正传|剧情线|章节|分解组|关联原著|替换规则|canon|fandom/i;
 
 export const 判断女性名称目标 = (npc: any): boolean => {
     const sex = 规范化姓名键(npc?.性别 ?? npc?.gender);
@@ -242,28 +241,6 @@ export const 选择女性姓名候选列表 = (params?: {
         candidates.push(candidate);
     }
     return candidates;
-};
-
-const 判断同人姓名保护目标 = (npc: any, name: string, options?: { 保留非姓名库主要女性名?: boolean }): boolean => {
-    if (options?.保留非姓名库主要女性名 !== true) return false;
-    if (!name || 判断女性姓名来自姓名库(name)) return false;
-    if (占位女性姓名正则.test(name) || 模板化女性姓名正则.test(name)) return false;
-    if (npc?.是否主要角色 === true) return true;
-    if (npc?.是否主要角色 !== true && npc?.同人角色 !== true && npc?.原著角色 !== true) return false;
-    const text = [
-        npc?.来源,
-        npc?.身份,
-        npc?.简介,
-        npc?.所属势力,
-        npc?.关系状态,
-        npc?.关联原著角色,
-        npc?.原著姓名,
-        npc?.同人作品,
-        npc?.作品名,
-        ...(Array.isArray(npc?.关联原著事件) ? npc.关联原著事件 : []),
-        ...(Array.isArray(npc?.关联分解组) ? npc.关联分解组 : [])
-    ].map((item) => 规范化姓名键(item)).join('|');
-    return npc?.同人角色 === true || npc?.原著角色 === true || 同人姓名保护线索正则.test(text);
 };
 
 export const 重命名重复女性NPC列表 = (list: any[], options?: { 保留非姓名库主要女性名?: boolean }): any[] => {

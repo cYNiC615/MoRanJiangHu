@@ -1,5 +1,3 @@
-export type 原著推进状态类型 = '未开始' | '推进中' | '已完成';
-
 export interface 章节时间校准结构 {
     关联分解组: number;
     原始起始时间: string;
@@ -10,10 +8,6 @@ export interface 章节时间校准结构 {
 export interface 当前章节结构 {
     标题: string;
     当前分解组: number;
-    原著章节标题: string;
-    原著推进状态: 原著推进状态类型;
-    原著换章条件: string[];
-    原著切换说明: string[];
     已完成摘要: string[];
     当前待解问题: string[];
     切章后沉淀要点: string[];

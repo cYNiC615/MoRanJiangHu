@@ -1,78 +1,77 @@
 # Homebrew AI Native 当前事实快照
 
-> 日期：2026-06-15
+> 日期：2026-06-16
 >
-> 目的：保留当前 homebrew 方向和架构事实。本文不维护原作者计划状态、旧实现流水账或历史审计结论；执行边界以 `docs/homebrew-function-map-and-simplification-decision-table.md` 和 `docs/homebrew-dead-feature-registry.md` 为准。
+> 本文只记录当前架构事实和阶段边界。细粒度功能审计见
+> `docs/homebrew-phase2-feature-audit-inventory.md`。
 
-## 当前项目判断
+## 当前判断
 
-这个项目应按 AI-native RPG harness 理解，而不是传统确定性 RPG 引擎。
+MoRanJiangHu homebrew fork 的核心是 AI-native RPG harness，而不是传统
+RPG 引擎。保留价值集中在：
 
-当前核心链路是：
+- 本地状态、设置、存档和 UI；
+- OpenAI-compatible 文本请求、响应解析、错误恢复；
+- prompt、worldbook、Tavern preset、记忆、token/context 预算；
+- 本地命令解析、状态回写、IndexedDB/ZIP 存档；
+- 图片生成与管理，具体后端进入 Phase 2 审计。
 
-1. 前端维护本地游戏状态、设置、存档和 UI。
-2. 世界书、提示词、记忆、角色状态、环境状态和历史对话按需进入上下文。
-3. 主剧情模型输出正文、短期记忆、变量规划、剧情规划和行动选项。
-4. 独立链路继续处理变量生成、世界演变、规划分析、地图更新和记忆整理。
-5. 本地代码解析协议、应用命令、规范化状态、落盘到 IndexedDB 并刷新前端。
+AI 仍负责开放叙事、对白和角色扮演。本地代码后续优先接管地点、时间、
+物品/货币/装备账务、任务调度、NPC 在场一致性和新的轻量对抗系统。
 
-后续可以把地点、物品账务、时间、任务、对抗等高风险逻辑逐步代码化，但 AI 驱动角色扮演、上下文控制、世界书注入、prompt/schema 和状态回写仍是项目主轴。
+当前主轴可概括为“上下文控制 + 协议输出 + 本地落地”：
+
+| 环节 | 当前角色 | 代表文件 |
+| --- | --- | --- |
+| 上下文控制 | prompt、worldbook、Tavern preset、memory、状态快照组装 | `hooks/useGame/systemPromptBuilder.ts`, `hooks/useGame/promptRuntime.ts`, `utils/worldbook.ts` |
+| 协议输出 | 模型输出正文、短期记忆、变量规划、剧情规划、行动选项、命令 | `prompts/core`, `prompts/runtime`, `services/ai/chatCompletionClient.ts` |
+| 本地解析 | tag parser、对话 sender 规范化、错误恢复 | `services/ai/storyResponseParser.ts`, `utils/dialogueLogNormalizer.ts` |
+| 状态落地 | 命令路径保护、状态规范化、风险拦截、任务奖励结算 | `utils/stateHelpers.ts`, `hooks/useGame/responseCommandProcessor.ts`, `hooks/useGame/stateTransforms.ts` |
+| 持久化 | IndexedDB 设置/存档/图片资源、ZIP 导入导出 | `services/dbService.ts`, `services/saveArchiveService.ts`, `hooks/useGame/saveCoordinator.ts` |
+
+Phase 2 审计应优先围绕这些环节判断一个功能到底是“核心机制的一部分”，
+还是“旧题材/旧产品形态挂在机制上的包袱”。例如 PromptManager 和世界书是核心；
+某个武侠/同人/小说分解 prompt 槽位不是核心。
 
 ## Homebrew 锚点
 
-- 默认体验改为现代都市，可扩展近未来科幻；不保留武侠/修仙作为默认或兼容目标。当前默认新建一路向下仍会生成武侠世界，但先完成历史功能包深删；现代都市默认化顺延为新 Phase 3。
-- 不做同人、原著融合、小说分解、小说拆解后改编。
-- 不做移动端、APK、多设备同步、社区 UGC、公共在线运营。
-- Cloudflare 托管/AI 代理暂缓决定；云同步、APK、社区和运营外围已删，图片/API 代理是否继续保留后续单独评估。
-- 本地设置、API 配置、本地存档、ZIP 导入导出、世界书、记忆和主聊天体验必须保留。
-- 保留男性向恋爱/亲密关系和“女主”概念，但后续要优化后宫模式下的规划方式。
-- 旧战斗系统废弃，未来用新的轻量级对抗系统替代。
-- 天气不作为结构化游戏系统，只能作为 AI 正文氛围；节日系统删除。
+- 默认体验后续转向现代都市，可扩展近未来科幻。
+- 不保留旧武侠/修仙/同人/小说分解存档兼容。
+- 不做移动端、APK、云同步、社区 UGC、公共在线运营。
+- 保留本地设置、API 配置、本地存档、世界书、记忆、PromptManager、
+  Tavern preset、主聊天和本地模式包。
+- 保留男性向恋爱/亲密关系和“女主”概念，后续优化后宫模式。
+- 旧战斗 UI/model/prompt 命令面已删除，`战斗` 空状态壳仍作为 registry residue。
+  未来轻量对抗设计另起模型，不复用旧功法、站位和传统对打结构。
+- 天气只能作为正文氛围，节日不作为系统。
+- `开局生成门派` / `开局生成同门` 这类历史命名不能仅凭字面删除；当前分别按
+  “生成初始组织/归属结构”和“开局生成同行者/同伴名录”进入 Phase 2 审计。
+  若要改名或重构，需保留组织与同伴功能语义。
 
 ## 当前阶段
 
-当前工作处在 Phase 1 实现侧完成、用户初步测试通过、Phase 1.5 文档收官、新 Phase 2 即将开始的状态。
+Phase 1 已完成：废弃功能离开当前可玩主链路。
 
-Phase 1 的目标是让废弃功能离开当前可玩主链路：玩家路径不可达、顶层副作用断开、active prompt/schema/命令过滤不再要求 AI 主动维护废弃状态。已废弃命令根需要被 registry 拒绝或在 apply 阶段 no-op。不可达前端文件、后端服务、模型字段、storage key 和测试可以暂留，但必须登记当前状态。
+Phase 1.5 final closeout 正在收口：已明确废弃的前端、服务、资源、脚本、
+prompt、model、storage/test 残留应直接删除；仍真实存在的状态壳必须登记在
+dead feature registry 中，不得在 Phase 2 审计里被当成保留功能。但删除时必须
+区分“旧命名”和“旧功能”：压力测试、项目总览文档、开局同伴名录等仍服务
+后续工程或核心玩法的内容不应因为带有历史文本而整包删除。
 
-Phase 1.5 当前作为历史阶段收官：它删除不可达或误导性的前端/设置/提示词管理残骸，并对已经完全孤立的公共/云服务和 API 做同步深删。当前已删除公共发布/APK、投稿/社区云工坊 API、Auth/cloud 服务与 API、在线运营服务与 API、故事导出、小说分解前端与 runtime 服务、功法/门派/技能前端和独立移动端组件。新的阶段定义更严格：模型字段、prompt 文件、旧功能服务、测试、storage key 和强迁移不再留到现代都市默认化之后，而是进入新 Phase 2 先删。
+Phase 2 即将开始：只审计仍留下来的功能，按细粒度逐项讨论“删除还是
+迭代”。所有 Phase 2 判定为删除的功能都必须源码、资源、脚本、测试、
+schema、storage 一起删。
 
-当前 Phase 1 进度：
+## 当前验证门禁
 
-| 工作面 | 当前状态 |
-| --- | --- |
-| 玩家入口 | 已明确废弃的功能族从当前桌面主流程不可达；设置下拉和世界书内置槽位也不再暴露“修炼”叙事风格 |
-| 顶层副作用 | 启动、保存、回合后处理、返回主页、心跳、定时器和后台队列不再维护废弃功能 |
-| AI 主动维护 | 旧战斗、玩家门派、同人规划等废弃命令根进入退役状态；主系统/酒馆上下文不再输出废弃结构化状态 |
-| 当前残留 | dormant fandom branches、旧 prompt 文件、模型字段、storage key、旧战斗/拍卖、shared mobile/native 分支等深层逻辑按当前清理队列登记；公共发布/APK、云同步/云端游玩、在线运营、社区 API、小说分解 runtime 服务和独立移动端前端已删 |
-| 已知体验问题 | 默认新建仍是武侠；PromptManager 已隐藏境界体系/修炼相关退役提示词，但旧 prompt 文件和本地快照仍待新 Phase 2 深删 |
-| 收口条件 | Phase 1.5 文档收口后进入新 Phase 2；新 Phase 2 以搜索审计、registry 测试、build、`npm run build`、必要 focused tests 和用户本地 smoke 为主 |
+- 每轮删除至少跑 registry 测试、相关 focused tests、`npm run build`、
+  `git diff --check`。
+- `npx tsc --noEmit` 必须记录结果。若仍有既有类型债，不把它说成绿色。
+- 阶段末由用户本地 smoke：主页、开局、主聊天、设置、存档、世界书、
+  PromptManager、记忆、图片管理、本地模式包。
 
-## 后续 Phase 路线
-
-| Phase | 当前目标 |
-| --- | --- |
-| Phase 1.5 | 历史收官：前端/设置/服务/API 残骸瘦身。退役提示词可见项、主页公共入口、release/APK、投稿/社区云工坊 API、Auth/cloud 服务与 API、在线运营服务与 API、故事导出、小说分解前端与服务、功法/门派/技能前端和独立移动端组件已清理 |
-| Phase 2 | prompt/model/storage/service/test 深删：同人、小说分解剩余 prompt/export、武侠修炼、旧战斗、拍卖行、shared mobile/native、旧 storage 数据。目标是在功能迭代和稳定新存档测试前彻底清掉历史包袱 |
-| Phase 3 | 现代都市默认化：新建默认一路向下必须进入现代都市，并同步题材、开局、世界观生成、模式包、组织/地点/货币口径 |
-| Phase 4 | 第一批代码化系统：地点移动、物品/货币/装备账务、轻量时间 |
-| Phase 5 | 社交/NPC 和轻量对抗重构：NPC 位置/在场判定、关系守卫、新轻量对抗系统 |
-
-## 当前未决问题
-
-- PromptManager 对 `core_realm`、`stat_kungfu`、`stat_cultivation` 采用隐藏/归档路线，前端可见项已清理；直接删除 prompt 文件、模型字段和本地快照进入新 Phase 2。
-- IndexedDB 中旧 `builtin_prompt_entries` / `extra_worldbooks` 如何强迁移或重置，进入新 Phase 2。
-- 创意工坊是否改名为“模式包/本地扩展”，可在现代都市默认化时处理；投稿/发布链路和云 API 已删除。
-- NPC 位置/在场判定、轻量时间、图片生成、Cloudflare 托管/AI 代理都需要后续单独设计；它们不改变新 Phase 2 “先深删历史包袱”的顺序。
-
-当前详细状态见：
+## 参考文档
 
 - `docs/homebrew-function-map-and-simplification-decision-table.md`
 - `docs/homebrew-dead-feature-registry.md`
-
-## 文档维护规则
-
-- 文档只反映当前仓库状态和当前工作边界。
-- 已完成内容只保留简短完成状态，不保留旧 UI、旧按钮、旧分支的完整历史。
-- 过期结论应直接替换或删除，不为了追溯原作者计划而保留。
-- 如果实现继续变化，优先更新当前状态表和 registry，而不是新增一份历史审计文档。
+- `docs/homebrew-phase2-feature-audit-inventory.md`

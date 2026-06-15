@@ -129,7 +129,7 @@ describe('地图空间道路规划', () => {
         expect(world.地图道路.some((item: any) => item.所在层级ID === specificLayer?.ID)).toBe(false);
     });
 
-    it('聚落布局参考 v11.0.2 APK 使用卷轴环形节点并丢弃无意义旧道路', () => {
+    it('聚落布局使用卷轴环形节点并丢弃无意义旧道路', () => {
         const world = 补齐世界地图空间字段({
             地图层级: [{
                 ID: 'layer_town',

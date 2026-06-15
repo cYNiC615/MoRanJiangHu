@@ -36,7 +36,7 @@ type 场景生图触发工作流依赖 = {
     深拷贝: <T,>(value: T) => T;
     环境时间转标准串: (env: any) => string;
     构建完整地点文本: (env: any) => string;
-    修炼体系已启用: () => boolean;
+    成长体系已启用: () => boolean;
     提取NPC生图基础数据: (npc: any) => any;
     读取文生图功能配置: () => {
         场景画风?: any;
@@ -92,11 +92,10 @@ const 提取正文包裹片段 = (bodyText: string): string[] => {
 export const 创建场景生图触发工作流 = (deps: 场景生图触发工作流依赖) => {
     const 提取场景主角快照 = () => {
         const 角色 = deps.获取角色();
-        const 启用修炼体系 = deps.修炼体系已启用();
+        const 启用成长体系 = deps.成长体系已启用();
         const 身份片段 = [
             角色?.称号,
-            角色?.门派职位,
-            启用修炼体系 ? 角色?.境界 : ''
+            启用成长体系 ? 角色?.境界 : ''
         ].filter((item) => typeof item === 'string' && item.trim().length > 0);
         return {
             姓名: 角色?.姓名 || '主角',

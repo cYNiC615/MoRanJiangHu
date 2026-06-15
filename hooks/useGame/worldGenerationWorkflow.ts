@@ -5,8 +5,6 @@ import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 构建世界观种子提示词, 构建世界生成任务上下文提示词 } from '../../prompts/runtime/worldSetup';
 import { 世界观生成COT提示词, 世界观生成COT伪装历史消息提示词 } from '../../prompts/runtime/worldGenerationCot';
-import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
-import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 设置键 } from '../../utils/settingsSchema';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
@@ -52,19 +50,18 @@ type 世界生成工作流依赖 = {
 const 世界观阶段超时毫秒 = 300000;
 const 境界阶段超时毫秒 = 300000;
 const 开局流式预览最小间隔毫秒 = 700;
-
 export const 选择开局境界体系来源 = (params: {
-    启用修炼体系: boolean;
+    启用成长体系: boolean;
     手动境界提示词?: string;
     是仙侠题材: boolean;
     题材模式?: unknown;
-    启用同人境界: boolean;
-}): 'disabled' | 'manual' | 'xianxia_default' | 'topic_default' | 'fandom' | 'core_default' => {
-    if (!params.启用修炼体系) return 'disabled';
+    启用模式能力体系: boolean;
+}): 'disabled' | 'manual' | 'xianxia_default' | 'topic_default' | 'mode_default' | 'core_default' => {
+    if (!params.启用成长体系) return 'disabled';
     if ((params.手动境界提示词 || '').trim()) return 'manual';
     if (params.是仙侠题材) return 'xianxia_default';
     if (题材是否使用默认现代境界(params.题材模式)) return 'topic_default';
-    if (params.启用同人境界) return 'fandom';
+    if (params.启用模式能力体系) return 'mode_default';
     return 'core_default';
 };
 
@@ -237,7 +234,7 @@ export const 执行世界生成工作流 = async (
 
     const openingStreaming = _openingStreaming !== false;
     const normalizedGameConfig = 规范化游戏设置(deps.gameConfig);
-    const 启用修炼体系 = normalizedGameConfig.启用修炼体系 === true;
+    const 启用成长体系 = false;
     const currentApi = 获取主剧情接口配置(deps.apiConfig);
     if (!接口配置是否可用(currentApi)) {
         deps.追加系统消息('[开局生成失败] 请先在设置中填写 API 地址/API Key，并选择主剧情使用模型。');
@@ -327,111 +324,29 @@ export const 执行世界生成工作流 = async (
             : '';
         const manualRealmPromptIsModePackageFragment = 是否模式包能力片段(normalizedManualRealmPrompt);
         const useManualWorldPrompt = normalizedManualWorldPrompt.length > 0 && !manualWorldPromptIsModePackageFragment;
-        const isXianxiaOpening = openingConfig?.题材模式 === '仙侠';
         const normalizedWorldExtraRequirement = [
             typeof worldConfig.worldExtraRequirement === 'string' ? worldConfig.worldExtraRequirement.trim() : '',
             manualWorldPromptIsModePackageFragment ? normalizedManualWorldPrompt : '',
             manualRealmPromptIsModePackageFragment ? normalizedManualRealmPrompt : ''
         ].filter(Boolean).join('\n\n');
         const useWorldRefinement = !useManualWorldPrompt && normalizedWorldExtraRequirement.length > 0;
-        const initialFandomBundle = 构建同人运行时提示词包({ openingConfig });
-        const fandomEnabled = initialFandomBundle.enabled;
-        let realmPromptContent = 启用修炼体系
-            ? (fandomEnabled ? '' : (initialFandomBundle.境界母板补丁 || 核心_境界体系.内容))
-            : '';
-        const realmPromptSource = 选择开局境界体系来源({
-            启用修炼体系,
-            手动境界提示词: manualRealmPromptIsModePackageFragment ? '' : normalizedManualRealmPrompt,
-            是仙侠题材: isXianxiaOpening,
-            题材模式: openingConfig?.题材模式,
-            启用同人境界: fandomEnabled
-        });
-
-        const promptPoolWithCoreRealm = 启用修炼体系 && deps.prompts.some((item) => item.id === 核心_境界体系.id)
-            ? deps.prompts
-            : (启用修炼体系 ? [...deps.prompts, { ...核心_境界体系 }] : deps.prompts);
-        const updatedPromptsBase = promptPoolWithCoreRealm.map(prompt => {
-            if (prompt.id === 'core_world') {
+        const updatedPromptsBase = deps.prompts.map(prompt => {
+            if (prompt.id === "core_world") {
                 return { ...prompt, 内容: worldPromptSeed };
             }
-            if (prompt.类型 === '难度设定') {
+            if (prompt.类型 === "难度设定") {
                 return { ...prompt, 启用: prompt.id.endsWith(`_${difficulty}`) };
             }
             return prompt;
         });
-        let updatedPrompts = updatedPromptsBase;
 
-        const enabledDifficultyPrompts = updatedPrompts
-            .filter(prompt => prompt.类型 === '难度设定' && prompt.启用)
+        const enabledDifficultyPrompts = updatedPromptsBase
+            .filter(prompt => prompt.类型 === "难度设定" && prompt.启用)
             .map(prompt => 按功能开关过滤提示词内容(`【${prompt.标题}】\n${prompt.内容}`, normalizedGameConfig))
-            .join('\n\n');
-
+            .join("\n\n");
         const worldGenerationCotPseudoPrompt = 世界观生成COT伪装历史消息提示词;
 
-        if (realmPromptSource === 'manual') {
-            if (openingStreaming) {
-                开局流式历史更新器?.更新('【生成中】校验手动境界提示词...', { immediate: true });
-            }
-            realmPromptContent = textAIService.解析境界体系提示词内容(normalizedManualRealmPrompt);
-        } else if (realmPromptSource === 'xianxia_default') {
-            if (openingStreaming) {
-                开局流式历史更新器?.更新('【生成中】加载固定仙侠境界体系...', { immediate: true });
-            }
-            realmPromptContent = initialFandomBundle.境界母板补丁 || 核心_境界体系.内容;
-        } else if (realmPromptSource === 'topic_default') {
-            if (openingStreaming) {
-                开局流式历史更新器?.更新('【生成中】加载题材专属境界体系...', { immediate: true });
-            }
-            realmPromptContent = 构建题材默认境界体系提示词(openingConfig?.题材模式) || 核心_境界体系.内容;
-        } else if (realmPromptSource === 'fandom') {
-            if (openingStreaming) {
-                开局流式历史更新器?.更新('【生成中】同人境界体系生成...', { immediate: true });
-                let pulse = 0;
-                realmStreamHeartbeat = setInterval(() => {
-                    if (realmDeltaReceived) return;
-                    pulse = (pulse + 1) % 4;
-                    const dots = '.'.repeat(pulse) || '.';
-                    开局流式历史更新器?.更新(`【生成中】同人境界体系生成${dots}`);
-                }, 420);
-            }
-
-            realmPromptContent = await 执行带超时('同人境界体系生成', 境界阶段超时毫秒, (signal, 标记活动) => textAIService.generateFandomRealmData(
-                {
-                    openingConfig
-                },
-                currentApi,
-                openingRequestStreaming
-                    ? {
-                        stream: true,
-                        onDelta: (_delta, accumulated) => {
-                            标记活动();
-                            realmDeltaReceived = true;
-                            const normalized = (accumulated || '').replace(/\r/g, '');
-                            const tail = normalized.length > 420
-                                ? `...${normalized.slice(-420)}`
-                                : normalized;
-                            const preview = tail.split('\n').slice(-10).join('\n').trim();
-                            开局流式历史更新器?.更新(`【生成中】同人境界体系生成（流式预览）\n${preview || '...'}\n\n已接收 ${normalized.length} 字符`);
-                        }
-                    }
-                    : undefined,
-                normalizedWorldExtraRequirement
-                    ? `【玩家世界观草稿与细化要求】\n${normalizedWorldExtraRequirement}\n- 必须优先保留玩家已写明的世界事实，并在此基础上细化，不得自顾自另起炉灶。`
-                    : '',
-                signal
-            ), { idleTimeout: openingRequestStreaming });
-            if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
-            开局流式历史更新器?.停止();
-        }
-
-        updatedPrompts = 启用修炼体系
-            ? 写入或插入提示词(
-                updatedPromptsBase,
-                核心_境界体系.id,
-                核心_境界体系,
-                realmPromptContent
-            )
-            : updatedPromptsBase.filter((prompt) => prompt.id !== 核心_境界体系.id);
+        const updatedPrompts = updatedPromptsBase;
         deps.setPrompts(updatedPrompts);
         await dbService.保存设置(设置键.提示词池, updatedPrompts);
 
@@ -442,23 +357,8 @@ export const 执行世界生成工作流 = async (
             normalizedWorldExtraRequirement,
             openingConfig
         ), normalizedGameConfig);
-        const fandomPromptBundle = 构建同人运行时提示词包({
-            openingConfig,
-            realmPrompt: realmPromptContent
-        });
         const worldGenerationExtraPrompt = 按功能开关过滤提示词内容([
             世界观生成COT提示词,
-            fandomPromptBundle.世界观创建补丁,
-            启用修炼体系 && (fandomEnabled || isXianxiaOpening)
-                ? [
-                    isXianxiaOpening ? '【已固定仙侠境界体系参考】' : '【已生成同人境界体系参考】',
-                    isXianxiaOpening
-                        ? '- 仙侠境界体系由项目内置固定映射提供；world_prompt 的力量常识、高手稀缺度、强弱断层与术语口径必须跟随这份体系，不得回退默认武侠术语或自行生成新境界。'
-                        : '- 同人境界体系已在本阶段先生成完成；world_prompt 的力量常识、高手稀缺度、强弱断层与术语口径必须跟随这份体系，不得回退默认现体系。',
-                    '- 生成 world_prompt 时只提炼概述级境界与力量边界，不得把完整映射、阶段推进表或大境突破表原样抄回世界观正文。',
-                    realmPromptContent
-                ].join('\n')
-                : '',
             normalizedWorldExtraRequirement ? `【玩家世界观草稿与细化要求】\n${normalizedWorldExtraRequirement}\n- 必须优先保留玩家已写明的事实、地名、势力、时代、规则和禁忌。\n- 生成时只补全缺口、细化因果、补齐长期运行结构，不得推翻、绕开或替换玩家草稿。` : '',
             获取繁体输出指令(normalizedGameConfig)
         ]
@@ -511,7 +411,7 @@ export const 执行世界生成工作流 = async (
                 worldGenerationExtraPrompt,
                 worldGenerationCotPseudoPrompt,
                 {
-                    启用修炼体系,
+                    启用成长体系,
                     openingConfig,
                     signal
                 }
@@ -534,16 +434,6 @@ export const 执行世界生成工作流 = async (
             updatedPrompts.find((prompt) => prompt.id === 'core_world') || updatedPrompts[0],
             worldPromptContent
         );
-        if (启用修炼体系) {
-            finalPrompts = 写入或插入提示词(
-                finalPrompts,
-                核心_境界体系.id,
-                核心_境界体系,
-                realmPromptContent
-            );
-        } else {
-            finalPrompts = finalPrompts.filter((prompt) => prompt.id !== 核心_境界体系.id);
-        }
         deps.setPrompts(finalPrompts);
         await dbService.保存设置(设置键.提示词池, finalPrompts);
 
@@ -555,9 +445,7 @@ export const 执行世界生成工作流 = async (
             deps.setView('game');
             deps.setLoading(false);
             deps.追加系统消息(
-                启用修炼体系
-                    ? '[系统] 世界观与境界体系提示词已写入。请在聊天框输入指令开始初始化。'
-                    : '[系统] 世界观提示词已写入。请在聊天框输入指令开始初始化。'
+                '[系统] 世界观提示词已写入。请在聊天框输入指令开始初始化。'
             );
             return;
         }

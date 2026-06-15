@@ -133,20 +133,7 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
         开局生成同门: true,
         允许生成性别: ['男', '女', '男娘', '扶她'],
         生成性别锁定: false,
-        初始伙伴: undefined,
-        同人融合: {
-            enabled: false,
-            作品名: '',
-            来源类型: '小说',
-            融合强度: '轻度映射',
-            保留原著角色: false,
-            启用角色替换: false,
-            替换目标角色名: '',
-            附加替换角色名列表: [],
-            附加角色替换规则列表: [],
-            启用附加小说: false,
-            附加小说数据集ID: ''
-        }
+        初始伙伴: undefined
     },
     attributeFields: 默认属性字段,
     difficultyOptions: [

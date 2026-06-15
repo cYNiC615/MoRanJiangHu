@@ -47,19 +47,6 @@ const 无限流开局配置 = {
     开局切入偏好: '风波前夜',
     开局生成门派: true,
     开局生成同门: true,
-    同人融合: {
-        enabled: false,
-        作品名: '',
-        来源类型: '小说',
-        融合强度: '轻度映射',
-        保留原著角色: false,
-        启用角色替换: false,
-        替换目标角色名: '',
-        附加替换角色名列表: [],
-        附加角色替换规则列表: [],
-        启用附加小说: false,
-        附加小说数据集ID: ''
-    }
 } as any;
 
 const 单币种货币开局配置 = {
@@ -190,7 +177,7 @@ describe('货币显示', () => {
             <LeftPanel
                 角色={makeInfiniteCharacter()}
                 openingConfig={无限流开局配置}
-                gameConfig={{ ...默认游戏设置, 启用修炼体系: false, 启用饱腹口渴系统: false }}
+                gameConfig={{ ...默认游戏设置, 启用成长体系: false, 启用饱腹口渴系统: false }}
             />
         );
         expect(html).toContain('C级支线剧情');
@@ -381,7 +368,7 @@ describe('货币显示', () => {
             <LeftPanel
                 角色={character}
                 openingConfig={单币种货币开局配置}
-                gameConfig={{ ...默认游戏设置, 启用修炼体系: false, 启用饱腹口渴系统: false }}
+                gameConfig={{ ...默认游戏设置, 启用成长体系: false, 启用饱腹口渴系统: false }}
             />
         );
 

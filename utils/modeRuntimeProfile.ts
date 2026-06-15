@@ -490,7 +490,7 @@ const 组织默认值 = (mode: 题材模式类型) => {
     return {
         organizationName: '门派',
         memberName: '同门',
-        contributionName: '门派贡献',
+            contributionName: '组织贡献',
         rankNames: ['杂役弟子', '外门弟子', '内门弟子', '真传弟子', '执事', '长老'],
         organizationAliases: ['门派', '帮会', '镖局', '武馆', '堂口'],
         memberAliases: ['师长', '同门', '帮众', '门人', '江湖联系人']
@@ -586,7 +586,7 @@ const 物品默认值 = (mode: 题材模式类型) => {
         return {
             initialItemPool: ['智能手机', '急救包', '防护服', '净水片', '护身符', '基础剑法残卷', '下品灵石', '手摇电筒'],
             rewardItemPool: ['奖励点', 'D级支线剧情', '急救包', '弹药', '防护服', '血统强化权限', '恐怖片情报'],
-            bannedItemKeywords: ['银子', '铜钱', '金元宝', '门派贡献', '营地信用', '普通工资', '人民币结算'],
+            bannedItemKeywords: ['银子', '铜钱', '金元宝', '古风贡献体系', '营地信用', '普通工资', '人民币结算'],
             exclusiveItemTypes: ['科技装备', '魔法物品', '血统强化', '技能卷轴', '补给', '情报', '支线凭证'],
             resourceToggles: { food: true, water: true, ammo: true, medicine: true, fuel: true, batteries: true, spiritStones: true },
             activeResources: ['饱腹', '口渴', '灵石']
@@ -622,7 +622,7 @@ const 物品默认值 = (mode: 题材模式类型) => {
                 ? ['现代手机', '银行卡', '手枪', '燃油票']
                 : ['古代银票', '门派腰牌', '宗门山门'],
         exclusiveItemTypes: profile.group === 'xianxia' || profile.group === 'urban_xianxia'
-            ? ['丹药', '符箓', '法器', '灵材', '功法', '现代物资']
+            ? ['丹药', '符箓', '法器', '灵材', '能力', '现代物资']
             : ['兵器', '药品', '秘籍', '护具', '信物'],
         resourceToggles: {
             food: false,
@@ -659,8 +659,7 @@ export const 构建官方模式运行时配置 = (
             isModern,
             usesCultivation: 判断修炼(baseMode),
             isApocalypse,
-            isSurvival: isApocalypse || isInfinite,
-            isFandomIp: false
+            isSurvival: isApocalypse || isInfinite
         },
         economy: {
             currencyDisplayMode: profile.currencyDisplayMode,
@@ -779,8 +778,7 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             isModern: 布尔(raw?.identity?.isModern, official.identity.isModern),
             usesCultivation: 布尔(raw?.identity?.usesCultivation, official.identity.usesCultivation),
             isApocalypse: 布尔(raw?.identity?.isApocalypse, official.identity.isApocalypse),
-            isSurvival: 布尔(raw?.identity?.isSurvival, official.identity.isSurvival),
-            isFandomIp: 布尔(raw?.identity?.isFandomIp, official.identity.isFandomIp)
+            isSurvival: 布尔(raw?.identity?.isSurvival, official.identity.isSurvival)
         },
         economy: {
             currencyDisplayMode: ['wuxia', 'xianxia', 'fantasy', 'urban', 'modern', 'apocalypse', 'infinite'].includes(raw?.economy?.currencyDisplayMode)
@@ -916,8 +914,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             isModern,
             usesCultivation: 判断修炼(baseMode),
             isApocalypse,
-            isSurvival: isApocalypse || isInfinite,
-            isFandomIp: false
+            isSurvival: isApocalypse || isInfinite
         },
         economy: {
             currencyDisplayMode: profile.currencyDisplayMode,
@@ -1024,7 +1021,7 @@ const 渲染动态货币体系摘要 = (currencySystem?: CurrencySystem): string
 };
 
 export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeProfile): string => ([
-    `题材身份：${profile.identity.displayName}（继承 ${profile.identity.baseMode}；现代=${profile.identity.isModern ? '是' : '否'}；修炼=${profile.identity.usesCultivation ? '是' : '否'}；生存=${profile.identity.isSurvival ? '是' : '否'}；同人/IP=${profile.identity.isFandomIp ? '是' : '否'}）`,
+    `题材身份：${profile.identity.displayName}（继承 ${profile.identity.baseMode}；现代=${profile.identity.isModern ? '是' : '否'}；修炼=${profile.identity.usesCultivation ? '是' : '否'}；生存=${profile.identity.isSurvival ? '是' : '否'}）`,
     `经济系统：市场=${profile.economy.marketName}；行为=${profile.economy.marketVerb}；上层=${profile.economy.currencyTiers.upperName}；中层=${profile.economy.currencyTiers.middleName}；底层=${profile.economy.currencyTiers.lowerName}；汇率=${profile.economy.currencyTiers.upperToMiddleRate}/${profile.economy.currencyTiers.middleToLowerRate}`,
     渲染动态货币体系摘要(profile.economy.currencySystem),
     `时间系统：显示=${profile.time.displayFormat}；历法=${profile.time.calendarName}；叙事=${profile.time.narrativeStyle}；时段=${profile.time.dayPeriodNames.join('、')}；允许=${profile.time.allowedTimeTerms.join('、') || '无'}；禁用=${profile.time.bannedTimeTerms.join('、') || '无'}；推进=${profile.time.progressionPrompt}`,

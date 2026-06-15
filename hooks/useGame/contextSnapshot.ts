@@ -45,21 +45,17 @@ type 构建上下文快照参数 = {
     环境: any;
     世界: any;
     战斗: any;
-    玩家门派: any;
+    玩家组织: any;
     任务列表: any[];
     约定列表: any[];
     剧情: any;
     剧情规划: any;
     女主剧情规划?: any;
-    同人剧情规划?: any;
-    同人女主剧情规划?: any;
     开局配置?: OpeningConfig;
     规范化环境信息: (envLike?: any) => any;
     规范化剧情状态: (raw?: any) => any;
     规范化剧情规划状态: (raw?: any) => any;
     规范化女主剧情规划状态: (raw?: any) => any;
-    规范化同人剧情规划状态: (raw?: any) => any;
-    规范化同人女主剧情规划状态: (raw?: any) => any;
     按回合窗口裁剪历史: (history: 聊天记录结构[], rounds: number) => 聊天记录结构[];
     构建系统提示词: (promptPool: 提示词结构[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => Promise<主剧情系统上下文 & {
         runtimePromptStates: Record<string, 运行时提示词状态>;
@@ -81,8 +77,6 @@ export const 构建上下文快照数据 = async (params: 构建上下文快照�
     const normalizedStory = params.规范化剧情状态(params.剧情);
     const normalizedStoryPlan = params.规范化剧情规划状态(params.剧情规划);
     const normalizedHeroinePlan = params.规范化女主剧情规划状态(params.女主剧情规划);
-    const normalizedFandomStoryPlan = params.规范化同人剧情规划状态(params.同人剧情规划);
-    const normalizedFandomHeroinePlan = params.规范化同人女主剧情规划状态(params.同人女主剧情规划);
     const builtContext = await params.构建系统提示词(
         params.prompts,
         normalizedMem,
@@ -92,14 +86,12 @@ export const 构建上下文快照数据 = async (params: 构建上下文快照�
             环境: params.规范化环境信息(params.环境),
             世界: params.世界,
             战斗: params.战斗,
-            玩家门派: params.玩家门派,
+            玩家组织: params.玩家组织,
             任务列表: params.任务列表,
             约定列表: params.约定列表,
             剧情: normalizedStory,
             剧情规划: normalizedStoryPlan,
             女主剧情规划: normalizedHeroinePlan,
-            同人剧情规划: normalizedFandomStoryPlan,
-            同人女主剧情规划: normalizedFandomHeroinePlan,
             开局配置: params.开局配置
         },
         recallContextMode

@@ -6,15 +6,12 @@ import { 环境信息结构 } from './environment';
 import { 生图目标类型, 生图筛选性别类型, 生图筛选重要性类型, 场景图片档案 } from './imageGeneration';
 import { NPC结构 } from './social';
 import { 世界数据结构 } from './world';
-import { 详细门派结构 } from './sect';
 import { 任务结构, 约定结构 } from './task';
 import { 剧情系统结构 } from './story';
 import { 剧情规划结构 } from './storyPlan';
 import { 女主剧情规划结构 } from './heroinePlan';
-import { 同人剧情规划结构 } from './fandomPlanning/story';
-import { 同人女主剧情规划结构 } from './fandomPlanning/heroinePlan';
-import { 战斗状态结构 } from './battle';
 import { 世界书结构 } from './worldbook';
+import type { 详细门派结构 } from './organization';
 
 type 背景初始物品快照 = {
     名称: string;
@@ -267,8 +264,6 @@ export interface 功能模型占位配置结构 {
     女主规划独立模型开关: boolean;
     剧情规划独立模型开关: boolean;
     文章优化独立模型开关: boolean;
-    小说拆分功能启用: boolean;
-    小说拆分独立模型开关: boolean;
     剧情回忆使用模型: string;
     剧情回忆渠道ID?: string;
     剧情回忆API地址: string;
@@ -307,23 +302,6 @@ export interface 功能模型占位配置结构 {
     文章优化API地址: string;
     文章优化API密钥: string;
     文章优化提示词: string;
-    小说拆分使用模型: string;
-    小说拆分渠道ID?: string;
-    小说拆分API地址: string;
-    小说拆分API密钥: string;
-    小说拆分RPM限制: number;
-    小说拆分按N章分组: number;
-    小说拆分单次处理批量: number;
-    小说拆分自动重试次数: number;
-    小说拆分后台运行: boolean;
-    小说拆分自动续跑: boolean;
-    小说拆分主剧情注入: boolean;
-    小说拆分规划分析注入: boolean;
-    小说拆分世界演变注入: boolean;
-    小说拆分主剧情保留原文注入: boolean;
-    小说拆分主剧情字数优化: boolean;
-    小说拆分主剧情注入上限: number;
-    小说拆分详细注入上限: number;
     文生图功能启用: boolean;
     文生图后端类型: 文生图后端类型;
     文生图模型使用模型: string;
@@ -424,7 +402,6 @@ export interface 功能模型占位配置结构 {
      地图自动更新非流式输出?: boolean;
      记忆总结非流式输出?: boolean;
      记忆精炼非流式输出?: boolean;
-     小说拆分非流式输出?: boolean;
 }
 
 export interface 接口设置结构 {
@@ -484,37 +461,16 @@ export interface 视觉设置结构 {
     UI文字样式?: Partial<Record<可用UI文字令牌, UI文字样式结构>>;
 }
 
-export type 剧情风格类型 = '后宫' | '修炼' | '一般' | '修罗场' | '纯爱' | 'NTL后宫';
+export type 剧情风格类型 = '后宫' | '一般' | '修罗场' | '纯爱' | 'NTL后宫';
 export type NTL后宫档位 = '禁止乱伦' | '假乱伦' | '无限制';
 export type 酒馆提示词后处理类型 = '未选择' | '单一用户' | '严格' | '半严格';
 export type 游戏难度 = 'relaxed' | 'easy' | 'normal' | 'hard' | 'extreme';
 export type 初始关系模板类型 = '独行少系' | '家族牵引' | '师门牵引' | '世家官门' | '青梅旧识' | '旧仇旧债';
 export type 关系侧重类型 = '亲情' | '友情' | '师门' | '情缘' | '利益' | '仇怨';
 export type 开局切入偏好类型 = '日常低压' | '在途起手' | '家宅起手' | '门派起手' | '风波前夜';
-export type 题材模式类型 = '武侠' | '仙侠' | '西方奇幻' | '灵气复苏' | '都市修仙' | '现代都市' | '末日丧尸' | '无限流';
-export type 同人来源类型 = '小说' | '动漫' | '游戏' | '影视';
-export type 同人融合强度类型 = '轻度映射' | '中度混编' | '显性同台';
+export type 题材模式类型 = '西方奇幻' | '现代都市' | '末日丧尸' | '无限流';
 
 export type 酒馆预设消息角色类型 = 'system' | 'user' | 'assistant';
-
-export interface 同人角色替换规则结构 {
-    原名称: string;
-    替换为: string;
-}
-
-export interface 同人融合配置结构 {
-    enabled: boolean;
-    作品名: string;
-    来源类型: 同人来源类型;
-    融合强度: 同人融合强度类型;
-    保留原著角色: boolean;
-    启用角色替换: boolean;
-    替换目标角色名: string;
-    附加替换角色名列表: string[];
-    附加角色替换规则列表: 同人角色替换规则结构[];
-    启用附加小说: boolean;
-    附加小说数据集ID: string;
-}
 
 export interface 初始伙伴配置结构 {
     enabled: boolean;
@@ -586,7 +542,6 @@ export interface ModeRuntimeProfile {
         usesCultivation: boolean;
         isApocalypse: boolean;
         isSurvival: boolean;
-        isFandomIp: boolean;
     };
     economy: {
         currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse' | 'infinite';
@@ -709,13 +664,14 @@ export interface OpeningConfig {
     初始关系模板: 初始关系模板类型;
     关系侧重: 关系侧重类型[];
     开局切入偏好: 开局切入偏好类型;
-    开局生成门派: boolean;
-    开局生成同门: boolean;
+    /** 历史名称，当前语义为开局生成初始组织/归属结构，不等同于旧门派系统。 */
+    开局生成门派?: boolean;
+    /** 历史名称，当前语义为开局生成同行者/同伴名录。 */
+    开局生成同门?: boolean;
     允许生成性别: 开局生成性别类型[];
     生成性别锁定?: boolean;
     初始伙伴列表?: 初始伙伴配置结构[];
     初始伙伴?: 初始伙伴配置结构;
-    同人融合: 同人融合配置结构;
     启用女主剧情规划?: boolean;
 }
 
@@ -930,7 +886,6 @@ export interface 游戏设置结构 {
     启用标签修复: boolean; // Auto repair malformed labels before parsing
     启用自动重试: boolean; // Auto retry failed generation/parsing up to the built-in max attempts
     启用标签协议失败自动回炉: boolean; // Auto regenerate once more with explicit tag-fix guidance when protocol parsing fails
-    禁用APK自动更新: boolean; // Disable automatic APK update checks and release-note popups; manual update remains available
     启用回合结束自动存档: boolean; // Auto save after each completed story turn
     启用繁体模式: boolean; // Require AI-generated in-game text to use Traditional Chinese
     启用非流式输出: boolean; // Disable streaming output, use non-streaming request instead
@@ -938,7 +893,6 @@ export interface 游戏设置结构 {
     启用男娘NSFW内容: boolean; // Gate femboy/male NSFW archive prompts, UI, and auto secret image generation
     启用亲密边界机制: boolean; // Require consent, privacy, relationship thresholds, and character agency for intimacy
     启用饱腹口渴系统: boolean; // Toggle hunger/thirst prompt injection and UI visibility
-    启用修炼体系: boolean; // Toggle cultivation/realm/kungfu prompt injection and related UI visibility
     剧情风格: 剧情风格类型; // Story style injected as assistant context before COT
     NTL后宫档位: NTL后宫档位; // NTL-only tier selector
     启用酒馆预设模式: boolean; // Use SillyTavern preset prompt/order pipeline
@@ -956,7 +910,6 @@ export interface 游戏设置结构 {
         世界演变: boolean;
         变量生成: boolean;
         规划分析: boolean;
-        小说拆分: boolean;
     };
     额外提示词: string; // Custom prompt injected at the end
     activeModuleExtraRules?: string; // Creative workshop module safety/usage rules, injected as system_rule
@@ -1027,11 +980,6 @@ export interface 存档元数据结构 {
     存档谱系版本?: number;
 }
 
-export interface 核心提示词快照结构 {
-    世界观母本?: string;
-    境界体系?: string;
-}
-
 export interface 存档结构 {
     id: number;
     类型: 'manual' | 'auto'; // Added Save Type
@@ -1046,27 +994,29 @@ export interface 存档结构 {
     // Extended fields
     社交?: NPC结构[];
     世界?: 世界数据结构;
-    战斗?: 战斗状态结构;
-    玩家门派?: 详细门派结构;
+    /** Phase 1.5 residue: shallow compatibility shell only; old Battle feature package is removed. */
+    战斗?: any;
+    /** Phase 1.5 residue: legacy schema name currently carries generic initial organization state. */
+    玩家组织?: 详细门派结构;
     任务列表?: 任务结构[];
     约定列表?: 约定结构[];
     剧情?: 剧情系统结构;
     剧情规划?: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
     
     // New Settings in Save
     记忆系统?: 记忆系统结构;
     openingConfig?: OpeningConfig;
     游戏设置?: 游戏设置结构;
+    /** Homebrew prompt snapshot for local save restore. */
+    核心提示词快照?: {
+        世界观母本?: string;
+    };
     记忆配置?: 记忆配置结构;
     视觉设置?: Partial<视觉设置结构>;
     场景图片档案?: 场景图片档案;
-    核心提示词快照?: 核心提示词快照结构;
     角色锚点列表?: 角色锚点结构[];
     当前角色锚点ID?: string;
-    拍卖行?: any;
 }
 
 export type PromptCategory = '核心设定' | '数值设定' | '难度设定' | '写作设定' | '自定义';
@@ -1077,13 +1027,4 @@ export interface 提示词结构 {
     内容: string;
     类型: PromptCategory;
     启用: boolean;
-}
-
-export interface 节日结构 {
-    id: string;
-    名称: string;
-    月: number;
-    日: number;
-    描述: string;
-    效果: string; // 如：鬼怪出现率增加
 }

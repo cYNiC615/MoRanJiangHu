@@ -13,9 +13,7 @@ const 创建依赖 = (options?: { heroinePlanEnabled?: boolean }) => {
         剧情: {},
         剧情规划: {},
         女主剧情规划: undefined,
-        同人剧情规划: undefined,
-        同人女主剧情规划: undefined,
-        玩家门派: {},
+        玩家组织: {},
         任务列表: [],
         约定列表: [],
         记忆系统: {}
@@ -33,8 +31,6 @@ const 创建依赖 = (options?: { heroinePlanEnabled?: boolean }) => {
         规范化剧情状态: (value: any) => value || {},
         规范化剧情规划状态: (value: any) => value || {},
         规范化女主剧情规划状态: (value: any) => value,
-        规范化同人剧情规划状态: (value: any) => value,
-        规范化同人女主剧情规划状态: (value: any) => value,
         规范化门派状态: (value: any) => value || {},
         规范化记忆系统: (value: any) => value || {},
         环境时间转标准串: () => '',
@@ -47,9 +43,7 @@ const 创建依赖 = (options?: { heroinePlanEnabled?: boolean }) => {
         设置剧情: (value: any) => { state.剧情 = value; },
         设置剧情规划: (value: any) => { state.剧情规划 = value; },
         设置女主剧情规划: (value: any) => { state.女主剧情规划 = value; },
-        设置同人剧情规划: (value: any) => { state.同人剧情规划 = value; },
-        设置同人女主剧情规划: (value: any) => { state.同人女主剧情规划 = value; },
-        设置玩家门派: (value: any) => { state.玩家门派 = value; },
+        设置玩家组织: (value: any) => { state.玩家组织 = value; },
         设置任务列表: (value: any) => { state.任务列表 = value; },
         设置约定列表: (value: any) => { state.约定列表 = value; },
         应用并同步记忆系统: (value: any) => { state.记忆系统 = value; },
@@ -88,10 +82,8 @@ describe('运行时变量管理', () => {
         const workflow = 创建运行时变量工作流(deps);
 
         await workflow.updateRuntimeVariableSection('女主剧情规划', { 现状: '新规划' });
-        await workflow.updateRuntimeVariableSection('同人女主剧情规划', { 现状: '新同人规划' });
 
         expect(getState().女主剧情规划).toBeUndefined();
-        expect(getState().同人女主剧情规划).toBeUndefined();
         expect(performAutoSave).not.toHaveBeenCalled();
     });
 
@@ -100,10 +92,8 @@ describe('运行时变量管理', () => {
         const workflow = 创建运行时变量工作流(deps);
 
         await workflow.applyRuntimeVariableCommand({ action: 'set', key: '女主剧情规划.现状', value: '新规划' } as any);
-        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '同人女主剧情规划.现状', value: '新同人规划' } as any);
 
         expect(getState().女主剧情规划).toBeUndefined();
-        expect(getState().同人女主剧情规划).toBeUndefined();
         expect(performAutoSave).not.toHaveBeenCalled();
     });
 
@@ -112,14 +102,10 @@ describe('运行时变量管理', () => {
         const workflow = 创建运行时变量工作流(deps);
 
         await workflow.updateRuntimeVariableSection('战斗', { 是否战斗中: true });
-        await workflow.updateRuntimeVariableSection('玩家门派', { 名称: '旧组织' });
-        await workflow.updateRuntimeVariableSection('同人剧情规划', { 当前章目标: '旧目标' });
-        await workflow.updateRuntimeVariableSection('同人女主剧情规划', { 阶段推进: ['旧目标'] });
+        await workflow.updateRuntimeVariableSection('玩家组织', { 名称: '旧组织' });
 
         expect(getState().战斗).toEqual({});
-        expect(getState().玩家门派).toEqual({});
-        expect(getState().同人剧情规划).toBeUndefined();
-        expect(getState().同人女主剧情规划).toBeUndefined();
+        expect(getState().玩家组织).toEqual({});
         expect(performAutoSave).not.toHaveBeenCalled();
     });
 
@@ -128,14 +114,10 @@ describe('运行时变量管理', () => {
         const workflow = 创建运行时变量工作流(deps);
 
         await workflow.applyRuntimeVariableCommand({ action: 'set', key: '战斗.是否战斗中', value: true } as any);
-        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '玩家门派.名称', value: '旧组织' } as any);
-        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '同人剧情规划.当前章目标', value: '旧目标' } as any);
-        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '同人女主剧情规划.阶段推进', value: ['旧目标'] } as any);
+        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '玩家组织.名称', value: '旧组织' } as any);
 
         expect(getState().战斗).toEqual({});
-        expect(getState().玩家门派).toEqual({});
-        expect(getState().同人剧情规划).toBeUndefined();
-        expect(getState().同人女主剧情规划).toBeUndefined();
+        expect(getState().玩家组织).toEqual({});
         expect(performAutoSave).not.toHaveBeenCalled();
     });
 });

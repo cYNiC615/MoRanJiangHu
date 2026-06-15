@@ -15,7 +15,7 @@ describe('variable model dialogue NPC audit', () => {
             世界: {},
             社交: [],
             战斗: {},
-            玩家门派: {},
+            玩家组织: {},
             任务列表: [],
             约定列表: []
         });
@@ -47,7 +47,7 @@ describe('variable model dialogue NPC audit', () => {
                 }
             ],
             战斗: {},
-            玩家门派: {},
+            玩家组织: {},
             任务列表: [],
             约定列表: []
         });

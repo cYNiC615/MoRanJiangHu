@@ -1,12 +1,10 @@
 import React from 'react';
 import { 剧情系统结构 } from '../../../models/story';
 import { 剧情规划结构 } from '../../../models/storyPlan';
-import { 同人剧情规划结构 } from '../../../models/fandomPlanning/story';
 
 interface Props {
     story: 剧情系统结构;
-    storyPlan?: 剧情规划结构 | 同人剧情规划结构;
-    isFandomMode?: boolean;
+    storyPlan?: 剧情规划结构;
     onClose: () => void;
 }
 
@@ -31,7 +29,7 @@ const 字段块: React.FC<{ 标题: string; 内容: string[]; empty?: string }> 
     </section>
 );
 
-const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, onClose }) => {
+const StoryModal: React.FC<Props> = ({ story, storyPlan, onClose }) => {
     const [revealNext, setRevealNext] = React.useState(false);
     const timerRef = React.useRef<number | null>(null);
 
@@ -42,9 +40,7 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, o
     const 待触发事件 = Array.isArray((storyPlan as any)?.待触发事件) ? (storyPlan as any).待触发事件 : [];
     const 镜头规划 = Array.isArray((storyPlan as any)?.镜头规划) ? (storyPlan as any).镜头规划 : [];
     const 跨章延续事项 = Array.isArray((storyPlan as any)?.跨章延续事项) ? (storyPlan as any).跨章延续事项 : [];
-    const 分歧线 = Array.isArray((storyPlan as any)?.分歧线) ? (storyPlan as any).分歧线 : [];
-    const 换章规则 = (storyPlan as any)?.换章规则 || (storyPlan as any)?.换组规则;
-    const 对齐信息 = (storyPlan as any)?.当前对齐信息;
+    const 换章规则 = (storyPlan as any)?.换章规则;
 
     const 清理长按 = () => {
         if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -73,7 +69,7 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, o
                         <div className="mt-2 text-xs text-gray-400">
                             第 {当前章节.当前分解组} 组
                             <span className="mx-2 text-gray-600">|</span>
-                            {isFandomMode ? '同人规划视图' : '原创规划视图'}
+                            剧情规划视图
                         </div>
                     </div>
                     <button onClick={onClose} className="h-9 w-9 rounded-full border border-gray-700 text-gray-400 hover:text-red-400 hover:border-red-400">×</button>
@@ -84,8 +80,6 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, o
                         <div className="text-3xl font-serif font-bold text-wuxia-gold">{当前章节.标题}</div>
                         <div className="mt-3 grid grid-cols-2 gap-4 text-sm text-gray-400">
                             <div>当前分解组：第 {当前章节.当前分解组} 组</div>
-                            <div>章节标题：{当前章节.原著章节标题 || '未记录'}</div>
-                            <div>推进状态：{当前章节.原著推进状态 || '未记录'}</div>
                             <div>切章后沉淀要点：{取数组(当前章节.切章后沉淀要点).join('；') || '暂无'}</div>
                         </div>
                     </section>
@@ -93,27 +87,18 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, o
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         <字段块 标题="已完成摘要" 内容={取数组(当前章节.已完成摘要)} />
                         <字段块 标题="当前待解问题" 内容={取数组(当前章节.当前待解问题)} />
-                        <字段块 标题="原著换章条件" 内容={取数组(当前章节.原著换章条件)} />
                     </div>
 
                     {storyPlan && (
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             <字段块 标题="当前章目标" 内容={取数组((storyPlan as any)?.当前章目标)} />
                             <字段块
-                                标题={isFandomMode ? '同人对齐信息' : '换章规则'}
-                                内容={
-                                    isFandomMode
-                                        ? [
-                                            `章节范围：${对齐信息?.当前章节范围 || '未记录'}`,
-                                            `承接方式：${对齐信息?.当前承接方式 || '未记录'}`,
-                                            `已形成偏转：${取数组(对齐信息?.当前已形成偏转).join('；') || '暂无'}`
-                                        ]
-                                        : [
-                                            `本章完成判定：${取数组((换章规则 as any)?.本章完成判定).join('；') || '未设定'}`,
-                                            `允许切章条件：${取数组((换章规则 as any)?.允许切章条件).join('；') || '未设定'}`,
-                                            `禁止切章条件：${取数组((换章规则 as any)?.禁止切章条件).join('；') || '未设定'}`
-                                        ]
-                                }
+                                标题="换章规则"
+                                内容={[
+                                    `本章完成判定：${取数组((换章规则 as any)?.本章完成判定).join('；') || '未设定'}`,
+                                    `允许切章条件：${取数组((换章规则 as any)?.允许切章条件).join('；') || '未设定'}`,
+                                    `禁止切章条件：${取数组((换章规则 as any)?.禁止切章条件).join('；') || '未设定'}`
+                                ]}
                             />
                         </div>
                     )}
@@ -160,22 +145,14 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, isFandomMode = false, o
                                         <div className="mt-2 text-[10px] text-gray-500">触发时间：{shot?.触发时间 || '未设定'}</div>
                                     </div>
                                 ))}
-                                {!isFandomMode && 跨章延续事项.map((item: any, idx: number) => (
+                                {跨章延续事项.map((item: any, idx: number) => (
                                     <div key={`carry-${idx}`} className="rounded-xl border border-amber-900/20 bg-amber-950/10 p-4">
                                         <div className="text-sm text-amber-100 font-semibold">{item?.标题 || `延续事项 ${idx + 1}`}</div>
                                         <div className="mt-2 text-[10px] text-gray-500">延续到何时：{item?.延续到何时 || '未定'}</div>
                                         <div className="mt-1 text-xs text-gray-400">{取数组(item?.后续接续条件).join('；') || '暂无接续条件'}</div>
                                     </div>
                                 ))}
-                                {isFandomMode && 分歧线.map((line: any, idx: number) => (
-                                    <div key={`branch-${idx}`} className="rounded-xl border border-purple-900/20 bg-purple-950/10 p-4">
-                                        <div className="text-sm text-purple-100 font-semibold">{line?.分歧线名 || `分歧线 ${idx + 1}`}</div>
-                                        <div className="mt-2 text-xs text-gray-400 leading-6">
-                                            与原著不同：{取数组(line?.与原著不同之处).join('；') || '暂无'}
-                                        </div>
-                                    </div>
-                                ))}
-                                {镜头规划.length === 0 && 跨章延续事项.length === 0 && 分歧线.length === 0 && <div className="text-xs text-gray-600 italic">暂无镜头与延续内容。</div>}
+                                {镜头规划.length === 0 && 跨章延续事项.length === 0 && <div className="text-xs text-gray-600 italic">暂无镜头与延续内容。</div>}
                             </div>
                         </section>
                     </div>

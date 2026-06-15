@@ -2,14 +2,15 @@ import type { OpeningConfig, 记忆配置结构 } from '../../types';
 import { 规范化记忆配置 } from './memoryUtils';
 import { 构建NPC记忆展示结果 } from './npcMemorySummary';
 import { normalizeCanonicalGameTime, 结构化时间转标准串 } from './timeUtils';
-import { 解析境界映射值 } from '../../prompts/runtime/fandom';
+
+const 解析境界映射值 = () => 0;
 
 type 生图基础数据选项 = {
     cultivationSystemEnabled?: boolean;
 };
 
 export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数据选项) => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
+    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
         return Object.fromEntries(
             Object.entries(obj).filter(([, value]) => {
@@ -68,7 +69,7 @@ export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数�
         性别: typeof npc?.性别 === 'string' ? npc.性别.trim() : undefined,
         年龄: typeof npc?.年龄 === 'number' ? npc.年龄 : undefined,
         身份: 读取首个文本字段(npc, ['身份']) || undefined,
-        境界: 启用修炼体系 ? (读取首个文本字段(npc, ['境界']) || undefined) : undefined,
+        境界: 启用成长体系 ? (读取首个文本字段(npc, ['境界']) || undefined) : undefined,
         简介: 读取首个文本字段(npc, ['简介']) || undefined,
         核心性格特征: 核心性格特征 || undefined,
         性格: 核心性格特征 || undefined,
@@ -80,7 +81,7 @@ export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数�
 };
 
 export const 提取主角生图基础数据 = (character: any, options?: 生图基础数据选项) => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
+    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
         return Object.fromEntries(
             Object.entries(obj).filter(([, value]) => {
@@ -102,7 +103,7 @@ export const 提取主角生图基础数据 = (character: any, options?: 生图�
         性别: 取文本(character?.性别) || undefined,
         年龄: typeof character?.年龄 === 'number' ? character.年龄 : undefined,
         身份: [取文本(character?.称号), 取文本(character?.出身背景?.名称)].filter(Boolean).join(' / ') || undefined,
-        境界: 启用修炼体系 ? (取文本(character?.境界) || undefined) : undefined,
+        境界: 启用成长体系 ? (取文本(character?.境界) || undefined) : undefined,
         简介: 取文本(character?.出身背景?.描述) || undefined,
         核心性格特征: 取文本(character?.性格) || undefined,
         性格: 取文本(character?.性格) || undefined,
@@ -157,7 +158,7 @@ export const 构建NPC上下文 = (
     离场数据块: string;
 } => {
     const npcList = Array.isArray(socialData) ? socialData : [];
-    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
+    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 普通关键记忆条数N = 5;
     const 重要角色关键记忆条数N = 规范化记忆配置(memoryConfig).重要角色关键记忆条数N;
 
@@ -491,7 +492,7 @@ export const 构建NPC上下文 = (
             id: typeof npc?.id === 'string' ? npc.id : `npc_${index}`,
             姓名: typeof npc?.姓名 === 'string' ? npc.姓名 : `角色${index}`,
             性别: typeof npc?.性别 === 'string' ? npc.性别 : '未知',
-            ...(启用修炼体系 ? {
+            ...(启用成长体系 ? {
                 境界: typeof npc?.境界 === 'string' ? npc.境界 : '未知境界',
                 境界映射值: 解析境界映射值(npc?.境界, {
                     worldPrompt: options?.worldPrompt,
@@ -551,7 +552,7 @@ export const 构建NPC上下文 = (
             最大血量: typeof npc?.最大血量 === 'number' ? npc.最大血量 : undefined,
             当前精力: typeof npc?.当前精力 === 'number' ? npc.当前精力 : undefined,
             最大精力: typeof npc?.最大精力 === 'number' ? npc.最大精力 : undefined,
-            ...(启用修炼体系 ? {
+            ...(启用成长体系 ? {
                 当前内力: typeof npc?.当前内力 === 'number' ? npc.当前内力 : undefined,
                 最大内力: typeof npc?.最大内力 === 'number' ? npc.最大内力 : undefined
             } : {}),

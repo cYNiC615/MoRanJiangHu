@@ -1,8 +1,7 @@
 import type { 剧情风格类型, NTL后宫档位 } from '../../../models/system';
 import type { 游戏设置结构 } from '../../../types';
-import { 构建修炼体系附加块, 按功能开关过滤提示词内容 } from '../../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容 } from '../../../utils/promptFeatureToggles';
 import { 剧情风格提示词_后宫 } from './harem';
-import { 剧情风格提示词_修炼 } from './cultivation';
 import { 剧情风格提示词_一般 } from './general';
 import { 剧情风格提示词_修罗场 } from './shura';
 import { 剧情风格提示词_纯爱 } from './pureLove';
@@ -10,7 +9,6 @@ import { 剧情风格提示词_NTL后宫_禁止乱伦, 剧情风格提示词_NTL
 
 const 风格提示词映射: Record<剧情风格类型, string> = {
     后宫: 剧情风格提示词_后宫,
-    修炼: 构建修炼体系附加块(剧情风格提示词_修炼),
     一般: 剧情风格提示词_一般,
     修罗场: 剧情风格提示词_修罗场,
     纯爱: 剧情风格提示词_纯爱,

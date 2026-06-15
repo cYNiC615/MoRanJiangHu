@@ -22,11 +22,7 @@ interface Props {
 const CATEGORIES: PromptCategory[] = ['核心设定', '数值设定', '难度设定', '写作设定', '自定义'];
 const THINKING_OPEN_TAG_SOURCE = '<\\s*thinking\\s*>';
 const THINKING_CLOSE_TAG_SOURCE = '<\\s*\\/\\s*thinking\\s*>';
-const RETIRED_PROMPT_MANAGER_IDS = new Set([
-    'core_realm',
-    'stat_kungfu',
-    'stat_cultivation'
-]);
+const RETIRED_PROMPT_MANAGER_IDS = new Set<string>();
 
 const 是退役提示词管理条目 = (prompt: Pick<提示词结构, 'id'>): boolean => (
     RETIRED_PROMPT_MANAGER_IDS.has(prompt.id)

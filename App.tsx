@@ -12,7 +12,6 @@ import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
 import { 获取主剧情接口配置, 获取文生图接口配置, 获取生图词组转化器接口配置, 获取记忆精炼接口配置, 接口配置是否可用 } from './utils/apiConfig';
 import { 请求模型文本 } from './services/ai/chatCompletionClient';
 import { 记忆精炼系统提示词 } from './prompts/runtime/memoryRefine';
-import { 同人运行时模式已启用 } from './prompts/runtime/fandom';
 import { 获取内置世界书槽位内容 } from './utils/worldbook';
 import { 生成地图更新 } from './hooks/useGame/mapUpdateWorkflow';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
@@ -66,7 +65,7 @@ type 物品自动生图近期结果 = {
     nextItem: 游戏物品;
 };
 
-type 本回合变化区域 = '角色' | '背包' | '装备' | '战斗' | '队伍' | '社交' | '地图' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
+type 本回合变化区域 = '角色' | '背包' | '装备' | '队伍' | '社交' | '地图' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
 
 const 旧图迁移阶段文案: Record<本地图片图床迁移状态['stage'], string> = {
     idle: '等待扫描',
@@ -208,13 +207,12 @@ const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] =
         if (key.includes('角色.装备')) areas.add('装备');
         if (key.includes('角色.当前坐标') || key.includes('世界.地图')) areas.add('地图');
         if (key.includes('角色.') || key.startsWith('角色.')) areas.add('角色');
-        if (key.includes('战斗')) areas.add('战斗');
         if (key.includes('社交')) areas.add('社交');
         if (key.includes('队伍') || key.includes('是否队友')) areas.add('队伍');
         if (key.includes('任务列表')) areas.add('任务列表');
         if (key.includes('约定列表')) areas.add('约定列表');
         if (key.includes('世界')) areas.add('世界');
-        if (key.includes('剧情规划') || key.includes('女主剧情规划') || key.includes('同人剧情规划') || key.includes('同人女主剧情规划')) {
+        if (key.includes('剧情规划') || key.includes('女主剧情规划')) {
             areas.add('剧情规划');
         } else if (key.includes('剧情')) {
             areas.add('剧情');
@@ -586,7 +584,6 @@ const App: React.FC = () => {
         state.角色,
         state.环境,
         state.世界,
-        state.战斗,
         state.任务列表,
         state.约定列表,
         state.剧情,
@@ -730,12 +727,8 @@ const App: React.FC = () => {
         return 整理世界状态客户可见大事(state.世界, state.worldEvents);
     }, [state.世界, state.worldEvents]);
 
-    const 启用同人模式 = React.useMemo(
-        () => 同人运行时模式已启用(state.开局配置),
-        [state.开局配置]
-    );
-    const 当前剧情规划 = 启用同人模式 ? state.同人剧情规划 : state.剧情规划;
-    const 当前女主剧情规划 = 启用同人模式 ? state.同人女主剧情规划 : state.女主剧情规划;
+    const 当前剧情规划 = state.剧情规划;
+    const 当前女主剧情规划 = state.女主剧情规划;
 
     const renderTickerItems = React.useCallback((items: string[], keyPrefix: string) => (
         items.map((e, i) => (
@@ -790,13 +783,12 @@ const App: React.FC = () => {
         环境: state.环境,
         社交: state.社交,
         世界: state.世界,
-        战斗: state.战斗,
         剧情: state.剧情,
         女主剧情规划: state.女主剧情规划,
         任务列表: state.任务列表,
         约定列表: state.约定列表,
         记忆系统: state.记忆系统
-    }), [state.角色, state.环境, state.社交, state.世界, state.战斗, state.剧情, state.女主剧情规划, state.任务列表, state.约定列表, state.记忆系统]);
+    }), [state.角色, state.环境, state.社交, state.世界, state.剧情, state.女主剧情规划, state.任务列表, state.约定列表, state.记忆系统]);
 
     const latestAssistantMessage = React.useMemo(
         () => [...state.历史记录]
@@ -2490,7 +2482,6 @@ const App: React.FC = () => {
                             <StoryModal
                                 story={state.剧情}
                                 storyPlan={当前剧情规划}
-                                isFandomMode={启用同人模式}
                                 onClose={() => setters.setShowStory(false)}
                             />
                         </懒加载边界>
@@ -2500,7 +2491,6 @@ const App: React.FC = () => {
                         <懒加载边界>
                             <HeroinePlanModal
                                 plan={当前女主剧情规划}
-                                isFandomMode={启用同人模式}
                                 onClose={() => setters.setShowHeroinePlan(false)}
                             />
                         </懒加载边界>

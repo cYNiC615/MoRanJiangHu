@@ -1,4 +1,4 @@
-﻿import {
+import {
     接口设置结构,
     单接口配置结构,
     接口供应商类型,
@@ -551,8 +551,6 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     女主规划独立模型开关: false,
     剧情规划独立模型开关: false,
     文章优化独立模型开关: false,
-    小说拆分功能启用: false,
-    小说拆分独立模型开关: false,
     剧情回忆使用模型: '',
     剧情回忆渠道ID: '',
     剧情回忆API地址: '',
@@ -585,7 +583,6 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
      地图自动更新非流式输出: false,
      记忆总结非流式输出: false,
      记忆精炼非流式输出: false,
-     小说拆分非流式输出: false,
      世界演变功能启用: true,
     世界演变使用模型: '',
     世界演变渠道ID: '',
@@ -613,23 +610,6 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     文章优化API地址: '',
     文章优化API密钥: '',
     文章优化提示词: 默认文章优化提示词,
-    小说拆分使用模型: '',
-    小说拆分渠道ID: '',
-    小说拆分API地址: '',
-    小说拆分API密钥: '',
-    小说拆分RPM限制: 10,
-    小说拆分按N章分组: 5,
-    小说拆分单次处理批量: 1,
-    小说拆分自动重试次数: 0,
-    小说拆分后台运行: true,
-    小说拆分自动续跑: true,
-    小说拆分主剧情注入: true,
-    小说拆分规划分析注入: true,
-    小说拆分世界演变注入: true,
-    小说拆分主剧情保留原文注入: false,
-    小说拆分主剧情字数优化: true,
-    小说拆分主剧情注入上限: 1200,
-    小说拆分详细注入上限: 4000,
     文生图功能启用: false,
     文生图后端类型: 'comfyui',
     文生图模型使用模型: '',
@@ -1269,8 +1249,6 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         女主规划独立模型开关: Boolean(raw?.女主规划独立模型开关),
         剧情规划独立模型开关: Boolean(raw?.剧情规划独立模型开关),
         文章优化独立模型开关: Boolean(raw?.文章优化独立模型开关),
-        小说拆分功能启用: Boolean(raw?.小说拆分功能启用),
-        小说拆分独立模型开关: Boolean(raw?.小说拆分独立模型开关),
         剧情回忆使用模型: 读取字符串(raw?.剧情回忆使用模型),
         剧情回忆渠道ID: 读取字符串(raw?.剧情回忆渠道ID),
         剧情回忆API地址: 读取字符串(raw?.剧情回忆API地址),
@@ -1321,28 +1299,6 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         文章优化API地址: 读取字符串(raw?.文章优化API地址),
         文章优化API密钥: 读取字符串(raw?.文章优化API密钥),
         文章优化提示词: polishPromptCandidate.trim().length > 0 ? polishPromptCandidate : 默认文章优化提示词,
-        小说拆分使用模型: 读取字符串(raw?.小说拆分使用模型),
-        小说拆分渠道ID: 读取字符串(raw?.小说拆分渠道ID),
-        小说拆分API地址: 读取字符串(raw?.小说拆分API地址),
-        小说拆分API密钥: 读取字符串(raw?.小说拆分API密钥),
-        小说拆分RPM限制: Math.max(1, Number(raw?.小说拆分RPM限制) || 10),
-        小说拆分按N章分组: Math.max(1, Number(raw?.小说拆分按N章分组) || 5),
-        小说拆分单次处理批量: Math.max(1, Number(raw?.小说拆分单次处理批量) || 1),
-        小说拆分自动重试次数: Math.max(0, Number(raw?.小说拆分自动重试次数) || 0),
-        小说拆分后台运行: 读取布尔值(raw?.小说拆分后台运行) ?? true,
-        小说拆分自动续跑: 读取布尔值(raw?.小说拆分自动续跑) ?? true,
-        小说拆分主剧情注入: 读取布尔值(raw?.小说拆分主剧情注入) ?? true,
-        小说拆分规划分析注入: 读取布尔值(raw?.小说拆分规划分析注入) ?? true,
-        小说拆分世界演变注入: 读取布尔值(raw?.小说拆分世界演变注入) ?? true,
-        小说拆分主剧情保留原文注入: 读取布尔值(raw?.小说拆分主剧情保留原文注入) ?? false,
-        小说拆分主剧情字数优化: 读取布尔值(raw?.小说拆分主剧情字数优化) ?? true,
-        小说拆分主剧情注入上限: Math.max(
-            200,
-            Number(raw?.小说拆分主剧情注入上限)
-            || Number(raw?.小说拆分主剧情滑窗安全上限)
-            || 1200
-        ),
-        小说拆分详细注入上限: Math.max(500, Number(raw?.小说拆分详细注入上限) || 4000),
         文生图功能启用: Boolean(raw?.文生图功能启用),
         文生图后端类型: resolvedImageBackend,
         文生图模型使用模型: 读取字符串(raw?.文生图模型使用模型),
@@ -1466,7 +1422,6 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         地图自动更新非流式输出: raw?.地图自动更新非流式输出 === true,
         记忆总结非流式输出: raw?.记忆总结非流式输出 === true,
         记忆精炼非流式输出: raw?.记忆精炼非流式输出 === true,
-        小说拆分非流式输出: raw?.小说拆分非流式输出 === true
     };
 };
 
@@ -1945,49 +1900,6 @@ export const 获取世界演变接口配置 = (settings: 接口设置结构): �
         API地址: feature?.世界演变API地址,
         API密钥: feature?.世界演变API密钥
     });
-};
-
-export const 获取小说拆分接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {
-    const feature = (settings as any)?.功能模型占位;
-    const baseUrl = 读取字符串(feature?.小说拆分API地址).trim();
-    const apiKey = 读取字符串(feature?.小说拆分API密钥).trim();
-    const dedicatedModel = 读取字符串(feature?.小说拆分使用模型).trim();
-    const 小说拆分最大输出Token = 32_768;
-    const selected = 获取指定渠道接口配置(settings, feature?.小说拆分渠道ID);
-
-    if (baseUrl && apiKey && dedicatedModel) {
-        return {
-            id: selected?.id || 'novel_decomposition_dedicated',
-            名称: selected?.名称 || '小说拆分独立接口',
-            供应商: 推断供应商(baseUrl),
-            协议覆盖: 'auto',
-            baseUrl,
-            apiKey,
-            model: dedicatedModel,
-            maxTokens: 小说拆分最大输出Token,
-            temperature: selected?.temperature
-        };
-    }
-
-    const current = selected;
-    if (!current) return null;
-
-    const enabled = Boolean(feature?.小说拆分独立模型开关);
-    const model = enabled
-        ? dedicatedModel
-        : 读取字符串(current.model || feature?.主剧情使用模型).trim();
-    if (!model) return null;
-    const supplier = baseUrl ? 推断供应商(baseUrl) : current.供应商;
-
-    return {
-        ...current,
-        供应商: supplier,
-        协议覆盖: baseUrl ? 'auto' : current.协议覆盖,
-        baseUrl: baseUrl || current.baseUrl,
-        apiKey: apiKey || current.apiKey,
-        model,
-        maxTokens: 小说拆分最大输出Token
-    };
 };
 
 export const 获取规划分析接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {

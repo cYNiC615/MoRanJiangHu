@@ -12,7 +12,7 @@ import {
 type RewardState = {
     角色: any;
     环境?: any;
-    玩家门派?: any;
+    玩家组织?: any;
     任务列表: any[];
 };
 
@@ -189,11 +189,11 @@ export const 结算已完成任务奖励 = (
     const state: RewardState = {
         ...params.state,
         角色: 深拷贝(params.state.角色 || {}),
-        玩家门派: 深拷贝(params.state.玩家门派 || {}),
+        玩家组织: 深拷贝(params.state.玩家组织 || {}),
         任务列表: Array.isArray(params.state.任务列表) ? 深拷贝(params.state.任务列表) : []
     };
     const role = state.角色 || {};
-    const sect = state.玩家门派 || {};
+    const sect = state.玩家组织 || {};
     const runtimeProfile = 获取运行时配置(params);
     role.金钱 = 规范化角色金钱(role.金钱);
     role.物品列表 = Array.isArray(role.物品列表) ? role.物品列表 : [];
@@ -219,7 +219,7 @@ export const 结算已完成任务奖励 = (
         const rewardRecords: string[] = [];
 
         rewardDescriptions.flatMap(解析奖励片段).forEach((part) => {
-            const contributionMatch = part.match(/(?:门派贡献|营地贡献|组织信用|队伍信用|贡献点|资源额度|信用额度)\s*[+＋]\s*(\d+)/u);
+            const contributionMatch = part.match(/(?:营地贡献|组织贡献|组织信用|队伍信用|贡献点|资源额度|信用额度)\s*[+＋]\s*(\d+)/u);
             if (contributionMatch) {
                 const amount = Math.max(0, Math.trunc(Number(contributionMatch[1])));
                 if (amount > 0) {
@@ -227,7 +227,6 @@ export const 结算已完成任务奖励 = (
                     const previousTotalContribution = Math.max(0, 取数字(sect.累计贡献), previousCurrentContribution);
                     sect.玩家贡献 = previousCurrentContribution + amount;
                     sect.累计贡献 = previousTotalContribution + amount;
-                    role.门派贡献 = Math.max(0, 取数字(role.门派贡献)) + amount;
                     rewardRecords.push(`${contributionMatch[0].replace(/\s+/g, ' ')}`);
                     changed = true;
                 }
@@ -331,6 +330,6 @@ export const 结算已完成任务奖励 = (
     } else {
         state.角色 = role;
     }
-    state.玩家门派 = sect;
+    state.玩家组织 = sect;
     return { state, changed, rewardLogs: visibleRewardLogs };
 };

@@ -176,7 +176,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
     const 金钱 = 规范化角色金钱(角色.金钱);
     const 玩家BUFF列表 = Array.isArray(角色.玩家BUFF) ? 角色.玩家BUFF : [];
     const 启用饱腹口渴系统 = gameConfig?.启用饱腹口渴系统 !== false;
-    const 启用修炼体系 = gameConfig?.启用修炼体系 === true;
+    const 启用成长体系 = gameConfig?.启用成长体系 === true;
     const areaStyle = 构建区域文字样式(visualConfig, '左侧栏');
     const 基础字号 = Number(areaStyle.fontSize) || 13;
     const 缩放字号 = (ratio: number, min = 13) => `${Math.max(min, Math.round(基础字号 * ratio))}px`;
@@ -327,7 +327,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
                                 {角色.姓名}
                             </div>
                         </button>
-                        {启用修炼体系 && (
+                        {启用成长体系 && (
                             <div className="mt-2 bg-wuxia-red/90 border border-red-800/50 text-white px-2 py-0.5 rounded-sm whitespace-nowrap shadow-sm" style={{ fontSize: 缩放字号(1, 14) }}>{角色.境界}</div>
                         )}
                     </div>
@@ -364,7 +364,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
             <div className="mb-2 shrink-0 flex flex-col gap-0.5">
                 <FlatBar label={`总${资源文案.气血}`} current={总气血.当前} max={总气血.最大} type="hp" visualConfig={visualConfig} commandDelta={总气血变化} />
                 <FlatBar label={资源文案.精力} current={角色.当前精力} max={角色.最大精力} type="stamina" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前精力')} />
-                {启用修炼体系 && (
+                {启用成长体系 && (
                     <FlatBar label={资源文案.能量} current={角色.当前内力} max={角色.最大内力} type="inner" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前内力')} />
                 )}
                 {启用饱腹口渴系统 && (

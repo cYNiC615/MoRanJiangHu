@@ -3,7 +3,6 @@ import { 存档结构 } from '../types';
 import { 创建图片资源引用, 解析图片资源引用ID, 是否图片资源引用, 注册图片资源缓存, 批量注册图片资源缓存, 清空图片资源缓存, 注册远程图片兜底引用, 读取远程图片兜底映射, 读取远程图片兜底资源ID集合 } from '../utils/imageAssets';
 import { 获取设置项定义, 设置分类定义表, 设置键, type 设置分类类型 } from '../utils/settingsSchema';
 import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiConfig';
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../utils/saveLoadTrace';
 import { 修复本地存档谱系列表, 补全存档谱系元数据 } from '../utils/saveLineage';
 import { 读取存档游玩回合数 } from '../utils/saveTurn';
@@ -315,12 +314,6 @@ const 估算设置摘要 = (key: string, value: unknown): string => {
                 return `${value.length} 条提示词`;
             case 设置键.内置提示词:
                 return `${value.length} 条内置提示词`;
-            case 设置键.小说分解数据集:
-                return `${value.length} 组分解数据`;
-            case 设置键.小说分解任务:
-                return `${value.length} 个分解任务`;
-            case 设置键.小说分解注入快照:
-                return `${value.length} 个注入快照`;
             case 设置键.世界书列表:
                 return `${value.length} 本世界书`;
             case 设置键.世界书预设组:
@@ -738,25 +731,19 @@ const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
         历史记录: 深拷贝(history),
         社交: Array.isArray(raw.社交) ? 深拷贝(raw.社交) : undefined,
         世界: raw.世界 && typeof raw.世界 === 'object' ? 深拷贝(raw.世界) : undefined,
-        战斗: raw.战斗 && typeof raw.战斗 === 'object' ? 深拷贝(raw.战斗) : undefined,
-        玩家门派: raw.玩家门派 && typeof raw.玩家门派 === 'object' ? 深拷贝(raw.玩家门派) : undefined,
         任务列表: Array.isArray(raw.任务列表) ? 深拷贝(raw.任务列表) : undefined,
         约定列表: Array.isArray(raw.约定列表) ? 深拷贝(raw.约定列表) : undefined,
         剧情: raw.剧情 && typeof raw.剧情 === 'object' ? 深拷贝(raw.剧情) : undefined,
         剧情规划: raw.剧情规划 && typeof raw.剧情规划 === 'object' ? 深拷贝(raw.剧情规划) : undefined,
         女主剧情规划: raw.女主剧情规划 && typeof raw.女主剧情规划 === 'object' ? 深拷贝(raw.女主剧情规划) : undefined,
-        同人剧情规划: raw.同人剧情规划 && typeof raw.同人剧情规划 === 'object' ? 深拷贝(raw.同人剧情规划) : undefined,
-        同人女主剧情规划: raw.同人女主剧情规划 && typeof raw.同人女主剧情规划 === 'object' ? 深拷贝(raw.同人女主剧情规划) : undefined,
         记忆系统: raw.记忆系统 && typeof raw.记忆系统 === 'object' ? 深拷贝(raw.记忆系统) : undefined,
         openingConfig: raw.openingConfig && typeof raw.openingConfig === 'object' ? 深拷贝(raw.openingConfig) : undefined,
         游戏设置: raw.游戏设置 && typeof raw.游戏设置 === 'object' ? 深拷贝(raw.游戏设置) : undefined,
         记忆配置: raw.记忆配置 && typeof raw.记忆配置 === 'object' ? 深拷贝(raw.记忆配置) : undefined,
         视觉设置: raw.视觉设置 && typeof raw.视觉设置 === 'object' ? 深拷贝(raw.视觉设置) : undefined,
         场景图片档案: raw.场景图片档案 && typeof raw.场景图片档案 === 'object' ? 深拷贝(raw.场景图片档案) : undefined,
-        核心提示词快照: raw.核心提示词快照 && typeof raw.核心提示词快照 === 'object' ? 深拷贝(raw.核心提示词快照) : undefined,
         角色锚点列表: Array.isArray(raw.角色锚点列表) ? 深拷贝(raw.角色锚点列表) : undefined,
-        当前角色锚点ID: typeof raw.当前角色锚点ID === 'string' ? raw.当前角色锚点ID : undefined,
-        拍卖行: raw.拍卖行 && typeof raw.拍卖行 === 'object' ? 深拷贝(raw.拍卖行) : undefined
+        当前角色锚点ID: typeof raw.当前角色锚点ID === 'string' ? raw.当前角色锚点ID : undefined
     };
 
     normalized.元数据 = {
@@ -865,7 +852,7 @@ export const 读取图片资源 = async (refOrId: string): Promise<string> => {
 
 export const 预热图片资源缓存 = async (options?: { limit?: number; maxChars?: number; clearExisting?: boolean }): Promise<number> => {
     const db = await 初始化数据库();
-    const limit = Math.max(0, Math.floor(options?.limit ?? (isNativeCapacitorEnvironment() ? 0 : 图片缓存预热最大条目数)));
+    const limit = Math.max(0, Math.floor(options?.limit ?? 图片缓存预热最大条目数));
     const maxChars = Math.max(0, Math.floor(options?.maxChars ?? 图片缓存预热最大字符数));
     const shouldClearExisting = options?.clearExisting !== false;
     if (limit <= 0 || maxChars <= 0) {
@@ -2108,8 +2095,7 @@ export const 读取存档 = async (id: number): Promise<存档结构> => {
     const db = await 初始化数据库();
     const startAt = Date.now();
     recordSaveLoadTrace('db.readSave.start', {
-        id,
-        native: isNativeCapacitorEnvironment()
+        id
     });
     return new Promise((resolve, reject) => {
         const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -2269,7 +2255,7 @@ export const 启动旧存档谱系迁移 = async (): Promise<旧存档谱系迁�
                 currentSaveTitle: title,
                 lastMessage: `正在转换旧存档：${converted + failed}/${legacySaves.length}（${title}）`
             });
-            await new Promise((resolve) => setTimeout(resolve, isNativeCapacitorEnvironment() ? 180 : 40));
+            await new Promise((resolve) => setTimeout(resolve, 40));
         }
 
         const repaired = await 校正并写回本地存档谱系(db, convertedOrExisting);
@@ -2304,8 +2290,7 @@ export const 补全存档摘要 = async (id: number): Promise<存档摘要结构
     const db = await 初始化数据库();
     const startAt = Date.now();
     recordSaveLoadTrace('db.summaryHydrate.start', {
-        id: saveId,
-        native: isNativeCapacitorEnvironment()
+        id: saveId
     });
     return new Promise((resolve, reject) => {
         const transaction = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
@@ -2945,28 +2930,6 @@ export interface 本地数据体检报告 {
 }
 
 export const 获取本地数据体检报告 = async (): Promise<本地数据体检报告> => {
-    if (isNativeCapacitorEnvironment()) {
-        const [存档数量, 设置数量, 图片资源数量] = await Promise.all([
-            读取对象仓库数量(STORE_NAME),
-            读取对象仓库数量(SETTINGS_STORE),
-            读取对象仓库数量(IMAGE_ASSETS_STORE)
-        ]);
-        return {
-            存档数量,
-            自动存档数量: 0,
-            手动存档数量: 存档数量,
-            设置数量,
-            图片资源数量,
-            图片引用数量: 0,
-            孤儿图片数量: 0,
-            缺失图片引用数量: 0,
-            孤儿图片示例: [],
-            缺失图片引用示例: [],
-            建议列表: [
-                '移动端已使用轻量体检，避免一次性扫描全部存档和图片导致卡死；如需清理孤儿图片，建议在桌面端执行深度体检。'
-            ]
-        };
-    }
     const db = await 初始化数据库();
     const [saves, settings, imageAssets, referencedIds] = await Promise.all([
         new Promise<any[]>((resolve, reject) => {
@@ -3033,47 +2996,6 @@ export const 修复本地数据体检问题 = async (): Promise<{ 清理孤儿�
 
 export const 获取详细存储信息 = async (): Promise<StorageBreakdown> => {
     const db = await 初始化数据库();
-
-    if (isNativeCapacitorEnvironment()) {
-        const [settings, estimate] = await Promise.all([
-            new Promise<any[]>((resolve) => {
-                const settingsTx = db.transaction([SETTINGS_STORE], 'readonly');
-                const settingsStore = settingsTx.objectStore(SETTINGS_STORE);
-                const request = settingsStore.getAll();
-                request.onsuccess = (e) => resolve((e.target as any).result || []);
-                request.onerror = () => resolve([]);
-            }),
-            navigator.storage?.estimate ? navigator.storage.estimate().catch(() => ({ usage: 0, quota: 0 })) : Promise.resolve({ usage: 0, quota: 0 })
-        ]);
-        let apiSize = 0;
-        let promptsSize = 0;
-        let otherSettingsSize = 0;
-        settings.forEach(s => {
-            const size = 估算对象字节数(s);
-            if (s.key === 设置键.API配置) {
-                apiSize += size;
-            } else if (s.key === 设置键.提示词池) {
-                promptsSize += size;
-            } else {
-                otherSettingsSize += size;
-            }
-        });
-        const usage = Number(estimate.usage || 0);
-        const quota = Number(estimate.quota || 0);
-        const knownUsage = apiSize + promptsSize + otherSettingsSize;
-        return {
-            usage,
-            quota,
-            details: {
-                saves: 0,
-                settings: otherSettingsSize,
-                prompts: promptsSize,
-                api: apiSize,
-                imageAssets: 0,
-                cache: Math.max(0, usage - knownUsage)
-            }
-        };
-    }
 
     // 1. Calculate Saves Size
     const savesTx = db.transaction([STORE_NAME], 'readonly');

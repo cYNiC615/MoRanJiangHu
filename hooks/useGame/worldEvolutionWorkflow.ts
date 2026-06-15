@@ -12,8 +12,7 @@ import { 构建世界演变COT提示词, 世界演变COT伪装历史消息提示
 import { 环境时间转标准串 } from './timeUtils';
 import { 构建世界演变上下文文本, 规范化世界演变命令列表, 整理客户可见世界大事 } from './worldEvolutionUtils';
 import type { 响应命令处理状态 } from './responseCommandProcessor';
-import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
-import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 提取响应规划文本 } from './thinkingContext';
 import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
 import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
@@ -209,8 +208,7 @@ export const 执行世界演变更新工作流 = async (
         const worldStateBase = params?.stateBase;
         const worldEnv = probe.time('规范化世界演变环境', () => deps.规范化环境信息(worldStateBase?.环境 || deps.环境));
         const worldRuntimeGameConfig = probe.time('规范化游戏设置', () => 规范化游戏设置(deps.gameConfig));
-        const 启用修炼体系 = worldRuntimeGameConfig.启用修炼体系 === true;
-        const worldState = probe.time('规范化并裁剪世界状态', () => 裁剪修炼体系上下文数据(
+        const worldState = probe.time('规范化并裁剪世界状态', () => 裁剪成长体系上下文数据(
             deps.规范化世界状态(worldStateBase?.世界 || deps.世界),
             worldRuntimeGameConfig
         ));
@@ -218,12 +216,6 @@ export const 执行世界演变更新工作流 = async (
         const worldPrompt = (() => {
             const hit = deps.prompts.find(item => item.id === 'core_world');
             return 按功能开关过滤提示词内容(typeof hit?.内容 === 'string' ? hit.内容.trim() : '', worldRuntimeGameConfig);
-        })();
-        const realmPrompt = (() => {
-            if (!启用修炼体系) return '';
-            const hit = deps.prompts.find(item => item.id === 'core_realm');
-            const raw = typeof hit?.内容 === 'string' ? hit.内容.trim() : '';
-            return raw.includes('开局后此处会被完整替换') ? '' : raw;
         })();
         const worldEvolutionPrompt = (() => {
             const hit = deps.prompts.find(item => item.id === 'stat_world_evo');
@@ -234,11 +226,6 @@ export const 执行世界演变更新工作流 = async (
                 worldRuntimeGameConfig
             );
         })();
-        const fandomPromptBundle = probe.time('构建同人运行时提示词包', () => 构建同人运行时提示词包({
-            openingConfig: deps.开局配置,
-            worldPrompt,
-            realmPrompt
-        }));
         const worldStory = rawWorldStory;
         const worldShortMemoryTexts = probe.time('提取短期记忆', () => (Array.isArray(规范化记忆系统(deps.记忆系统).短期记忆) ? 规范化记忆系统(deps.记忆系统).短期记忆 : [])
             .slice(-8)
@@ -349,8 +336,6 @@ export const 执行世界演变更新工作流 = async (
                 ? 按功能开关过滤提示词内容(worldRuntimeGameConfig.额外提示词.trim(), worldRuntimeGameConfig)
                 : '',
             worldbookExtraPrompt,
-            按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, worldRuntimeGameConfig),
-            启用修炼体系 ? fandomPromptBundle.境界母板补丁 : '',
             获取繁体输出指令(worldRuntimeGameConfig)
         ]
             .filter(Boolean)
@@ -358,16 +343,13 @@ export const 执行世界演变更新工作流 = async (
         const worldCotPseudoPrompt = worldRuntimeGameConfig.启用COT伪装注入 !== false
             ? 世界演变COT伪装历史消息提示词
             : '';
-        const worldCotPrompt = 构建世界演变COT提示词({
-            fandom: fandomPromptBundle.enabled
-        });
+        const worldCotPrompt = 构建世界演变COT提示词();
         const 独立世界演变GPT模式 = worldRuntimeGameConfig.独立APIGPT模式?.世界演变 === true;
         probe.mark('世界演变请求载荷准备完成', {
             worldContextLength: worldContext.length,
             extraPromptLength: worldExtraPrompt.length,
             cotPseudoLength: worldCotPseudoPrompt.length,
-            cotPromptLength: worldCotPrompt.length,
-            fandomEnabled: fandomPromptBundle.enabled
+            cotPromptLength: worldCotPrompt.length
         });
 
         const 世界演变非流式输出 = worldRuntimeGameConfig.启用非流式输出
@@ -380,7 +362,6 @@ export const 执行世界演变更新工作流 = async (
                 worldExtraPrompt,
                 worldCotPseudoPrompt,
                 worldCotPrompt,
-                fandomPromptBundle.enabled,
                 独立世界演变GPT模式,
                 世界演变非流式输出
                     ? undefined

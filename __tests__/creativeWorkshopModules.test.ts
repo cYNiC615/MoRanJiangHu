@@ -61,7 +61,7 @@ describe('creativeWorkshopModules', () => {
     });
 
     it('迁入的玩家题材按完整模式包提供单个整合模块', () => {
-        for (const suiteId of ['community-trails-suite', 'community-crossover-wuxia-suite', 'community-rideress-suite', 'community-pokemon-suite']) {
+        for (const suiteId of ['community-rideress-suite', 'community-pokemon-suite']) {
             const entries = 创意工坊模块列表.filter((entry) => entry.payload?.suiteId === suiteId);
             expect(entries.length, suiteId).toBe(1);
             expect(entries[0].type, suiteId).toBe('topic');
@@ -75,8 +75,8 @@ describe('creativeWorkshopModules', () => {
         }
     });
 
-    it('轨迹和女骑模式包继承西方奇幻基础模式', () => {
-        for (const suiteId of ['community-trails-suite', 'community-rideress-suite']) {
+    it('女骑模式包继承西方奇幻基础模式', () => {
+        for (const suiteId of ['community-rideress-suite']) {
             const entry = 创意工坊模块列表.find((item) => item.payload?.suiteId === suiteId);
             expect(entry?.modeRuntimeProfile?.identity.baseMode, suiteId).toBe('西方奇幻');
             expect(entry?.preset?.openingConfig?.题材模式, suiteId).toBe('西方奇幻');
@@ -146,19 +146,6 @@ describe('creativeWorkshopModules', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: false,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraRequirement: '恢复这个额外要求',
@@ -259,19 +246,6 @@ describe('creativeWorkshopModules', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: false,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     modeBackgrounds: [
                         { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
@@ -332,19 +306,6 @@ describe('creativeWorkshopModules', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: false,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     modeTalents: [
                         { 名称: '纯阳体质', 描述: '体内阳气充沛。', 效果: '长期提升阳属性修行、恢复与抗寒表现。' }
@@ -404,19 +365,6 @@ describe('creativeWorkshopModules', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: false,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     modeWorldbooks: [{
                         id: 'topic-book',
@@ -492,19 +440,6 @@ describe('creativeWorkshopModules', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: false,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     workshopSelection: {
                         selectedMode: '武侠',
@@ -576,19 +511,6 @@ describe('creativeWorkshopModules', () => {
                         ...(wuxiaTopic!.modeRuntimeProfile as any).identity,
                         displayName: '过期模式名'
                     }
-                },
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
                 },
                 runtimeSnapshot: {
                     activeModuleExtraRules: '旧模块规则',

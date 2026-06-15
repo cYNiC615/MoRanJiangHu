@@ -115,7 +115,7 @@ export const 从模式世界书提取提示词 = (books: 世界书结构[] | und
         .flatMap((book) => Array.isArray(book?.条目) ? book.条目 : [])
         .filter((entry) => entry && entry.启用 !== false && typeof entry.内容 === 'string' && entry.内容.trim());
     const worldLore = entries.filter((entry) => entry.类型 === 'world_lore').map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
-    const ability = entries.filter((entry) => /能力|境界|成长|战力|修为|功法|修炼|神通|法术|灵根|灵体|天赋|体质|技能|属性|等级|突破|丹药|法宝|灵宝|渡劫/.test(entry.标题)).map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
+    const ability = entries.filter((entry) => /能力|境界|成长|战力|修为|能力|修炼|神通|法术|灵根|灵体|天赋|体质|技能|属性|等级|突破|丹药|法宝|灵宝|渡劫/.test(entry.标题)).map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
     const rules = entries.filter((entry) => !ability.includes(`【${entry.标题}】\n${entry.内容.trim()}`) && entry.类型 !== 'world_lore').map((entry) => `【${entry.标题}】\n${entry.内容.trim()}`);
     return {
         manualWorldPrompt: worldLore.join('\n\n'),
@@ -195,19 +195,6 @@ const 构建题材预设 = (
                 天赋列表: [],
                 关系: '开局同行者',
                 备注: ''
-            },
-            同人融合: {
-                enabled: false,
-                作品名: '',
-                来源类型: '小说',
-                融合强度: '轻度映射',
-                保留原著角色: false,
-                启用角色替换: false,
-                替换目标角色名: '',
-                附加替换角色名列表: [],
-                附加角色替换规则列表: [],
-                启用附加小说: false,
-                附加小说数据集ID: ''
             }
         },
         openingStreaming: true,
@@ -517,217 +504,8 @@ const 构建标准内容模块 = (params: {
 };
 
 const 玩家贡献者 = 'disfuckc0rd';
-const 轨迹套装ID = 'community-trails-suite';
-const 综武套装ID = 'community-crossover-wuxia-suite';
 const 女骑套装ID = 'community-rideress-suite';
 const 宝可梦套装ID = 'community-pokemon-suite';
-
-const 轨迹题材模块 = 构建标准内容模块({
-    id: 'community-trails-topic-template',
-    type: 'topic',
-    title: '轨迹题材模板',
-    subtitle: '塞姆利亚、导力革命、游击士协会',
-    description: '把开局切到轨迹系列同人冒险口径，统一塞姆利亚大陆、导力科技、米拉货币和协会/军政组织叙事。',
-    tags: ['同人融合', '轨迹', '题材模板', '导力'],
-    mode: '西方奇幻',
-    contributor: 玩家贡献者,
-    suiteId: 轨迹套装ID,
-    suiteTitle: '轨迹系列完整模式包',
-    usagePrompt: '作为完整模式包的题材入口使用；建议再同时启用同套世界规则和能力体系。',
-    safetyNotes: ['同人角色年龄、所属组织和经历必须随七曜历年份同步。'],
-    blocks: [
-        {
-            id: 'topic-core',
-            title: '题材入口',
-            purpose: '设定本局基础舞台。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '本局为轨迹系列同人冒险题材，舞台以塞姆利亚大陆为核心；游击士协会、各国军政势力、猎兵团、结社、财团和学院组织都可以作为长期剧情来源。'
-        },
-        {
-            id: 'topic-currency',
-            title: '货币与物资',
-            purpose: '替换默认江湖交易词。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '常规货币统一使用米拉；交易品以导力器、回路、药品、旅行装备、情报委托和地方特产为主，不使用银子、灵石、丹药作为默认经济核心。'
-        }
-    ]
-});
-
-const 轨迹世界规则模块 = 构建标准内容模块({
-    id: 'community-trails-world-rules',
-    type: 'world_rules',
-    title: '轨迹世界规则包',
-    subtitle: '塞姆利亚大陆、导力科技年表、米拉货币',
-    description: '把轨迹系列世界观整理为可注入的世界规则，强调导力科技民用化时间线、国家组织登场口径和米拉货币。',
-    tags: ['同人融合', '轨迹', '世界规则', '米拉'],
-    mode: '西方奇幻',
-    contributor: 玩家贡献者,
-    suiteId: 轨迹套装ID,
-    suiteTitle: '轨迹系列完整模式包',
-    usagePrompt: '适合开启同人融合后使用；建议作品名写“空之轨迹/零之轨迹/闪之轨迹/创之轨迹/黎之轨迹”，并在正文提示中要求按对应年份查角色年龄与科技阶段。',
-    safetyNotes: ['同人角色年龄必须按当前年份定位，避免年龄 OOC。', '科技道具必须受七曜历民用化时间限制。'],
-    blocks: [
-        {
-            id: 'world-core',
-            title: '世界核心',
-            purpose: '规定舞台与角色来源。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '故事舞台为塞姆利亚大陆；国家、组织、势力和原著角色可陆续登场。原著角色登场时必须结合当前七曜历年份定位年龄、阵营与经历，不得把少年期角色写成成年期状态。'
-        },
-        {
-            id: 'orbal-timeline',
-            title: '导力科技时间线',
-            purpose: '避免早期剧情提前出现民用导力设备。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '1195 年前民间科技以蒸汽科技和畜力为主；1195 年导力科技由军用逐渐转入民用；1196 年民用个人战术导力器开始流入市场；1200 年出现民用导力列车；1201 年出现民用飞艇运输；1204 年初民用导力通讯系统才逐渐铺开。'
-        },
-        {
-            id: 'currency',
-            title: '米拉货币',
-            purpose: '统一交易口径。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '轨迹世界所有普通金钱单位统一称为米拉。换算口径：1 铜 = 1 米拉，1 银 = 100 米拉，1 金 = 10000 米拉。剧情中不要使用铜钱、银子、金元宝、灵石作为常规货币显示。'
-        }
-    ]
-});
-
-const 轨迹能力模块 = 构建标准内容模块({
-    id: 'community-trails-ability-system',
-    type: 'ability',
-    title: '轨迹战力境界表',
-    subtitle: 'F级到S级、导力魔法、战技边界',
-    description: '把轨迹角色战力拆为 F/E/D/C/B/A/A+/A++/准S/S，并补充导力魔法、战技和装备对战力的影响。',
-    tags: ['同人融合', '轨迹', '能力体系', '战力平衡'],
-    mode: '西方奇幻',
-    contributor: 玩家贡献者,
-    suiteId: 轨迹套装ID,
-    suiteTitle: '轨迹系列完整模式包',
-    usagePrompt: '用于 manualRealmPrompt。角色实力应根据表现倒推等级，不要写成修炼到某境界后自动获得力量。',
-    safetyNotes: ['战力等级仅描述单兵能力，坦克、装甲、古代遗物和大型导力阵列需要另行估算。'],
-    blocks: [
-        {
-            id: 'realm-map',
-            title: '境界映射母板',
-            purpose: '替换默认境界命名。',
-            injectionTarget: 'manualRealmPrompt',
-            content: '1-2 为 F级，3-6 为 E级，7-10 为 D级，11-14 为 C级，15-18 为 B级，19-22 为 A级，24 为达人级（A+），27 为流派极致（A++），33 为准S级，43 为 S级。'
-        },
-        {
-            id: 'combat-boundary',
-            title: '能力边界',
-            purpose: '约束战斗强度。',
-            injectionTarget: 'manualRealmPrompt',
-            content: 'D级对应准游击士、普通士兵、落魄猎兵和基础战技/初级导力魔法；C级对应正游击士、精英士兵和成熟战技；B级为经验丰富游击士、特殊精英部队和年轻一辈优秀者；A级为高阶猎兵、正骑士、执行者/使徒弱者等级；S级为大陆顶尖单兵极限。'
-        },
-        {
-            id: 'gap-rules',
-            title: '差距口径',
-            purpose: '指导强弱判定。',
-            injectionTarget: 'manualRealmPrompt',
-            content: '差值 1-2 为小差距，3-5 为明显差距，6-9 为压制差距，10+ 为断层差距。跨大境时即使数值差小，也应体现气机质量、经验和掌控力差异。'
-        }
-    ]
-});
-
-const 综武题材模块 = 构建标准内容模块({
-    id: 'community-crossover-wuxia-topic-template',
-    type: 'topic',
-    title: '综武题材模板',
-    subtitle: '多作者武侠融合、门派江湖、八年前缓启动',
-    description: '把开局切到综合武侠同人融合口径，统一多作者角色、门派、朝廷和江湖事件的登场方式。',
-    tags: ['同人融合', '综武', '题材模板', '江湖'],
-    mode: '武侠',
-    contributor: 玩家贡献者,
-    suiteId: 综武套装ID,
-    suiteTitle: '综武世界完整模式包',
-    usagePrompt: '作为综武完整模式包的题材入口使用；建议与同套世界规则和能力体系一起启用。',
-    safetyNotes: ['跨作品角色不要强行挤在同一事件里，优先按地域、门派和年代逐步展开。'],
-    blocks: [
-        {
-            id: 'topic-core',
-            title: '题材入口',
-            purpose: '设定本局综合武侠舞台。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '本局为综合武侠同人融合题材，可融合金庸、古龙、黄易、梁羽生、温瑞安、风云等武侠源流；江湖由门派、镖局、朝廷、异族势力、商会和隐秘组织共同构成。'
-        },
-        {
-            id: 'topic-pace',
-            title: '开局节奏',
-            purpose: '避免开局撞满原著主线。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '开局应从地方门派、镖局、小镇风波、师门任务或朝廷边缘事件切入，让原著人物以传闻、支线委托或地域事件逐渐出现。'
-        }
-    ]
-});
-
-const 综武世界规则模块 = 构建标准内容模块({
-    id: 'community-crossover-wuxia-world-rules',
-    type: 'world_rules',
-    title: '综武世界规则包',
-    subtitle: '金古黄梁温风多线融合、八年前时间线',
-    description: '整理综合武侠世界的国家、门派、原著角色比例和时间线规则，让原著角色与杜撰角色按比例共同登场。',
-    tags: ['同人融合', '综武', '世界规则', '原著角色'],
-    mode: '武侠',
-    contributor: 玩家贡献者,
-    suiteId: 综武套装ID,
-    suiteTitle: '综武世界完整模式包',
-    usagePrompt: '适合开启同人融合；建议作品名写“多情剑客无情剑/射雕英雄传/天龙八部/大唐双龙传/风云等综武”。',
-    safetyNotes: ['原著角色与事件要尊重各作品时间顺序；涉及射雕/神雕/倚天等强时间线作品时优先保持原著前后关系。'],
-    blocks: [
-        {
-            id: 'source-ratio',
-            title: '角色与门派比例',
-            purpose: '避免全是杜撰角色。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '原著小说门派与杜撰门派比例建议不低于 3:1；重要门派掌门和中流砥柱优先使用原著角色；出场人物中原著角色与杜撰角色比例不低于 1.5:1。'
-        },
-        {
-            id: 'timeline',
-            title: '八年前时间线',
-            purpose: '让开局不会立刻撞上全部原著主线。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '默认游戏时间设在多数原著剧情开始前 8 年；前 8 年可以使用原著背景事件和倒推事件，但不主动触发完整原著主线。第 8 年后解除该限制，原著事件与杜撰事件按约 1:1 推进。'
-        },
-        {
-            id: 'world-layout',
-            title: '地缘与势力',
-            purpose: '建立综武大地图。',
-            injectionTarget: 'manualWorldPrompt',
-            content: '汉人区域有大隋/大唐、大宋、大明与大理；北方异族帝国有吐蕃、蒙元、辽金、大清；西方有西夏。南北少林、明教与日月神教等相近概念应拆分清楚。'
-        }
-    ]
-});
-
-const 综武能力模块 = 构建标准内容模块({
-    id: 'community-crossover-wuxia-ability-system',
-    type: 'ability',
-    title: '综武境界提示模板',
-    subtitle: '多作者武侠战力平衡',
-    description: '为综合武侠世界提供战力平衡口径，避免某一作者体系碾压其他体系。',
-    tags: ['同人融合', '综武', '能力体系', '战力平衡'],
-    mode: '武侠',
-    contributor: 玩家贡献者,
-    suiteId: 综武套装ID,
-    suiteTitle: '综武世界完整模式包',
-    usagePrompt: '用于 manualRealmPrompt；同一境界内可用招式、经验、兵器、内功属性和地形拉开差异。',
-    safetyNotes: ['跨作品角色交手时以剧情表现、江湖名望和具体战场条件综合判断。'],
-    blocks: [
-        {
-            id: 'balance',
-            title: '跨作品平衡',
-            purpose: '防止单一体系碾压。',
-            injectionTarget: 'manualRealmPrompt',
-            content: '金庸、古龙、黄易、梁羽生、温瑞安、风云等体系的顶尖角色需要保持可比较的江湖战力，不允许某一作者系列天然完全碾压其他系列。'
-        },
-        {
-            id: 'factors',
-            title: '胜负因素',
-            purpose: '丰富判定。',
-            injectionTarget: 'manualRealmPrompt',
-            content: '战斗胜负受内功深厚、招式克制、轻功、兵器、毒、暗器、阵法、地形、情报、心境和伤势影响；不要只按名气直接判定胜负。'
-        }
-    ]
-});
 
 const 女骑题材模块 = 构建标准内容模块({
     id: 'community-rideress-topic-template',
@@ -835,7 +613,7 @@ const 宝可梦题材模块 = 构建标准内容模块({
     title: '宝可梦题材模板',
     subtitle: '训练家旅行、道馆徽章、属性克制',
     description: '把玩家上传的宝可梦题材模板整理为完整模式包入口，统一宝可梦图鉴、精灵球、联盟奖章、P币和羁绊叙事。',
-    tags: ['宝可梦', '动画同人', '题材模板', '冒险'],
+    tags: ['宝可梦', '动画冒险', '题材模板', '冒险'],
     mode: '现代都市',
     contributor: 玩家贡献者,
     suiteId: 宝可梦套装ID,
@@ -995,8 +773,7 @@ const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创
             ...(rawRuntimeProfile && typeof rawRuntimeProfile === 'object' ? rawRuntimeProfile.identity : {}),
             modeId: suiteId || (profile?.value || topic.id),
             displayName: suiteTitle || title,
-            baseMode: mode,
-            isFandomIp: Boolean(suiteId && !String(suiteId).startsWith('official-'))
+            baseMode: mode
         }
     }, mode);
     const contentBlocks: NonNullable<创意工坊模块条目['contentBlocks']> = [
@@ -1135,12 +912,6 @@ const 原始创意工坊模块列表: 创意工坊模块条目[] = [
     ...题材模式顺序.map(构建题材模块),
     ...题材模式顺序.map(构建世界规则模块),
     ...题材模式顺序.map(构建能力模块),
-    轨迹题材模块,
-    轨迹世界规则模块,
-    轨迹能力模块,
-    综武题材模块,
-    综武世界规则模块,
-    综武能力模块,
     女骑题材模块,
     女骑世界规则模块,
     女骑能力模块,

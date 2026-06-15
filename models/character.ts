@@ -1,6 +1,5 @@
 
 import { 游戏物品 } from './item';
-import { 功法结构 } from './kungfu';
 import type { NPC图片档案 } from './imageGeneration';
 import { 天赋结构, 背景结构 } from '../types';
 
@@ -70,35 +69,16 @@ export interface 角色数据结构 {
     性格: string;
     
     称号: string;
-    境界: string;
-    境界层级: number;
-    灵根?: string;
-    灵根资质?: string;
-    当前灵力?: number;
-    最大灵力?: number;
-    当前神识?: number;
-    最大神识?: number;
-    丹田状态?: string;
-    道基状态?: string;
-    心魔值?: number;
-    功德?: number;
-    业力?: number;
     
     // New: Talents and Background
     天赋列表: 天赋结构[];
     出身背景: 背景结构;
 
-    // 门派相关
-    所属门派ID: string; // "none" 为江湖散人
-    门派职位: string;
-    门派贡献: number;
     金钱: 角色金钱;
 
     // 生存状态
     当前精力: number;
     最大精力: number;
-    当前内力: number;
-    最大内力: number;
     当前饱腹: number;
     最大饱腹: number;
     当前口渴: number;
@@ -140,10 +120,7 @@ export interface 角色数据结构 {
     // 实际物品数据 (扁平化列表)
     物品列表: 游戏物品[];
 
-    // 功法列表
-    功法列表: 功法结构[];
-
-    // 生活与江湖技艺
+    // 技艺
     技艺: 角色技艺[];
 
     当前经验: number;

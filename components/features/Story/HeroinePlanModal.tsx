@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import type { 女主剧情规划结构 } from '../../../models/heroinePlan';
-import type { 同人女主剧情规划结构 } from '../../../models/fandomPlanning/heroinePlan';
 
 interface Props {
-    plan?: 女主剧情规划结构 | 同人女主剧情规划结构;
-    isFandomMode?: boolean;
+    plan?: 女主剧情规划结构;
     onClose: () => void;
 }
 
@@ -57,7 +55,7 @@ const 数组块: React.FC<{ 标题: string; 内容: string[]; theme?: 'gold' | '
     );
 };
 
-const HeroinePlanModal: React.FC<Props> = ({ plan, isFandomMode = false, onClose }) => {
+const HeroinePlanModal: React.FC<Props> = ({ plan, onClose }) => {
     const [tab, setTab] = useState<'heroines' | 'events' | 'shots'>('heroines');
 
     const 阶段推进 = Array.isArray(plan?.阶段推进) ? plan.阶段推进 : [];
@@ -82,7 +80,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, isFandomMode = false, onClose
                         <div>
                             <div className="text-rose-400 font-serif font-bold text-2xl tracking-[0.4em] drop-shadow-[0_0_15px_rgba(225,29,72,0.3)]">红颜卷宗</div>
                             <div className="mt-1 flex items-center gap-3 text-xs text-gray-400 font-medium tracking-wider">
-                                <span className="text-rose-300/70">{isFandomMode ? '同人女主规划' : '原创女主规划'}</span>
+                                <span className="text-rose-300/70">女主规划</span>
                                 <span className="w-1 h-1 rounded-full bg-gray-600"></span>
                                 <span>当前阶段：<span className="text-gray-200">{主阶段?.阶段名 || '未定'}</span></span>
                             </div>
@@ -141,9 +139,6 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, isFandomMode = false, onClose
                                                         <div className="mt-3 space-y-2">
                                                             <div className="text-xs text-gray-400 leading-relaxed"><span className="text-rose-400/60 mr-2">主推</span>{取数组(stage?.主推女主).join('、') || '暂无'}</div>
                                                             <div className="text-xs text-gray-400 leading-relaxed"><span className="text-amber-400/60 mr-2">目标</span>{取数组(stage?.阶段目标).join('；') || '暂无'}</div>
-                                                            {isFandomMode && 取数组(stage?.关联分歧线).length > 0 && (
-                                                                <div className="text-[10px] text-purple-400/60 bg-purple-950/30 px-2 py-1 rounded inline-block mt-2">分歧: {取数组(stage?.关联分歧线).join('、')}</div>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -211,19 +206,6 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, isFandomMode = false, onClose
                                                 <div className="md:col-span-2">
                                                     <数组块 标题="阻断因素" 内容={取数组(item?.阻断因素)} theme="rose" />
                                                 </div>
-                                                {isFandomMode && (
-                                                    <div className="md:col-span-2">
-                                                        <数组块
-                                                            标题="同人偏转"
-                                                            theme="purple"
-                                                            内容={[
-                                                                `关联分解组：${Array.isArray(item?.关联分解组) ? item.关联分解组.join('、') : '暂无'}`,
-                                                                `所属分歧线：${取数组(item?.所属分歧线).join('、') || '暂无'}`,
-                                                                `当前偏转点：${取数组(item?.当前偏转点).join('；') || '暂无'}`
-                                                            ]}
-                                                        />
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     )) : <div className="col-span-full text-center py-32 text-gray-600 text-lg italic font-serif tracking-widest">红颜录中尚无记载。</div>}
@@ -262,18 +244,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, isFandomMode = false, onClose
                                                     <数组块 标题="阻断条件" 内容={取数组(item?.阻断条件)} theme="rose" />
                                                 </div>
                                                 <div className="md:col-span-2">
-                                                    <数组块
-                                                        标题={isFandomMode ? '联动 / 分歧' : '关联剧情任务'}
-                                                        theme="purple"
-                                                        内容={
-                                                            isFandomMode
-                                                                ? [
-                                                                    `与主剧情联动：${取数组(item?.与主剧情联动).join('；') || '暂无'}`,
-                                                                    `关联分歧线：${取数组(item?.关联分歧线).join('、') || '暂无'}`
-                                                                ]
-                                                                : [`关联剧情任务：${取数组(item?.关联剧情任务).join('；') || '暂无'}`]
-                                                        }
-                                                    />
+                                                    <数组块 标题="关联剧情任务" theme="purple" 内容={[`关联剧情任务：${取数组(item?.关联剧情任务).join('；') || '暂无'}`]} />
                                                 </div>
                                             </div>
                                         </div>
@@ -311,18 +282,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, isFandomMode = false, onClose
                                                     <数组块 标题="关联事件" 内容={取数组(item?.关联事件)} theme="gold" />
                                                 </div>
                                                 <数组块 标题="沉淀内容" 内容={取数组(item?.沉淀内容)} theme="rose" />
-                                                <数组块
-                                                    标题={isFandomMode ? '分歧线 / 分解组' : '关联剧情任务'}
-                                                    theme="purple"
-                                                    内容={
-                                                        isFandomMode
-                                                            ? [
-                                                                `关联分歧线：${取数组(item?.关联分歧线).join('、') || '暂无'}`,
-                                                                `关联分解组：${Array.isArray(item?.关联分解组) ? item.关联分解组.join('、') : '暂无'}`
-                                                            ]
-                                                            : [`关联剧情任务：${取数组(item?.关联剧情任务).join('；') || '暂无'}`]
-                                                    }
-                                                />
+                                                <数组块 标题="关联剧情任务" theme="purple" 内容={[`关联剧情任务：${取数组(item?.关联剧情任务).join('；') || '暂无'}`]} />
                                             </div>
                                         </div>
                                     )) : <div className="col-span-full text-center py-32 text-gray-600 text-lg italic font-serif tracking-widest">掠影集尚为空白。</div>}

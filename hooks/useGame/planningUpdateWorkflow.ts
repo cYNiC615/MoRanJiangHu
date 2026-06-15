@@ -6,8 +6,6 @@ import type {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     环境信息结构
 } from '../../types';
 import * as textAIService from '../../services/ai/text';
@@ -17,8 +15,7 @@ import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { applyStateCommand } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 提取响应规划文本 } from './thinkingContext';
-import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
-import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
 import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
@@ -31,7 +28,7 @@ type 规划更新工作流依赖 = {
     环境: any;
     世界: any;
     战斗: any;
-    玩家门派: any;
+    玩家组织: any;
     任务列表: any[];
     约定列表: any[];
     历史记录: any[];
@@ -47,8 +44,6 @@ type 规划更新工作流依赖 = {
     规范化剧情状态: (raw?: any, envLike?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
-    规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
-    规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
     深拷贝: <T>(value: T) => T;
     收集最近完整正文回合: (params: {
         history: any[];
@@ -61,14 +56,12 @@ type 规划更新工作流依赖 = {
     去重文本数组: (items: string[]) => string[];
     收集女主规划时间触发原因: (planLike?: 女主剧情规划结构, envLike?: 环境信息结构) => string[];
     收集女主正文命中原因: (planLike?: 女主剧情规划结构, latestBodyText?: string) => string[];
-    收集剧情规划时间触发原因: (planLike?: 剧情规划结构 | 同人剧情规划结构, envLike?: 环境信息结构) => string[];
-    收集剧情正文命中原因: (storyLike?: 剧情系统结构, planLike?: 剧情规划结构 | 同人剧情规划结构, latestBodyText?: string) => string[];
+    收集剧情规划时间触发原因: (planLike?: 剧情规划结构, envLike?: 环境信息结构) => string[];
+    收集剧情正文命中原因: (storyLike?: 剧情系统结构, planLike?: 剧情规划结构, latestBodyText?: string) => string[];
     提取响应完整正文文本: (response?: GameResponse) => string;
     设置剧情: (story: 剧情系统结构) => void;
     设置剧情规划: (plan: 剧情规划结构) => void;
     设置女主剧情规划: (plan?: 女主剧情规划结构) => void;
-    设置同人剧情规划: (plan?: 同人剧情规划结构) => void;
-    设置同人女主剧情规划: (plan?: 同人女主剧情规划结构) => void;
     performAutoSave: (snapshot?: any) => Promise<void>;
 };
 
@@ -225,28 +218,22 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         story: 剧情系统结构;
         storyPlan: 剧情规划结构;
         heroinePlan?: 女主剧情规划结构;
-        fandomStoryPlan?: 同人剧情规划结构;
-        fandomHeroinePlan?: 同人女主剧情规划结构;
     }): {
         story: 剧情系统结构;
         storyPlan: 剧情规划结构;
         heroinePlan?: 女主剧情规划结构;
-        fandomStoryPlan?: 同人剧情规划结构;
-        fandomHeroinePlan?: 同人女主剧情规划结构;
     } => {
         let charBuffer = deps.深拷贝(deps.角色);
         let envBuffer = deps.规范化环境信息(params.env);
         let socialBuffer = deps.深拷贝(params.social);
         let worldBuffer = deps.规范化世界状态(params.world ?? deps.世界);
         let battleBuffer = deps.规范化战斗状态(deps.战斗);
-        let sectBuffer = deps.规范化门派状态(deps.玩家门派);
+        let sectBuffer = deps.规范化门派状态(deps.玩家组织);
         let tasksBuffer = deps.深拷贝(Array.isArray(deps.任务列表) ? deps.任务列表 : []);
         let agreementsBuffer = deps.深拷贝(Array.isArray(deps.约定列表) ? deps.约定列表 : []);
         let storyBuffer = deps.规范化剧情状态(params.story, envBuffer);
         let storyPlanBuffer = deps.规范化剧情规划状态(params.storyPlan);
         let heroinePlanBuffer = deps.规范化女主剧情规划状态(params.heroinePlan);
-        let fandomStoryPlanBuffer = deps.规范化同人剧情规划状态(params.fandomStoryPlan);
-        let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(params.fandomHeroinePlan);
 
         (Array.isArray(params.commands) ? params.commands : []).forEach((cmd) => {
             const result = applyStateCommand(
@@ -258,8 +245,6 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 storyBuffer,
                 storyPlanBuffer,
                 heroinePlanBuffer,
-                fandomStoryPlanBuffer,
-                fandomHeroinePlanBuffer,
                 sectBuffer,
                 tasksBuffer,
                 agreementsBuffer,
@@ -278,8 +263,6 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             storyBuffer = result.story;
             storyPlanBuffer = result.storyPlan;
             heroinePlanBuffer = result.heroinePlan;
-            fandomStoryPlanBuffer = result.fandomStoryPlan;
-            fandomHeroinePlanBuffer = result.fandomHeroinePlan;
         });
 
         envBuffer = deps.规范化环境信息(envBuffer);
@@ -291,9 +274,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         return {
             story: deps.规范化剧情状态(storyBuffer, envBuffer),
             storyPlan: deps.规范化剧情规划状态(storyPlanBuffer),
-            heroinePlan: deps.规范化女主剧情规划状态(heroinePlanBuffer),
-            fandomStoryPlan: deps.规范化同人剧情规划状态(fandomStoryPlanBuffer),
-            fandomHeroinePlan: deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer)
+            heroinePlan: deps.规范化女主剧情规划状态(heroinePlanBuffer)
         };
     };
 
@@ -305,8 +286,6 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             剧情: 剧情系统结构;
             剧情规划: 剧情规划结构;
             女主剧情规划?: 女主剧情规划结构;
-            同人剧情规划?: 同人剧情规划结构;
-            同人女主剧情规划?: 同人女主剧情规划结构;
         };
         playerInput: string;
         gameTime: string;
@@ -387,7 +366,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             ? deps.开局配置.启用女主剧情规划 === true
             : 规范化游戏设置(deps.gameConfig).启用女主剧情规划 === true;
         const normalizedGameConfig = 规范化游戏设置(deps.gameConfig);
-        const 启用修炼体系 = normalizedGameConfig.启用修炼体系 === true;
+        const 启用成长体系 = false;
         const 独立规划分析GPT模式 = normalizedGameConfig.独立APIGPT模式?.规划分析 === true;
         const worldPrompt = (() => {
             const hit = Array.isArray(deps.prompts)
@@ -395,36 +374,13 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 : undefined;
             return 按功能开关过滤提示词内容(typeof hit?.内容 === 'string' ? hit.内容.trim() : '', normalizedGameConfig);
         })();
-        const realmPrompt = (() => {
-            if (!启用修炼体系) return '';
-            const hit = Array.isArray(deps.prompts)
-                ? deps.prompts.find((item) => item?.id === 'core_realm')
-                : undefined;
-            const raw = typeof hit?.内容 === 'string' ? hit.内容.trim() : '';
-            return raw.includes('开局后此处会被完整替换') ? '' : raw;
-        })();
-        const fandomPromptBundle = probe.time('构建同人运行时提示词包', () => 构建同人运行时提示词包({
-            openingConfig: deps.开局配置,
-            worldPrompt,
-            realmPrompt
-        }));
-        const fandomEnabled = fandomPromptBundle.enabled;
-        const activeStoryPlan = fandomEnabled
-            ? deps.规范化同人剧情规划状态(params.state.同人剧情规划)
-            : deps.规范化剧情规划状态(params.state.剧情规划);
+        const realmPrompt = '';
+        const activeStoryPlan = deps.规范化剧情规划状态(params.state.剧情规划);
         const activeHeroinePlan = heroineEnabled
-            ? (
-                fandomEnabled
-                    ? deps.规范化同人女主剧情规划状态(params.state.同人女主剧情规划)
-                    : deps.规范化女主剧情规划状态(params.state.女主剧情规划)
-            )
+            ? deps.规范化女主剧情规划状态(params.state.女主剧情规划)
             : undefined;
-        const activeStoryPlanTargets = fandomEnabled
-            ? ['同人剧情规划', 'gameState.同人剧情规划']
-            : ['剧情规划', 'gameState.剧情规划'];
-        const activeHeroinePlanTargets = fandomEnabled
-            ? ['同人女主剧情规划', 'gameState.同人女主剧情规划']
-            : ['女主剧情规划', 'gameState.女主剧情规划'];
+        const activeStoryPlanTargets = ['剧情规划', 'gameState.剧情规划'];
+        const activeHeroinePlanTargets = ['女主剧情规划', 'gameState.女主剧情规划'];
         const alignedStoryForPlanning = deps.规范化剧情状态(params.state.剧情, params.state.环境);
         const auditFocus = deps.去重文本数组([
             ...deps.收集剧情规划时间触发原因(activeStoryPlan, params.state.环境),
@@ -464,21 +420,19 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         });
         const planningExtraPrompt = [
             worldbookExtra,
-            按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, normalizedGameConfig),
-            启用修炼体系 ? fandomPromptBundle.境界母板补丁 : '',
             获取繁体输出指令(normalizedGameConfig)
         ]
             .filter(Boolean)
             .join('\n\n');
         const genderRatioConstraintText = 构建规划性别比例约束摘要(deps.开局配置?.modeRuntimeProfile?.npc?.genderRatio);
 
-        const planningStoryPayload = 裁剪修炼体系上下文数据({
+        const planningStoryPayload = 裁剪成长体系上下文数据({
             剧情: alignedStoryForPlanning,
-            [fandomEnabled ? '同人剧情规划' : '剧情规划']: activeStoryPlan || {}
+            剧情规划: activeStoryPlan || {}
         }, normalizedGameConfig);
-        const planningHeroinePayload = 裁剪修炼体系上下文数据(
+        const planningHeroinePayload = 裁剪成长体系上下文数据(
             heroineEnabled
-                ? { [fandomEnabled ? '同人女主剧情规划' : '女主剧情规划']: activeHeroinePlan || {} }
+                ? { 女主剧情规划: activeHeroinePlan || {} }
                 : {},
             normalizedGameConfig
         );
@@ -502,7 +456,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             'stringifyTrimCultivation',
             { value: normalizedWorldPayload, gameConfig: normalizedGameConfig, space: 2 },
             () => 后台分段执行(() => JSON.stringify(
-                裁剪修炼体系上下文数据(normalizedWorldPayload, normalizedGameConfig),
+                裁剪成长体系上下文数据(normalizedWorldPayload, normalizedGameConfig),
                 null,
                 2
             ))
@@ -511,7 +465,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             'stringifyTrimCultivation',
             { value: normalizedSocialPayload, gameConfig: normalizedGameConfig, space: 2 },
             () => 后台分段执行(() => JSON.stringify(
-                裁剪修炼体系上下文数据(normalizedSocialPayload, normalizedGameConfig),
+                裁剪成长体系上下文数据(normalizedSocialPayload, normalizedGameConfig),
                 null,
                 2
             ))
@@ -520,7 +474,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             'stringifyTrimCultivation',
             { value: normalizedEnvPayload, gameConfig: normalizedGameConfig, space: 2 },
             () => 后台分段执行(() => JSON.stringify(
-                裁剪修炼体系上下文数据(normalizedEnvPayload, normalizedGameConfig),
+                裁剪成长体系上下文数据(normalizedEnvPayload, normalizedGameConfig),
                 null,
                 2
             ))
@@ -549,7 +503,6 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             genderRatioConstraintText,
             heroineEnabled,
             ntlEnabled: normalizedGameConfig.剧情风格 === 'NTL后宫',
-            fandomEnabled,
             extraPrompt: planningExtraPrompt,
             gptMode: 独立规划分析GPT模式
         }, planningApi, signal, 规划分析非流式输出 ? undefined : {
@@ -614,9 +567,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             world: params.state.世界,
             story: alignedStoryForPlanning,
             storyPlan: params.state.剧情规划,
-            heroinePlan: params.state.女主剧情规划,
-            fandomStoryPlan: params.state.同人剧情规划,
-            fandomHeroinePlan: params.state.同人女主剧情规划
+            heroinePlan: params.state.女主剧情规划
         }), { commandCount: commands.length }));
         if (params.shouldApply && !params.shouldApply()) {
             probe.mark('丢弃：补丁应用后结果过期');
@@ -634,25 +585,16 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         检查规划分析中断(params.signal);
         probe.time('写入规划分析状态', () => {
             deps.设置剧情(patched.story);
-            if (fandomEnabled) {
-                deps.设置同人剧情规划(patched.fandomStoryPlan);
-            } else {
-                deps.设置剧情规划(patched.storyPlan);
-            }
-            if (heroineEnabled && !fandomEnabled) {
+            deps.设置剧情规划(patched.storyPlan);
+            if (heroineEnabled) {
                 deps.设置女主剧情规划(patched.heroinePlan);
-            }
-            if (heroineEnabled && fandomEnabled) {
-                deps.设置同人女主剧情规划(patched.fandomHeroinePlan);
             }
         });
         probe.mark('调度规划分析自动存档');
         void deps.performAutoSave({
             story: patched.story,
             storyPlan: patched.storyPlan,
-            heroinePlan: !fandomEnabled && heroineEnabled ? patched.heroinePlan : undefined,
-            fandomStoryPlan: patched.fandomStoryPlan,
-            fandomHeroinePlan: fandomEnabled && heroineEnabled ? patched.fandomHeroinePlan : undefined,
+            heroinePlan: heroineEnabled ? patched.heroinePlan : undefined,
             history: deps.历史记录,
             force: true
         });

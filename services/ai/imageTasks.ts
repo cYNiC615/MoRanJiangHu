@@ -28,7 +28,6 @@ import * as dbService from '../dbService';
 import { 压缩图片资源字段, 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { 获取本地站点基址 } from '../../utils/localAppInfo';
-import { buildSyncApiUrl, isNativeCapacitorEnvironment, requiresRemoteSyncApi } from '../../utils/nativeRuntime';
 import {
     判断疑似网络或跨域错误,
     构建ComfyUI精确连接失败提示,
@@ -167,13 +166,6 @@ const 获取NovelAI代理基础地址 = (baseUrlRaw: string): string => {
 
     const location = window.location;
     const websiteUrl = 清理末尾斜杠(获取本地站点基址());
-    if (requiresRemoteSyncApi()) {
-        const configured = 清理末尾斜杠(buildSyncApiUrl('/api/novelai'));
-        return /^https?:\/\//i.test(configured)
-            ? configured.replace(/\/api\/novelai$/i, '')
-            : websiteUrl;
-    }
-
     const isHttpLike = location.protocol === 'http:' || location.protocol === 'https:';
     const isLocalHttpDev = isHttpLike && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
     if (isLocalHttpDev || location.hostname === 'msjh.bacon.de5.net' || /\.workers\.dev$/i.test(location.hostname)) {
@@ -1851,18 +1843,6 @@ const fetchComfyUI直连优先 = async (
     init: RequestInit,
     contextBaseUrl: string
 ): Promise<{ response: Response; channel: ComfyUI请求通道 }> => {
-    if (isNativeCapacitorEnvironment()) {
-        const host = (() => {
-            try {
-                return new URL(baseUrl).hostname.toLowerCase();
-            } catch {
-                return '';
-            }
-        })();
-        if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]') {
-            throw new Error(await 构建ComfyUI精确连接失败提示(contextBaseUrl, new Error('APK 内不能直连 localhost / 127.0.0.1。')));
-        }
-    }
     const directEndpoint = 构建ComfyUI直连端点(baseUrl, path);
     try {
         return {

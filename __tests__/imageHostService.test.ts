@@ -29,21 +29,6 @@ describe('imageHostService', () => {
         });
     });
 
-    it('uses the deployed proxy when running inside a native app origin', () => {
-        const originalWindow = globalThis.window;
-        vi.stubGlobal('window', {
-            location: {
-                protocol: 'capacitor:',
-                hostname: 'localhost'
-            }
-        });
-
-        const configuredBase = (import.meta.env.VITE_SYNC_API_BASE_URL || 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
-        expect(buildImageHostProxyUrl('/api/image-host/upload')).toBe(`${configuredBase}/api/image-host/upload`);
-
-        vi.stubGlobal('window', originalWindow);
-    });
-
     it('keeps same-origin proxy paths on web origins', () => {
         const originalWindow = globalThis.window;
         vi.stubGlobal('window', {

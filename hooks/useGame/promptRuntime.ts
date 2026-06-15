@@ -6,19 +6,16 @@ import {
     OpeningConfig
 } from '../../types';
 import { 默认COT伪装历史消息提示词 } from '../../prompts/runtime/defaults';
-import { 核心_思维链, 核心_思维链_同人版 } from '../../prompts/core/cot';
+import { 核心_思维链 } from '../../prompts/core/cot';
 import {
     核心_思维链_女主规划版,
-    核心_思维链_NTL女主规划版,
-    核心_思维链_同人女主规划版,
-    核心_思维链_同人NTL女主规划版
+    核心_思维链_NTL女主规划版
 } from '../../prompts/core/cotHeroine';
 import { 写作_防止说话 } from '../../prompts/writing/noControl';
 import { 获取酒馆预设顺序 } from '../../utils/tavernPreset';
 import { 按功能开关过滤提示词内容 } from '../../utils/promptFeatureToggles';
 import { 提取响应规划文本 } from './thinkingContext';
 import { 变量命令提示词ID集合 } from '../../prompts/runtime/promptOwnership';
-import { 同人运行时模式已启用 } from '../../prompts/runtime/fandom';
 
 type 消息角色 = 'system' | 'user' | 'assistant';
 type 内部消息来源 = 'preset' | 'worldbook' | 'history' | 'latest_input' | 'persona';
@@ -39,7 +36,6 @@ export type 酒馆上下文结构 = {
     contextPieces: {
         worldPrompt: string;
         地图建筑状态: string;
-        同人设定摘要: string;
         境界体系提示词: string;
         otherPrompts: string;
         难度设置提示词: string;
@@ -68,16 +64,12 @@ export type 运行时提示词构建结果 = {
 
 const COT_PROMPT_SOURCE_MAP: Record<string, 提示词结构> = {
     [核心_思维链.id]: 核心_思维链,
-    [核心_思维链_同人版.id]: 核心_思维链_同人版,
     [核心_思维链_女主规划版.id]: 核心_思维链_女主规划版,
-    [核心_思维链_NTL女主规划版.id]: 核心_思维链_NTL女主规划版,
-    [核心_思维链_同人女主规划版.id]: 核心_思维链_同人女主规划版,
-    [核心_思维链_同人NTL女主规划版.id]: 核心_思维链_同人NTL女主规划版
+    [核心_思维链_NTL女主规划版.id]: 核心_思维链_NTL女主规划版
 };
 
 const COT_PROMPT_IDS = new Set(Object.keys(COT_PROMPT_SOURCE_MAP));
 const 生理系统关键词正则 = /(饱腹|口渴|水分|饥饿|脱水)/;
-const 修炼体系禁用时移除提示词ID = new Set(['core_realm', 'stat_kungfu', 'stat_cultivation']);
 const 主剧情剥离提示词ID = new Set([
     'core_story',
     'core_heroine_plan',
@@ -144,16 +136,7 @@ const 选择剧情COT提示词ID = (
         ? options.openingConfig.启用女主剧情规划 === true
         : config?.启用女主剧情规划 === true;
     const ntlEnabled = heroineEnabled && config?.剧情风格 === 'NTL后宫';
-    const fandomEnabled = 同人运行时模式已启用(options?.openingConfig);
 
-    if (fandomEnabled && heroineEnabled) {
-        return ntlEnabled
-            ? 核心_思维链_同人NTL女主规划版.id
-            : 核心_思维链_同人女主规划版.id;
-    }
-    if (fandomEnabled) {
-        return 核心_思维链_同人版.id;
-    }
     if (heroineEnabled) {
         return ntlEnabled
             ? 核心_思维链_NTL女主规划版.id
@@ -271,7 +254,6 @@ const 构建酒馆世界书文本 = (
     return [
         contextPieces.worldPrompt,
         contextPieces.地图建筑状态,
-        contextPieces.同人设定摘要,
         contextPieces.境界体系提示词,
         contextPieces.离场NPC档案,
         otherPrompts,
@@ -378,8 +360,7 @@ const 提取玩家身份 = (
     const realm = options?.includeRealm === false
         ? ''
         : (typeof playerRole?.境界 === 'string' ? playerRole.境界.trim() : '');
-    const sect = typeof playerRole?.门派职位 === 'string' ? playerRole.门派职位.trim() : '';
-    return [title, realm, sect].filter(Boolean).join(' / ');
+    return [title, realm].filter(Boolean).join(' / ');
 };
 
 const 构建玩家设定文本 = (params: {
@@ -557,10 +538,6 @@ export const 构建运行时提示词池 = (
             });
     }
 
-    if (config.启用修炼体系 === false) {
-        effectivePromptPool = effectivePromptPool.filter((item) => !修炼体系禁用时移除提示词ID.has(item.id));
-    }
-
     effectivePromptPool = effectivePromptPool.map((item) => (
         typeof item?.内容 === 'string'
             ? { ...item, 内容: 按功能开关过滤提示词内容(item.内容, config) }
@@ -673,9 +650,7 @@ export const 构建酒馆预设消息链 = (params: {
         : '';
     const playerBirthday = typeof playerRole?.出生日期 === 'string' ? playerRole.出生日期.trim() : '';
     const playerAppearance = typeof playerRole?.外貌 === 'string' ? playerRole.外貌.trim() : '';
-    const playerIdentity = 提取玩家身份(playerRole, {
-        includeRealm: params.config?.启用修炼体系 === true
-    });
+    const playerIdentity = 提取玩家身份(playerRole, { includeRealm: false });
     const playerProfile = 构建玩家设定文本({
         playerName,
         playerAge,

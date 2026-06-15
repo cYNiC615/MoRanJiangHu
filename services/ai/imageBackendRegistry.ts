@@ -1,5 +1,4 @@
 import type { 发现图片后端记录结构 } from '../../models/system';
-import { buildSyncApiUrl } from '../../utils/nativeRuntime';
 
 type 后端注册表响应 = {
     ok?: boolean;
@@ -223,7 +222,10 @@ const buildRegistryUrl = (customUrl?: string): string => {
             ? normalized
             : `${normalized}/api/image-backend/cnb-sync`;
     }
-    return buildSyncApiUrl('/api/image-backend/cnb-sync');
+    const origin = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'http://127.0.0.1:4173';
+    return `${origin.replace(/\/+$/, '')}/api/image-backend/cnb-sync`;
 };
 
 export const fetchDiscoveredImageBackends = async (

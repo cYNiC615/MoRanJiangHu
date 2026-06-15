@@ -92,20 +92,6 @@ const writeTraceToStorage = (entry: Record<string, unknown>): void => {
     }
 };
 
-const writeTraceToNativeLog = (entry: Record<string, unknown>, serialized: string): void => {
-    if (typeof window === 'undefined') return;
-    try {
-        const plugin = (window as any)?.Capacitor?.Plugins?.SaveLoadDebugLogger;
-        if (!plugin || typeof plugin.log !== 'function') return;
-        void plugin.log({
-            stage: typeof entry.stage === 'string' ? entry.stage : '',
-            message: serialized
-        }).catch(() => undefined);
-    } catch {
-        // Native logging is best-effort only.
-    }
-};
-
 export const recordSaveLoadTrace = (stage: string, payload: TracePayload = {}): void => {
     if (!isSaveLoadTraceEnabled()) return;
 
@@ -124,7 +110,6 @@ export const recordSaveLoadTrace = (stage: string, payload: TracePayload = {}): 
         serialized = JSON.stringify({ at: new Date().toISOString(), stage });
         console.warn('[SAVE_LOAD_TRACE]', stage);
     }
-    writeTraceToNativeLog(entry, serialized);
     writeTraceToStorage(entry);
 };
 

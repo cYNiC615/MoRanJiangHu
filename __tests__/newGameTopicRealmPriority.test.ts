@@ -7,10 +7,10 @@ import { 规范化开局配置 } from '../utils/openingConfig';
 describe('新开局题材模式与手动境界优先级', () => {
     it('仙侠题材启用开局配置时，手动境界提示词优先于固定仙侠境界', () => {
         const source = 选择开局境界体系来源({
-            启用修炼体系: true,
+            启用成长体系: true,
             手动境界提示词: '<境界体系>凡骨境 -> 入道境 -> 星河境</境界体系>',
             是仙侠题材: true,
-            启用同人境界: false
+            启用模式能力体系: false
         });
 
         expect(source).toBe('manual');

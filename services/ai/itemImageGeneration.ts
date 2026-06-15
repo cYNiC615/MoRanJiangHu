@@ -612,7 +612,7 @@ const 物品名称转英文描述 = (name: string): string => {
     // 通用关键词推断
     if (/扇|折扇|玉骨扇|纸扇|团扇|羽扇|法扇/u.test(name)) return 'folded Chinese hand fan prop, visible fan ribs and fan leaf, decorative tassel, no blade';
     if (/灵石|灵晶|晶石|矿石|妖丹/.test(name)) return 'raw cultivation mineral or crystal core specimen with natural glow, no text';
-    if (/玉简|剑诀|心法|功法|入门|心得/.test(name)) return 'bundle of jade slips tied with silk cord, abstract unreadable etched marks and diagrams';
+    if (/玉简|剑诀|心法|能力|入门|心得/.test(name)) return 'bundle of jade slips tied with silk cord, abstract unreadable etched marks and diagrams';
     if (/符箓|火球符|冰锥符|雷光符|金刚符|神行符|隐身符|传音符|传送符/.test(name)) return 'single talisman paper charm with abstract unreadable ink strokes, no readable characters';
     if (/阵盘|罗盘/.test(name)) return 'round cultivation array disk or compass artifact with abstract geometric grooves, no readable text';
     if (/丹炉/.test(name)) return 'small three-legged alchemy furnace with lid and handles, tabletop bronze or iron cultivation tool';

@@ -1,5 +1,4 @@
 import { LOCAL_APP_VERSION_CODE, LOCAL_APP_VERSION_NAME, 获取本地站点基址 } from '../utils/localAppInfo';
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 import { getDiagnosticLogs, type DiagnosticLogEntry } from './diagnosticLog';
 import { recordDiagnosticLog } from './diagnosticLog';
 import { buildDiagnosticDebugContext } from './diagnosticContext';
@@ -61,7 +60,7 @@ export const getDiagnosticReportQuota = (): { used: number; remaining: number; l
 const buildApiBaseUrl = (): string => {
     if (typeof window === 'undefined') return '';
     const protocol = window.location.protocol;
-    if ((protocol === 'http:' || protocol === 'https:') && !isNativeCapacitorEnvironment()) {
+    if (protocol === 'http:' || protocol === 'https:') {
         return window.location.origin;
     }
     return 获取本地站点基址();
@@ -167,7 +166,7 @@ const buildReportPayload = async (
             versionName: LOCAL_APP_VERSION_NAME,
             releaseChannel: 'homebrew',
             websiteUrl: 获取本地站点基址(),
-            isNative: isNativeCapacitorEnvironment()
+            isNative: false
         },
         client: {
             deviceId: getOrCreateDeviceId(),
@@ -239,7 +238,6 @@ const writeAutoReportState = (state: { lastAt: number; lastErrorId: string }) =>
 };
 
 export const submitAutomaticErrorDiagnosticReport = async (reason?: string): Promise<DiagnosticReportResult | null> => {
-    // 自动上报在 Android WebView 中容易被本机 localhost 路由放大成重复错误。
     // 诊断上报改为用户在日志页手动触发，避免后台网络失败刷屏。
     void reason;
     return null;

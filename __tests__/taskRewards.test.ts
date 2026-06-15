@@ -7,11 +7,10 @@ const 创建奖励状态 = () => ({
         金钱: { 金元宝: 0, 银子: 0, 铜钱: 0 },
         物品列表: [],
         技艺: [{ 名称: '急救', 等级: '未入门', 熟练度: 0, 描述: '' }],
-        可分配属性点: 0,
-        门派贡献: 120
+        可分配属性点: 0
     },
     环境: { 时间: '0001:01:01:08:00' },
-    玩家门派: {
+    玩家组织: {
         ID: 'camp_001',
         名称: '铁栅安全点',
         玩家职位: '营地成员',
@@ -45,9 +44,8 @@ describe('任务完成奖励结算', () => {
         });
 
         expect(result.changed).toBe(true);
-        expect(result.state.玩家门派.玩家贡献).toBe(200);
-        expect(result.state.玩家门派.累计贡献).toBe(1580);
-        expect(result.state.角色.门派贡献).toBe(200);
+        expect(result.state.玩家组织.玩家贡献).toBe(200);
+        expect(result.state.玩家组织.累计贡献).toBe(1580);
         expect(result.state.角色.可分配属性点).toBe(1);
         expect(result.state.角色.技艺.find((item: any) => item.名称 === '急救')?.熟练度).toBe(8);
         expect(result.state.角色.物品列表).toEqual([]);
@@ -70,8 +68,8 @@ describe('任务完成奖励结算', () => {
         });
 
         expect(result.changed).toBe(false);
-        expect(result.state.玩家门派.玩家贡献).toBe(120);
-        expect(result.state.玩家门派.累计贡献).toBe(1500);
+        expect(result.state.玩家组织.玩家贡献).toBe(120);
+        expect(result.state.玩家组织.累计贡献).toBe(1500);
         expect(result.state.角色.物品列表).toEqual([]);
         expect(response.logs).toEqual([]);
     });
@@ -91,7 +89,7 @@ describe('任务完成奖励结算', () => {
         expect(result.state.角色.金钱.银子).toBe(1);
         expect(result.state.角色.金钱.金元宝).toBe(1);
         expect(result.state.角色.金钱.baseAmount).toBe(102000);
-        expect(result.state.玩家门派.玩家贡献).toBe(150);
+        expect(result.state.玩家组织.玩家贡献).toBe(150);
         expect(response.logs.some((log: any) => log.text.includes('奖励点 +1000') && log.text.includes('D级支线剧情 +1'))).toBe(true);
     });
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { 标准化功法列表, 规范化社交列表 } from '../hooks/useGame/stateTransforms';
+import { 标准化能力列表, 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 import { 执行正文润色 } from '../hooks/useGame/bodyPolish';
 import * as textAIService from '../services/ai/text';
 import { 获取题材模式配置 } from '../utils/topicModeProfiles';
@@ -22,9 +22,9 @@ vi.mock('../utils/apiConfig', () => ({
     接口配置是否可用: vi.fn(() => true)
 }));
 
-describe('功法品质校准', () => {
-    it('会把高品质功法补成匹配的数值和效果结构', () => {
-        const list = 标准化功法列表([
+describe('能力品质校准', () => {
+    it('会把高品质能力补成匹配的数值和效果结构', () => {
+        const list = 标准化能力列表([
             {
                 ID: 'k1',
                 名称: '太虚剑典',
@@ -56,7 +56,7 @@ describe('功法品质校准', () => {
         expect(kungfu.附带效果.length + kungfu.被动修正.length).toBeGreaterThan(0);
     });
 
-    it('功法重数提升会同步抬高功法数值下限', () => {
+    it('能力重数提升会同步抬高能力数值下限', () => {
         const base = {
             ID: 'k2',
             名称: '小周天心法',
@@ -72,8 +72,8 @@ describe('功法品质校准', () => {
             重数描述映射: [],
             境界特效: []
         };
-        const low = 标准化功法列表([{ ...base, 当前重数: 1, 最高重数: 6 }])[0];
-        const high = 标准化功法列表([{ ...base, 当前重数: 5, 最高重数: 6 }])[0];
+        const low = 标准化能力列表([{ ...base, 当前重数: 1, 最高重数: 6 }])[0];
+        const high = 标准化能力列表([{ ...base, 当前重数: 5, 最高重数: 6 }])[0];
 
         expect(high.基础伤害).toBeGreaterThan(low.基础伤害);
         expect(high.加成系数).toBeGreaterThan(low.加成系数);
@@ -212,7 +212,7 @@ describe('无限流商城文案边界', () => {
         const labels = 获取题材界面文案('无限流');
 
         expect(profile.auctionName).toBe('主神商城');
-        expect(labels.菜单.auctionHouse).toBe('主神商城');
+        expect(labels.菜单.retiredMarket).toBe('主神商城');
         expect(labels.组织.商城).toBe('团队商城');
     });
 
@@ -235,7 +235,7 @@ describe('无限流商城文案边界', () => {
                 最大精力: 20,
                 当前内力: 0,
                 最大内力: 0,
-                功法列表: [
+                能力列表: [
                     {
                         ID: 'bad_wuxia_skill',
                         名称: '基础剑法残卷',
@@ -278,7 +278,7 @@ describe('无限流商城文案边界', () => {
             } as any
         );
 
-        const skillText = JSON.stringify(base.角色.功法列表 || []);
+        const skillText = JSON.stringify(base.角色.能力列表 || []);
         const taskText = JSON.stringify(base.任务列表 || []);
 
         expect(skillText).toContain('精神力扫描');
@@ -287,7 +287,6 @@ describe('无限流商城文案边界', () => {
         expect(taskText).toContain('主神');
         expect(taskText).toContain('主神任务倒计时');
         expect(taskText).not.toContain('初入江湖');
-        expect(taskText).not.toContain('门派贡献');
         expect(taskText).not.toContain('D级支线剧情');
         expect(taskText).not.toContain('确认第一项主线任务');
     });

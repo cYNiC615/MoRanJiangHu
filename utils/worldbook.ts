@@ -150,15 +150,10 @@ export const 世界书本体槽位 = {
     开局初始化任务_禁用生存: 'builtin_slot_opening_init_task_survival_off'
 } as const;
 
-const 退役内置槽位集合 = new Set<string>([
-    'builtin_slot_style_cultivation'
-]);
-
 export const 内置世界书分类顺序: 世界书内置分类[] = ['常驻', '开局', '主剧情', '变量生成', '文章优化', '回忆', '世界演变', '地图生成'];
 
 type 世界书本体槽位值 = typeof 世界书本体槽位[keyof typeof 世界书本体槽位];
 const 是本体槽位 = (slotId: unknown): boolean => typeof slotId === 'string' && slotId.startsWith('builtin_slot_');
-const 是退役内置槽位 = (slotId: unknown): boolean => typeof slotId === 'string' && 退役内置槽位集合.has(slotId);
 
 const 获取剧情风格槽位ID = (
     _scope: 'main' | 'opening',
@@ -890,7 +885,6 @@ export const 规范化世界书 = (raw: unknown, fallback?: Partial<世界书结
     const entryMap = new Map<string, 世界书条目结构>();
     rawEntries.forEach((item) => {
         const normalized = 规范化世界书条目(item);
-        if (是退役内置槽位(normalized.内置槽位 || normalized.id)) return;
         entryMap.set(normalized.id, normalized);
     });
     const entries = Array.from(entryMap.values()).sort((a, b) => {

@@ -12,8 +12,6 @@ import type {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     环境信息结构,
     角色数据结构,
     世界数据结构,
@@ -25,10 +23,8 @@ import type {
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取世界演变接口配置, 获取规划分析接口配置, 获取变量计算接口配置, 获取文章优化接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 核心_开局思维链, 获取开局思维链提示词 } from '../../prompts/core/cotOpening';
-import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 获取开场初始化任务提示词 } from '../../prompts/runtime/opening';
 import { 构建开局配置提示词 } from '../../prompts/runtime/openingConfig';
-import { 构建同人运行时提示词包, 同人运行时模式已启用, 校验境界体系提示词完整性 } from '../../prompts/runtime/fandom';
 import { 数值_世界演化 } from '../../prompts/stats/world';
 import { 构建字数要求提示词 } from '../../prompts/runtime/protocolDirectives';
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
@@ -65,7 +61,7 @@ import { 提取响应规划文本 } from './thinkingContext';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化记忆系统, 规范化记忆配置, 构建即时记忆条目, 构建短期记忆条目, 写入四段记忆 } from './memoryUtils';
 import { 构建世界演变上下文文本, 规范化世界演变命令列表, 整理客户可见世界大事 } from './worldEvolutionUtils';
-import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
 import { 保护开局生成门派状态 } from './storyState';
@@ -85,14 +81,12 @@ type 开场命令基态 = {
     社交: any[];
     世界: 世界数据结构;
     战斗: 战斗状态结构;
-    玩家门派: 详细门派结构;
+    玩家组织: 详细门派结构;
     任务列表: any[];
     约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
 };
 
 const 补全开场剧情默认输出预算 = (apiConfig: 当前可用接口结构): 当前可用接口结构 => {
@@ -155,8 +149,6 @@ type 自动存档快照结构 = {
     story?: 剧情系统结构;
     storyPlan?: 剧情规划结构;
     heroinePlan?: 女主剧情规划结构;
-    fandomStoryPlan?: 同人剧情规划结构;
-    fandomHeroinePlan?: 同人女主剧情规划结构;
     memory?: 记忆系统结构;
     openingConfig?: OpeningConfig;
     force?: boolean;
@@ -168,14 +160,12 @@ type 开场剧情生成依赖 = {
     角色: 角色数据结构;
     世界: 世界数据结构;
     战斗: 战斗状态结构;
-    玩家门派: 详细门派结构;
+    玩家组织: 详细门派结构;
     任务列表: any[];
     约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
     gameConfig: any;
     memoryConfig: any;
     builtinPromptEntries: 内置提示词条目结构[];
@@ -191,9 +181,7 @@ type 开场剧情生成依赖 = {
     设置剧情: (value: 剧情系统结构) => void;
     设置剧情规划: (value: 剧情规划结构) => void;
     设置女主剧情规划: (value: 女主剧情规划结构) => void;
-    设置同人剧情规划: (value: 同人剧情规划结构 | undefined) => void;
-    设置同人女主剧情规划: (value: 同人女主剧情规划结构 | undefined) => void;
-    设置玩家门派: (value: 详细门派结构) => void;
+    设置玩家组织: (value: 详细门派结构) => void;
     设置任务列表: (value: any[]) => void;
     设置约定列表: (value: any[]) => void;
     设置开局文章优化进度: (value: any) => void;
@@ -230,8 +218,6 @@ type 开场剧情生成依赖 = {
     规范化剧情状态: (raw?: any, envLike?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构;
-    规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
-    规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
     规范化角色物品容器映射: (raw?: any, options?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => 世界数据结构;
@@ -274,7 +260,7 @@ const 构建开局角色建档摘要 = (
     roleData: any,
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
+    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -306,14 +292,13 @@ const 构建开局角色建档摘要 = (
         `- 外貌：${纯文本(roleData?.外貌)}`,
         `- 性格：${纯文本(roleData?.性格)}`,
         `- 称号：${纯文本(roleData?.称号)}`,
-        ...(启用修炼体系 ? [`- 初始境界：${纯文本(roleData?.境界)}`] : []),
+        ...(启用成长体系 ? [`- 初始境界：${纯文本(roleData?.境界)}`] : []),
         `- 六维：力量 ${数值文本(roleData?.力量)} / 敏捷 ${数值文本(roleData?.敏捷)} / 体质 ${数值文本(roleData?.体质)} / 根骨 ${数值文本(roleData?.根骨)} / 悟性 ${数值文本(roleData?.悟性)} / 福源 ${数值文本(roleData?.福源)}`,
         `- 天赋数量：${Array.isArray(roleData?.天赋列表) ? roleData.天赋列表.length : 0}`,
         天赋列表 ? `- 天赋详情：\n${天赋列表}` : '- 天赋详情：无',
         `- 出身背景名称：${背景名称}`,
         `- 出身背景描述：${背景描述}`,
         `- 出身背景效果：${背景效果}`,
-        `- 当前所属门派ID：${纯文本(roleData?.所属门派ID)}`,
         '以上建档信息仅作为本回合初始化依据，不代表这些字段已经自动写入前端变量；除非你在 `<变量规划>` 中明确列出需要初始化的内容，否则它们不算已进入本回合初始化结果。',
         '若建档已给出天赋或出身背景的 名称/描述/效果，生成开局时必须按原文完整承接，不得省略、压缩成只剩名称，或擅自改写其语义。'
     ].join('\n');
@@ -328,7 +313,7 @@ const 构建开局伙伴建档摘要 = (
         : (openingConfig?.初始伙伴 ? [openingConfig.初始伙伴] : [])
     ).filter((partner) => partner && partner.enabled !== false && typeof partner.姓名 === 'string' && partner.姓名.trim());
     if (partners.length <= 0) return '';
-    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
+    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -359,7 +344,7 @@ const 构建开局伙伴建档摘要 = (
             `- 与主角关系：${纯文本(partner.关系)}`,
             `- 外貌：${纯文本(partner.外貌)}`,
             `- 性格：${纯文本(partner.性格)}`,
-            ...(启用修炼体系 ? ['- 初始境界：按同一难度和世界观合理推导，不得强行高于主角一个大阶。'] : []),
+            ...(启用成长体系 ? ['- 初始境界：按同一难度和世界观合理推导，不得强行高于主角一个大阶。'] : []),
             `- 六维：力量 ${数值文本(partner.属性?.力量)} / 敏捷 ${数值文本(partner.属性?.敏捷)} / 体质 ${数值文本(partner.属性?.体质)} / 根骨 ${数值文本(partner.属性?.根骨)} / 悟性 ${数值文本(partner.属性?.悟性)} / 福源 ${数值文本(partner.属性?.福源)}`,
             `- 出身背景名称：${纯文本(partner.背景名称)}`,
             `- 出身背景描述：${纯文本(partner.背景描述)}`,
@@ -629,14 +614,12 @@ export const 执行开场剧情生成工作流 = async (
             环境: openingEnv,
             世界: contextData.世界 || deps.世界,
             战斗: contextData.战斗 || deps.战斗,
-            玩家门派: contextData.玩家门派 || deps.玩家门派,
+            玩家组织: contextData.玩家组织 || deps.玩家组织,
             任务列表: contextData.任务列表 || deps.任务列表,
             约定列表: contextData.约定列表 || deps.约定列表,
             剧情: deps.规范化剧情状态(contextData.剧情 || deps.剧情, openingEnv),
             剧情规划: deps.规范化剧情规划状态((contextData as any).剧情规划 ?? deps.剧情规划),
             女主剧情规划: deps.规范化女主剧情规划状态(contextData.女主剧情规划 ?? deps.女主剧情规划),
-            同人剧情规划: deps.规范化同人剧情规划状态((contextData as any).同人剧情规划 ?? deps.同人剧情规划),
-            同人女主剧情规划: deps.规范化同人女主剧情规划状态((contextData as any).同人女主剧情规划 ?? deps.同人女主剧情规划),
             开局配置: options?.开局配置
         };
 
@@ -696,7 +679,7 @@ export const 执行开场剧情生成工作流 = async (
                 }
             }
         };
-        const 启用修炼体系 = openingGameConfig.启用修炼体系 === true;
+        const 启用成长体系 = false;
         let openingPromptSnapshot = promptSnapshot.map(p => {
             if (p.id === 'core_cot') {
                 return {
@@ -719,68 +702,6 @@ export const 执行开场剧情生成工作流 = async (
         const openingDeepSeekPrefixMode = openingDeepSeekMode === 'DeepSeek锁格式'
             && openingGameConfig.DeepSeek策略?.开局策略 === '锁头开局'
             && openingGameConfig.DeepSeek策略?.启用Prefix能力探测 !== false;
-        const openingRealmPromptRaw = 启用修炼体系
-            ? (openingPromptSnapshot.find((item) => item.id === 'core_realm')?.内容 || '').trim()
-            : '';
-        const 同人已启用 = 同人运行时模式已启用(options?.开局配置);
-        let openingRealmPrompt = openingRealmPromptRaw.includes('开局后此处会被完整替换')
-            ? ''
-            : openingRealmPromptRaw;
-        let openingRealmValidation = 启用修炼体系
-            ? 校验境界体系提示词完整性(openingRealmPrompt)
-            : { ok: true, normalizedText: '', reason: '' };
-        if (启用修炼体系 && openingRealmValidation.ok) {
-            openingRealmPrompt = openingRealmValidation.normalizedText;
-            if (openingRealmPrompt !== openingRealmPromptRaw) {
-                openingPromptSnapshot = 写入或插入提示词(
-                    openingPromptSnapshot,
-                    核心_境界体系.id,
-                    核心_境界体系,
-                    openingRealmPrompt
-                );
-            }
-        }
-        if (启用修炼体系 && 同人已启用 && !openingRealmValidation.ok) {
-            deps.设置历史记录([
-                ...initialHistory,
-                {
-                    role: 'assistant',
-                    content: '【生成中】同人境界体系预生成...',
-                    timestamp: Date.now() + 1
-                }
-            ]);
-            const generatedOpeningRealmPrompt = await textAIService.generateFandomRealmData(
-                {
-                    openingConfig: options?.开局配置
-                },
-                apiForOpening,
-                undefined,
-                '【开局用途】本次生成结果会先用于第0回合开局。请优先保证主角初始境界、开场出场 NPC、门派前辈、潜在敌手与第一幕冲突都能直接按原著体系落位，不要只写抽象高端设定。'
-            );
-            openingRealmValidation = 校验境界体系提示词完整性(generatedOpeningRealmPrompt);
-            if (!openingRealmValidation.ok) {
-                throw new Error('同人开局前置失败：境界体系生成结果仍不完整，已阻止继续使用默认体系开局。');
-            }
-            openingRealmPrompt = openingRealmValidation.normalizedText;
-            openingPromptSnapshot = 写入或插入提示词(
-                openingPromptSnapshot,
-                核心_境界体系.id,
-                核心_境界体系,
-                openingRealmPrompt
-            );
-            deps.setPrompts(openingPromptSnapshot);
-            await dbService.保存设置(设置键.提示词池, openingPromptSnapshot).catch((error) => {
-                recordDiagnosticLog('error', ['开局持久化同人境界体系失败', {
-                    message: error?.message || '',
-                    stack: typeof error?.stack === 'string' ? error.stack : undefined
-                }]);
-                console.error('开局前置持久化同人境界体系失败', error);
-            });
-        }
-        const fandomPromptBundle = 构建同人运行时提示词包({
-            openingConfig: options?.开局配置,
-            realmPrompt: openingRealmPrompt
-        });
         const openingTaskPrompt = 按功能开关过滤提示词内容(获取内置提示词槽位内容({
             entries: deps.builtinPromptEntries,
             slotId: openingGameConfig.启用饱腹口渴系统 === false
@@ -788,14 +709,6 @@ export const 执行开场剧情生成工作流 = async (
                 : 世界书本体槽位.开局初始化任务_启用生存,
             fallback: 获取开场初始化任务提示词(openingGameConfig)
         }), openingGameConfig);
-        const openingTaskPromptWithFandom = 按功能开关过滤提示词内容([
-            openingTaskPrompt,
-            fandomPromptBundle.开局任务补丁
-        ]
-            .filter(Boolean)
-            .join('\n\n')
-            .trim(), openingGameConfig);
-
         const openingContext = await deps.构建系统提示词(
             openingPromptSnapshot,
             openingMem,
@@ -807,7 +720,7 @@ export const 执行开场剧情生成工作流 = async (
                 注入女主剧情规划协议: false,
                 世界书作用域: openingTavernPresetModeEnabled ? ['opening', 'tavern'] : ['opening'],
                 世界书附加文本: [
-                    openingTaskPromptWithFandom,
+                    openingTaskPrompt,
                     构建开局配置提示词(options?.开局配置),
                     typeof options?.开局额外要求 === 'string' ? options.开局额外要求 : '',
                     (openingGameConfig as any)?.activeModuleExtraRules || ''
@@ -885,8 +798,7 @@ export const 执行开场剧情生成工作流 = async (
             )
             : '';
         const openingCotPrompt = [
-            openingContext.contextPieces.COT提示词,
-            fandomPromptBundle.开局COT补丁
+            openingContext.contextPieces.COT提示词
         ]
             .filter(Boolean)
             .join('\n\n')
@@ -908,10 +820,10 @@ export const 执行开场剧情生成工作流 = async (
             .join('\n\n')
             .trim();
         const openingRoleSetupText = 构建开局角色建档摘要(openingStatePayload?.角色 || deps.角色, {
-            cultivationSystemEnabled: 启用修炼体系
+            cultivationSystemEnabled: 启用成长体系
         });
         const openingPartnerSetupText = 构建开局伙伴建档摘要(options?.开局配置, {
-            cultivationSystemEnabled: 启用修炼体系
+            cultivationSystemEnabled: 启用成长体系
         });
         const openingConfigText = 构建开局配置提示词(options?.开局配置, options?.开局额外要求);
         const openingLatestUserInputRole: 'assistant' | 'user' = (
@@ -924,8 +836,6 @@ export const 执行开场剧情生成工作流 = async (
             '【本次任务】',
             '请基于 world_prompt、下列主角建档信息、当前标签协议与开局额外要求，生成第0回合开场，并输出自然语言、完整详细的 `<变量规划>` 作为本回合初始化结果说明。',
             '不要把下列建档信息视为已经自动注入前端变量或已自动写入当前状态；除非你在 `<变量规划>` 中明确列出需要初始化的内容，否则这些内容都不算已进入本回合初始化结果。',
-            '',
-            按功能开关过滤提示词内容(fandomPromptBundle.开局任务补丁, openingGameConfig),
             '',
             openingRoleSetupText,
             '',
@@ -989,7 +899,6 @@ export const 执行开场剧情生成工作流 = async (
             };
             pushOpening('system', openingContext.contextPieces.AI角色声明);
             pushOpening('system', openingContext.contextPieces.worldPrompt);
-            pushOpening('system', openingContext.contextPieces.同人设定摘要);
             pushOpening('system', openingContext.contextPieces.境界体系提示词);
             pushOpening('system', openingContext.contextPieces.otherPrompts);
             pushOpening('system', openingContext.contextPieces.难度设置提示词);
@@ -1132,14 +1041,12 @@ export const 执行开场剧情生成工作流 = async (
             社交: contextData.社交 || [],
             世界: contextData.世界 || deps.世界,
             战斗: contextData.战斗 || deps.战斗,
-            玩家门派: contextData.玩家门派 || deps.玩家门派,
+            玩家组织: contextData.玩家组织 || deps.玩家组织,
             任务列表: Array.isArray(contextData.任务列表) ? contextData.任务列表 : deps.任务列表,
             约定列表: Array.isArray(contextData.约定列表) ? contextData.约定列表 : deps.约定列表,
             剧情: deps.规范化剧情状态(contextData.剧情 || deps.剧情, contextData.环境 || deps.环境),
             剧情规划: deps.规范化剧情规划状态((contextData as any).剧情规划 ?? deps.剧情规划),
-            女主剧情规划: deps.规范化女主剧情规划状态(contextData.女主剧情规划 ?? deps.女主剧情规划),
-            同人剧情规划: deps.规范化同人剧情规划状态((contextData as any).同人剧情规划 ?? deps.同人剧情规划),
-            同人女主剧情规划: deps.规范化同人女主剧情规划状态((contextData as any).同人女主剧情规划 ?? deps.同人女主剧情规划)
+            女主剧情规划: deps.规范化女主剧情规划状态(contextData.女主剧情规划 ?? deps.女主剧情规划)
         };
         const 保护开局门派 = <T extends 开场命令基态>(state: T): T => 保护开局生成门派状态(
             state,
@@ -1153,20 +1060,10 @@ export const 执行开场剧情生成工作流 = async (
             读取提示词内容(openingPromptSnapshot, 'core_world'),
             openingGameConfig
         );
-        const openingRealmPromptNormalized = (() => {
-            if (!启用修炼体系) return '';
-            const raw = 读取提示词内容(openingPromptSnapshot, 'core_realm');
-            return raw.includes('开局后此处会被完整替换') ? '' : raw;
-        })();
         const openingWorldEvolutionPrompt = 按功能开关过滤提示词内容(
             读取提示词内容(openingPromptSnapshot, 'stat_world_evo') || ((数值_世界演化.内容 || '').trim()),
             openingGameConfig
         );
-        const openingRuntimeFandomBundle = 构建同人运行时提示词包({
-            openingConfig: options?.开局配置,
-            worldPrompt: openingWorldPrompt,
-            realmPrompt: openingRealmPromptNormalized
-        });
         let responseForExecution: GameResponse = {
             ...aiData,
             tavern_commands: Array.isArray(aiData?.tavern_commands) ? [...aiData.tavern_commands] : []
@@ -1399,9 +1296,7 @@ export const 执行开场剧情生成工作流 = async (
                 },
                 run: async () => {
                     const openingCurrentGameTime = 环境时间转标准串(simulatedOpeningState.环境) || '未知时间';
-                    const openingVariableAudit = 构建开局变量生成审计重点({
-                        fandomEnabled: openingRuntimeFandomBundle.enabled
-                    });
+                    const openingVariableAudit = 构建开局变量生成审计重点();
                     const variableWorldbookExtra = 按功能开关过滤提示词内容(构建世界书注入文本({
                         books: deps.worldbooks,
                         scopes: ['variable_calibration'],
@@ -1427,7 +1322,7 @@ export const 执行开场剧情生成工作流 = async (
                                 世界: commandBaseState.世界,
                                 社交: commandBaseState.社交,
                                 战斗: commandBaseState.战斗,
-                                玩家门派: commandBaseState.玩家门派,
+                                玩家组织: commandBaseState.玩家组织,
                                 任务列表: commandBaseState.任务列表,
                                 约定列表: commandBaseState.约定列表
                             },
@@ -1588,8 +1483,6 @@ export const 执行开场剧情生成工作流 = async (
                         开局世界演变初始化附加提示词,
                         worldInitContext,
                         worldbookExtra,
-                        按功能开关过滤提示词内容(openingRuntimeFandomBundle.同人设定摘要, openingGameConfig),
-                        启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : '',
                         openingTraditionalChinesePrompt
                     ]
                         .filter(Boolean)
@@ -1617,8 +1510,7 @@ export const 执行开场剧情生成工作流 = async (
                         controller.signal,
                         worldExtraPrompt,
                         openingGameConfig.启用COT伪装注入 !== false ? 世界演变COT伪装历史消息提示词 : '',
-                        构建世界演变COT提示词({ fandom: openingRuntimeFandomBundle.enabled }),
-                        openingRuntimeFandomBundle.enabled,
+                        构建世界演变COT提示词(),
                         openingGameConfig.独立APIGPT模式?.世界演变 === true
                     );
                 },
@@ -1808,32 +1700,18 @@ export const 执行开场剧情生成工作流 = async (
                     const heroineEnabled = options?.开局配置?.启用女主剧情规划 !== undefined
                         ? options.开局配置.启用女主剧情规划 === true
                         : openingGameConfig.启用女主剧情规划 === true;
-                    const fandomEnabled = openingRuntimeFandomBundle.enabled;
-                    const activeStoryPlan = fandomEnabled
-                        ? deps.规范化同人剧情规划状态(simulatedOpeningState.同人剧情规划)
-                        : deps.规范化剧情规划状态(simulatedOpeningState.剧情规划);
+                    const activeStoryPlan = deps.规范化剧情规划状态(simulatedOpeningState.剧情规划);
                     const activeHeroinePlan = heroineEnabled
-                        ? (
-                            fandomEnabled
-                                ? deps.规范化同人女主剧情规划状态(simulatedOpeningState.同人女主剧情规划)
-                                : deps.规范化女主剧情规划状态(simulatedOpeningState.女主剧情规划)
-                        )
+                        ? deps.规范化女主剧情规划状态(simulatedOpeningState.女主剧情规划)
                         : undefined;
-                    const activeStoryPlanTargets = fandomEnabled
-                        ? ['同人剧情规划', 'gameState.同人剧情规划']
-                        : ['剧情规划', 'gameState.剧情规划'];
-                    const activeHeroinePlanTargets = fandomEnabled
-                        ? ['同人女主剧情规划', 'gameState.同人女主剧情规划']
-                        : ['女主剧情规划', 'gameState.女主剧情规划'];
+                    const activeStoryPlanTargets = ['剧情规划', 'gameState.剧情规划'];
+                    const activeHeroinePlanTargets = ['女主剧情规划', 'gameState.女主剧情规划'];
                     const planningRecentBodiesText = 构建开局规划初始化正文上下文({
                         openingBodyText,
                         openingPlanText,
                         currentGameTime: 环境时间转标准串(simulatedOpeningState.环境) || '未知时间'
                     });
-                    const planningAuditFocusText = 构建开局规划初始化审计重点({
-                        fandomEnabled: openingRuntimeFandomBundle.enabled,
-                        heroineEnabled
-                    });
+                    const planningAuditFocusText = 构建开局规划初始化审计重点({ heroineEnabled });
                     const planningWorldbookExtra = 按功能开关过滤提示词内容(构建世界书注入文本({
                         books: deps.worldbooks,
                         scopes: heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'],
@@ -1847,34 +1725,31 @@ export const 执行开场剧情生成工作流 = async (
                     const planningExtraPrompt = [
                         开局规划初始化附加提示词,
                         planningWorldbookExtra,
-                        按功能开关过滤提示词内容(openingRuntimeFandomBundle.同人设定摘要, openingGameConfig),
-                        启用修炼体系 ? openingRuntimeFandomBundle.境界母板补丁 : '',
                         openingTraditionalChinesePrompt
                     ]
                         .filter(Boolean)
                         .join('\n\n');
                     const planningResult = await 执行开局规划带超时(controller.signal, (signal) => textAIService.generatePlanningAnalysis({
                         playerName: (simulatedOpeningState.角色?.姓名 || deps.角色?.姓名 || '').trim() || '未命名',
-                        currentStoryJson: JSON.stringify(裁剪修炼体系上下文数据({
+                        currentStoryJson: JSON.stringify(裁剪成长体系上下文数据({
                             剧情: simulatedOpeningState.剧情 || {},
-                            [fandomEnabled ? '同人剧情规划' : '剧情规划']: activeStoryPlan || {}
+                            剧情规划: activeStoryPlan || {}
                         }, openingGameConfig), null, 2),
-                        currentHeroinePlanJson: JSON.stringify(裁剪修炼体系上下文数据(
+                        currentHeroinePlanJson: JSON.stringify(裁剪成长体系上下文数据(
                             heroineEnabled
-                                ? { [fandomEnabled ? '同人女主剧情规划' : '女主剧情规划']: activeHeroinePlan || {} }
+                                ? { 女主剧情规划: activeHeroinePlan || {} }
                                 : {},
                             openingGameConfig
                         ), null, 2),
-                        worldJson: JSON.stringify(裁剪修炼体系上下文数据(simulatedOpeningState.世界 || {}, openingGameConfig), null, 2),
-                        socialJson: JSON.stringify(裁剪修炼体系上下文数据(simulatedOpeningState.社交 || [], openingGameConfig), null, 2),
-                        envJson: JSON.stringify(裁剪修炼体系上下文数据(simulatedOpeningState.环境 || {}, openingGameConfig), null, 2),
+                        worldJson: JSON.stringify(裁剪成长体系上下文数据(simulatedOpeningState.世界 || {}, openingGameConfig), null, 2),
+                        socialJson: JSON.stringify(裁剪成长体系上下文数据(simulatedOpeningState.社交 || [], openingGameConfig), null, 2),
+                        envJson: JSON.stringify(裁剪成长体系上下文数据(simulatedOpeningState.环境 || {}, openingGameConfig), null, 2),
                         recentBodiesText: planningRecentBodiesText,
                         currentPlanText: openingPlanText,
                         auditFocusText: planningAuditFocusText,
                         genderRatioConstraintText,
                         heroineEnabled,
                         ntlEnabled: openingGameConfig.剧情风格 === 'NTL后宫',
-                        fandomEnabled,
                         extraPrompt: planningExtraPrompt,
                         gptMode: openingGameConfig.独立APIGPT模式?.规划分析 === true
                     }, openingPlanningApi, signal));
@@ -2024,18 +1899,16 @@ export const 执行开场剧情生成工作流 = async (
             deps.设置剧情(deps.规范化剧情状态(openingStateAfterCommands.剧情, openingStateAfterCommands.环境));
             deps.设置剧情规划(deps.规范化剧情规划状态(openingStateAfterCommands.剧情规划));
             deps.设置女主剧情规划(deps.规范化女主剧情规划状态(openingStateAfterCommands.女主剧情规划));
-            deps.设置同人剧情规划(deps.规范化同人剧情规划状态(openingStateAfterCommands.同人剧情规划));
-            deps.设置同人女主剧情规划(deps.规范化同人女主剧情规划状态(openingStateAfterCommands.同人女主剧情规划));
         }
         deps.设置社交(deps.规范化社交列表(openingStateAfterCommands.社交));
-        const opening命令后门派 = deps.规范化门派状态(openingStateAfterCommands.玩家门派);
+        const opening命令后门派 = deps.规范化门派状态(openingStateAfterCommands.玩家组织);
         const opening命令后任务 = Array.isArray(openingStateAfterCommands.任务列表)
             ? openingStateAfterCommands.任务列表
             : [];
         const opening命令后约定 = Array.isArray(openingStateAfterCommands.约定列表)
             ? openingStateAfterCommands.约定列表
             : [];
-        deps.设置玩家门派(opening命令后门派);
+        deps.设置玩家组织(opening命令后门派);
         deps.设置任务列表(opening命令后任务);
         deps.设置约定列表(opening命令后约定);
         deps.setWorldEvents(openingWorldInitUpdates.slice(0, 30));
@@ -2123,7 +1996,7 @@ export const 执行开场剧情生成工作流 = async (
             });
         }
 
-        const opening玩家门派 = deps.规范化门派状态(openingStateAfterCommands.玩家门派);
+        const opening玩家组织 = deps.规范化门派状态(openingStateAfterCommands.玩家组织);
         const opening任务列表 = Array.isArray(openingStateAfterCommands.任务列表)
             ? openingStateAfterCommands.任务列表
             : [];
@@ -2137,14 +2010,12 @@ export const 执行开场剧情生成工作流 = async (
             social: openingStateAfterCommands.社交,
             world: openingStateAfterCommands.世界,
             battle: openingStateAfterCommands.战斗,
-            sect: opening玩家门派,
+            sect: opening玩家组织,
             tasks: opening任务列表,
             agreements: opening约定列表,
             story: openingStoryAfterCommands,
             storyPlan: openingStateAfterCommands.剧情规划,
             heroinePlan: openingStateAfterCommands.女主剧情规划,
-            fandomStoryPlan: openingStateAfterCommands.同人剧情规划,
-            fandomHeroinePlan: openingStateAfterCommands.同人女主剧情规划,
             memory: openingMemoryAfterWrite,
             openingConfig: options?.开局配置
         });

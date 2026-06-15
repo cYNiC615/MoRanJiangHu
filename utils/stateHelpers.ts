@@ -7,8 +7,6 @@ import {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     详细门派结构,
     任务结构,
     约定结构
@@ -17,11 +15,9 @@ import {
 type 状态命令动作 = 'set' | 'add' | 'push' | 'delete' | 'sub';
 
 const 根路径列表 = [
-    '同人女主剧情规划',
-    '同人剧情规划',
     '女主剧情规划',
     '剧情规划',
-    '玩家门派',
+    '玩家组织',
     '任务列表',
     '约定列表',
     '记忆系统',
@@ -44,8 +40,6 @@ type 命令结果结构 = {
     story: 剧情系统结构;
     storyPlan: 剧情规划结构;
     heroinePlan: 女主剧情规划结构 | undefined;
-    fandomStoryPlan: 同人剧情规划结构 | undefined;
-    fandomHeroinePlan: 同人女主剧情规划结构 | undefined;
     sect: 详细门派结构;
     tasks: 任务结构[];
     agreements: 约定结构[];
@@ -72,7 +66,6 @@ const 环境相对根字段 = ['环境变量', '大地点', '中地点', '小地
 const 剧情相对根字段 = ['当前章节', '下一章预告', '历史卷宗'];
 const 剧情规划相对根字段 = ['当前章目标', '当前章任务', '跨章延续事项', '待触发事件', '镜头规划', '换章规则'];
 const 女主规划相对根字段 = ['阶段推进', '女主条目', '女主互动事件', '女主镜头规划'];
-const 同人剧情规划相对根字段 = ['当前对齐信息', '当前章目标', '当前章任务', '分歧线', '待触发事件', '镜头规划', '换组规则'];
 
 const 兼容值路径别名 = (rawPath: string): string => {
     const path = (rawPath || '').trim();
@@ -86,7 +79,7 @@ const 兼容值路径别名 = (rawPath: string): string => {
 
 const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
 const 废弃环境字段 = new Set(['天气', '节日']);
-const 废弃命令根路径 = new Set(['战斗', '玩家门派', '同人剧情规划', '同人女主剧情规划']);
+const 废弃命令根路径 = new Set(['战斗', '玩家组织']);
 
 export const 是否废弃世界地图字段路径 = (normalizedKey: string): boolean => {
     const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
@@ -139,10 +132,6 @@ export const normalizeStateCommandKey = (rawKey: string): string => {
     if (女主规划相对根字段.some((head) => key === head || key.startsWith(`${head}.`) || key.startsWith(`${head}[`))) {
         return `gameState.女主剧情规划.${key}`;
     }
-    if (同人剧情规划相对根字段.some((head) => key === head || key.startsWith(`${head}.`) || key.startsWith(`${head}[`))) {
-        return `gameState.同人剧情规划.${key}`;
-    }
-
     return key;
 };
 
@@ -300,8 +289,6 @@ export const applyStateCommand = (
     rootStory: 剧情系统结构,
     rootStoryPlan: 剧情规划结构,
     rootHeroinePlan: 女主剧情规划结构 | undefined,
-    rootFandomStoryPlan: 同人剧情规划结构 | undefined,
-    rootFandomHeroinePlan: 同人女主剧情规划结构 | undefined,
     rootSect: 详细门派结构,
     rootTasks: 任务结构[],
     rootAgreements: 约定结构[],
@@ -321,8 +308,6 @@ export const applyStateCommand = (
         story: rootStory,
         storyPlan: rootStoryPlan,
         heroinePlan: rootHeroinePlan,
-        fandomStoryPlan: rootFandomStoryPlan,
-        fandomHeroinePlan: rootFandomHeroinePlan,
         sect: rootSect,
         tasks: rootTasks,
         agreements: rootAgreements
@@ -370,13 +355,7 @@ export const applyStateCommand = (
             case '女主剧情规划':
                 result.heroinePlan = next as 女主剧情规划结构 | undefined;
                 break;
-            case '同人剧情规划':
-                result.fandomStoryPlan = next as 同人剧情规划结构 | undefined;
-                break;
-            case '同人女主剧情规划':
-                result.fandomHeroinePlan = next as 同人女主剧情规划结构 | undefined;
-                break;
-            case '玩家门派':
+            case '玩家组织':
                 result.sect = next as 详细门派结构;
                 break;
             case '任务列表':
@@ -408,11 +387,7 @@ export const applyStateCommand = (
                 return result.storyPlan;
             case '女主剧情规划':
                 return result.heroinePlan;
-            case '同人剧情规划':
-                return result.fandomStoryPlan;
-            case '同人女主剧情规划':
-                return result.fandomHeroinePlan;
-            case '玩家门派':
+            case '玩家组织':
                 return result.sect;
             case '任务列表':
                 return result.tasks;

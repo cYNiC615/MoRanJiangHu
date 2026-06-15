@@ -136,11 +136,7 @@ export const 解析创意工坊主题配置 = (raw?: Partial<创意工坊主题�
             ...(source.openingDefaults || {}),
             题材模式: source.openingDefaults?.题材模式 || defaultMode,
             modeRuntimeProfile: source.openingDefaults?.modeRuntimeProfile || modeRuntimeProfile,
-            初始伙伴: companionDefaults,
-            同人融合: {
-                ...fallback.openingDefaults.同人融合,
-                ...(source.openingDefaults?.同人融合 || {})
-            }
+            初始伙伴: companionDefaults
         },
         attributeFields: 规范化属性字段(source.attributeFields),
         difficultyOptions: 规范化选项列表(source.difficultyOptions, fallback.difficultyOptions),

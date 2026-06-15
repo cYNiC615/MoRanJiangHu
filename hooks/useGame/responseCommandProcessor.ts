@@ -7,9 +7,7 @@ import {
     详细门派结构,
     剧情系统结构,
     剧情规划结构,
-    女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构
+    女主剧情规划结构
 } from '../../types';
 import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
@@ -63,10 +61,7 @@ const 是否女主规划命令 = (rawKey: string): boolean => {
     const normalizedKey = normalizeStateCommandKey(rawKey || '');
     return normalizedKey === 'gameState.女主剧情规划'
         || normalizedKey.startsWith('gameState.女主剧情规划.')
-        || normalizedKey.startsWith('gameState.女主剧情规划[')
-        || normalizedKey === 'gameState.同人女主剧情规划'
-        || normalizedKey.startsWith('gameState.同人女主剧情规划.')
-        || normalizedKey.startsWith('gameState.同人女主剧情规划[');
+        || normalizedKey.startsWith('gameState.女主剧情规划[');
 };
 
 const 是否时间回退或异常重置 = (oldTime: unknown, newValue: unknown): boolean => {
@@ -88,14 +83,12 @@ export type 响应命令处理状态 = {
     社交: any[];
     世界: 世界数据结构;
     战斗: 战斗状态结构;
-    玩家门派: 详细门派结构;
+    玩家组织: 详细门派结构;
     任务列表: any[];
     约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
 };
 
 type 响应命令处理依赖 = {
@@ -107,8 +100,6 @@ type 响应命令处理依赖 = {
     规范化剧情状态: (raw?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
-    规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
-    规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
     规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string; 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
     角色规范化选项?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown };
     战斗结束自动清空: (battle: 战斗状态结构, story?: 剧情系统结构) => 战斗状态结构;
@@ -117,14 +108,12 @@ type 响应命令处理依赖 = {
     设置社交?: (value: any[]) => void;
     设置世界?: (value: 世界数据结构) => void;
     设置战斗?: (value: 战斗状态结构) => void;
-    设置玩家门派?: (value: 详细门派结构) => void;
+    设置玩家组织?: (value: 详细门派结构) => void;
     设置任务列表?: (value: any[]) => void;
     设置约定列表?: (value: any[]) => void;
     设置剧情?: (value: 剧情系统结构) => void;
     设置剧情规划?: (value: 剧情规划结构) => void;
     设置女主剧情规划?: (value: 女主剧情规划结构 | undefined) => void;
-    设置同人剧情规划?: (value: 同人剧情规划结构 | undefined) => void;
-    设置同人女主剧情规划?: (value: 同人女主剧情规划结构 | undefined) => void;
     命令后校准?: (state: 响应命令处理状态) => { state: 响应命令处理状态; corrections?: string[] } | 响应命令处理状态;
 };
 
@@ -317,11 +306,19 @@ const 同步当前视角在场状态 = (
     const responseFactText = 提取响应事实文本(response);
     if (!responseFactText.trim()) return socialList;
     const dialogueSenderKeys = 提取对白发送者集合(response, playerName);
-    return socialList.map((npc: any) => {
+    const presenceDecisions = socialList.map((npc: any) => (
+        !npc || typeof npc !== 'object' || NPC已死亡(npc)
+            ? undefined
+            : 判断NPC本回合是否在场(npc, responseFactText, dialogueSenderKeys)
+    ));
+    const hasConfirmedPresentNpc = presenceDecisions.some((present) => present === true);
+    return socialList.map((npc: any, index: number) => {
         if (!npc || typeof npc !== 'object') return npc;
         if (NPC已死亡(npc)) return { ...npc, 是否在场: false };
-        const nextPresent = 判断NPC本回合是否在场(npc, responseFactText, dialogueSenderKeys);
-        if (nextPresent === undefined) return npc;
+        const nextPresent = presenceDecisions[index];
+        if (nextPresent === undefined) {
+            return hasConfirmedPresentNpc && npc.是否在场 === true ? { ...npc, 是否在场: false } : npc;
+        }
         return npc.是否在场 === nextPresent ? npc : { ...npc, 是否在场: nextPresent };
     });
 };
@@ -1286,14 +1283,12 @@ export const 执行响应命令处理 = (
     let socialBuffer = Array.isArray(baseState?.社交) ? baseState.社交 : currentState.社交;
     let worldBuffer = deps.规范化世界状态(baseState?.世界 || currentState.世界);
     let battleBuffer = deps.规范化战斗状态(baseState?.战斗 || currentState.战斗);
-    let sectBuffer = deps.规范化门派状态(baseState?.玩家门派 || currentState.玩家门派);
+    let sectBuffer = deps.规范化门派状态(baseState?.玩家组织 || currentState.玩家组织);
     let tasksBuffer = Array.isArray(baseState?.任务列表) ? baseState.任务列表 : currentState.任务列表;
     let agreementsBuffer = Array.isArray(baseState?.约定列表) ? baseState.约定列表 : currentState.约定列表;
     let storyBuffer = deps.规范化剧情状态(baseState?.剧情 || currentState.剧情);
     let storyPlanBuffer = deps.规范化剧情规划状态(baseState?.剧情规划 || currentState.剧情规划);
     let heroinePlanBuffer = deps.规范化女主剧情规划状态(baseState?.女主剧情规划 ?? currentState.女主剧情规划);
-    let fandomStoryPlanBuffer = deps.规范化同人剧情规划状态(baseState?.同人剧情规划 ?? currentState.同人剧情规划);
-    let fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(baseState?.同人女主剧情规划 ?? currentState.同人女主剧情规划);
     const socialBeforeCommands = Array.isArray(socialBuffer) ? socialBuffer : [];
 
     const responseFactText = 提取响应事实文本(response);
@@ -1342,8 +1337,6 @@ export const 执行响应命令处理 = (
                 storyBuffer,
                 storyPlanBuffer,
                 heroinePlanBuffer,
-                fandomStoryPlanBuffer,
-                fandomHeroinePlanBuffer,
                 sectBuffer,
                 tasksBuffer,
                 agreementsBuffer,
@@ -1362,8 +1355,6 @@ export const 执行响应命令处理 = (
             storyBuffer = result.story;
             storyPlanBuffer = result.storyPlan;
             heroinePlanBuffer = result.heroinePlan;
-            fandomStoryPlanBuffer = result.fandomStoryPlan;
-            fandomHeroinePlanBuffer = result.fandomHeroinePlan;
         });
 
         envBuffer = deps.规范化环境信息(envBuffer);
@@ -1372,8 +1363,6 @@ export const 执行响应命令处理 = (
         sectBuffer = deps.规范化门派状态(sectBuffer);
         storyPlanBuffer = deps.规范化剧情规划状态(storyPlanBuffer);
         heroinePlanBuffer = deps.规范化女主剧情规划状态(heroinePlanBuffer);
-        fandomStoryPlanBuffer = deps.规范化同人剧情规划状态(fandomStoryPlanBuffer);
-        fandomHeroinePlanBuffer = deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer);
 
         battleBuffer = deps.战斗结束自动清空(battleBuffer, storyBuffer);
         charBuffer = deps.规范化角色物品容器映射(charBuffer, {
@@ -1442,14 +1431,12 @@ export const 执行响应命令处理 = (
             社交: socialBuffer,
             世界: deps.规范化世界状态(worldBuffer),
             战斗: battleBuffer,
-            玩家门派: deps.规范化门派状态(sectBuffer),
+            玩家组织: deps.规范化门派状态(sectBuffer),
             任务列表: 规范化任务列表自动结算(Array.isArray(tasksBuffer) ? tasksBuffer : []),
             约定列表: Array.isArray(agreementsBuffer) ? agreementsBuffer : [],
             剧情: storyBuffer,
             剧情规划: deps.规范化剧情规划状态(storyPlanBuffer),
-            女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer),
-            同人剧情规划: deps.规范化同人剧情规划状态(fandomStoryPlanBuffer),
-            同人女主剧情规划: deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer)
+            女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer)
         };
         const rewardSettlement = 结算已完成任务奖励({
             response,
@@ -1461,7 +1448,7 @@ export const 执行响应命令处理 = (
             finalState = {
                 ...finalState,
                 角色: rewardSettlement.state.角色,
-                玩家门派: deps.规范化门派状态(rewardSettlement.state.玩家门派),
+                玩家组织: deps.规范化门派状态(rewardSettlement.state.玩家组织),
                 任务列表: 规范化任务列表自动结算(rewardSettlement.state.任务列表)
             };
         }
@@ -1476,14 +1463,12 @@ export const 执行响应命令处理 = (
             deps.设置社交?.(finalState.社交);
             deps.设置世界?.(finalState.世界);
             deps.设置战斗?.(finalState.战斗);
-            deps.设置玩家门派?.(finalState.玩家门派);
+            deps.设置玩家组织?.(finalState.玩家组织);
             deps.设置任务列表?.(finalState.任务列表);
             deps.设置约定列表?.(finalState.约定列表);
             deps.设置剧情?.(finalState.剧情);
             deps.设置剧情规划?.(finalState.剧情规划);
             deps.设置女主剧情规划?.(finalState.女主剧情规划);
-            deps.设置同人剧情规划?.(finalState.同人剧情规划);
-            deps.设置同人女主剧情规划?.(finalState.同人女主剧情规划);
         }
 
         return finalState;
@@ -1549,14 +1534,12 @@ export const 执行响应命令处理 = (
         社交: normalizedSocial,
         世界: deps.规范化世界状态(worldBuffer),
         战斗: battleBuffer,
-        玩家门派: deps.规范化门派状态(sectBuffer),
+        玩家组织: deps.规范化门派状态(sectBuffer),
         任务列表: 规范化任务列表自动结算(Array.isArray(tasksBuffer) ? tasksBuffer : []),
         约定列表: Array.isArray(agreementsBuffer) ? agreementsBuffer : [],
         剧情: deps.规范化剧情状态(storyBuffer),
         剧情规划: deps.规范化剧情规划状态(storyPlanBuffer),
-        女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer),
-        同人剧情规划: deps.规范化同人剧情规划状态(fandomStoryPlanBuffer),
-        同人女主剧情规划: deps.规范化同人女主剧情规划状态(fandomHeroinePlanBuffer)
+        女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer)
     };
     const rewardSettlement = 结算已完成任务奖励({
         response,
@@ -1568,7 +1551,7 @@ export const 执行响应命令处理 = (
         finalState = {
             ...finalState,
             角色: rewardSettlement.state.角色,
-            玩家门派: deps.规范化门派状态(rewardSettlement.state.玩家门派),
+            玩家组织: deps.规范化门派状态(rewardSettlement.state.玩家组织),
             任务列表: 规范化任务列表自动结算(rewardSettlement.state.任务列表)
         };
     }
@@ -1582,14 +1565,12 @@ export const 执行响应命令处理 = (
         deps.设置社交?.(finalState.社交);
         deps.设置世界?.(finalState.世界);
         deps.设置战斗?.(finalState.战斗);
-        deps.设置玩家门派?.(finalState.玩家门派);
+        deps.设置玩家组织?.(finalState.玩家组织);
         deps.设置任务列表?.(finalState.任务列表);
         deps.设置约定列表?.(finalState.约定列表);
         deps.设置剧情?.(finalState.剧情);
         deps.设置剧情规划?.(finalState.剧情规划);
         deps.设置女主剧情规划?.(finalState.女主剧情规划);
-        deps.设置同人剧情规划?.(finalState.同人剧情规划);
-        deps.设置同人女主剧情规划?.(finalState.同人女主剧情规划);
     }
     return finalState;
 };

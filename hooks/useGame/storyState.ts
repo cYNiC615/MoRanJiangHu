@@ -6,8 +6,6 @@ import type {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     环境信息结构,
     聊天记录结构,
     角色数据结构,
@@ -15,7 +13,6 @@ import type {
     OpeningConfig
 } from '../../types';
 import { 补齐世界地图空间字段 } from '../../utils/mapSpatial';
-import { 职位等级排序 } from '../../models/sect';
 import type { 任务结构, 任务状态 } from '../../models/task';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
@@ -23,11 +20,13 @@ import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { buildWorldMapLayersFromDraft } from '../../utils/newGameDiy';
 import { 构建默认技艺 } from '../../utils/skillDefaults';
 import { 获取题材模式配置 } from '../../utils/topicModeProfiles';
-import { 获取境界层级 } from '../../utils/realmConfig';
 import { 候选名命中模板黑名单 } from '../../utils/templateNameBlacklist';
 import { 获取当前境界配置 } from './stateTransforms';
 import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
 import type { WorldFoundationResult } from '../../services/ai/storyTasks';
+
+const 职位等级排序: Record<string, number> = {};
+const 获取境界层级 = () => 1;
 
 export type 开场命令基态 = {
     角色: 角色数据结构;
@@ -35,14 +34,12 @@ export type 开场命令基态 = {
     社交: any[];
     世界: 世界数据结构;
     战斗: 战斗状态结构;
-    玩家门派: 详细门派结构;
+    玩家组织: 详细门派结构;
     任务列表: any[];
     约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
 };
 
 const 取文本 = (value: any, fallback = ''): string => (
@@ -79,7 +76,7 @@ const 含幕后生成占位文本 = (value: any): boolean => (
     typeof value === 'string' && /待\s*AI|AI\s*生成|请由AI|开局模板|不得沿用固定|待AI生成|待AI评定|待AI评估/u.test(value)
 );
 
-const 门派职位贡献门槛: Record<string, number> = {
+const 传统组织职位贡献门槛: Record<string, number> = {
     杂役弟子: 0,
     外门弟子: 100,
     内门弟子: 350,
@@ -90,7 +87,7 @@ const 门派职位贡献门槛: Record<string, number> = {
     掌门: 12000,
 };
 
-const 标准门派职位列表 = ['杂役弟子', '外门弟子', '内门弟子', '真传弟子', '执事', '长老', '副掌门', '掌门'];
+const 标准传统组织职位列表 = ['杂役弟子', '外门弟子', '内门弟子', '真传弟子', '执事', '长老', '副掌门', '掌门'];
 
 const 地图层级顺序 = ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'] as const;
 const 地图层级集合 = new Set<string>(地图层级顺序);
@@ -212,11 +209,10 @@ export const 合并世界基底到开场状态 = <T extends { 世界?: 世界数
     };
 };
 
-const 补全门派职位 = (source: any, totalContribution = 0, fallback = '无'): string => {
+const 补全传统组织职位 = (source: any, totalContribution = 0, fallback = '无'): string => {
     const customOrganizationKind = 推导组织语义(source);
     const explicitCustomRank = [
         source?.玩家职位,
-        source?.门派职位,
         source?.弟子等级,
         source?.弟子级别,
         source?.弟子身份,
@@ -224,16 +220,15 @@ const 补全门派职位 = (source: any, totalContribution = 0, fallback = '无'
         source?.职位,
         source?.rank,
     ].map((item) => 取文本(item)).find(Boolean);
-    if (customOrganizationKind && explicitCustomRank && !标准门派职位列表.includes(explicitCustomRank)) {
+    if (customOrganizationKind && explicitCustomRank && !标准传统组织职位列表.includes(explicitCustomRank)) {
         return explicitCustomRank;
     }
     let contributionRank = fallback !== '无' || totalContribution > 0 ? '杂役弟子' : '无';
-    Object.entries(门派职位贡献门槛).forEach(([rank, required]) => {
+    Object.entries(传统组织职位贡献门槛).forEach(([rank, required]) => {
         if (totalContribution >= required) contributionRank = rank;
     });
     const candidates = [
         source?.玩家职位,
-        source?.门派职位,
         source?.弟子等级,
         source?.弟子级别,
         source?.弟子身份,
@@ -242,17 +237,17 @@ const 补全门派职位 = (source: any, totalContribution = 0, fallback = '无'
         source?.rank,
         fallback,
     ].map((item) => 取文本(item)).filter(Boolean);
-    const exact = candidates.find((item) => 标准门派职位列表.includes(item));
+    const exact = candidates.find((item) => 标准传统组织职位列表.includes(item));
     if (exact) {
-        const exactRequired = 门派职位贡献门槛[exact] ?? 0;
+        const exactRequired = 传统组织职位贡献门槛[exact] ?? 0;
         if (totalContribution < exactRequired) return contributionRank;
         return (职位等级排序[contributionRank] || 0) > (职位等级排序[exact] || 0) ? contributionRank : exact;
     }
     const matched = candidates
-        .map((item) => 标准门派职位列表.find((rank) => item.includes(rank)))
+        .map((item) => 标准传统组织职位列表.find((rank) => item.includes(rank)))
         .find(Boolean);
     if (matched) {
-        const matchedRequired = 门派职位贡献门槛[matched] ?? 0;
+        const matchedRequired = 传统组织职位贡献门槛[matched] ?? 0;
         if (totalContribution < matchedRequired) return contributionRank;
         return (职位等级排序[contributionRank] || 0) > (职位等级排序[matched] || 0) ? contributionRank : matched;
     }
@@ -317,7 +312,6 @@ const 推导组织语义 = (source?: any, openingConfig?: OpeningConfig): 组织
         source?.name,
         source?.类型,
         source?.玩家职位,
-        source?.门派职位,
         source?.简介,
         source?.描述,
         ...(Array.isArray(source?.门规) ? source.门规 : []),
@@ -382,9 +376,6 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
     业力: 0,
     天赋列表: [],
     出身背景: { 名称: '', 描述: '', 效果: '' },
-    所属门派ID: 'none',
-    门派职位: '无',
-    门派贡献: 0,
     金钱: 确保角色金钱BaseAmount({ 金元宝: 0, 银子: 0, 铜钱: 0 }),
     当前精力: 0,
     最大精力: 0,
@@ -441,7 +432,7 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
         坐骑: '无'
     },
     物品列表: [],
-    功法列表: [],
+    能力列表: [],
     技艺: 构建默认技艺('武侠'),
     当前经验: 0,
     升级经验: 0,
@@ -478,58 +469,29 @@ export const 创建空门派状态 = (): 详细门派结构 => ({
     重要成员: []
 });
 
-export const 创建占位门派状态 = (charData: 角色数据结构): 详细门派结构 => {
-    if (是否无门派标识(charData?.所属门派ID)) {
-        return 创建空门派状态();
-    }
-    return 规范化门派状态({
-        ID: charData.所属门派ID,
-        名称: charData.所属门派ID,
-        玩家职位: 补全门派职位(charData, 取数字(charData.门派贡献), '杂役弟子'),
-        玩家贡献: 取数字(charData.门派贡献),
-        累计贡献: 取数字(charData.门派贡献)
-    });
-};
-
-export const 同步角色与门派状态 = <T extends { 角色?: any; 玩家门派?: any }>(state: T): T => {
+export const 同步角色与门派状态 = <T extends { 角色?: any; 玩家组织?: any }>(state: T): T => {
     const role = state?.角色 && typeof state.角色 === 'object' ? state.角色 : undefined;
-    let sect = 规范化门派状态(state?.玩家门派);
-    const roleSectId = 取文本(role?.所属门派ID);
-    const roleHasSect = Boolean(role) && !是否无门派标识(roleSectId);
-
-    if (roleHasSect && 是否无门派标识(sect.ID)) {
-        sect = 创建占位门派状态(role);
-    }
+    const sect = 规范化门派状态(state?.玩家组织);
 
     if (!role) {
         return {
             ...state,
-            玩家门派: sect
+            玩家组织: sect
         };
     }
 
     if (是否无门派标识(sect.ID)) {
         return {
             ...state,
-            玩家门派: sect,
-            角色: {
-                ...role,
-                所属门派ID: 'none',
-                门派职位: '无',
-                门派贡献: 0
-            }
+            玩家组织: sect,
+            角色: { ...role }
         };
     }
 
     return {
         ...state,
-        玩家门派: sect,
-        角色: {
-            ...role,
-            所属门派ID: sect.ID,
-            门派职位: sect.玩家职位,
-            门派贡献: 取数字(sect.玩家贡献 ?? sect.累计贡献)
-        }
+        玩家组织: sect,
+        角色: { ...role }
     };
 };
 
@@ -679,7 +641,7 @@ const 从门派任务创建通用任务列表 = (sectName: string, missions: 详
             完成状态: mission?.当前状态 === '已完成'
         }],
         奖励描述: [
-            mission?.奖励贡献 ? (isTopicOrganization ? `${contributionLabel} +${mission.奖励贡献}` : `门派贡献 +${mission.奖励贡献}`) : '',
+            mission?.奖励贡献 ? `${contributionLabel || '组织贡献'} +${mission.奖励贡献}` : '',
             mission?.奖励资金 ? (isInfinite ? `生存补给额度 +${mission.奖励资金}` : isTopicOrganization ? `资源额度 +${mission.奖励资金}` : `铜钱 +${mission.奖励资金}`) : '',
             ...(Array.isArray(mission?.奖励物品) ? mission.奖励物品 : [])
         ].filter(Boolean),
@@ -794,7 +756,7 @@ const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: Open
                 总需进度: 1,
                 完成状态: false
             }],
-            奖励描述: ['门派贡献 +80', '鉴定熟练度 +8', '可分配属性点 +1'],
+        奖励描述: ['组织贡献 +80', '鉴定熟练度 +8', '可分配属性点 +1'],
             剧情暗线: '主线：完成后要由师长、执事或引路人当面确认奖励；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
         };
     }
@@ -812,7 +774,7 @@ const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: Open
             总需进度: 1,
             完成状态: false
         }],
-        奖励描述: ['门派贡献 +70', '医术熟练度 +6', '可分配属性点 +1'],
+        奖励描述: ['组织贡献 +70', '医术熟练度 +6', '可分配属性点 +1'],
         剧情暗线: '主线：完成后要由发布人或见证者确认成果；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
     };
 };
@@ -1005,7 +967,7 @@ const 创建默认藏经阁列表 = (sectName = '本门', openingConfig?: Openin
         {
             id: `sect_lib_${生成稳定哈希(`${sectName}|entry`).toString(36)}`,
             名称: `${prefix}入门${martialStyle}`,
-            类型: martialStyle.includes('步') || martialStyle.includes('身') ? '身法' : '功法',
+            类型: martialStyle.includes('步') || martialStyle.includes('身') ? '身法' : '能力',
             品阶: '凡品',
             简介: `${sectName}给新进弟子打基础的入门典籍，招路贴合本门传承，不再沿用固定青云模板。`,
             要求职位: '杂役弟子',
@@ -1032,11 +994,11 @@ const 创建默认藏经阁列表 = (sectName = '本门', openingConfig?: Openin
     ];
 };
 
-const 功法品质权重: Record<string, number> = { 凡品: 1, 良品: 2, 上品: 3, 极品: 4, 绝世: 5, 传说: 6 };
+const 能力品质权重: Record<string, number> = { 凡品: 1, 良品: 2, 上品: 3, 极品: 4, 绝世: 5, 传说: 6 };
 
-const 从藏经阁条目创建功法 = (book: any, sectName: string, openingConfig?: OpeningConfig) => {
+const 从藏经阁条目创建能力 = (book: any, sectName: string, openingConfig?: OpeningConfig) => {
     const bookName = 取文本(book?.名称, '未命名典籍');
-    const inferredType = bookName.includes('剑') ? '剑法' : 取文本(book?.类型, '功法');
+    const inferredType = bookName.includes('剑') ? '剑法' : 取文本(book?.类型, '能力');
     const isInfinite = 是无限流题材(openingConfig) || /主神|轮回|奖励点|精神力|念动力|基因锁|枪械|血统|模块/u.test(`${bookName} ${inferredType} ${sectName}`);
     if (isInfinite) {
         const rawType = 取文本(book?.类型, '综合能力');
@@ -1047,7 +1009,7 @@ const 从藏经阁条目创建功法 = (book: any, sectName: string, openingConf
             : /枪械|战斗|格斗|模块/u.test(rawType + bookName)
             ? '招式'
             : '被动';
-        const quality = 功法品质权重[取文本(book?.品阶)] ? 取文本(book?.品阶) : '凡品';
+        const quality = 能力品质权重[取文本(book?.品阶)] ? 取文本(book?.品阶) : '凡品';
         return {
             ID: `sect_${取文本(book?.id, bookName)}`,
             来源藏经ID: 取文本(book?.id),
@@ -1082,8 +1044,8 @@ const 从藏经阁条目创建功法 = (book: any, sectName: string, openingConf
             境界特效: []
         };
     }
-    const typeMap: Record<string, string> = { 功法: '招式', 剑法: '招式', 刀法: '招式', 拳法: '招式', 身法: '轻功', 心法: '内功', 杂学: '被动' };
-    const quality = 功法品质权重[取文本(book?.品阶)] ? 取文本(book?.品阶) : '凡品';
+    const typeMap: Record<string, string> = { 能力: '招式', 剑法: '招式', 刀法: '招式', 拳法: '招式', 身法: '轻功', 心法: '内功', 杂学: '被动' };
+    const quality = 能力品质权重[取文本(book?.品阶)] ? 取文本(book?.品阶) : '凡品';
     return {
         ID: `sect_${取文本(book?.id, bookName)}`,
         来源藏经ID: 取文本(book?.id),
@@ -1119,7 +1081,7 @@ const 从藏经阁条目创建功法 = (book: any, sectName: string, openingConf
     };
 };
 
-const 创建开局散修基础功法 = (charData: 角色数据结构) => {
+const 创建开局散修基础能力 = (charData: 角色数据结构) => {
     const backgroundName = 取文本((charData as any)?.出身背景?.名称);
     const source = backgroundName ? `${backgroundName}旧学` : '开局经历';
     return {
@@ -1156,8 +1118,8 @@ const 创建开局散修基础功法 = (charData: 角色数据结构) => {
     };
 };
 
-const 主角开局应有基础功法 = (charData: 角色数据结构): boolean => {
-    const existing = Array.isArray((charData as any)?.功法列表) && (charData as any).功法列表.length > 0;
+const 主角开局应有基础能力 = (charData: 角色数据结构): boolean => {
+    const existing = Array.isArray((charData as any)?.能力列表) && (charData as any).能力列表.length > 0;
     if (existing) return false;
     const realmText = 取文本((charData as any)?.境界);
     const backgroundText = [
@@ -1166,7 +1128,7 @@ const 主角开局应有基础功法 = (charData: 角色数据结构): boolean =
         取文本((charData as any)?.出身背景?.描述)
     ].join(' ');
     const impossibleText = `${realmText} ${backgroundText}`;
-    if (/凡人|普通人|未入境|未修炼|不会武|不会功法|不通武艺/u.test(impossibleText)) return false;
+    if (/凡人|普通人|未入境|未修炼|不会武|不会能力|不通武艺/u.test(impossibleText)) return false;
     return 取数字((charData as any)?.当前内力) > 0
         || 取数字((charData as any)?.最大内力) > 0
         || 取数字((charData as any)?.境界层级) > 0
@@ -1196,23 +1158,23 @@ const 补齐开局仙侠字段 = (charData: 角色数据结构, openingConfig?: 
 
 const 无限流违和能力词 = /剑法|刀法|拳谱|残卷|吐纳|内力|真经|宗门|门派|藏经阁|灵石|修仙|炼气|筑基|江湖|武学/u;
 
-const 补齐开局角色功法 = (charData: 角色数据结构, sect: 详细门派结构, openingConfig?: OpeningConfig): 角色数据结构 => {
-    const currentSkills = Array.isArray((charData as any)?.功法列表) ? 深拷贝((charData as any).功法列表) : [];
+const 补齐开局角色能力 = (charData: 角色数据结构, sect: 详细门派结构, openingConfig?: OpeningConfig): 角色数据结构 => {
+    const currentSkills = Array.isArray((charData as any)?.能力列表) ? 深拷贝((charData as any).能力列表) : [];
     const isInfinite = 是无限流题材(openingConfig) || 推导组织语义(sect) === '轮回小队';
     const cleanedSkills = isInfinite
         ? currentSkills.filter((skill: any) => !无限流违和能力词.test([skill?.名称, skill?.描述, skill?.类型, skill?.来源, skill?.消耗类型, skill?.圆满效果].map((value) => 取文本(value)).join(' ')))
         : currentSkills;
-    if (cleanedSkills.length > 0) return { ...charData, 功法列表: cleanedSkills };
+    if (cleanedSkills.length > 0) return { ...charData, 能力列表: cleanedSkills };
     if (['营地', '组织', '轮回小队'].includes(推导组织语义(sect))) {
-        if (!isInfinite) return { ...charData, 功法列表: cleanedSkills };
+        if (!isInfinite) return { ...charData, 能力列表: cleanedSkills };
     }
     if (!sect || 是否无门派标识(sect.ID) || !Array.isArray(sect.藏经阁列表) || sect.藏经阁列表.length === 0) {
-        return { ...charData, 功法列表: cleanedSkills };
+        return { ...charData, 能力列表: cleanedSkills };
     }
-    const contribution = Math.max(取数字((charData as any)?.门派贡献, 0), 取数字(sect.累计贡献, 0), 取数字(sect.玩家贡献, 0));
+    const contribution = Math.max(取数字(sect.累计贡献, 0), 取数字(sect.玩家贡献, 0));
     const availableBook = sect.藏经阁列表.find((book: any) => 取数字(book?.要求累计贡献, 0) <= contribution) || sect.藏经阁列表[0];
-    if (!availableBook) return { ...charData, 功法列表: cleanedSkills };
-    return { ...charData, 功法列表: [从藏经阁条目创建功法(availableBook, sect.名称, openingConfig)] };
+    if (!availableBook) return { ...charData, 能力列表: cleanedSkills };
+    return { ...charData, 能力列表: [从藏经阁条目创建能力(availableBook, sect.名称, openingConfig)] };
 };
 
 const 补齐门派重要成员 = (sourceMembers: unknown): 详细门派结构['重要成员'] => {
@@ -1235,7 +1197,7 @@ const 补齐门派重要成员 = (sourceMembers: unknown): 详细门派结构['�
     return members as 详细门派结构['重要成员'];
 };
 
-const 创建玩家门派成员简报 = (
+const 创建玩家组织成员简报 = (
     charData: 角色数据结构,
     sectName: string,
     playerRank: string,
@@ -1287,7 +1249,6 @@ const 合并玩家到重要成员 = (
 };
 
 const 生成开局门派名称 = (charData: 角色数据结构, openingConfig?: OpeningConfig): string => {
-    if (!是否无门派标识(charData?.所属门派ID)) return 取文本(charData.所属门派ID);
     const seed = 生成稳定哈希([
         取文本(charData?.姓名),
         取文本((charData as any)?.出身背景?.名称),
@@ -1409,10 +1370,10 @@ const 题材资料库是否违和 = (items: any[], organizationKind: 组织题�
     if (!Array.isArray(items) || items.length === 0) return false;
     const text = JSON.stringify(items);
     if (organizationKind === '营地') {
-        return /藏经阁|功法|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
+        return /藏经阁|能力|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
     }
     if (organizationKind === '组织') {
-        return /藏经阁|功法|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
+        return /藏经阁|能力|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
     }
     return false;
 };
@@ -1580,19 +1541,18 @@ export const 创建开局门派状态 = (
 
     const seedData = 创建开局门派种子数据(charData, openingConfig);
     const baseName = seedData.sectName;
-    const contribution = Math.max(0, 取数字(charData?.门派贡献, 0));
+    const contribution = 0;
     const isApocalypse = 是末日题材(openingConfig);
     const isInfinite = 是无限流题材(openingConfig);
     const isModern = 是现代组织题材(openingConfig) || 是西幻题材(openingConfig);
-    const sourceRank = 取文本((charData as any)?.门派职位);
     const playerRank = isApocalypse
-        ? (是否无门派标识(sourceRank) ? '营地成员' : sourceRank)
+        ? '营地成员'
         : isInfinite
-            ? (是否无门派标识(sourceRank) ? '新人' : sourceRank)
+            ? '新人'
         : isModern
-            ? (是否无门派标识(sourceRank) ? '成员' : sourceRank)
-            : 补全门派职位(charData, contribution, '外门弟子');
-    const playerMember = 创建玩家门派成员简报(charData, baseName, playerRank, openingConfig);
+            ? '成员'
+            : '外门弟子';
+    const playerMember = 创建玩家组织成员简报(charData, baseName, playerRank, openingConfig);
     const normalized = 规范化门派状态({
         ID: baseName,
         名称: baseName,
@@ -1623,7 +1583,7 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     const isModernOrganization = organizationKind === '组织';
     const sourceId = 取首个已定义值(source, ['ID', 'id', 'Id', '组织ID', '门派ID']);
     const sourceName = 取首个已定义值(source, ['名称', 'name', 'Name', '组织名称', '门派名称']);
-    const sourcePlayerRank = 取首个已定义值(source, ['玩家职位', '门派职位', '职位', '身份', 'rank']);
+    const sourcePlayerRank = 取首个已定义值(source, ['玩家职位', '职位', '身份', 'rank']);
     const id = 取文本(sourceId, base.ID);
     const name = 取文本(sourceName, base.名称);
     const playerRankSource = 取文本(sourcePlayerRank, base.玩家职位);
@@ -1663,12 +1623,12 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
             : Array.isArray(source?.队员列表)
                 ? source.队员列表
                 : [];
-    const playerContribution = 取数字(source?.玩家贡献 ?? source?.贡献 ?? source?.门派贡献 ?? source?.奖励点, base.玩家贡献);
+    const playerContribution = 取数字(source?.玩家贡献 ?? source?.贡献 ?? source?.奖励点, base.玩家贡献);
     const totalContribution = Math.max(
         playerContribution,
         取数字(source?.累计贡献 ?? source?.历史贡献 ?? source?.累计生成贡献, playerContribution)
     );
-    const playerRank = 补全门派职位(source, totalContribution, isActiveSect ? '杂役弟子' : base.玩家职位);
+    const playerRank = 补全传统组织职位(source, totalContribution, isActiveSect ? '杂役弟子' : base.玩家职位);
     const scaleData = 推导门派规模数据(source, displayName);
     const defaultLibraryConfig = isApocalypseOrganization
         ? ({ 题材模式: '末日丧尸' } as OpeningConfig)
@@ -1729,34 +1689,25 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     };
 };
 
-export const 保护开局生成门派状态 = <T extends { 玩家门派?: any; 角色?: any }>(
+export const 保护开局生成门派状态 = <T extends { 玩家组织?: any; 角色?: any }>(
     nextState: T,
-    baseState: { 玩家门派?: any; 角色?: any },
+    baseState: { 玩家组织?: any; 角色?: any },
     openingConfig?: OpeningConfig
 ): T => {
-    const baseSect = 规范化门派状态(baseState?.玩家门派);
-    const nextSect = 规范化门派状态(nextState?.玩家门派);
+    const baseSect = 规范化门派状态(baseState?.玩家组织);
+    const nextSect = 规范化门派状态(nextState?.玩家组织);
     const shouldKeepGeneratedSect = 开局配置允许生成组织(openingConfig)
         && !是否无门派标识(baseSect.ID)
         && 是否无门派标识(nextSect.ID);
     if (!shouldKeepGeneratedSect) return nextState;
 
     const nextRole = nextState?.角色 && typeof nextState.角色 === 'object'
-        ? {
-            ...nextState.角色,
-            所属门派ID: baseSect.ID,
-            门派职位: baseSect.玩家职位,
-            门派贡献: Math.max(
-                取数字(nextState.角色?.门派贡献),
-                取数字(baseSect.玩家贡献),
-                取数字(baseSect.累计贡献)
-            )
-        }
+        ? { ...nextState.角色 }
         : nextState?.角色;
 
     return {
         ...nextState,
-        玩家门派: baseSect,
+        玩家组织: baseSect,
         角色: nextRole
     };
 };
@@ -1793,7 +1744,6 @@ export const 创建开场空白世界 = (): 世界数据结构 => ({
     地图人物: [],
     势力列表: [],
     势力互动历史: [],
-    拍卖行待投放物品: []
 });
 
 export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
@@ -1929,7 +1879,6 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
         // 势力系统（旧存档兼容：缺失时默认为空数组）
         势力列表: Array.isArray(world?.势力列表) ? world.势力列表 : [],
         势力互动历史: Array.isArray(world?.势力互动历史) ? world.势力互动历史 : [],
-        拍卖行待投放物品: Array.isArray(world?.拍卖行待投放物品) ? world.拍卖行待投放物品 : []
     };
 
     // 不再调用补齐——旧坐标系统已废弃，新地图系统不需要空间坐标补全
@@ -1999,10 +1948,6 @@ export const 创建开场空白剧情 = (): 剧情系统结构 => ({
     当前章节: {
         标题: '',
         当前分解组: 1,
-        原著章节标题: '',
-        原著推进状态: '未开始',
-        原著换章条件: [],
-        原著切换说明: [],
         已完成摘要: [],
         当前待解问题: [],
         切章后沉淀要点: []
@@ -2025,14 +1970,6 @@ export const 规范化剧情状态 = (raw?: any): 剧情系统结构 => {
         当前章节: {
             标题: 取文本(chapter?.标题),
             当前分解组: Math.max(1, 取数字(chapter?.当前分解组, 1)),
-            原著章节标题: 取文本(chapter?.原著章节标题),
-            原著推进状态: chapter?.原著推进状态 === '已完成'
-                ? '已完成'
-                : chapter?.原著推进状态 === '推进中'
-                    ? '推进中'
-                    : '未开始',
-            原著换章条件: 取字符串数组(chapter?.原著换章条件),
-            原著切换说明: 取字符串数组(chapter?.原著切换说明),
             已完成摘要: 取字符串数组(chapter?.已完成摘要),
             当前待解问题: 取字符串数组(chapter?.当前待解问题),
             切章后沉淀要点: 取字符串数组(chapter?.切章后沉淀要点)
@@ -2242,229 +2179,10 @@ export const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划
     };
 };
 
-export const 创建空同人剧情规划 = (): 同人剧情规划结构 => ({
-    当前对齐信息: {
-        当前分解组: 1,
-        当前章节范围: '',
-        当前章节标题: [],
-        当前承接方式: '',
-        当前原著状态: [],
-        当前已形成偏转: []
-    },
-    当前章目标: [],
-    当前章任务: [],
-    分歧线: [],
-    待触发事件: [],
-    镜头规划: [],
-    换组规则: {
-        当前组完成判定: [],
-        下一组进入条件: [],
-        禁止换组条件: [],
-        换组后沉淀内容: [],
-        换组后需清空字段: [],
-        换组后需重建字段: []
-    }
-});
-
-export const 规范化同人剧情规划状态 = (raw?: any): 同人剧情规划结构 | undefined => {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
-    const plan = raw;
-    const align = plan?.当前对齐信息 && typeof plan.当前对齐信息 === 'object' ? plan.当前对齐信息 : {};
-    const switchRule = plan?.换组规则 && typeof plan.换组规则 === 'object' ? plan.换组规则 : {};
-    return {
-        当前对齐信息: {
-            当前分解组: Math.max(1, 取数字(align?.当前分解组, 1)),
-            当前章节范围: 取文本(align?.当前章节范围),
-            当前章节标题: 取字符串数组(align?.当前章节标题),
-            当前承接方式: 取文本(align?.当前承接方式),
-            当前原著状态: 取字符串数组(align?.当前原著状态),
-            当前已形成偏转: 取字符串数组(align?.当前已形成偏转)
-        },
-        当前章目标: 取字符串数组(plan?.当前章目标),
-        当前章任务: Array.isArray(plan?.当前章任务)
-            ? plan.当前章任务
-                .map((item: any) => ({
-                    标题: 取文本(item?.标题),
-                    任务说明: 取文本(item?.任务说明),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    关联原著事件: 取字符串数组(item?.关联原著事件),
-                    保持不变的原著基线: 取字符串数组(item?.保持不变的原著基线),
-                    当前偏转点: 取字符串数组(item?.当前偏转点),
-                    计划执行时间: 取文本(item?.计划执行时间),
-                    最早执行时间: 取文本(item?.最早执行时间),
-                    最晚执行时间: 取文本(item?.最晚执行时间),
-                    前置条件: 取字符串数组(item?.前置条件),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    阻断条件: 取字符串数组(item?.阻断条件),
-                    执行动作: 取字符串数组(item?.执行动作),
-                    完成判定: 取字符串数组(item?.完成判定),
-                    偏转后果: 取字符串数组(item?.偏转后果),
-                    未偏转后果: 取字符串数组(item?.未偏转后果),
-                    完成后沉淀: 取字符串数组(item?.完成后沉淀),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.标题 || item.任务说明)
-            : [],
-        分歧线: Array.isArray(plan?.分歧线)
-            ? plan.分歧线
-                .map((item: any) => ({
-                    分歧线名: 取文本(item?.分歧线名),
-                    起点事件: 取文本(item?.起点事件),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    偏转原因: 取字符串数组(item?.偏转原因),
-                    与原著不同之处: 取字符串数组(item?.与原著不同之处),
-                    当前阶段: 取文本(item?.当前阶段),
-                    影响范围: 取字符串数组(item?.影响范围),
-                    下一步扩大条件: 取字符串数组(item?.下一步扩大条件),
-                    回收条件: 取字符串数组(item?.回收条件),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.分歧线名 || item.起点事件)
-            : [],
-        待触发事件: Array.isArray(plan?.待触发事件)
-            ? plan.待触发事件
-                .map((item: any) => ({
-                    事件名: 取文本(item?.事件名),
-                    事件说明: 取文本(item?.事件说明),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    关联原著事件: 取字符串数组(item?.关联原著事件),
-                    计划触发时间: 取文本(item?.计划触发时间),
-                    最早触发时间: 取文本(item?.最早触发时间),
-                    最晚触发时间: 取文本(item?.最晚触发时间),
-                    前置条件: 取字符串数组(item?.前置条件),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    阻断条件: 取字符串数组(item?.阻断条件),
-                    触发后影响: 取字符串数组(item?.触发后影响),
-                    错过后影响: 取字符串数组(item?.错过后影响),
-                    若偏转则转入哪条分歧线: 取字符串数组(item?.若偏转则转入哪条分歧线),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.事件名 || item.事件说明)
-            : [],
-        镜头规划: Array.isArray(plan?.镜头规划)
-            ? plan.镜头规划
-                .map((item: any) => ({
-                    镜头标题: 取文本(item?.镜头标题),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    镜头内容: 取文本(item?.镜头内容),
-                    触发时间: 取文本(item?.触发时间),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    关联人物: 取字符串数组(item?.关联人物),
-                    关联地点: 取字符串数组(item?.关联地点),
-                    关联分歧线: 取字符串数组(item?.关联分歧线),
-                    作用: 取字符串数组(item?.作用),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.镜头标题 || item.镜头内容)
-            : [],
-        换组规则: {
-            当前组完成判定: 取字符串数组(switchRule?.当前组完成判定),
-            下一组进入条件: 取字符串数组(switchRule?.下一组进入条件),
-            禁止换组条件: 取字符串数组(switchRule?.禁止换组条件),
-            换组后沉淀内容: 取字符串数组(switchRule?.换组后沉淀内容),
-            换组后需清空字段: 取字符串数组(switchRule?.换组后需清空字段),
-            换组后需重建字段: 取字符串数组(switchRule?.换组后需重建字段)
-        }
-    };
-};
-
-export const 创建空同人女主剧情规划 = (): 同人女主剧情规划结构 => ({
-    阶段推进: [],
-    女主条目: [],
-    女主互动事件: [],
-    女主镜头规划: []
-});
-
-export const 规范化同人女主剧情规划状态 = (raw?: any): 同人女主剧情规划结构 | undefined => {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
-    const plan = raw;
-    return {
-        阶段推进: Array.isArray(plan?.阶段推进)
-            ? plan.阶段推进
-                .map((item: any) => ({
-                    阶段名: 取文本(item?.阶段名),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    主推女主: 取字符串数组(item?.主推女主),
-                    次推女主: 取字符串数组(item?.次推女主),
-                    关联分歧线: 取字符串数组(item?.关联分歧线),
-                    阶段目标: 取字符串数组(item?.阶段目标),
-                    禁止越级对象: 取字符串数组(item?.禁止越级对象),
-                    完成判定: 取字符串数组(item?.完成判定),
-                    切换条件: 取字符串数组(item?.切换条件)
-                }))
-                .filter((item) => item.阶段名 || item.阶段目标.length > 0)
-            : [],
-        女主条目: Array.isArray(plan?.女主条目)
-            ? plan.女主条目
-                .map((item: any) => ({
-                    女主姓名: 取文本(item?.女主姓名),
-                    类型: 取文本(item?.类型),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    关联原著关系线: 取字符串数组(item?.关联原著关系线),
-                    保持不变的原著基线: 取字符串数组(item?.保持不变的原著基线),
-                    当前偏转点: 取字符串数组(item?.当前偏转点),
-                    所属分歧线: 取字符串数组(item?.所属分歧线),
-                    当前关系状态: 取文本(item?.当前关系状态),
-                    当前阶段: 取文本(item?.当前阶段),
-                    已成立事实: 取字符串数组(item?.已成立事实),
-                    阶段目标: 取字符串数组(item?.阶段目标),
-                    推进方式: 取字符串数组(item?.推进方式),
-                    阻断因素: 取字符串数组(item?.阻断因素),
-                    允许突破条件: 取字符串数组(item?.允许突破条件),
-                    失败后回退: 取字符串数组(item?.失败后回退)
-                }))
-                .filter((item) => item.女主姓名)
-            : [],
-        女主互动事件: Array.isArray(plan?.女主互动事件)
-            ? plan.女主互动事件
-                .map((item: any) => ({
-                    女主姓名: 取文本(item?.女主姓名),
-                    事件名: 取文本(item?.事件名),
-                    事件说明: 取文本(item?.事件说明),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    关联原著事件: 取字符串数组(item?.关联原著事件),
-                    关联分歧线: 取字符串数组(item?.关联分歧线),
-                    计划触发时间: 取文本(item?.计划触发时间),
-                    最早触发时间: 取文本(item?.最早触发时间),
-                    最晚触发时间: 取文本(item?.最晚触发时间),
-                    前置条件: 取字符串数组(item?.前置条件),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    阻断条件: 取字符串数组(item?.阻断条件),
-                    成功结果: 取字符串数组(item?.成功结果),
-                    失败结果: 取字符串数组(item?.失败结果),
-                    与主剧情联动: 取字符串数组(item?.与主剧情联动),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.女主姓名 || item.事件名)
-            : [],
-        女主镜头规划: Array.isArray(plan?.女主镜头规划)
-            ? plan.女主镜头规划
-                .map((item: any) => ({
-                    女主姓名: 取文本(item?.女主姓名),
-                    关联分解组: 取数字数组(item?.关联分解组),
-                    镜头标题: 取文本(item?.镜头标题),
-                    镜头内容: 取文本(item?.镜头内容),
-                    触发时间: 取文本(item?.触发时间),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    关联事件: 取字符串数组(item?.关联事件),
-                    关联分歧线: 取字符串数组(item?.关联分歧线),
-                    沉淀内容: 取字符串数组(item?.沉淀内容),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.女主姓名 || item.镜头标题)
-            : []
-    };
-};
-
 export const 创建开场基础状态 = (charData: 角色数据结构, worldConfig: WorldGenConfig, openingConfig?: OpeningConfig) => {
-    const 玩家门派 = 创建开局门派状态(charData, openingConfig);
+    const 玩家组织 = 创建开局门派状态(charData, openingConfig);
     const 门派任务: 任务结构[] = [];
-    const 角色基态 = 补齐开局角色功法(深拷贝(charData), 玩家门派, openingConfig) as any;
-    if (!是否无门派标识(玩家门派.ID)) {
-        角色基态.所属门派ID = 玩家门派.ID;
-        角色基态.门派职位 = 玩家门派.玩家职位;
-        角色基态.门派贡献 = 玩家门派.玩家贡献;
-    }
+    const 角色基态 = 补齐开局角色能力(深拷贝(charData), 玩家组织, openingConfig) as any;
     const 补齐后角色 = 补齐开局仙侠字段(角色基态, openingConfig);
     const 角色 = {
         ...补齐后角色,
@@ -2482,7 +2200,7 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
     if (地图草稿层级.length > 0) {
         世界.地图层级 = 地图草稿层级 as any;
     }
-    const 开局任务 = 去重开局任务列表(确保开局主线任务(门派任务, 玩家门派, openingConfig));
+    const 开局任务 = 去重开局任务列表(确保开局主线任务(门派任务, 玩家组织, openingConfig));
     return {
         角色,
         环境: 创建开场空白环境(),
@@ -2490,14 +2208,12 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
         社交,
         世界,
         战斗: 创建开场空白战斗(),
-        玩家门派,
+        玩家组织,
         任务列表: 开局任务,
         约定列表: [],
         剧情: 创建开场空白剧情(),
         剧情规划: 创建空剧情规划(),
-        女主剧情规划: undefined as 女主剧情规划结构 | undefined,
-        同人剧情规划: undefined as 同人剧情规划结构 | undefined,
-        同人女主剧情规划: undefined as 同人女主剧情规划结构 | undefined
+        女主剧情规划: undefined as 女主剧情规划结构 | undefined
     };
 };
 
@@ -2510,14 +2226,12 @@ export const 创建开场命令基态 = (openingBase?: Partial<ReturnType<typeof
     社交: Array.isArray(openingBase?.社交) ? 深拷贝(openingBase.社交) : [],
     世界: openingBase?.世界 ? 深拷贝(openingBase.世界) : 创建开场空白世界(),
     战斗: openingBase?.战斗 ? 深拷贝(openingBase.战斗) : 创建开场空白战斗(),
-    玩家门派: openingBase?.玩家门派 ? 规范化门派状态(openingBase.玩家门派) : 创建空门派状态(),
+    玩家组织: openingBase?.玩家组织 ? 规范化门派状态(openingBase.玩家组织) : 创建空门派状态(),
     任务列表: Array.isArray(openingBase?.任务列表) ? 深拷贝(openingBase.任务列表) : [],
     约定列表: Array.isArray(openingBase?.约定列表) ? 深拷贝(openingBase.约定列表) : [],
     剧情: openingBase?.剧情 ? 规范化剧情状态(openingBase.剧情) : 创建开场空白剧情(),
     剧情规划: openingBase?.剧情规划 ? 规范化剧情规划状态(openingBase.剧情规划) : 创建空剧情规划(),
-    女主剧情规划: openingBase?.女主剧情规划 ? 规范化女主剧情规划状态(openingBase.女主剧情规划) : undefined,
-    同人剧情规划: openingBase?.同人剧情规划 ? 规范化同人剧情规划状态(openingBase.同人剧情规划) : undefined,
-    同人女主剧情规划: openingBase?.同人女主剧情规划 ? 规范化同人女主剧情规划状态(openingBase.同人女主剧情规划) : undefined
+    女主剧情规划: openingBase?.女主剧情规划 ? 规范化女主剧情规划状态(openingBase.女主剧情规划) : undefined
 });
 
 export const 构建前端清空开场状态 = (
@@ -2529,14 +2243,12 @@ export const 构建前端清空开场状态 = (
     社交: [],
     世界: 创建开场空白世界(),
     战斗: 创建开场空白战斗(),
-    玩家门派: 创建空门派状态(),
+    玩家组织: 创建空门派状态(),
     任务列表: [],
     约定列表: [],
     剧情: 创建开场空白剧情(),
     剧情规划: 创建空剧情规划(),
-    女主剧情规划: undefined,
-    同人剧情规划: undefined,
-    同人女主剧情规划: undefined
+    女主剧情规划: undefined
 });
 
 export const 创建空记忆系统 = (): 记忆系统结构 => ({

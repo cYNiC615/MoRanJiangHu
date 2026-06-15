@@ -1,5 +1,4 @@
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
-import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 
 export type 通用消息角色 = 'system' | 'user' | 'assistant';
 
@@ -822,13 +821,7 @@ const 支持XHR流式请求 = (): boolean => {
 };
 
 const 支持原生流式请求 = (): boolean => {
-    if (!isNativeCapacitorEnvironment()) return false;
-    const runtimePlugin = typeof window !== 'undefined'
-        ? (window as any)?.Capacitor?.Plugins?.NativeChatStreamer
-        : undefined;
-    return typeof runtimePlugin?.streamChat === 'function'
-        && typeof runtimePlugin?.addListener === 'function'
-        && typeof runtimePlugin?.cancelStream === 'function';
+    return false;
 };
 
 const 生成原生流请求ID = (): string => {

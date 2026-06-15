@@ -9,7 +9,6 @@ import {
     视觉设置结构,
     NPC结构,
     世界数据结构,
-    详细门派结构,
     任务结构,
     约定结构,
     剧情系统结构,
@@ -17,12 +16,11 @@ import {
     游戏设置结构,
     记忆配置结构,
     记忆系统结构,
-    战斗状态结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     图片管理设置结构,
     OpeningConfig,
+    战斗状态结构,
+    详细门派结构,
 } from '../types';
 import { 默认中期转长期提示词, 默认短期转中期提示词, 默认NPC记忆总结提示词 } from '../prompts/runtime/defaults';
 import * as dbService from '../services/dbService';
@@ -36,11 +34,11 @@ import { 构建默认技艺 } from '../utils/skillDefaults';
 import { 确保角色金钱BaseAmount } from '../utils/currencyDisplay';
 import {
     创建开场空白世界,
+    创建开场空白战斗,
     创建开场空白剧情,
     创建空剧情规划,
     创建空门派状态
 } from './useGame/storyState';
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 
 const 加载默认提示词 = async (): Promise<提示词结构[]> => {
     const mod = await import('../prompts');
@@ -57,29 +55,11 @@ export const useGameState = () => {
         外貌: '',
         性格: '',
         称号: '',
-        境界: '',
-        境界层级: 1,
-        灵根: '',
-        灵根资质: '',
-        当前灵力: 0,
-        最大灵力: 0,
-        当前神识: 0,
-        最大神识: 0,
-        丹田状态: '',
-        道基状态: '',
-        心魔值: 0,
-        功德: 0,
-        业力: 0,
         天赋列表: [],
         出身背景: { 名称: '', 描述: '', 效果: '' },
-        所属门派ID: 'none',
-        门派职位: '无',
-        门派贡献: 0,
         金钱: 确保角色金钱BaseAmount({ 金元宝: 0, 银子: 0, 铜钱: 0 }),
         当前精力: 0,
         最大精力: 0,
-        当前内力: 0,
-        最大内力: 0,
         当前饱腹: 0,
         最大饱腹: 0,
         当前口渴: 0,
@@ -106,8 +86,7 @@ export const useGameState = () => {
             主武器: '无', 副武器: '无', 暗器: '无', 背部: '无', 腰部: '无', 坐骑: '无'
         },
         物品列表: [],
-        功法列表: [],
-        技艺: 构建默认技艺('武侠'),
+        技艺: 构建默认技艺('现代都市'),
         当前经验: 0,
         升级经验: 0,
         玩家BUFF: [],
@@ -119,18 +98,13 @@ export const useGameState = () => {
         中地点: '',
         小地点: '',
         具体地点: '',
-        节日: null,
-        天气: { 天气: '', 结束日期: '1:01:01:00:00' },
         环境变量: []
     });
 
     const 创建空世界 = (): 世界数据结构 => 创建开场空白世界();
-    const 创建空门派 = (): 详细门派结构 => 创建空门派状态();
     const 创建空剧情 = (): 剧情系统结构 => 创建开场空白剧情();
     const 创建空剧情规划状态 = (): 剧情规划结构 => 创建空剧情规划();
     const 创建空女主剧情规划状态 = (): 女主剧情规划结构 | undefined => undefined;
-    const 创建空同人剧情规划状态 = (): 同人剧情规划结构 | undefined => undefined;
-    const 创建空同人女主剧情规划状态 = (): 同人女主剧情规划结构 | undefined => undefined;
 
     // View State
     const [view, setView] = useState<'home' | 'game' | 'new_game'>('home');
@@ -141,18 +115,13 @@ export const useGameState = () => {
     const [环境, 设置环境] = useState<环境信息结构>(() => 创建空环境());
     const [社交, 设置社交] = useState<NPC结构[]>([]);
     const [世界, 设置世界] = useState<世界数据结构>(() => 创建空世界()); 
-    const [战斗, 设置战斗] = useState<战斗状态结构>(() => ({
-        是否战斗中: false,
-        敌方: []
-    }));
-    const [玩家门派, 设置玩家门派] = useState<详细门派结构>(() => 创建空门派());
+    const [战斗, 设置战斗] = useState<战斗状态结构>(() => 创建开场空白战斗());
+    const [玩家组织, 设置玩家组织] = useState<详细门派结构>(() => 创建空门派状态());
     const [任务列表, 设置任务列表] = useState<任务结构[]>([]);
     const [约定列表, 设置约定列表] = useState<约定结构[]>([]);
     const [剧情, 设置剧情] = useState<剧情系统结构>(() => 创建空剧情()); 
     const [剧情规划, 设置剧情规划] = useState<剧情规划结构>(() => 创建空剧情规划状态());
     const [女主剧情规划, 设置女主剧情规划] = useState<女主剧情规划结构 | undefined>(() => 创建空女主剧情规划状态());
-    const [同人剧情规划, 设置同人剧情规划] = useState<同人剧情规划结构 | undefined>(() => 创建空同人剧情规划状态());
-    const [同人女主剧情规划, 设置同人女主剧情规划] = useState<同人女主剧情规划结构 | undefined>(() => 创建空同人女主剧情规划状态());
     const [开局配置, 设置开局配置] = useState<OpeningConfig | undefined>(undefined);
     const [游戏初始时间, 设置游戏初始时间] = useState('');
 
@@ -280,9 +249,7 @@ export const useGameState = () => {
     useEffect(() => {
         const init = async () => {
             try {
-                if (!isNativeCapacitorEnvironment()) {
-                    await dbService.迁移图片资源到独立存储();
-                }
+                await dbService.迁移图片资源到独立存储();
                 await dbService.预热图片资源缓存();
                 const savedTheme = await dbService.读取设置(设置键.应用主题);
                 if (savedTheme && THEMES[savedTheme as ThemePreset]) setCurrentTheme(savedTheme as ThemePreset);
@@ -378,14 +345,12 @@ export const useGameState = () => {
         社交, 设置社交,
         世界, 设置世界,
         战斗, 设置战斗,
-        玩家门派, 设置玩家门派,
+        玩家组织, 设置玩家组织,
         任务列表, 设置任务列表,
         约定列表, 设置约定列表,
         剧情, 设置剧情,
         剧情规划, 设置剧情规划,
         女主剧情规划, 设置女主剧情规划,
-        同人剧情规划, 设置同人剧情规划,
-        同人女主剧情规划, 设置同人女主剧情规划,
         开局配置, 设置开局配置,
         游戏初始时间, 设置游戏初始时间,
         历史记录, 设置历史记录,

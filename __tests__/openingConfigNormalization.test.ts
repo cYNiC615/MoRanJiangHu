@@ -10,18 +10,11 @@ describe('开局配置题材边界', () => {
         const config = 规范化开局配置({
             题材模式: '末日丧尸',
             开局生成门派: true,
-            开局生成同门: true,
-            同人融合: {
-                enabled: false,
-                启用附加小说: true,
-                附加小说数据集ID: 'novel-a'
-            }
+            开局生成同门: true
         });
 
         expect(config.开局生成门派).toBe(true);
         expect(config.开局生成同门).toBe(true);
-        expect(config.同人融合.启用附加小说).toBe(false);
-        expect(config.同人融合.附加小说数据集ID).toBe('');
     });
 
     it('末世丧尸作为旧称会规范化到末日丧尸', () => {

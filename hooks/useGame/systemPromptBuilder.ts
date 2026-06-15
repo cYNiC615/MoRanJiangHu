@@ -34,7 +34,7 @@ import {
 } from '../../utils/worldbook';
 import { 构建主剧情难度摘要提示词 } from '../../prompts/runtime/promptOwnership';
 import { 获取内置提示词槽位内容 } from '../../utils/builtinPrompts';
-import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from '../../utils/promptFeatureToggles';
 import {
     构建运行时提示词池,
     剥离NoControl关联提示词,
@@ -52,16 +52,12 @@ import {
     规范化剧情状态,
     规范化剧情规划状态,
     规范化女主剧情规划状态,
-    规范化同人剧情规划状态,
-    规范化同人女主剧情规划状态,
     规范化世界状态,
     规范化战斗状态
 } from './storyState';
 import { 构建地图空间场景 } from '../../utils/mapSpatial';
-import { 构建同人运行时提示词包, 同人运行时模式已启用, 应用境界体系区块替换 } from '../../prompts/runtime/fandom';
 import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
 import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePlanCot';
-import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
@@ -78,7 +74,6 @@ export type 系统提示词上下文片段 = {
     AI角色声明: string;
     worldPrompt: string;
     地图建筑状态: string;
-    同人设定摘要: string;
     境界体系提示词: string;
     otherPrompts: string;
     难度设置提示词: string;
@@ -457,7 +452,7 @@ export const 构建系统提示词 = ({
                 描述: 取文本(raw?.描述)
             };
         });
-        const 功法列表 = 取数组(role?.功法列表).map((item: any) => {
+        const 能力列表 = 取数组(role?.能力列表).map((item: any) => {
             const raw = item && typeof item === 'object' ? item : {};
             const 附带效果 = 取数组(raw?.附带效果).map((effect: any) => ({
                 名称: 取文本(effect?.名称),
@@ -525,9 +520,6 @@ export const 构建系统提示词 = ({
             境界层级: 取数值(role?.境界层级, 1),
             天赋列表,
             出身背景,
-            所属门派ID: 取文本(role?.所属门派ID),
-            门派职位: 取文本(role?.门派职位),
-            门派贡献: 取数值(role?.门派贡献),
             金钱,
             当前精力: 取数值(role?.当前精力),
             最大精力: 取数值(role?.最大精力),
@@ -576,7 +568,7 @@ export const 构建系统提示词 = ({
                     ? { ...item }
                     : { 名称: 取文本(item) }
             )),
-            功法列表,
+            能力列表,
             技艺: 技艺列表,
             当前经验: 取数值(role?.当前经验),
             升级经验: 取数值(role?.升级经验),
@@ -584,7 +576,7 @@ export const 构建系统提示词 = ({
             突破条件: 突破条件列表
         };
 
-        return 包装树状上下文('用户角色数据', 裁剪修炼体系上下文数据(orderedRole, normalizedGameConfig));
+        return 包装树状上下文('用户角色数据', 裁剪成长体系上下文数据(orderedRole, normalizedGameConfig));
     };
     const 归一化文本 = (value: any) => (
         typeof value === 'string'
@@ -674,7 +666,7 @@ export const 构建系统提示词 = ({
             }))
         };
 
-        return 包装树状上下文('世界', 裁剪修炼体系上下文数据(orderedWorld, normalizedGameConfig));
+        return 包装树状上下文('世界', 裁剪成长体系上下文数据(orderedWorld, normalizedGameConfig));
     };
     const 构建战斗状态文本 = (payload: any) => {
         const battle = 规范化战斗状态(payload?.战斗);
@@ -704,7 +696,7 @@ export const 构建系统提示词 = ({
         return 包装树状上下文('战斗', orderedBattle);
     };
     const 构建门派状态文本 = (payload: any) => {
-        const sect = payload?.玩家门派 && typeof payload.玩家门派 === 'object' ? payload.玩家门派 : {};
+        const sect = payload?.玩家组织 && typeof payload.玩家组织 === 'object' ? payload.玩家组织 : {};
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
         const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
         const 取数值 = (value: any, fallback: number = 0) => (
@@ -756,7 +748,7 @@ export const 构建系统提示词 = ({
             兑换列表,
             重要成员
         };
-        return 包装树状上下文('玩家门派', 裁剪修炼体系上下文数据(orderedSect, normalizedGameConfig));
+        return 包装树状上下文('玩家组织', 裁剪成长体系上下文数据(orderedSect, normalizedGameConfig));
     };
     const 构建任务列表文本 = (payload: any) => {
         const tasks = Array.isArray(payload?.任务列表) ? payload.任务列表 : [];
@@ -784,7 +776,7 @@ export const 构建系统提示词 = ({
             奖励描述: 取数组(task?.奖励描述),
             剧情暗线: 取文本(task?.剧情暗线)
         }));
-        return 包装树状上下文('任务列表', 裁剪修炼体系上下文数据(orderedTasks, normalizedGameConfig));
+        return 包装树状上下文('任务列表', 裁剪成长体系上下文数据(orderedTasks, normalizedGameConfig));
     };
     const 构建约定列表文本 = (payload: any) => {
         const agreements = Array.isArray(payload?.约定列表) ? payload.约定列表 : [];
@@ -826,10 +818,7 @@ export const 构建系统提示词 = ({
     };
     const 构建剧情安排 = (payload: any) => {
         const normalizedStory = 规范化剧情状态(payload?.剧情);
-        const fandomEnabled = 同人运行时模式已启用(payload?.开局配置);
-        const normalizedStoryPlan = fandomEnabled
-            ? 规范化同人剧情规划状态(payload?.同人剧情规划)
-            : 规范化剧情规划状态(payload?.剧情规划);
+        const normalizedStoryPlan = 规范化剧情规划状态(payload?.剧情规划);
         const chapter = normalizedStory?.当前章节;
 
         const orderedStory = {
@@ -855,247 +844,107 @@ export const 构建系统提示词 = ({
                 }))
                 : [],
             当前规划: normalizedStoryPlan
-                ? (
-                    fandomEnabled
-                        ? {
-                            当前对齐信息: (normalizedStoryPlan as any).当前对齐信息 ?? {},
-                            当前章目标: Array.isArray((normalizedStoryPlan as any).当前章目标) ? (normalizedStoryPlan as any).当前章目标 : [],
-                            当前章任务: Array.isArray((normalizedStoryPlan as any).当前章任务) ? (normalizedStoryPlan as any).当前章任务.map((item: any, idx: number) => ({
-                                索引: idx,
-                                标题: item?.标题 ?? '',
-                                任务说明: item?.任务说明 ?? '',
-                                关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                                关联原著事件: Array.isArray(item?.关联原著事件) ? item.关联原著事件 : [],
-                                保持不变的原著基线: Array.isArray(item?.保持不变的原著基线) ? item.保持不变的原著基线 : [],
-                                当前偏转点: Array.isArray(item?.当前偏转点) ? item.当前偏转点 : [],
-                                计划执行时间: item?.计划执行时间 ?? '',
-                                最早执行时间: item?.最早执行时间 ?? '',
-                                最晚执行时间: item?.最晚执行时间 ?? '',
-                                前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
-                                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                                阻断条件: Array.isArray(item?.阻断条件) ? item.阻断条件 : [],
-                                执行动作: Array.isArray(item?.执行动作) ? item.执行动作 : [],
-                                完成判定: Array.isArray(item?.完成判定) ? item.完成判定 : [],
-                                偏转后果: Array.isArray(item?.偏转后果) ? item.偏转后果 : [],
-                                未偏转后果: Array.isArray(item?.未偏转后果) ? item.未偏转后果 : [],
-                                完成后沉淀: Array.isArray(item?.完成后沉淀) ? item.完成后沉淀 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            分歧线: Array.isArray((normalizedStoryPlan as any).分歧线) ? (normalizedStoryPlan as any).分歧线.map((item: any, idx: number) => ({
-                                索引: idx,
-                                分歧线名: item?.分歧线名 ?? '',
-                                起点事件: item?.起点事件 ?? '',
-                                关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                                偏转原因: Array.isArray(item?.偏转原因) ? item.偏转原因 : [],
-                                与原著不同之处: Array.isArray(item?.与原著不同之处) ? item.与原著不同之处 : [],
-                                当前阶段: item?.当前阶段 ?? '',
-                                影响范围: Array.isArray(item?.影响范围) ? item.影响范围 : [],
-                                下一步扩大条件: Array.isArray(item?.下一步扩大条件) ? item.下一步扩大条件 : [],
-                                回收条件: Array.isArray(item?.回收条件) ? item.回收条件 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            待触发事件: Array.isArray((normalizedStoryPlan as any).待触发事件) ? (normalizedStoryPlan as any).待触发事件.map((item: any, idx: number) => ({
-                                索引: idx,
-                                事件名: item?.事件名 ?? '',
-                                事件说明: item?.事件说明 ?? '',
-                                关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                                关联原著事件: Array.isArray(item?.关联原著事件) ? item.关联原著事件 : [],
-                                计划触发时间: item?.计划触发时间 ?? '',
-                                最早触发时间: item?.最早触发时间 ?? '',
-                                最晚触发时间: item?.最晚触发时间 ?? '',
-                                前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
-                                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                                阻断条件: Array.isArray(item?.阻断条件) ? item.阻断条件 : [],
-                                触发后影响: Array.isArray(item?.触发后影响) ? item.触发后影响 : [],
-                                错过后影响: Array.isArray(item?.错过后影响) ? item.错过后影响 : [],
-                                若偏转则转入哪条分歧线: Array.isArray(item?.若偏转则转入哪条分歧线) ? item.若偏转则转入哪条分歧线 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            镜头规划: Array.isArray((normalizedStoryPlan as any).镜头规划) ? (normalizedStoryPlan as any).镜头规划.map((item: any, idx: number) => ({
-                                索引: idx,
-                                镜头标题: item?.镜头标题 ?? '',
-                                关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                                镜头内容: item?.镜头内容 ?? '',
-                                触发时间: item?.触发时间 ?? '',
-                                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                                关联人物: Array.isArray(item?.关联人物) ? item.关联人物 : [],
-                                关联地点: Array.isArray(item?.关联地点) ? item.关联地点 : [],
-                                关联分歧线: Array.isArray(item?.关联分歧线) ? item.关联分歧线 : [],
-                                作用: Array.isArray(item?.作用) ? item.作用 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            换组规则: (normalizedStoryPlan as any).换组规则 ?? {}
-                        }
-                        : {
-                            当前章目标: Array.isArray((normalizedStoryPlan as any).当前章目标) ? (normalizedStoryPlan as any).当前章目标 : [],
-                            当前章任务: Array.isArray((normalizedStoryPlan as any).当前章任务) ? (normalizedStoryPlan as any).当前章任务.map((item: any, idx: number) => ({
-                                索引: idx,
-                                标题: item?.标题 ?? '',
-                                任务说明: item?.任务说明 ?? '',
-                                计划执行时间: item?.计划执行时间 ?? '',
-                                前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
-                                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            跨章延续事项: Array.isArray((normalizedStoryPlan as any).跨章延续事项) ? (normalizedStoryPlan as any).跨章延续事项.map((item: any, idx: number) => ({
-                                索引: idx,
-                                标题: item?.标题 ?? '',
-                                当前状态: Array.isArray(item?.当前状态) ? item.当前状态 : [],
-                                延续到何时: item?.延续到何时 ?? '',
-                                后续接续条件: Array.isArray(item?.后续接续条件) ? item.后续接续条件 : []
-                            })) : [],
-                            待触发事件: Array.isArray((normalizedStoryPlan as any).待触发事件) ? (normalizedStoryPlan as any).待触发事件.map((item: any, idx: number) => ({
-                                索引: idx,
-                                事件名: item?.事件名 ?? '',
-                                事件说明: item?.事件说明 ?? '',
-                                计划触发时间: item?.计划触发时间 ?? '',
-                                前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
-                                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            镜头规划: Array.isArray((normalizedStoryPlan as any).镜头规划) ? (normalizedStoryPlan as any).镜头规划.map((item: any, idx: number) => ({
-                                索引: idx,
-                                镜头标题: item?.镜头标题 ?? '',
-                                镜头内容: item?.镜头内容 ?? '',
-                                触发时间: item?.触发时间 ?? '',
-                                关联任务: Array.isArray(item?.关联任务) ? item.关联任务 : [],
-                                当前状态: item?.当前状态 ?? ''
-                            })) : [],
-                            换章规则: (normalizedStoryPlan as any).换章规则 ?? {}
-                        }
-                )
+                ? {
+                    当前章目标: Array.isArray((normalizedStoryPlan as any).当前章目标) ? (normalizedStoryPlan as any).当前章目标 : [],
+                    当前章任务: Array.isArray((normalizedStoryPlan as any).当前章任务) ? (normalizedStoryPlan as any).当前章任务.map((item: any, idx: number) => ({
+                        索引: idx,
+                        标题: item?.标题 ?? '',
+                        任务说明: item?.任务说明 ?? '',
+                        计划执行时间: item?.计划执行时间 ?? '',
+                        前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
+                        触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
+                        当前状态: item?.当前状态 ?? ''
+                    })) : [],
+                    跨章延续事项: Array.isArray((normalizedStoryPlan as any).跨章延续事项) ? (normalizedStoryPlan as any).跨章延续事项.map((item: any, idx: number) => ({
+                        索引: idx,
+                        标题: item?.标题 ?? '',
+                        当前状态: Array.isArray(item?.当前状态) ? item.当前状态 : [],
+                        延续到何时: item?.延续到何时 ?? '',
+                        后续接续条件: Array.isArray(item?.后续接续条件) ? item.后续接续条件 : []
+                    })) : [],
+                    待触发事件: Array.isArray((normalizedStoryPlan as any).待触发事件) ? (normalizedStoryPlan as any).待触发事件.map((item: any, idx: number) => ({
+                        索引: idx,
+                        事件名: item?.事件名 ?? '',
+                        事件说明: item?.事件说明 ?? '',
+                        计划触发时间: item?.计划触发时间 ?? '',
+                        前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
+                        触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
+                        当前状态: item?.当前状态 ?? ''
+                    })) : [],
+                    镜头规划: Array.isArray((normalizedStoryPlan as any).镜头规划) ? (normalizedStoryPlan as any).镜头规划.map((item: any, idx: number) => ({
+                        索引: idx,
+                        镜头标题: item?.镜头标题 ?? '',
+                        镜头内容: item?.镜头内容 ?? '',
+                        触发时间: item?.触发时间 ?? '',
+                        关联任务: Array.isArray(item?.关联任务) ? item.关联任务 : [],
+                        当前状态: item?.当前状态 ?? ''
+                    })) : [],
+                    换章规则: (normalizedStoryPlan as any).换章规则 ?? {}
+                }
                 : {}
         };
 
         return 包装树状上下文('剧情安排', orderedStory);
     };
     const 构建女主剧情规划文本 = (payload: any) => {
-        const fandomEnabled = 同人运行时模式已启用(payload?.开局配置);
-        const normalizedPlan = fandomEnabled
-            ? 规范化同人女主剧情规划状态(payload?.同人女主剧情规划)
-            : 规范化女主剧情规划状态(payload?.女主剧情规划);
+        const normalizedPlan = 规范化女主剧情规划状态(payload?.女主剧情规划);
         if (!normalizedPlan) {
             return '【女主剧情规划】\n无';
         }
-        const orderedPlan = fandomEnabled
-            ? {
-                阶段推进: Array.isArray((normalizedPlan as any).阶段推进) ? (normalizedPlan as any).阶段推进.map((item: any, idx: number) => ({
-                    索引: idx,
-                    阶段名: item?.阶段名 ?? '',
-                    关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                    主推女主: Array.isArray(item?.主推女主) ? item.主推女主 : [],
-                    次推女主: Array.isArray(item?.次推女主) ? item.次推女主 : [],
-                    关联分歧线: Array.isArray(item?.关联分歧线) ? item.关联分歧线 : [],
-                    阶段目标: Array.isArray(item?.阶段目标) ? item.阶段目标 : [],
-                    禁止越级对象: Array.isArray(item?.禁止越级对象) ? item.禁止越级对象 : [],
-                    完成判定: Array.isArray(item?.完成判定) ? item.完成判定 : [],
-                    切换条件: Array.isArray(item?.切换条件) ? item.切换条件 : []
-                })) : [],
-                女主条目: Array.isArray((normalizedPlan as any).女主条目) ? (normalizedPlan as any).女主条目.map((item: any, idx: number) => ({
-                    索引: idx,
-                    女主姓名: item?.女主姓名 ?? '',
-                    类型: item?.类型 ?? '',
-                    关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                    关联原著关系线: Array.isArray(item?.关联原著关系线) ? item.关联原著关系线 : [],
-                    保持不变的原著基线: Array.isArray(item?.保持不变的原著基线) ? item.保持不变的原著基线 : [],
-                    当前偏转点: Array.isArray(item?.当前偏转点) ? item.当前偏转点 : [],
-                    所属分歧线: Array.isArray(item?.所属分歧线) ? item.所属分歧线 : [],
-                    当前关系状态: item?.当前关系状态 ?? '',
-                    当前阶段: item?.当前阶段 ?? '',
-                    已成立事实: Array.isArray(item?.已成立事实) ? item.已成立事实 : [],
-                    阶段目标: Array.isArray(item?.阶段目标) ? item.阶段目标 : [],
-                    推进方式: Array.isArray(item?.推进方式) ? item.推进方式 : [],
-                    阻断因素: Array.isArray(item?.阻断因素) ? item.阻断因素 : [],
-                    允许突破条件: Array.isArray(item?.允许突破条件) ? item.允许突破条件 : [],
-                    失败后回退: Array.isArray(item?.失败后回退) ? item.失败后回退 : []
-                })) : [],
-                女主互动事件: Array.isArray((normalizedPlan as any).女主互动事件) ? (normalizedPlan as any).女主互动事件.map((item: any, idx: number) => ({
-                    索引: idx,
-                    女主姓名: item?.女主姓名 ?? '',
-                    事件名: item?.事件名 ?? '',
-                    事件说明: item?.事件说明 ?? '',
-                    关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                    关联原著事件: Array.isArray(item?.关联原著事件) ? item.关联原著事件 : [],
-                    关联分歧线: Array.isArray(item?.关联分歧线) ? item.关联分歧线 : [],
-                    计划触发时间: item?.计划触发时间 ?? '',
-                    最早触发时间: item?.最早触发时间 ?? '',
-                    最晚触发时间: item?.最晚触发时间 ?? '',
-                    前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
-                    触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                    阻断条件: Array.isArray(item?.阻断条件) ? item.阻断条件 : [],
-                    成功结果: Array.isArray(item?.成功结果) ? item.成功结果 : [],
-                    失败结果: Array.isArray(item?.失败结果) ? item.失败结果 : [],
-                    与主剧情联动: Array.isArray(item?.与主剧情联动) ? item.与主剧情联动 : [],
-                    当前状态: item?.当前状态 ?? ''
-                })) : [],
-                女主镜头规划: Array.isArray((normalizedPlan as any).女主镜头规划) ? (normalizedPlan as any).女主镜头规划.map((item: any, idx: number) => ({
-                    索引: idx,
-                    女主姓名: item?.女主姓名 ?? '',
-                    关联分解组: Array.isArray(item?.关联分解组) ? item.关联分解组 : [],
-                    镜头标题: item?.镜头标题 ?? '',
-                    镜头内容: item?.镜头内容 ?? '',
-                    触发时间: item?.触发时间 ?? '',
-                    触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                    关联事件: Array.isArray(item?.关联事件) ? item.关联事件 : [],
-                    关联分歧线: Array.isArray(item?.关联分歧线) ? item.关联分歧线 : [],
-                    沉淀内容: Array.isArray(item?.沉淀内容) ? item.沉淀内容 : [],
-                    当前状态: item?.当前状态 ?? ''
-                })) : []
-            }
-            : {
-                阶段推进: Array.isArray((normalizedPlan as any).阶段推进) ? (normalizedPlan as any).阶段推进.map((item: any, idx: number) => ({
-                    索引: idx,
-                    阶段名: item?.阶段名 ?? '',
-                    主推女主: Array.isArray(item?.主推女主) ? item.主推女主 : [],
-                    次推女主: Array.isArray(item?.次推女主) ? item.次推女主 : [],
-                    阶段目标: Array.isArray(item?.阶段目标) ? item.阶段目标 : [],
-                    禁止越级对象: Array.isArray(item?.禁止越级对象) ? item.禁止越级对象 : [],
-                    关联剧情任务: Array.isArray(item?.关联剧情任务) ? item.关联剧情任务 : [],
-                    阶段完成判定: Array.isArray(item?.阶段完成判定) ? item.阶段完成判定 : [],
-                    切换条件: Array.isArray(item?.切换条件) ? item.切换条件 : []
-                })) : [],
-                女主条目: Array.isArray((normalizedPlan as any).女主条目) ? (normalizedPlan as any).女主条目.map((item: any, idx: number) => ({
-                    索引: idx,
-                    女主姓名: item?.女主姓名 ?? '',
-                    类型: item?.类型 ?? '',
-                    当前关系状态: item?.当前关系状态 ?? '',
-                    当前阶段: item?.当前阶段 ?? '',
-                    已成立事实: Array.isArray(item?.已成立事实) ? item.已成立事实 : [],
-                    阶段目标: Array.isArray(item?.阶段目标) ? item.阶段目标 : [],
-                    推进方式: Array.isArray(item?.推进方式) ? item.推进方式 : [],
-                    阻断因素: Array.isArray(item?.阻断因素) ? item.阻断因素 : [],
-                    允许突破条件: Array.isArray(item?.允许突破条件) ? item.允许突破条件 : [],
-                    失败后回退: Array.isArray(item?.失败后回退) ? item.失败后回退 : []
-                })) : [],
-                女主互动事件: Array.isArray((normalizedPlan as any).女主互动事件) ? (normalizedPlan as any).女主互动事件.map((item: any, idx: number) => ({
-                    索引: idx,
-                    女主姓名: item?.女主姓名 ?? '',
-                    事件名: item?.事件名 ?? '',
-                    事件说明: item?.事件说明 ?? '',
-                    计划触发时间: item?.计划触发时间 ?? '',
-                    最早触发时间: item?.最早触发时间 ?? '',
-                    最晚触发时间: item?.最晚触发时间 ?? '',
-                    前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
-                    触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                    阻断条件: Array.isArray(item?.阻断条件) ? item.阻断条件 : [],
-                    成功结果: Array.isArray(item?.成功结果) ? item.成功结果 : [],
-                    失败结果: Array.isArray(item?.失败结果) ? item.失败结果 : [],
-                    关联剧情任务: Array.isArray(item?.关联剧情任务) ? item.关联剧情任务 : [],
-                    当前状态: item?.当前状态 ?? ''
-                })) : [],
-                女主镜头规划: Array.isArray((normalizedPlan as any).女主镜头规划) ? (normalizedPlan as any).女主镜头规划.map((item: any, idx: number) => ({
-                    索引: idx,
-                    女主姓名: item?.女主姓名 ?? '',
-                    镜头标题: item?.镜头标题 ?? '',
-                    镜头内容: item?.镜头内容 ?? '',
-                    触发时间: item?.触发时间 ?? '',
-                    触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
-                    关联事件: Array.isArray(item?.关联事件) ? item.关联事件 : [],
-                    关联剧情任务: Array.isArray(item?.关联剧情任务) ? item.关联剧情任务 : [],
-                    沉淀内容: Array.isArray(item?.沉淀内容) ? item.沉淀内容 : [],
-                    当前状态: item?.当前状态 ?? ''
-                })) : []
-            };
+        const orderedPlan = {
+            阶段推进: Array.isArray((normalizedPlan as any).阶段推进) ? (normalizedPlan as any).阶段推进.map((item: any, idx: number) => ({
+                索引: idx,
+                阶段名: item?.阶段名 ?? '',
+                主推女主: Array.isArray(item?.主推女主) ? item.主推女主 : [],
+                次推女主: Array.isArray(item?.次推女主) ? item.次推女主 : [],
+                阶段目标: Array.isArray(item?.阶段目标) ? item.阶段目标 : [],
+                禁止越级对象: Array.isArray(item?.禁止越级对象) ? item.禁止越级对象 : [],
+                关联剧情任务: Array.isArray(item?.关联剧情任务) ? item.关联剧情任务 : [],
+                阶段完成判定: Array.isArray(item?.阶段完成判定) ? item.阶段完成判定 : [],
+                切换条件: Array.isArray(item?.切换条件) ? item.切换条件 : []
+            })) : [],
+            女主条目: Array.isArray((normalizedPlan as any).女主条目) ? (normalizedPlan as any).女主条目.map((item: any, idx: number) => ({
+                索引: idx,
+                女主姓名: item?.女主姓名 ?? '',
+                类型: item?.类型 ?? '',
+                当前关系状态: item?.当前关系状态 ?? '',
+                当前阶段: item?.当前阶段 ?? '',
+                已成立事实: Array.isArray(item?.已成立事实) ? item.已成立事实 : [],
+                阶段目标: Array.isArray(item?.阶段目标) ? item.阶段目标 : [],
+                推进方式: Array.isArray(item?.推进方式) ? item.推进方式 : [],
+                阻断因素: Array.isArray(item?.阻断因素) ? item.阻断因素 : [],
+                允许突破条件: Array.isArray(item?.允许突破条件) ? item.允许突破条件 : [],
+                失败后回退: Array.isArray(item?.失败后回退) ? item.失败后回退 : []
+            })) : [],
+            女主互动事件: Array.isArray((normalizedPlan as any).女主互动事件) ? (normalizedPlan as any).女主互动事件.map((item: any, idx: number) => ({
+                索引: idx,
+                女主姓名: item?.女主姓名 ?? '',
+                事件名: item?.事件名 ?? '',
+                事件说明: item?.事件说明 ?? '',
+                计划触发时间: item?.计划触发时间 ?? '',
+                最早触发时间: item?.最早触发时间 ?? '',
+                最晚触发时间: item?.最晚触发时间 ?? '',
+                前置条件: Array.isArray(item?.前置条件) ? item.前置条件 : [],
+                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
+                阻断条件: Array.isArray(item?.阻断条件) ? item.阻断条件 : [],
+                成功结果: Array.isArray(item?.成功结果) ? item.成功结果 : [],
+                失败结果: Array.isArray(item?.失败结果) ? item.失败结果 : [],
+                关联剧情任务: Array.isArray(item?.关联剧情任务) ? item.关联剧情任务 : [],
+                当前状态: item?.当前状态 ?? ''
+            })) : [],
+            女主镜头规划: Array.isArray((normalizedPlan as any).女主镜头规划) ? (normalizedPlan as any).女主镜头规划.map((item: any, idx: number) => ({
+                索引: idx,
+                女主姓名: item?.女主姓名 ?? '',
+                镜头标题: item?.镜头标题 ?? '',
+                镜头内容: item?.镜头内容 ?? '',
+                触发时间: item?.触发时间 ?? '',
+                触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
+                关联事件: Array.isArray(item?.关联事件) ? item.关联事件 : [],
+                关联剧情任务: Array.isArray(item?.关联剧情任务) ? item.关联剧情任务 : [],
+                沉淀内容: Array.isArray(item?.沉淀内容) ? item.沉淀内容 : [],
+                当前状态: item?.当前状态 ?? ''
+            })) : []
+        };
 
         return 包装树状上下文('女主剧情规划', orderedPlan);
     };
@@ -1106,7 +955,7 @@ export const 构建系统提示词 = ({
         'write_perspective_third'
     ];
     const normalizedGameConfig = 规范化游戏设置(gameConfig);
-    const 启用修炼体系 = normalizedGameConfig.启用修炼体系 === true;
+    const 启用成长体系 = false;
     const activeWorldbookScopes: 世界书作用域[] = Array.isArray(options?.世界书作用域) && options.世界书作用域.length > 0
         ? options.世界书作用域
         : [normalizedGameConfig.启用酒馆预设模式 === true ? 'tavern' : 'main'];
@@ -1264,29 +1113,14 @@ export const 构建系统提示词 = ({
 
     const enabledPrompts = effectivePromptPool.filter(p => p.启用);
     const worldPromptSource = enabledPrompts.find(p => p.id === 'core_world');
-    const realmPromptSource = enabledPrompts.find(p => p.id === 'core_realm');
     const worldPrompt = 按当前设置过滤提示词([
         渲染提示词文本(worldPromptSource?.内容 || ''),
         worldbookInjection.worldLoreText
     ]
         .filter(Boolean)
         .join('\n\n'));
-    const realmPromptRaw = 启用修炼体系
-        ? 渲染提示词文本(realmPromptSource?.内容 || '')
-        : '';
-    const realmPrompt = !启用修炼体系 || realmPromptRaw.includes('开局后此处会被完整替换')
-        ? ''
-        : realmPromptRaw;
-    const fandomPromptBundle = 构建同人运行时提示词包({
-        openingConfig,
-        worldPrompt,
-        realmPrompt
-    });
-    const 应用境界区块替换 = (content: string): string => (
-        启用修炼体系
-            ? 应用境界体系区块替换(content, fandomPromptBundle)
-            : content
-    );
+    const realmPrompt = '';
+    const 应用境界区块替换 = (content: string): string => content;
     const writeReqPrompt = enabledPrompts.find(p => p.id === 'write_req');
     const writeReqContent = writeReqPrompt
         ? 按当前设置过滤提示词(应用写作设置(writeReqPrompt.id, 渲染提示词文本(writeReqPrompt.内容)))
@@ -1311,18 +1145,9 @@ export const 构建系统提示词 = ({
         if (主剧情剥离提示词ID.has(id)) {
             return { id, content: '' };
         }
-        if (!fandomPromptBundle.enabled) {
-            return {
-                id,
-                content: 读取运行时提示词内容(id)
-            };
-        }
-        const runtimeContent = params.thinking
-            ? 构建女主规划专项提示词({ ntl: params.ntl, fandom: true })
-            : 构建女主剧情规划协议({ ntl: params.ntl, fandom: true });
         return {
             id,
-            content: 应用写作设置(id, 渲染提示词文本(runtimeContent))
+            content: 读取运行时提示词内容(id)
         };
     };
     const 开局女主协议提示词 = (() => {
@@ -1350,7 +1175,6 @@ export const 构建系统提示词 = ({
         .map(p => ({ id: p.id, content: 应用境界区块替换(应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容)))) }));
     const otherPromptEntries = enabledPrompts
         .filter(p => p.id !== 'core_world'
-            && p.id !== 'core_realm'
             && p.id !== 'core_action_options'
             && p.id !== 'core_format'
             && p.id !== 'core_story'
@@ -1374,14 +1198,8 @@ export const 构建系统提示词 = ({
         渲染提示词文本(selectedPerspectivePrompt?.内容 || fallbackPerspectivePrompt?.内容 || '')
     );
     const difficultyPrompts = difficultyPromptSummary.trim();
-    const fandomSummaryPrompt = 按当前设置过滤提示词(fandomPromptBundle.同人设定摘要 || '');
     const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(openingConfig));
-    const realmTemplatePrompt = 启用修炼体系
-        ? 按当前设置过滤提示词(渲染提示词文本([
-            核心_境界体系.内容,
-            fandomPromptBundle.境界母板补丁
-        ].filter(Boolean).join('\n\n')))
-        : '';
+    const realmTemplatePrompt = '';
     const otherPrompts = [
         ...otherPromptEntries.map(item => item.content),
         开局剧情推动协议内容,
@@ -1426,9 +1244,6 @@ export const 构建系统提示词 = ({
     };
     if (worldPromptSource) {
         标记提示词发送(worldPromptSource.id, worldPrompt);
-    }
-    if (realmPromptSource) {
-        标记提示词发送(realmPromptSource.id, realmTemplatePrompt);
     }
     if (writeReqPrompt) {
         标记提示词发送(writeReqPrompt.id, writeReqContent);
@@ -1477,7 +1292,7 @@ export const 构建系统提示词 = ({
         worldPrompt,
         realmPrompt,
         openingConfig,
-        cultivationSystemEnabled: 启用修炼体系
+        cultivationSystemEnabled: 启用成长体系
     });
     const contextMapAndBuilding = 构建地图建筑状态文本(statePayload);
     const contextCurrencySystem = 构建当前货币系统提示词();
@@ -1499,11 +1314,9 @@ export const 构建系统提示词 = ({
                 statePayload?.环境?.小地点,
                 statePayload?.环境?.具体地点
             ].filter(Boolean).join('|'),
-            count: 100,
-            fandomEnabled: 同人运行时模式已启用(openingConfig)
+            count: 100
         }),
         构建模板姓名黑名单提示词(),
-        fandomSummaryPrompt,
         genreModePrompt,
         realmTemplatePrompt,
         otherPrompts.trim()
@@ -1566,7 +1379,6 @@ export const 构建系统提示词 = ({
             AI角色声明: ai角色声明,
             worldPrompt: worldPrompt.trim(),
             地图建筑状态: contextMapAndBuilding,
-            同人设定摘要: fandomSummaryPrompt,
             境界体系提示词: realmTemplatePrompt,
             otherPrompts: otherPrompts.trim(),
             难度设置提示词: difficultyPrompts.trim(),

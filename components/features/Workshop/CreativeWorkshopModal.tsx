@@ -36,8 +36,7 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '现代题材', path: ['identity', 'isModern'], type: 'bool' },
             { label: '启用修炼', path: ['identity', 'usesCultivation'], type: 'bool' },
             { label: '末日题材', path: ['identity', 'isApocalypse'], type: 'bool' },
-            { label: '生存模式', path: ['identity', 'isSurvival'], type: 'bool' },
-            { label: '同人/IP 模式', path: ['identity', 'isFandomIp'], type: 'bool' }
+            { label: '生存模式', path: ['identity', 'isSurvival'], type: 'bool' }
         ]
     },
     {
@@ -97,7 +96,7 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '技能池', path: ['ability', 'skillPool'], type: 'list' },
             { label: '技能成长词', path: ['ability', 'skillGrowthVerb'] },
             { label: '战斗结算口径', path: ['ability', 'combatResolution'], type: 'textarea' },
-            { label: '功法类型', path: ['ability', 'kungfuTypes'], type: 'list' },
+            { label: '能力类型', path: ['ability', 'kungfuTypes'], type: 'list' },
             { label: '境界配置', path: ['ability', 'realmConfig'], type: 'realmConfig' }
         ]
     },
@@ -1808,7 +1807,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                         </details>
                                         <label className="block text-xs text-gray-300">
                                             世界书条目：题材口径
-                                            <textarea value={contributionDraft.topicBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, topicBody: event.target.value }))} placeholder="写清题材口径：时代、地理、货币、社会常识、叙事禁忌、原著融合比例等。这会成为模式专属世界书的 world_lore 条目。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                            <textarea value={contributionDraft.topicBody} onChange={(event) => setContributionDraft((prev) => ({ ...prev, topicBody: event.target.value }))} placeholder="写清题材口径：时代、地理、货币、社会常识、叙事禁忌、既有设定继承边界等。这会成为模式专属世界书的 world_lore 条目。" className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                         </label>
                                         <label className="block text-xs text-gray-300">
                                             世界书条目：世界规则
@@ -1823,7 +1822,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <label className="block text-xs text-gray-300">
                                         使用提示
-                                        <textarea value={contributionDraft.usagePrompt} onChange={(event) => setContributionDraft((prev) => ({ ...prev, usagePrompt: event.target.value }))} placeholder="例如：适合开启同人融合后作为模式专属世界书使用。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                        <textarea value={contributionDraft.usagePrompt} onChange={(event) => setContributionDraft((prev) => ({ ...prev, usagePrompt: event.target.value }))} placeholder="例如：适合作为模式专属世界书或题材规则补充。" className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                     </label>
                                     <label className="block text-xs text-gray-300">
                                         安全/限制说明

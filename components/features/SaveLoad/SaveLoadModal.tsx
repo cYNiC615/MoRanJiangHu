@@ -3,7 +3,6 @@ import * as dbService from '../../../services/dbService';
 import { 导出ZIP存档文件, 解析ZIP存档文件 } from '../../../services/saveArchiveService';
 import { 存档结构 } from '../../../types';
 import { parseJsonWithRepair } from '../../../utils/jsonRepair';
-import { isNativeCapacitorEnvironment } from '../../../utils/nativeRuntime';
 import { 创建并记录ObjectURL, 延迟释放并记录ObjectURL } from '../../../utils/objectUrlLifecycle';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../../../utils/saveLoadTrace';
 import { 读取存档游玩回合数 } from '../../../utils/saveTurn';
@@ -48,7 +47,7 @@ const 计算文本短哈希 = (text: string): string => {
 
 const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode, requestConfirm }) => {
     const [saves, setSaves] = useState<存档列表项[]>([]);
-    const pageSize = isNativeCapacitorEnvironment() ? 24 : 80;
+    const pageSize = 80;
     const [visibleSaveCount, setVisibleSaveCount] = useState(pageSize);
     const [hasMoreSaves, setHasMoreSaves] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -82,20 +81,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     useEffect(() => {
         if (hydrateRunningRef.current || syncing) return;
-        const native = isNativeCapacitorEnvironment();
-        const hydrateLimit = native ? pageSize : 40;
+        const hydrateLimit = 40;
         const hydrateCandidates = saves.slice(0, hydrateLimit);
         const nextTarget = hydrateCandidates.find((save) => (
             (是旧版缺摘要存档(save) || 需要刷新回合数摘要(save))
             && typeof save.id === 'number'
             && !hydratedSummaryIdsRef.current.has(save.id)
         ));
-        if (!nextTarget || typeof nextTarget.id !== 'number') {
-            if (native && transferMessage.startsWith('正在恢复存档列表详情')) {
-                setTransferMessage('存档列表详情已恢复。');
-            }
-            return;
-        }
+        if (!nextTarget || typeof nextTarget.id !== 'number') return;
 
         let cancelled = false;
         const timer = window.setTimeout(() => {
@@ -106,13 +99,8 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             recordSaveLoadTrace('modal.summaryHydrate.start', {
                 id,
                 view: 'combined',
-                native,
                 count: hydratedSummaryCountRef.current
             });
-            if (native) {
-                const missingTotal = hydrateCandidates.filter((save) => 是旧版缺摘要存档(save) || 需要刷新回合数摘要(save)).length;
-                setTransferMessage(`正在恢复存档列表详情：${hydratedSummaryCountRef.current} / ${hydratedSummaryCountRef.current + Math.max(0, missingTotal - 1)}`);
-            }
             void dbService.补全存档摘要(id)
                 .then((summary) => {
                     recordSaveLoadTrace('modal.summaryHydrate.done', {
@@ -132,7 +120,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     recordSaveLoadTrace('modal.summaryHydrate.finally', { id, view: 'combined' });
                     hydrateRunningRef.current = false;
                 });
-        }, native ? 260 : 80);
+        }, 80);
 
         return () => {
             cancelled = true;
@@ -148,19 +136,15 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         setLoading(true);
         const startAt = Date.now();
         try {
-            const usePagedNativeList = isNativeCapacitorEnvironment();
             const offset = reset ? 0 : saves.length;
             recordSaveLoadTrace('modal.list.start', {
                 reset,
                 view: 'combined',
                 offset,
-                pageSize,
-                usePagedNativeList
+                pageSize
             });
             const [list, protect] = await Promise.all([
-                usePagedNativeList
-                    ? dbService.读取存档摘要列表({ limit: pageSize, offset })
-                    : dbService.读取存档摘要列表(),
+                dbService.读取存档摘要列表(),
                 dbService.读取存档保护状态()
             ]);
             recordSaveLoadTrace('modal.list.done', {
@@ -173,7 +157,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 elapsedMs: Date.now() - startAt
             });
             setSaves((current) => reset ? list : [...current, ...list]);
-            setHasMoreSaves(usePagedNativeList && list.length >= pageSize);
+            setHasMoreSaves(false);
             setSaveProtectionEnabled(protect);
         } catch (error) {
             recordSaveLoadError('modal.list.error', error, {
@@ -511,7 +495,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     setSaves((current) => current.map((item) => item.id === id ? summary : item));
                 }
                 setTransferMessage(`正在恢复当前页存档详情：${completed} / ${targets.length}`);
-                await new Promise((resolve) => window.setTimeout(resolve, isNativeCapacitorEnvironment() ? 700 : 120));
+                await new Promise((resolve) => window.setTimeout(resolve, 120));
             }
             setTransferMessage('当前页存档详情已恢复。');
         } catch (error: any) {
@@ -522,40 +506,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         }
     };
 
-    const blobToBase64 = async (blob: Blob): Promise<string> => (
-        new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const result = typeof reader.result === 'string' ? reader.result : '';
-                const commaIndex = result.indexOf(',');
-                resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
-            };
-            reader.onerror = () => reject(reader.error || new Error('读取导出文件失败'));
-            reader.readAsDataURL(blob);
-        })
-    );
-
-    const saveArchiveToDevice = async (blob: Blob, fileName: string): Promise<boolean> => {
-        const runtime = typeof window !== 'undefined' ? (window as any) : undefined;
-        const filesystem = runtime?.Capacitor?.Plugins?.Filesystem;
-        if (!filesystem?.writeFile) return false;
-
-        await filesystem.writeFile({
-            path: fileName,
-            data: await blobToBase64(blob),
-            directory: 'DOCUMENTS',
-            recursive: false
-        });
-        return true;
-    };
-
     const downloadArchiveBlob = async (blob: Blob, fileName: string): Promise<void> => {
-        if (await saveArchiveToDevice(blob, fileName)) {
-            setTransferMessage(`已导出到设备文档目录：${fileName}`);
-            alert(`导出完成：${fileName}\n已保存到设备文档目录。`);
-            return;
-        }
-
         const url = 创建并记录ObjectURL(blob, {
             source: 'SaveLoadModal.downloadArchiveBlob',
             kind: 'save-archive-export',
@@ -895,16 +846,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                     <div className="min-h-0 min-w-0 flex-1 flex flex-col bg-ink-wash/5">
                         <div className="max-w-full overflow-x-auto overscroll-x-contain border-b border-gray-800/50 px-4 pt-3 pb-3 touch-pan-x custom-scrollbar sm:px-6 sm:pt-4">
                             <div className="flex min-w-max justify-end gap-2">
-                            {isNativeCapacitorEnvironment() && saves.some((save) => 是旧版缺摘要存档(save)) && (
-                                <GameButton
-                                    onClick={() => { void handleHydrateVisibleSummaries(); }}
-                                    disabled={busy || hydratingVisibleSummaries}
-                                    variant="secondary"
-                                    className="px-4 py-2 text-xs"
-                                >
-                                    恢复当前页详情
-                                </GameButton>
-                            )}
                             <GameButton
                                 onClick={() => { void handleExportAll(); }}
                                 disabled={busy}

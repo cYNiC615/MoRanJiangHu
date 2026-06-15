@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { 创建手动NPC工作流 } from '../hooks/useGame/manualNpcWorkflow';
 
 describe('手动 NPC 工作流', () => {
-    it('删除门派同门 NPC 时同步移除玩家门派重要成员', () => {
+    it('删除门派同门 NPC 时同步移除玩家组织重要成员', () => {
         let social: any[] = [
             {
                 id: 'NPC002',
                 姓名: '杨承岳',
-                来源: '玩家门派.重要成员'
+                来源: '玩家组织.重要成员'
             },
             {
                 id: 'npc_manual_1',
@@ -30,8 +30,8 @@ describe('手动 NPC 工作流', () => {
             设置社交: (updater: any) => {
                 social = typeof updater === 'function' ? updater(social) : updater;
             },
-            获取玩家门派: () => sect,
-            设置玩家门派: (updater: any) => {
+            获取玩家组织: () => sect,
+            设置玩家组织: (updater: any) => {
                 sect = typeof updater === 'function' ? updater(sect) : updater;
             },
             执行社交自动存档: autoSave,

@@ -4,18 +4,25 @@ export * from './models/system';
 export * from './models/imageGeneration';
 export * from './models/world';
 export * from './models/item';
+export * from './models/organization';
 export * from './models/social';
-export * from './models/kungfu'; 
-export * from './models/sect'; 
 export * from './models/task'; 
 export * from './models/story'; 
 export * from './models/storyPlan';
 export * from './models/heroinePlan';
-export * from './models/fandomPlanning/story';
-export * from './models/fandomPlanning/heroinePlan';
-export * from './models/battle';
 export * from './models/worldbook';
-export * from './models/novelDecomposition';
+
+// Retired battle state shell. The old Battle UI/model package is removed, but
+// a shallow state root still exists until save/workflow plumbing is migrated.
+export type 战斗状态结构 = {
+    是否战斗中?: boolean;
+    回合数?: number;
+    敌方?: any[];
+    行动顺序?: any[];
+    逃跑难度?: number;
+    环境因素?: any[];
+    [key: string]: any;
+};
 
 // New types for the advanced chat system
 

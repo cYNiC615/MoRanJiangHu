@@ -1,7 +1,7 @@
 import * as textAIService from '../../services/ai/text';
 import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
-import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 同人剧情规划结构, 同人女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
+import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
 import { 获取主剧情接口配置, 获取剧情回忆接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取规划分析接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 计算正文字数容错字数, 正文字数差距在容错内 } from '../../utils/bodyLengthTolerance';
@@ -760,14 +760,12 @@ type 回合快照结构 = {
         社交: any[];
         世界: any;
         战斗: any;
-        玩家门派: any;
+        玩家组织: any;
         任务列表: any[];
         约定列表: any[];
         剧情: 剧情系统结构;
         剧情规划: 剧情规划结构;
         女主剧情规划?: 女主剧情规划结构;
-        同人剧情规划?: 同人剧情规划结构;
-        同人女主剧情规划?: 同人女主剧情规划结构;
         记忆系统: 记忆系统结构;
     };
     回档前持久态: {
@@ -785,14 +783,12 @@ type 主剧情发送当前状态 = {
     社交: any[];
     世界: any;
     战斗: any;
-    玩家门派: any;
+    玩家组织: any;
     任务列表: any[];
     约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
     开局配置?: OpeningConfig;
     游戏初始时间?: string;
     loading: boolean;
@@ -857,8 +853,6 @@ type 主剧情发送依赖 = {
     规范化剧情状态: (raw?: any, envLike?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
-    规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
-    规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
     规范化世界状态: (raw?: any) => any;
     游戏设置启用自动重试: (config?: any) => boolean;
     执行带自动重试的生成请求: <T>(params: {
@@ -883,8 +877,6 @@ type 主剧情发送依赖 = {
             剧情: 剧情系统结构;
             剧情规划: 剧情规划结构;
             女主剧情规划?: 女主剧情规划结构;
-            同人剧情规划?: 同人剧情规划结构;
-            同人女主剧情规划?: 同人女主剧情规划结构;
         };
         playerInput: string;
         gameTime: string;
@@ -1171,14 +1163,12 @@ export const 执行主剧情发送工作流 = async (
             社交: deps.深拷贝(currentState.社交),
             世界: deps.深拷贝(currentState.世界),
             战斗: deps.深拷贝(currentState.战斗),
-            玩家门派: deps.深拷贝(currentState.玩家门派),
+            玩家组织: deps.深拷贝(currentState.玩家组织),
             任务列表: deps.深拷贝(currentState.任务列表),
             约定列表: deps.深拷贝(currentState.约定列表),
             剧情: deps.深拷贝(currentState.剧情),
             剧情规划: deps.深拷贝(currentState.剧情规划),
             女主剧情规划: deps.深拷贝(currentState.女主剧情规划),
-            同人剧情规划: deps.深拷贝(currentState.同人剧情规划),
-            同人女主剧情规划: deps.深拷贝(currentState.同人女主剧情规划),
             记忆系统: deps.深拷贝(memBeforeSend)
         },
         回档前持久态: {
@@ -1313,7 +1303,7 @@ export const 执行主剧情发送工作流 = async (
                 环境: deps.规范化环境信息(currentState.环境),
                 世界: currentState.世界,
                 战斗: currentState.战斗,
-                玩家门派: currentState.玩家门派,
+                玩家组织: currentState.玩家组织,
                 任务列表: currentState.任务列表,
                 约定列表: currentState.约定列表,
                 剧情: deps.规范化剧情状态(currentState.剧情, currentState.环境),
@@ -1534,7 +1524,7 @@ export const 执行主剧情发送工作流 = async (
             社交: deps.深拷贝(currentState.社交),
             世界: deps.深拷贝(currentState.世界),
             战斗: deps.深拷贝(currentState.战斗),
-            玩家门派: deps.深拷贝(currentState.玩家门派),
+            玩家组织: deps.深拷贝(currentState.玩家组织),
             任务列表: deps.深拷贝(currentState.任务列表),
             约定列表: deps.深拷贝(currentState.约定列表),
             剧情: deps.深拷贝(currentState.剧情),
@@ -1654,14 +1644,12 @@ export const 执行主剧情发送工作流 = async (
                 社交: deps.深拷贝(currentState.社交),
                 世界: deps.深拷贝(currentState.世界),
                 战斗: deps.深拷贝(currentState.战斗),
-                玩家门派: deps.深拷贝(currentState.玩家门派),
+                玩家组织: deps.深拷贝(currentState.玩家组织),
                 任务列表: deps.深拷贝(currentState.任务列表),
                 约定列表: deps.深拷贝(currentState.约定列表),
                 剧情: deps.深拷贝(currentState.剧情),
                 剧情规划: deps.深拷贝(currentState.剧情规划),
                 女主剧情规划: deps.深拷贝(currentState.女主剧情规划),
-                同人剧情规划: deps.深拷贝(currentState.同人剧情规划),
-                同人女主剧情规划: deps.深拷贝(currentState.同人女主剧情规划),
                 记忆系统: deps.深拷贝(memBeforeSend)
             },
             回档前持久态: {
@@ -2125,9 +2113,7 @@ export const 执行主剧情发送工作流 = async (
                                 世界: stateSnapshot.世界,
                                 剧情: stateSnapshot.剧情,
                                 剧情规划: stateSnapshot.剧情规划,
-                                女主剧情规划: stateSnapshot.女主剧情规划,
-                                同人剧情规划: stateSnapshot.同人剧情规划,
-                                同人女主剧情规划: stateSnapshot.同人女主剧情规划
+                                女主剧情规划: stateSnapshot.女主剧情规划
                             },
                             playerInput: sendInput,
                             gameTime: 环境时间转标准串(stateSnapshot.环境) || "未知时间",
@@ -2474,14 +2460,12 @@ export const 执行主剧情发送工作流 = async (
                         social: finalState.社交,
                         world: finalState.世界,
                         battle: finalState.战斗,
-                        sect: finalState.玩家门派,
+                        sect: finalState.玩家组织,
                         tasks: finalState.任务列表,
                         agreements: finalState.约定列表,
                         story: finalState.剧情,
                         storyPlan: finalState.剧情规划,
                         heroinePlan: finalState.女主剧情规划,
-                        fandomStoryPlan: finalState.同人剧情规划,
-                        fandomHeroinePlan: finalState.同人女主剧情规划,
                         memory: nextMemory,
                         force: true
                     });

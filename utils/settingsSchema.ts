@@ -10,9 +10,6 @@ export const 设置键 = {
     图片管理设置: 'image_manager_settings',
     游戏设置: 'game_settings',
     记忆设置: 'memory_settings',
-    小说分解数据集: 'novel_decomposition_datasets',
-    小说分解任务: 'novel_decomposition_tasks',
-    小说分解注入快照: 'novel_decomposition_snapshots',
     场景图片档案: 'scene_image_archive',
     内置提示词: 内置提示词存储键,
     世界书列表: 世界书存储键,
@@ -174,27 +171,6 @@ export const 设置项定义列表: 设置项定义[] = [
         category: 'memory',
         description: '记忆阈值、上传条数和记忆提示词参数。',
         order: 100
-    },
-    {
-        key: 设置键.小说分解数据集,
-        label: '小说分解数据集',
-        category: 'gameplay',
-        description: '小说分解后的分段资产、关键事件、推进结构与注入树数据。',
-        order: 102
-    },
-    {
-        key: 设置键.小说分解任务,
-        label: '小说分解任务',
-        category: 'gameplay',
-        description: '长篇小说后台拆分任务、断点与进度记录。',
-        order: 104
-    },
-    {
-        key: 设置键.小说分解注入快照,
-        label: '小说分解注入快照',
-        category: 'gameplay',
-        description: '主剧情、规划分析、世界演变链路实际使用的小说分解注入内容快照。',
-        order: 106
     },
     {
         key: 设置键.自定义天赋,

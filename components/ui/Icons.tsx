@@ -162,7 +162,7 @@ export const IconFood: React.FC<IconProps> = (props) => {
 
 // ─── 通用 UI ───
 
-/** 竹简/古卷（武侠剧情/功法） — 剧情 / 史册 / 功法 */
+/** 竹简/古卷（武侠剧情/能力） — 剧情 / 史册 / 能力 */
 export const IconScroll: React.FC<IconProps> = (props) => {
     const { className, width, height } = defaults(props);
     return (

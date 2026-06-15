@@ -1,5 +1,5 @@
 import type { 游戏设置结构, OpeningConfig } from '../../types';
-import { 按功能开关过滤提示词内容, 构建修炼体系附加块 } from '../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 构建成长体系附加块 } from '../../utils/promptFeatureToggles';
 import { 是否仙侠开局模式 } from './openingConfig';
 import { 获取题材模式配置 } from '../../utils/topicModeProfiles';
 
@@ -47,8 +47,8 @@ export const 世界观生成系统提示词 = `
 - 必须明确本世界的武力边界与成长强度分层。
 - 必须维持武侠口径，把能力边界收束在非仙侠、非常态法术轰击、非常态御空飞行范围内。
 - 应说明高手稀缺度、传承稀缺度、秘籍与名器的流通稀缺度。
-${构建修炼体系附加块(`
-- 必须明确本世界的修炼体系边界，且与项目当前“累计境界值”口径兼容。
+${构建成长体系附加块(`
+- 必须明确本世界的成长体系边界，且与项目当前“累计境界值”口径兼容。
 - 境界部分只允许做简述：说明整体力量边界、高手稀缺度、不同年龄段/势力层次的大致梯度即可，不要展开逐层境界细则或详细境界设定。
 - 禁止在 world_prompt 中写入完整境界母板、\`数值 => 文案\` 映射、阶段推进表、大境突破表、逐层子阶段列表；这些内容应由独立境界体系提示词负责。
 - 应说明高境界强者稀缺度。
@@ -128,7 +128,7 @@ const 世界基底输出提示词 = `
 `.trim();
 
 export const 获取世界观生成系统提示词 = (
-    config?: Partial<游戏设置结构> | null,
+    config?: (Partial<游戏设置结构> & Record<string, unknown>) | null,
     openingConfig?: OpeningConfig | null
 ): string => {
     const 题材配置 = 获取题材模式配置(openingConfig?.题材模式);
@@ -157,7 +157,7 @@ const 构建主角建档自然语言摘要 = (
     charData: any,
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
+    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -182,7 +182,7 @@ const 构建主角建档自然语言摘要 = (
         `- 出生日期：${纯文本(charData?.出生日期)}`,
         `- 外貌：${纯文本(charData?.外貌)}`,
         `- 性格：${纯文本(charData?.性格)}`,
-        ...(启用修炼体系 ? [`- 初始境界：${纯文本(charData?.境界)}`] : []),
+        ...(启用成长体系 ? [`- 初始境界：${纯文本(charData?.境界)}`] : []),
         `- 六维：力量 ${数值文本(charData?.力量)} / 敏捷 ${数值文本(charData?.敏捷)} / 体质 ${数值文本(charData?.体质)} / 根骨 ${数值文本(charData?.根骨)} / 悟性 ${数值文本(charData?.悟性)} / 福源 ${数值文本(charData?.福源)}`,
         `- 天赋：${天赋列表 || '无'}`,
         `- 出身背景：${背景名称}`,
@@ -194,7 +194,7 @@ const 构建主角建档自然语言摘要 = (
 export const 构建世界观生成用户提示词 = (
     worldContext: string,
     charData: unknown,
-    config?: Partial<游戏设置结构> | null,
+    config?: (Partial<游戏设置结构> & Record<string, unknown>) | null,
     openingConfig?: OpeningConfig | null
 ): string => {
     const 题材配置 = 获取题材模式配置(openingConfig?.题材模式);
@@ -217,10 +217,10 @@ ${worldContext}
 - 生成结果中应明确世界地图是地球级面积，保证重要地点的相对位置和旅行尺度可长期推演，同时允许后续拆成六层树状地点地图。
 - 字数以 2500 字内为软限制；若额外要求明显更长，优先完整表达世界结构，不为压字数牺牲完整性。
 ${是否仙侠开局模式(openingConfig) ? '- 当前题材模式具备修真体系：世界观必须明确灵气生态、修行圈层、境界稀缺度、法宝/术法/秘境资源流通、天劫/心魔/因果代价与普通社会的关系。' : `- 当前题材模式不是修真主轴：世界观必须保持${题材配置.label}口径，不常态仙侠化。`}
-${构建修炼体系附加块('- 生成结果必须能支撑后续修炼系统与境界体系长期一致运行。')}
+${构建成长体系附加块('- 生成结果必须能支撑后续修炼系统与境界体系长期一致运行。')}
 
 ${构建主角建档自然语言摘要(charData, {
-    cultivationSystemEnabled: config?.启用修炼体系 === true
+    cultivationSystemEnabled: false
 })}
 - 仅用于边界约束与避冲突，不可直接把这些内容当成已完成初始化的变量数据。
 - 输出中不出现玩家信息，世界描述围绕母本结构展开。

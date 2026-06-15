@@ -1,7 +1,6 @@
-import { 功法品质 } from '../../models/kungfu';
 import { 物品品质 } from '../../models/item';
 
-export type 稀有度 = 物品品质 | 功法品质 | string;
+export type 稀有度 = 物品品质 | string;
 
 export interface 稀有度样式 {
     text: string;

@@ -10,11 +10,8 @@ export type { StoryParseOptions } from '../storyResponseParser';
 
 export {
     generateMemoryRecall,
-    generateFandomRealmData,
     generatePolishedBody,
     generatePlanningAnalysis,
-    generateNovelDecomposition,
-    解析境界体系提示词内容,
     解析世界观提示词内容,
     generateWorldFoundationData,
     generateStoryResponse,
@@ -26,7 +23,6 @@ export {
 export type {
     ConnectionTestResult,
     PlanningAnalysisResult,
-    NovelDecompositionAnalysisResult,
     StoryResponseResult,
     StoryStreamOptions,
     StoryRequestOptions,

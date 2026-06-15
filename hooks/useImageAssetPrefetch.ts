@@ -7,7 +7,6 @@ import {
     是否图片资源引用,
     是否远程图片地址
 } from '../utils/imageAssets';
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
 
 const 取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
@@ -56,9 +55,8 @@ export const use图片资源回源预取 = (...sources: unknown[]): void => {
 
     useEffect(() => {
         let cancelled = false;
-        const native = isNativeCapacitorEnvironment();
-        const maxRefs = native ? 8 : 24;
-        const poolSize = native ? 1 : 2;
+        const maxRefs = 24;
+        const poolSize = 2;
         const unresolvedRefs = refList.filter((ref) => !读取图片资源缓存(ref)).slice(0, maxRefs);
         if (unresolvedRefs.length === 0) return;
 
@@ -72,7 +70,7 @@ export const use图片资源回源预取 = (...sources: unknown[]): void => {
                         (value) => ({ status: 'fulfilled', value }) as PromiseFulfilledResult<string>,
                         (reason) => ({ status: 'rejected', reason }) as PromiseRejectedResult
                     ));
-                    await new Promise((resolve) => window.setTimeout(resolve, native ? 80 : 20));
+                    await new Promise((resolve) => window.setTimeout(resolve, 20));
                 }
             };
             await Promise.all(Array.from({ length: poolSize }, () => worker()));

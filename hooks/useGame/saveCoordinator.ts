@@ -12,8 +12,6 @@ import type {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     记忆系统结构,
     记忆配置结构,
     游戏设置结构,
@@ -22,11 +20,9 @@ import type {
     OpeningConfig
 } from '../../types';
 import { 核心_世界观 } from '../../prompts/core/world';
-import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 设置键 } from '../../utils/settingsSchema';
 import { 环境时间转标准串 } from './timeUtils';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
-import { isNativeCapacitorEnvironment } from '../../utils/nativeRuntime';
 import { buildHistoryDebugSummary, buildSaveDebugSummary, collectLargestStrings, collectValueStats, recordSaveLoadTrace } from '../../utils/saveLoadTrace';
 import { 清理内嵌图片冗余字段 } from '../../utils/imageAssets';
 import { 计算历史游玩回合数 } from '../../utils/saveTurn';
@@ -77,16 +73,15 @@ const 后台缓存当前存档图床图片 = (save: 存档结构): void => {
     收集图床图片地址(save.世界, urls);
     if (urls.size === 0) return;
 
-    const native = isNativeCapacitorEnvironment();
-    const queue = Array.from(urls).slice(0, native ? 16 : 60);
+    const queue = Array.from(urls).slice(0, 60);
     const run = async () => {
-        const poolSize = native ? 1 : 2;
+        const poolSize = 2;
         let cursor = 0;
         const worker = async () => {
             while (cursor < queue.length) {
                 const url = queue[cursor++];
                 await dbService.确保远程图片本地兜底(url).catch(() => undefined);
-                await new Promise(resolve => window.setTimeout(resolve, native ? 350 : 100));
+                await new Promise(resolve => window.setTimeout(resolve, 100));
             }
         };
         await Promise.all(Array.from({ length: poolSize }, () => worker()));
@@ -96,10 +91,10 @@ const 后台缓存当前存档图床图片 = (save: 存档结构): void => {
         requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
     };
     if (typeof win.requestIdleCallback === 'function') {
-        win.requestIdleCallback(() => void run(), { timeout: native ? 12000 : 5000 });
+        win.requestIdleCallback(() => void run(), { timeout: 5000 });
         return;
     }
-    window.setTimeout(() => void run(), native ? 8000 : 1200);
+    window.setTimeout(() => void run(), 1200);
 };
 
 export type 自动存档快照结构 = {
@@ -115,8 +110,6 @@ export type 自动存档快照结构 = {
     story?: 剧情系统结构;
     storyPlan?: 剧情规划结构;
     heroinePlan?: 女主剧情规划结构;
-    fandomStoryPlan?: 同人剧情规划结构;
-    fandomHeroinePlan?: 同人女主剧情规划结构;
     memory?: 记忆系统结构;
     openingConfig?: OpeningConfig;
     visualConfig?: 视觉设置结构;
@@ -131,14 +124,12 @@ type 存档协调当前状态 = {
     社交: any[];
     世界: 世界数据结构;
     战斗: 战斗状态结构;
-    玩家门派: 详细门派结构;
+    玩家组织: 详细门派结构;
     任务列表: any[];
     约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
-    同人剧情规划?: 同人剧情规划结构;
-    同人女主剧情规划?: 同人女主剧情规划结构;
     记忆系统: 记忆系统结构;
     openingConfig?: OpeningConfig;
     提示词池: 提示词结构[];
@@ -163,8 +154,6 @@ type 存档协调依赖 = {
     规范化剧情状态: (raw?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
-    规范化同人剧情规划状态: (raw?: any) => 同人剧情规划结构 | undefined;
-    规范化同人女主剧情规划状态: (raw?: any) => 同人女主剧情规划结构 | undefined;
     规范化记忆系统: (raw?: any) => 记忆系统结构;
     规范化可选开局配置: (raw?: any) => OpeningConfig | undefined;
     规范化记忆配置: (raw?: Partial<记忆配置结构> | null) => 记忆配置结构;
@@ -197,14 +186,12 @@ type 存档协调依赖 = {
     设置社交: (value: any[]) => void;
     设置世界: (value: 世界数据结构) => void;
     设置战斗: (value: 战斗状态结构) => void;
-    设置玩家门派: (value: 详细门派结构) => void;
+    设置玩家组织: (value: 详细门派结构) => void;
     设置任务列表: (value: any[]) => void;
     设置约定列表: (value: any[]) => void;
     设置剧情: (value: 剧情系统结构) => void;
     设置剧情规划: (value: 剧情规划结构) => void;
     设置女主剧情规划: (value: 女主剧情规划结构 | undefined) => void;
-    设置同人剧情规划: (value: 同人剧情规划结构 | undefined) => void;
-    设置同人女主剧情规划: (value: 同人女主剧情规划结构 | undefined) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
     设置提示词池: (value: 提示词结构[]) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
@@ -218,14 +205,12 @@ type 存档协调依赖 = {
             社交: any[];
             世界: 世界数据结构;
             战斗: 战斗状态结构;
-            玩家门派: 详细门派结构;
+            玩家组织: 详细门派结构;
             任务列表: any[];
             约定列表: any[];
             剧情: 剧情系统结构;
             剧情规划: 剧情规划结构;
             女主剧情规划?: 女主剧情规划结构;
-            同人剧情规划?: 同人剧情规划结构;
-            同人女主剧情规划?: 同人女主剧情规划结构;
             记忆系统: 记忆系统结构;
         };
         回档前持久态: {
@@ -452,8 +437,6 @@ const 构建读档后重Roll快照 = (
         story: 剧情系统结构;
         storyPlan: 剧情规划结构;
         heroinePlan?: 女主剧情规划结构;
-        fandomStoryPlan?: 同人剧情规划结构;
-        fandomHeroinePlan?: 同人女主剧情规划结构;
         memory: 记忆系统结构;
         visual: 视觉设置结构;
         sceneArchive: 场景图片档案;
@@ -480,14 +463,12 @@ const 构建读档后重Roll快照 = (
             社交: deps.深拷贝(loaded.social),
             世界: deps.深拷贝(loaded.world),
             战斗: deps.深拷贝(loaded.battle),
-            玩家门派: deps.深拷贝(loaded.sect),
+            玩家组织: deps.深拷贝(loaded.sect),
             任务列表: deps.深拷贝(loaded.tasks),
             约定列表: deps.深拷贝(loaded.agreements),
             剧情: deps.深拷贝(loaded.story),
             剧情规划: deps.深拷贝(loaded.storyPlan),
             女主剧情规划: deps.深拷贝(loaded.heroinePlan),
-            同人剧情规划: deps.深拷贝(loaded.fandomStoryPlan),
-            同人女主剧情规划: deps.深拷贝(loaded.fandomHeroinePlan),
             记忆系统: deps.深拷贝(deps.规范化记忆系统(loaded.memory))
         },
         回档前持久态: {
@@ -514,14 +495,12 @@ export const 创建存档数据 = (
     const rawSocialSource = Array.isArray(snapshot?.social) ? snapshot.social : currentState.社交;
     const worldSource = snapshot?.world ? snapshot.world : currentState.世界;
     const battleSource = snapshot?.battle ? snapshot.battle : currentState.战斗;
-    const sectSource = snapshot?.sect ? snapshot.sect : currentState.玩家门派;
+    const sectSource = snapshot?.sect ? snapshot.sect : currentState.玩家组织;
     const tasksSource = Array.isArray(snapshot?.tasks) ? snapshot.tasks : currentState.任务列表;
     const agreementsSource = Array.isArray(snapshot?.agreements) ? snapshot.agreements : currentState.约定列表;
     const storySource = snapshot?.story ? snapshot.story : currentState.剧情;
     const storyPlanSource = snapshot?.storyPlan ? snapshot.storyPlan : currentState.剧情规划;
     const heroinePlanSource = snapshot?.heroinePlan ?? currentState.女主剧情规划;
-    const fandomStoryPlanSource = snapshot?.fandomStoryPlan ?? currentState.同人剧情规划;
-    const fandomHeroinePlanSource = snapshot?.fandomHeroinePlan ?? currentState.同人女主剧情规划;
     const memorySource = snapshot?.memory ? snapshot.memory : deps.规范化记忆系统(currentState.记忆系统);
     const openingConfigSource = snapshot?.openingConfig ?? currentState.openingConfig;
     const socialSource = 修复开局伙伴社交列表(rawSocialSource, openingConfigSource, roleSource);
@@ -540,11 +519,9 @@ export const 创建存档数据 = (
         currentState.当前角色锚点ID
     );
     const coreWorldPrompt = 读取核心提示词内容(currentState.提示词池, 'core_world');
-    const coreRealmPrompt = 读取核心提示词内容(currentState.提示词池, 'core_realm');
-    const 核心提示词快照 = (coreWorldPrompt || coreRealmPrompt)
+    const 核心提示词快照 = coreWorldPrompt
         ? {
-            世界观母本: coreWorldPrompt || undefined,
-            境界体系: coreRealmPrompt || undefined
+            世界观母本: coreWorldPrompt
         }
         : undefined;
 
@@ -569,18 +546,12 @@ export const 创建存档数据 = (
         社交: deps.深拷贝(socialSource),
         世界: deps.深拷贝(worldSource),
         战斗: deps.深拷贝(battleSource),
-        玩家门派: deps.深拷贝(sectSource),
+        玩家组织: deps.深拷贝(sectSource),
         任务列表: deps.深拷贝(tasksSource),
         约定列表: deps.深拷贝(agreementsSource),
         剧情: deps.规范化剧情状态(deps.深拷贝(storySource)),
         剧情规划: deps.规范化剧情规划状态(deps.深拷贝(storyPlanSource)),
         女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanSource ? deps.深拷贝(heroinePlanSource) : undefined),
-        同人剧情规划: deps.规范化同人剧情规划状态(
-            fandomStoryPlanSource ? deps.深拷贝(fandomStoryPlanSource) : undefined
-        ),
-        同人女主剧情规划: deps.规范化同人女主剧情规划状态(
-            fandomHeroinePlanSource ? deps.深拷贝(fandomHeroinePlanSource) : undefined
-        ),
         记忆系统: deps.规范化记忆系统(deps.深拷贝(memorySource)),
         openingConfig: deps.规范化可选开局配置(deps.深拷贝(openingConfigSource)),
         游戏设置: deps.深拷贝(currentState.gameConfig),
@@ -666,7 +637,6 @@ export const 执行读取存档 = async (
         recordSaveLoadTrace(`coordinator.${stage}`, {
             id: save?.id,
             elapsedMs: Date.now() - startAt,
-            native: isNativeCapacitorEnvironment(),
             ...payload
         });
     };
@@ -681,9 +651,7 @@ export const 执行读取存档 = async (
     trace('reset.done');
 
     const saveHistoryCount = Array.isArray(save.历史记录) ? save.历史记录.length : 0;
-    const shouldTrustPersistedHeavyFields = isNativeCapacitorEnvironment()
-        && Number(save.元数据?.schemaVersion || 0) >= deps.存档格式版本
-        && saveHistoryCount >= 80;
+    const shouldTrustPersistedHeavyFields = false;
     const cleanupResult = {
         role: 清理内嵌图片冗余字段(save.角色数据, { maxNodes: 50000 }),
         social: 清理内嵌图片冗余字段(save.社交, { maxNodes: 70000 }),
@@ -762,18 +730,18 @@ export const 执行读取存档 = async (
         layers: Array.isArray((normalizedWorld as any)?.地图层级) ? (normalizedWorld as any).地图层级.length : 0
     });
     const loadedBattle = deps.规范化战斗状态(save.战斗 || deps.创建开场空白战斗());
-    let loadedSect = deps.规范化门派状态(save.玩家门派 || deps.创建空门派状态());
+    let loadedSect = deps.规范化门派状态(save.玩家组织 || deps.创建空门派状态());
     const syncedSectState = 同步角色与门派状态({
         角色: loadedRole,
-        玩家门派: loadedSect
+        玩家组织: loadedSect
     });
     loadedRole = syncedSectState.角色;
-    loadedSect = deps.规范化门派状态(syncedSectState.玩家门派);
+    loadedSect = deps.规范化门派状态(syncedSectState.玩家组织);
     const loadedTasks = 规范化任务列表自动结算(save.任务列表 || []);
     const loadedAgreements = Array.isArray(save.约定列表) ? save.约定列表 : [];
     deps.设置角色(loadedRole);
     deps.设置战斗(loadedBattle);
-    deps.设置玩家门派(loadedSect);
+    deps.设置玩家组织(loadedSect);
     deps.设置任务列表(loadedTasks);
     deps.设置约定列表(loadedAgreements);
     trace('battleSectTasks.set.done', {
@@ -783,13 +751,9 @@ export const 执行读取存档 = async (
     const loadedStory = deps.规范化剧情状态(save.剧情 || deps.创建开场空白剧情());
     const loadedStoryPlan = deps.规范化剧情规划状态((save as any).剧情规划);
     const loadedHeroinePlan = deps.规范化女主剧情规划状态((save as any).女主剧情规划);
-    const loadedFandomStoryPlan = deps.规范化同人剧情规划状态((save as any).同人剧情规划);
-    const loadedFandomHeroinePlan = deps.规范化同人女主剧情规划状态((save as any).同人女主剧情规划);
     deps.设置剧情(loadedStory);
     deps.设置剧情规划(loadedStoryPlan);
     deps.设置女主剧情规划(loadedHeroinePlan);
-    deps.设置同人剧情规划(loadedFandomStoryPlan);
-    deps.设置同人女主剧情规划(loadedFandomHeroinePlan);
     deps.设置开局配置(deps.规范化可选开局配置(save.openingConfig));
     trace('storyPlans.set.done');
     const promptSnapshot = save.核心提示词快照 && typeof save.核心提示词快照 === 'object'
@@ -797,8 +761,7 @@ export const 执行读取存档 = async (
         : undefined;
     if (promptSnapshot) {
         trace('promptSnapshot.start', {
-            hasWorldPrompt: typeof promptSnapshot.世界观母本 === 'string' && Boolean(promptSnapshot.世界观母本.trim()),
-            hasRealmPrompt: typeof promptSnapshot.境界体系 === 'string' && Boolean(promptSnapshot.境界体系.trim())
+            hasWorldPrompt: typeof promptSnapshot.世界观母本 === 'string' && Boolean(promptSnapshot.世界观母本.trim())
         });
         let nextPromptPool = Array.isArray(deps.获取当前提示词池())
             ? [...deps.获取当前提示词池()]
@@ -809,14 +772,6 @@ export const 执行读取存档 = async (
                 核心_世界观.id,
                 核心_世界观,
                 promptSnapshot.世界观母本
-            );
-        }
-        if (typeof promptSnapshot.境界体系 === 'string' && promptSnapshot.境界体系.trim()) {
-            nextPromptPool = 写入或插入提示词(
-                nextPromptPool,
-                核心_境界体系.id,
-                核心_境界体系,
-                promptSnapshot.境界体系
             );
         }
         if (nextPromptPool.length > 0) {
@@ -903,8 +858,6 @@ export const 执行读取存档 = async (
         story: loadedStory,
         storyPlan: loadedStoryPlan,
         heroinePlan: loadedHeroinePlan,
-        fandomStoryPlan: loadedFandomStoryPlan,
-        fandomHeroinePlan: loadedFandomHeroinePlan,
         memory: loadedMemory,
         visual: loadedVisual,
         sceneArchive: loadedSceneArchive

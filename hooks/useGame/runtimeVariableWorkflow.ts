@@ -3,6 +3,8 @@ import { applyStateCommand, normalizeStateCommandKey, 是否废弃命令根路�
 import { preserveInventoryOnUnsafeRoleReplace, sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 同步角色与门派状态 } from './storyState';
 
+const 同步剧情时间校准 = async ({ nextStory }: { previousStory: any; nextStory: any; envLike: any }) => nextStory;
+
 export type 运行时变量分区类型 =
     | '角色'
     | '环境'
@@ -12,9 +14,7 @@ export type 运行时变量分区类型 =
     | '剧情'
     | '剧情规划'
     | '女主剧情规划'
-    | '同人剧情规划'
-    | '同人女主剧情规划'
-    | '玩家门派'
+    | '玩家组织'
     | '任务列表'
     | '约定列表'
     | '记忆系统';
@@ -31,9 +31,7 @@ type 运行时变量工作流依赖 = {
         剧情: any;
         剧情规划: any;
         女主剧情规划: any;
-        同人剧情规划: any;
-        同人女主剧情规划: any;
-        玩家门派: any;
+        玩家组织: any;
         任务列表: any[];
         约定列表: any[];
         记忆系统: any;
@@ -46,8 +44,6 @@ type 运行时变量工作流依赖 = {
     规范化剧情状态: (value: any) => any;
     规范化剧情规划状态: (value: any) => any;
     规范化女主剧情规划状态: (value: any) => any;
-    规范化同人剧情规划状态: (value: any) => any;
-    规范化同人女主剧情规划状态: (value: any) => any;
     规范化门派状态: (value: any) => any;
     规范化记忆系统: (value: any) => any;
     环境时间转标准串: (value: any) => string;
@@ -60,9 +56,7 @@ type 运行时变量工作流依赖 = {
     设置剧情: (value: any) => void;
     设置剧情规划: (value: any) => void;
     设置女主剧情规划: (value: any) => void;
-    设置同人剧情规划: (value: any) => void;
-    设置同人女主剧情规划: (value: any) => void;
-    设置玩家门派: (value: any) => void;
+    设置玩家组织: (value: any) => void;
     设置任务列表: (value: any) => void;
     设置约定列表: (updater: any) => void;
     应用并同步记忆系统: (value: any) => void;
@@ -226,26 +220,14 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 void deps.performAutoSave({ heroinePlan: nextValue, history: 历史记录, force: true });
                 return;
             }
-            case '同人剧情规划': {
-                const nextValue = deps.规范化同人剧情规划状态(value);
-                deps.设置同人剧情规划(nextValue);
-                void deps.performAutoSave({ fandomStoryPlan: nextValue, history: 历史记录, force: true });
-                return;
-            }
-            case '同人女主剧情规划': {
-                const nextValue = deps.规范化同人女主剧情规划状态(value);
-                deps.设置同人女主剧情规划(nextValue);
-                void deps.performAutoSave({ fandomHeroinePlan: nextValue, history: 历史记录, force: true });
-                return;
-            }
-            case '玩家门派': {
+            case '玩家组织': {
                 const synced = 同步角色与门派状态({
                     角色: 当前状态.角色,
-                    玩家门派: deps.规范化门派状态(value)
+                    玩家组织: deps.规范化门派状态(value)
                 });
                 deps.设置角色(synced.角色);
-                deps.设置玩家门派(synced.玩家门派);
-                void deps.performAutoSave({ char: synced.角色, sect: synced.玩家门派, history: 历史记录, force: true });
+                deps.设置玩家组织(synced.玩家组织);
+                void deps.performAutoSave({ char: synced.角色, sect: synced.玩家组织, history: 历史记录, force: true });
                 return;
             }
             case '任务列表': {
@@ -300,9 +282,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             当前状态.剧情,
             当前状态.剧情规划,
             当前状态.女主剧情规划,
-            当前状态.同人剧情规划,
-            当前状态.同人女主剧情规划,
-            当前状态.玩家门派,
+            当前状态.玩家组织,
             当前状态.任务列表,
             当前状态.约定列表,
             safeCommand.key,

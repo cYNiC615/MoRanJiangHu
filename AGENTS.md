@@ -121,8 +121,8 @@ Known local save/debug files:
 - Mobile UI, Capacitor, Android, APK update, and APK release flows are planned removal targets.
 - GitHub sync, WebDAV sync, object-storage sync, cloud play, online presence, and community UGC are planned removal targets.
 - Local mode packs/worldbook injection may be kept, but cloud workshop/community submission should be removed or disabled.
-- Image generation is undecided. Do not expand it until the user confirms whether it is part of the homebrew core.
-- Auction house/market is undecided. It may become a modern market/second-hand/black-market system, or it may be removed.
+- Image generation and management are retained for Phase 2 audit; do not expand them until the backend and scope decisions are confirmed.
+- The old auction house has been removed. If a modern market, second-hand, or black-market system returns later, design it as a new feature.
 - Social/NPC relationships are core and may be expanded. NPC presence and location tracking are buggy and should be treated as a subsystem to disable, constrain, or redesign carefully.
 
 ## Game Logic Candidates

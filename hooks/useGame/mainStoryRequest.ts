@@ -37,7 +37,6 @@ type 主剧情上下文片段 = {
     AI角色声明: string;
     worldPrompt: string;
     地图建筑状态: string;
-    同人设定摘要: string;
     境界体系提示词: string;
     离场NPC档案: string;
     otherPrompts: string;
@@ -243,7 +242,6 @@ export const 构建主剧情请求参数 = (
         pushEntry('ai_role', 'AI角色声明', '系统', 'system', params.builtContext.contextPieces.AI角色声明);
         pushEntry('world_prompt', '世界观提示词', '系统', 'system', params.builtContext.contextPieces.worldPrompt);
         pushEntry('world_map', '地图与空间锚点', '系统', 'system', params.builtContext.contextPieces.地图建筑状态);
-        pushEntry('fandom_summary', '同人设定摘要', '系统', 'system', params.builtContext.contextPieces.同人设定摘要);
         pushEntry('realm_template', '境界体系提示词', '系统', 'system', params.builtContext.contextPieces.境界体系提示词);
         pushEntry('npc_away', '以下为不在场角色', '系统', 'system', params.builtContext.contextPieces.离场NPC档案);
         pushEntry('other_prompts', '叙事/规则提示词', '系统', 'system', params.builtContext.contextPieces.otherPrompts);

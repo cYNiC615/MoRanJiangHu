@@ -672,7 +672,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             天赋列表: params?.天赋列表 ?? selectedTalents,
             出身背景: params?.背景 ?? selectedBackground,
             称号: '初出茅庐', 境界: 初始境界名称, 境界层级: 初始境界层级,
-            所属门派ID: 'none', 门派职位: '无', 门派贡献: 0,
             金钱: { 金元宝: 0, 银子: 0, 铜钱: 0 },
             当前精力, 最大精力,
             当前内力, 最大内力,
@@ -687,7 +686,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             左腿当前血量: 左腿最大血量, 左腿最大血量, 左腿状态: '正常',
             右腿当前血量: 右腿最大血量, 右腿最大血量, 右腿状态: '正常',
             装备: { 头部: '无', 胸部: '无', 盔甲: '无', 内衬: '无', 腿部: '无', 手部: '无', 足部: '无', 主武器: '无', 副武器: '无', 暗器: '无', 背部: '无', 腰部: '无', 坐骑: '无' },
-            物品列表: [], 功法列表: [],
+            物品列表: [], 能力列表: [],
             技艺: 构建默认技艺(openingConfig.题材模式, openingConfig.modeRuntimeProfile),
             当前经验: 0, 升级经验: 初始升级经验, 玩家BUFF: [], 突破条件: []
         };

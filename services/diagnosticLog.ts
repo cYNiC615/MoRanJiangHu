@@ -1,5 +1,3 @@
-import { isNativeCapacitorEnvironment } from '../utils/nativeRuntime';
-
 export type DiagnosticLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
 export type DiagnosticLogEntry = {
@@ -26,7 +24,6 @@ declare global {
 
 const MAX_LOGS = 500;
 const PERSISTED_LOG_LIMIT = 200;
-const NATIVE_PERSISTED_LOG_LIMIT = 60;
 const MAX_RENDERED_VALUE_CHARS = 4000;
 const MAX_MESSAGE_CHARS = 800;
 const MAX_DETAIL_CHARS = 6000;
@@ -43,9 +40,7 @@ const truncateString = (value: string, maxLength: number): string => {
     return `${value.slice(0, Math.max(0, maxLength - 20))}\n...日志内容已截断`;
 };
 
-const getPersistedLogLimit = (): number => (
-    isNativeCapacitorEnvironment() ? NATIVE_PERSISTED_LOG_LIMIT : PERSISTED_LOG_LIMIT
-);
+const getPersistedLogLimit = (): number => PERSISTED_LOG_LIMIT;
 
 const stringifyValue = (value: unknown): string => {
     if (typeof value === 'string') return truncateString(value, MAX_RENDERED_VALUE_CHARS);

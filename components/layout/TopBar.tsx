@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from 'react';
 import { 环境信息结构, 视觉设置结构 } from '../../types';
 import { 构建区域文字样式 } from '../../utils/visualSettings';
 import { normalizeCanonicalGameTime } from '../../hooks/useGame/timeUtils';
-import { setNativeSystemBarsHidden } from '../../utils/nativeRuntime';
 import { 计算游戏历程天数 } from '../../utils/gameTimeJourney';
 
 interface Props {
@@ -395,35 +394,19 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
         return uniqueSegments.length > 0 ? uniqueSegments.join(' - ') : '未知地点';
     }, [环境?.中地点, 环境?.小地点, 环境?.具体地点]);
 
-    React.useEffect(() => {
-        const syncSystemBars = () => {
-            void setNativeSystemBarsHidden(hasFullscreenElement());
-        };
-
-        document.addEventListener('fullscreenchange', syncSystemBars);
-        return () => {
-            document.removeEventListener('fullscreenchange', syncSystemBars);
-            void setNativeSystemBarsHidden(false);
-        };
-    }, []);
-
     const toggleFullScreen = async () => {
         if (!hasFullscreenElement()) {
             try {
                 await document.documentElement.requestFullscreen();
-                await setNativeSystemBarsHidden(true);
             } catch (err: any) {
                 console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
             }
         } else if (document.exitFullscreen) {
             try {
                 await document.exitFullscreen();
-                await setNativeSystemBarsHidden(false);
             } catch (err: any) {
                 console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
             }
-        } else {
-            await setNativeSystemBarsHidden(false);
         }
     };
 

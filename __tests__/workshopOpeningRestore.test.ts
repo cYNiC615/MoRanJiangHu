@@ -12,19 +12,6 @@ describe('workshop opening restore helpers', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: true,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraPrompt: '来自快照的额外提示',
@@ -77,19 +64,6 @@ describe('workshop opening restore helpers', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: true,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                },
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraRequirement: '来自快照的额外要求',
@@ -150,19 +124,6 @@ describe('workshop opening restore helpers', () => {
                     ...(wuxiaTopic!.modeRuntimeProfile as any).identity,
                     displayName: '旧显示名'
                 }
-            },
-            同人融合: {
-                enabled: false,
-                作品名: '',
-                来源类型: '小说' as const,
-                融合强度: '轻度映射' as const,
-                保留原著角色: false,
-                启用角色替换: false,
-                替换目标角色名: '',
-                附加替换角色名列表: [],
-                附加角色替换规则列表: [],
-                启用附加小说: false,
-                附加小说数据集ID: ''
             },
             runtimeSnapshot: {
                 openingStreaming: false,
@@ -285,19 +246,6 @@ describe('workshop opening restore helpers', () => {
                     开局切入偏好: '市井起手',
                     开局生成门派: true,
                     开局生成同门: true,
-                    同人融合: {
-                        enabled: false,
-                        作品名: '',
-                        来源类型: '小说',
-                        融合强度: '轻度映射',
-                        保留原著角色: false,
-                        启用角色替换: false,
-                        替换目标角色名: '',
-                        附加替换角色名列表: [],
-                        附加角色替换规则列表: [],
-                        启用附加小说: false,
-                        附加小说数据集ID: ''
-                    }
                 },
                 openingStreaming: true,
                 openingExtraRequirement: '预设开局额外要求'
@@ -353,19 +301,6 @@ describe('workshop opening restore helpers', () => {
                 开局切入偏好: '市井起手',
                 开局生成门派: true,
                 开局生成同门: true,
-                同人融合: {
-                    enabled: false,
-                    作品名: '',
-                    来源类型: '小说',
-                    融合强度: '轻度映射',
-                    保留原著角色: false,
-                    启用角色替换: false,
-                    替换目标角色名: '',
-                    附加替换角色名列表: [],
-                    附加角色替换规则列表: [],
-                    启用附加小说: false,
-                    附加小说数据集ID: ''
-                }
             },
             openingStreaming: true,
             openingExtraRequirement: ''

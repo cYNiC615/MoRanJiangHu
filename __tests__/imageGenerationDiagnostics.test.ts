@@ -31,7 +31,7 @@ describe('imageGenerationDiagnostics', () => {
         const message = 构建ComfyUI连接失败提示('http://127.0.0.1:8188', new Error('Failed to fetch'));
 
         expect(message).toContain('本机 ComfyUI');
-        expect(message).toContain('手机/APK 里误填了 127.0.0.1');
+        expect(message).toContain('如果从另一台设备访问');
         expect(message).toContain('电脑的局域网 IP');
         expect(message).not.toContain('CNB 的 VS Code 页面保持打开');
     });
@@ -108,26 +108,6 @@ describe('imageGenerationDiagnostics', () => {
                 .toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/view?filename=a.png&type=output&url=https%3A%2F%2Fgiexocxqpl-8188.cnb.run');
             expect(构建ComfyUI运行时代理端点('https://example.com', '/prompt'))
                 .toBe('https://example.com/prompt');
-        } finally {
-            (globalThis as any).window = originalWindow;
-        }
-    });
-
-    it('routes CNB ComfyUI proxy through the public site inside native APK', () => {
-        const originalWindow = (globalThis as any).window;
-        (globalThis as any).window = {
-            location: {
-                protocol: 'https:',
-                origin: 'https://localhost'
-            },
-            Capacitor: {
-                isNativePlatform: () => true,
-            }
-        };
-
-        try {
-            expect(构建ComfyUI运行时代理端点('https://giexocxqpl-8188.cnb.run/', '/prompt'))
-                .toBe('https://msjh.bacon159.pp.ua/api/image-backend/comfyui-proxy/prompt?url=https%3A%2F%2Fgiexocxqpl-8188.cnb.run');
         } finally {
             (globalThis as any).window = originalWindow;
         }

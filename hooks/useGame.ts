@@ -17,8 +17,6 @@ import {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    同人剧情规划结构,
-    同人女主剧情规划结构,
     OpeningConfig,
     NPC结构,
     场景图片档案,
@@ -79,8 +77,6 @@ import {
     规范化剧情状态,
     规范化剧情规划状态 as 基础规范化剧情规划状态,
     规范化女主剧情规划状态 as 基础规范化女主剧情规划状态,
-    规范化同人剧情规划状态 as 基础规范化同人剧情规划状态,
-    规范化同人女主剧情规划状态 as 基础规范化同人女主剧情规划状态,
     战斗结束自动清空,
     按回合窗口裁剪历史
 } from './useGame/storyState';
@@ -167,14 +163,12 @@ type 回合快照结构 = {
         社交: any[];
         世界: 世界数据结构;
         战斗: 战斗状态结构;
-        玩家门派: 详细门派结构;
+        玩家组织: 详细门派结构;
         任务列表: any[];
         约定列表: any[];
         剧情: 剧情系统结构;
         剧情规划: 剧情规划结构;
         女主剧情规划?: 女主剧情规划结构;
-        同人剧情规划?: 同人剧情规划结构;
-        同人女主剧情规划?: 同人女主剧情规划结构;
         记忆系统: 记忆系统结构;
     };
     回档前持久态: {
@@ -373,14 +367,12 @@ export const useGame = () => {
         社交, 设置社交,
         世界, 设置世界,
         战斗, 设置战斗,
-        玩家门派, 设置玩家门派,
+        玩家组织, 设置玩家组织,
         任务列表, 设置任务列表,
         约定列表, 设置约定列表,
         剧情, 设置剧情,
         剧情规划, 设置剧情规划,
         女主剧情规划, 设置女主剧情规划,
-        同人剧情规划, 设置同人剧情规划,
-        同人女主剧情规划, 设置同人女主剧情规划,
         开局配置, 设置开局配置,
         游戏初始时间, 设置游戏初始时间,
         历史记录, 设置历史记录,
@@ -775,14 +767,12 @@ export const useGame = () => {
         设置社交(应用同名NPC过滤(规范化社交列表(深拷贝(snapshot.回档前状态.社交)), 角色?.姓名));
         设置世界(规范化世界状态(深拷贝(snapshot.回档前状态.世界)));
         设置战斗(深拷贝(snapshot.回档前状态.战斗));
-        设置玩家门派(深拷贝(snapshot.回档前状态.玩家门派));
+        设置玩家组织(深拷贝(snapshot.回档前状态.玩家组织));
         设置任务列表(深拷贝(snapshot.回档前状态.任务列表));
         设置约定列表(深拷贝(snapshot.回档前状态.约定列表));
         设置剧情(规范化剧情状态(深拷贝(snapshot.回档前状态.剧情)));
         设置剧情规划(规范化剧情规划状态(深拷贝(snapshot.回档前状态.剧情规划)));
         设置女主剧情规划(规范化女主剧情规划状态(深拷贝(snapshot.回档前状态.女主剧情规划)));
-        设置同人剧情规划(规范化同人剧情规划状态(深拷贝(snapshot.回档前状态.同人剧情规划)));
-        设置同人女主剧情规划(规范化同人女主剧情规划状态(深拷贝(snapshot.回档前状态.同人女主剧情规划)));
         应用并同步记忆系统(深拷贝(snapshot.回档前状态.记忆系统));
         设置历史记录(深拷贝(snapshot.回档前历史));
         if (options?.保留图片状态 !== true) {
@@ -1622,7 +1612,7 @@ export const useGame = () => {
     const NPC符合自动生图条件 = (npc: any): boolean => {
         const config = 读取文生图功能配置();
         if (!config.总开关 || !config.NPC开关) return false;
-        if (npc?.是否玩家本人 === true || npc?.来源 === '玩家门派.重要成员.玩家本人') return false;
+        if (npc?.是否玩家本人 === true || npc?.来源 === '玩家组织.重要成员.玩家本人') return false;
         if (npc?.自动生图禁用 === true) return false;
         if (config.性别筛选 !== '全部') {
             const gender = typeof npc?.性别 === 'string' ? npc.性别.trim() : '';
@@ -1738,7 +1728,7 @@ export const useGame = () => {
         后台场景生图监控Ref.current = pendingMonitors;
     }, [场景生图任务队列]);
 
-    const 读取修炼体系开关 = (): boolean => gameConfig?.启用修炼体系 === true;
+    const 读取成长体系开关 = (): boolean => false;
 
     const 构建文生图额外要求 = (extra?: string): string => {
         const runtimeGameConfig = 规范化游戏设置(gameConfig);
@@ -1759,9 +1749,9 @@ export const useGame = () => {
         深拷贝,
         环境时间转标准串,
         构建完整地点文本,
-        修炼体系已启用: 读取修炼体系开关,
+        成长体系已启用: 读取成长体系开关,
         提取NPC生图基础数据: (npc) => 提取NPC生图基础数据(npc, {
-            cultivationSystemEnabled: 读取修炼体系开关()
+            cultivationSystemEnabled: 读取成长体系开关()
         }),
         读取文生图功能配置,
         场景模式已开启,
@@ -1948,7 +1938,7 @@ export const useGame = () => {
             NPC符合自动生图条件,
             NPC生图进行中集合: NPC生图进行中Ref.current,
             提取NPC生图基础数据: (targetNpc) => 提取NPC生图基础数据附带私密描述(targetNpc, {
-                cultivationSystemEnabled: 读取修炼体系开关()
+                cultivationSystemEnabled: 读取成长体系开关()
             }),
             创建NPC生图任务,
             生成NPC生图记录ID,
@@ -1985,7 +1975,7 @@ export const useGame = () => {
             读取文生图功能配置,
             NPC私密部位生图进行中集合: NPC香闺秘档生图进行中Ref.current,
             提取NPC香闺秘档部位生图数据: (targetNpc, targetPart) => 提取NPC香闺秘档部位生图数据(targetNpc, targetPart, {
-                cultivationSystemEnabled: 读取修炼体系开关()
+                cultivationSystemEnabled: 读取成长体系开关()
             }),
             创建NPC生图任务,
             生成NPC生图记录ID,
@@ -2659,8 +2649,6 @@ export const useGame = () => {
 
     const 规范化剧情规划状态 = (raw?: any): 剧情规划结构 => 基础规范化剧情规划状态(raw);
     const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划结构 | undefined => 基础规范化女主剧情规划状态(raw);
-    const 规范化同人剧情规划状态 = (raw?: any): 同人剧情规划结构 | undefined => 基础规范化同人剧情规划状态(raw);
-    const 规范化同人女主剧情规划状态 = (raw?: any): 同人女主剧情规划结构 | undefined => 基础规范化同人女主剧情规划状态(raw);
 
     function 规范化社交列表安全(raw?: any[], options?: { 合并同名?: boolean; 保留非姓名库主要女性名?: boolean }) {
         const list = Array.isArray(raw) ? raw : [];
@@ -2671,7 +2659,7 @@ export const useGame = () => {
     }
 
     const 构建门派同门社交档案 = (member: any, index: number, sectText: string) => {
-        const semantic = String((玩家门派 as any)?.组织语义 || (玩家门派 as any)?.组织类型 || (玩家门派 as any)?.题材组织类型 || '').trim();
+        const semantic = String((玩家组织 as any)?.组织语义 || (玩家组织 as any)?.组织类型 || (玩家组织 as any)?.题材组织类型 || '').trim();
         const isInfiniteSect = semantic === '轮回小队' || /主神|轮回|奖励点|支线剧情|基因锁|主神空间|恐怖片|轮回者/u.test(sectText);
         const isApocalypseSect = !isInfiniteSect && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
         const memberLabel = isInfiniteSect ? '队友' : isApocalypseSect ? '同伴' : '同门';
@@ -2684,14 +2672,14 @@ export const useGame = () => {
         return {
             id: typeof member?.id === 'string' && member.id.trim()
                 ? member.id.trim()
-                : `sect_member_${玩家门派?.ID || 'unknown'}_${index}`,
+                : `sect_member_${玩家组织?.ID || 'unknown'}_${index}`,
             姓名: typeof member?.姓名 === 'string' && member.姓名.trim() ? member.姓名.trim() : `${memberLabel}${index + 1}`,
             性别: typeof member?.性别 === 'string' ? member.性别 : '未知',
             年龄: Number.isFinite(Number(member?.年龄)) ? Number(member.年龄) : undefined,
             境界: typeof member?.境界 === 'string' && member.境界.trim() ? member.境界.trim() : '未知境界',
             身份: typeof member?.身份 === 'string' && member.身份.trim()
-                ? `${玩家门派?.名称 || orgLabel} · ${formatRelation(member.身份.trim())}`
-                : `${玩家门派?.名称 || orgLabel}${memberLabel}`,
+                ? `${玩家组织?.名称 || orgLabel} · ${formatRelation(member.身份.trim())}`
+                : `${玩家组织?.名称 || orgLabel}${memberLabel}`,
             是否在场: typeof member?.是否在场 === 'boolean' ? member.是否在场 : false,
             是否队友: false,
             是否主要角色: false,
@@ -2700,7 +2688,7 @@ export const useGame = () => {
             关系状态: formatRelation(member?.关系状态),
             简介: typeof member?.简介 === 'string' && member.简介.trim()
                 ? formatRelation(member.简介.trim())
-                : `${玩家门派?.名称 || orgLabel}名录中的${memberLabel}。`,
+                : `${玩家组织?.名称 || orgLabel}名录中的${memberLabel}。`,
             头像图片URL: typeof member?.头像图片URL === 'string' ? member.头像图片URL : undefined,
             图片档案: member?.图片档案 && typeof member.图片档案 === 'object' ? member.图片档案 : undefined,
             天赋列表: Array.isArray(member?.天赋列表) ? member.天赋列表 : [],
@@ -2714,18 +2702,18 @@ export const useGame = () => {
             境界层级: Number.isFinite(Number(member?.境界层级)) ? Number(member.境界层级) : undefined,
             保留开局伙伴设定属性: member?.保留开局伙伴设定属性 === true,
             记忆: Array.isArray(member?.记忆) ? member.记忆 : [],
-            来源: '玩家门派.重要成员'
+            来源: '玩家组织.重要成员'
         };
     };
 
     useEffect(() => {
         if (开局社交刚初始化Ref.current) { 开局社交刚初始化Ref.current = false; return; }
-        const members = Array.isArray(玩家门派?.重要成员) ? 玩家门派.重要成员 : [];
-        if (!玩家门派 || 玩家门派.ID === 'none' || 玩家门派.名称 === '无门无派' || members.length === 0) return;
+        const members = Array.isArray(玩家组织?.重要成员) ? 玩家组织.重要成员 : [];
+        if (!玩家组织 || 玩家组织.ID === 'none' || 玩家组织.名称 === '无门无派' || members.length === 0) return;
         const currentSocial = Array.isArray(社交) ? 社交 : [];
         const normalizedKey = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, '').toLowerCase() : '');
         const known = new Set(currentSocial.flatMap((npc: any) => [npc?.id, npc?.ID, npc?.姓名, npc?.名称].map(normalizedKey)).filter(Boolean));
-        const sectText = JSON.stringify(玩家门派 || {});
+        const sectText = JSON.stringify(玩家组织 || {});
         const missing = members
             .filter((member: any) => member?.是否玩家本人 !== true)
             .map((member: any, index: number) => 构建门派同门社交档案(member, index, sectText))
@@ -2746,7 +2734,7 @@ export const useGame = () => {
         设置社交(normalized);
         void performAutoSave({ social: normalized, history: 历史记录, force: true });
         触发新增NPC自动生图(missing);
-    }, [玩家门派, 社交, 历史记录]);
+    }, [玩家组织, 社交, 历史记录]);
 
     const 应用开场基态 = (openingBase: ReturnType<typeof 创建开场基础状态>) => {
         设置角色(规范化角色物品容器映射(openingBase.角色, {
@@ -2759,14 +2747,12 @@ export const useGame = () => {
         设置社交(应用同名NPC过滤(规范化社交列表(openingBase.社交), 角色?.姓名));
         设置世界(openingBase.世界);
         设置战斗(openingBase.战斗);
-        设置玩家门派(openingBase.玩家门派);
+        设置玩家组织(openingBase.玩家组织);
         设置任务列表(openingBase.任务列表 || []);
         设置约定列表(openingBase.约定列表 || []);
         设置剧情(规范化剧情状态(openingBase.剧情));
         设置剧情规划(规范化剧情规划状态(openingBase.剧情规划 || 创建空剧情规划()));
         设置女主剧情规划(openingBase.女主剧情规划);
-        设置同人剧情规划(openingBase.同人剧情规划);
-        设置同人女主剧情规划(openingBase.同人女主剧情规划);
         应用并同步记忆系统(创建空记忆系统(), { 静默总结提示: true });
         设置历史记录([]);
         清空变量生成上下文缓存();
@@ -2818,14 +2804,12 @@ export const useGame = () => {
             社交: typeof 社交;
             世界: typeof 世界;
             战斗: typeof 战斗;
-            玩家门派?: 详细门派结构;
+            玩家组织?: 详细门派结构;
             任务列表?: any[];
             约定列表?: any[];
             剧情: typeof 剧情;
             剧情规划: typeof 剧情规划;
             女主剧情规划?: 女主剧情规划结构;
-            同人剧情规划?: 同人剧情规划结构;
-            同人女主剧情规划?: 同人女主剧情规划结构;
         },
         options?: {
             applyState?: boolean;
@@ -2844,14 +2828,12 @@ export const useGame = () => {
                 社交,
                 世界,
                 战斗,
-                玩家门派,
+                玩家组织,
                 任务列表,
                 约定列表,
                 剧情,
                 剧情规划,
-                女主剧情规划,
-                同人剧情规划,
-                同人女主剧情规划
+                女主剧情规划
             },
             {
                 规范化环境信息,
@@ -2862,8 +2844,6 @@ export const useGame = () => {
                 规范化剧情状态,
                 规范化剧情规划状态,
                 规范化女主剧情规划状态,
-                规范化同人剧情规划状态,
-                规范化同人女主剧情规划状态,
                 规范化角色物品容器映射,
                 角色规范化选项: {
                     启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
@@ -2875,14 +2855,12 @@ export const useGame = () => {
                 设置社交,
                 设置世界,
                 设置战斗,
-                设置玩家门派,
+                设置玩家组织,
                 设置任务列表,
                 设置约定列表,
                 设置剧情,
                 设置剧情规划,
                 设置女主剧情规划,
-                设置同人剧情规划,
-                设置同人女主剧情规划,
                 命令后校准: (nextState) => {
                     const 清理题材物品 = (state: typeof nextState): typeof nextState => ({
                         ...state,
@@ -2910,8 +2888,6 @@ export const useGame = () => {
                         规范化剧情状态,
                         规范化剧情规划状态,
                         规范化女主剧情规划状态,
-                        规范化同人剧情规划状态,
-                        规范化同人女主剧情规划状态,
                         规范化角色物品容器映射: (raw?: any, calibrationOptions?: any) => 规范化角色物品容器映射(raw, {
                             ...calibrationOptions,
                             启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
@@ -2948,8 +2924,6 @@ export const useGame = () => {
             剧情: typeof 剧情;
             剧情规划: typeof 剧情规划;
             女主剧情规划?: 女主剧情规划结构;
-            同人剧情规划?: 同人剧情规划结构;
-            同人女主剧情规划?: 同人女主剧情规划结构;
         };
     }) => 执行世界演变更新工作流(
         params,
@@ -2992,7 +2966,7 @@ export const useGame = () => {
         环境,
         世界,
         战斗,
-        玩家门派,
+        玩家组织,
         任务列表,
         约定列表,
         历史记录,
@@ -3008,8 +2982,6 @@ export const useGame = () => {
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
-        规范化同人剧情规划状态,
-        规范化同人女主剧情规划状态,
         深拷贝,
         收集最近完整正文回合,
         构建最近完整正文上下文,
@@ -3022,8 +2994,6 @@ export const useGame = () => {
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
-        设置同人剧情规划,
-        设置同人女主剧情规划,
         performAutoSave: (...args) => performAutoSave(...args)
     });
 
@@ -3123,7 +3093,7 @@ export const useGame = () => {
         performAutoSave: (...args) => performAutoSave(...args),
         设置剧情,
         设置历史记录,
-        设置玩家门派,
+        设置玩家组织,
         设置任务列表,
         设置约定列表,
         设置社交,
@@ -3194,14 +3164,12 @@ export const useGame = () => {
             环境,
             世界,
             战斗,
-            玩家门派,
+            玩家组织,
             任务列表,
             约定列表,
             剧情,
             剧情规划,
             女主剧情规划,
-            同人剧情规划,
-            同人女主剧情规划,
             开局配置
         ];
         const cached = 上下文快照缓存Ref.current;
@@ -3227,21 +3195,17 @@ export const useGame = () => {
             环境,
             世界,
             战斗,
-            玩家门派,
+            玩家组织,
             任务列表,
             约定列表,
             剧情,
             剧情规划,
             女主剧情规划,
-            同人剧情规划,
-            同人女主剧情规划,
             开局配置,
             规范化环境信息,
             规范化剧情状态,
             规范化剧情规划状态,
             规范化女主剧情规划状态,
-            规范化同人剧情规划状态,
-            规范化同人女主剧情规划状态,
             按回合窗口裁剪历史,
             构建系统提示词
         });
@@ -3279,14 +3243,12 @@ export const useGame = () => {
                 社交,
                 世界,
                 战斗,
-                玩家门派,
+                玩家组织,
                 任务列表,
                 约定列表,
                 剧情,
                 剧情规划,
                 女主剧情规划,
-                同人剧情规划,
-                同人女主剧情规划,
                 开局配置,
                 游戏初始时间,
                 loading,
@@ -3346,8 +3308,6 @@ export const useGame = () => {
                 规范化剧情状态,
                 规范化剧情规划状态,
                 规范化女主剧情规划状态,
-                规范化同人剧情规划状态,
-                规范化同人女主剧情规划状态,
                 规范化世界状态,
                 游戏设置启用自动重试,
                 执行带自动重试的生成请求,
@@ -3393,7 +3353,7 @@ export const useGame = () => {
         保存图片资源: dbService.保存图片资源,
         获取社交列表: () => 社交Ref.current,
         获取角色: () => 角色,
-        isCultivationSystemEnabled: 读取修炼体系开关
+        isCultivationSystemEnabled: 读取成长体系开关
     });
 
     const updateMemorySystem = (nextMemory: 记忆系统结构) => {
@@ -3443,14 +3403,12 @@ export const useGame = () => {
         社交,
         世界,
         战斗,
-        玩家门派,
+        玩家组织,
         任务列表,
         约定列表,
         剧情,
         剧情规划,
         女主剧情规划,
-        同人剧情规划,
-        同人女主剧情规划,
         记忆系统,
         openingConfig: 开局配置,
         提示词池: prompts,
@@ -3469,8 +3427,6 @@ export const useGame = () => {
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
-        规范化同人剧情规划状态,
-        规范化同人女主剧情规划状态,
         规范化记忆系统,
         规范化可选开局配置,
         规范化记忆配置,
@@ -3518,14 +3474,12 @@ export const useGame = () => {
         设置社交,
         设置世界,
         设置战斗,
-        设置玩家门派,
+        设置玩家组织,
         设置任务列表,
         设置约定列表,
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
-        设置同人剧情规划,
-        设置同人女主剧情规划,
         设置开局配置,
         设置提示词池: setPrompts,
         设置历史记录,
@@ -3559,14 +3513,12 @@ export const useGame = () => {
         角色,
         世界,
         战斗,
-        玩家门派,
+        玩家组织,
         任务列表,
         约定列表,
         剧情,
         剧情规划,
         女主剧情规划,
-        同人剧情规划,
-        同人女主剧情规划,
         开局配置,
         内置提示词列表,
         世界书列表,
@@ -3590,14 +3542,12 @@ export const useGame = () => {
         设置社交,
         设置世界,
         设置战斗,
-        设置玩家门派,
+        设置玩家组织,
         设置任务列表,
         设置约定列表,
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
-        设置同人剧情规划,
-        设置同人女主剧情规划,
         设置开局配置,
         设置开局主剧情进度: set开局主剧情进度,
         设置开局文章优化进度: set开局文章优化进度,
@@ -3630,8 +3580,6 @@ export const useGame = () => {
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
-        规范化同人剧情规划状态,
-        规范化同人女主剧情规划状态,
         规范化角色物品容器映射,
         规范化社交列表: 规范化社交列表安全,
         规范化世界状态,
@@ -3696,8 +3644,8 @@ export const useGame = () => {
         环境时间转标准串,
         规范化社交列表: 规范化社交列表安全,
         设置社交,
-        获取玩家门派: () => 玩家门派,
-        设置玩家门派,
+        获取玩家组织: () => 玩家组织,
+        设置玩家组织,
         执行社交自动存档: (socialSnapshot, sectSnapshot) => {
             void performAutoSave({ social: socialSnapshot, sect: sectSnapshot, history: 历史记录, force: true });
         },
@@ -3746,9 +3694,7 @@ export const useGame = () => {
             剧情,
             剧情规划,
             女主剧情规划,
-            同人剧情规划,
-            同人女主剧情规划,
-            玩家门派,
+            玩家组织,
             任务列表,
             约定列表,
             记忆系统
@@ -3761,8 +3707,6 @@ export const useGame = () => {
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
-        规范化同人剧情规划状态,
-        规范化同人女主剧情规划状态,
         规范化门派状态,
         规范化记忆系统,
         环境时间转标准串,
@@ -3775,9 +3719,7 @@ export const useGame = () => {
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
-        设置同人剧情规划,
-        设置同人女主剧情规划,
-        设置玩家门派,
+        设置玩家组织,
         设置任务列表,
         设置约定列表,
         应用并同步记忆系统,
@@ -3841,7 +3783,7 @@ export const useGame = () => {
         读取文生图功能配置,
         主角生图进行中集合: 主角生图进行中Ref.current,
         提取主角生图基础数据: (character) => 提取主角生图基础数据(character, {
-            cultivationSystemEnabled: 读取修炼体系开关()
+            cultivationSystemEnabled: 读取成长体系开关()
         }),
         创建NPC生图任务,
         生成NPC生图记录ID,
@@ -3913,7 +3855,7 @@ export const useGame = () => {
             setActiveTab, setCurrentTheme,
             setApiConfig, setVisualConfig, setImageManagerConfig, setPrompts,
             setCharacter: 设置角色,
-            setPlayerSect: 设置玩家门派,
+            setPlayerSect: 设置玩家组织,
             setWorld: 设置世界
         },
         actions: {

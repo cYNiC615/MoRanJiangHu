@@ -41,19 +41,6 @@ describe('female name selector', () => {
         expect(prompt).not.toContain('候选姓名（100个）');
     });
 
-    it('warns to keep canonical names without forcing a candidate pool', () => {
-        const prompt = 构建女性姓名候选提示词({
-            usedNames: ['黄蓉'],
-            seed: '射雕英雄传|桃花岛',
-            count: 10,
-            fandomEnabled: true
-        });
-
-        expect(prompt).toContain('原著/同人已有角色');
-        expect(prompt).toContain('必须原样保留');
-        expect(prompt).toContain('不再提供姓名候选池');
-    });
-
     it('detects common female template names for regeneration', () => {
         expect(提取命中女性姓名黑名单('【苏婉儿】她与林婉儿同时出现')).toEqual(['苏婉儿', '林婉儿']);
         expect(提取命中女性姓名黑名单({ value: { 姓名: '苏婉清' } })).toEqual(['苏婉清']);
@@ -117,15 +104,15 @@ describe('female name selector', () => {
         expect(npc.曾用名).toBeUndefined();
     });
 
-    it('keeps named fandom major characters outside the selector pool when fandom protection is enabled', () => {
+    it('keeps named major female characters outside the selector pool when local protection is enabled', () => {
         const [npc] = 重命名重复女性NPC列表([
             {
-                id: 'fandom_huang_rong',
+                id: 'major_huang_rong',
                 姓名: '黄蓉',
                 性别: '女',
-                身份: '同人原著角色',
+                身份: '主要女性角色',
                 是否主要角色: true,
-                简介: '来自原著章节的关键人物。'
+                简介: '玩家手动保留的关键人物。'
             }
         ], { 保留非姓名库主要女性名: true });
 

@@ -158,8 +158,7 @@ export const 默认独立APIGPT模式设置: NonNullable<游戏设置结构['独
     文章优化: false,
     世界演变: false,
     变量生成: false,
-    规划分析: false,
-    小说拆分: false
+    规划分析: false
 };
 
 const 规范化独立APIGPT模式设置 = (
@@ -175,8 +174,7 @@ const 规范化独立APIGPT模式设置 = (
         文章优化: 读取布尔(source.文章优化, fallback.文章优化 === true),
         世界演变: 读取布尔(source.世界演变, fallback.世界演变 === true),
         变量生成: 读取布尔(source.变量生成, fallback.变量生成 === true),
-        规划分析: 读取布尔(source.规划分析, fallback.规划分析 === true),
-        小说拆分: 读取布尔(source.小说拆分, fallback.小说拆分 === true)
+        规划分析: 读取布尔(source.规划分析, fallback.规划分析 === true)
     };
 };
 
@@ -197,7 +195,6 @@ export const 默认游戏设置: 游戏设置结构 = {
     启用标签修复: true,
     启用自动重试: false,
     启用标签协议失败自动回炉: true,
-    禁用APK自动更新: false,
     启用回合结束自动存档: true,
     启用繁体模式: false,
     启用非流式输出: false,
@@ -205,7 +202,6 @@ export const 默认游戏设置: 游戏设置结构 = {
     启用男娘NSFW内容: true,
     启用亲密边界机制: true,
     启用饱腹口渴系统: true,
-    启用修炼体系: false,
     剧情风格: '一般',
     NTL后宫档位: '无限制',
     启用酒馆预设模式: false,
@@ -302,7 +298,6 @@ export const 规范化游戏设置 = (
         启用标签修复: 读取布尔(source.启用标签修复, fallback.启用标签修复 !== false),
         启用自动重试: 读取布尔(source.启用自动重试, fallback.启用自动重试 === true),
         启用标签协议失败自动回炉: 读取布尔(source.启用标签协议失败自动回炉, fallback.启用标签协议失败自动回炉 !== false),
-        禁用APK自动更新: 读取布尔(source.禁用APK自动更新, fallback.禁用APK自动更新 === true),
         启用回合结束自动存档: 读取布尔((source as any).启用回合结束自动存档, fallback.启用回合结束自动存档 !== false),
         启用繁体模式: 读取布尔(source.启用繁体模式, fallback.启用繁体模式 === true),
         启用非流式输出: 读取布尔(source.启用非流式输出, fallback.启用非流式输出 === true),
@@ -310,7 +305,6 @@ export const 规范化游戏设置 = (
         启用男娘NSFW内容: 读取布尔(source.启用男娘NSFW内容, fallback.启用男娘NSFW内容 !== false),
         启用亲密边界机制: 读取布尔(source.启用亲密边界机制, fallback.启用亲密边界机制 !== false),
         启用饱腹口渴系统: 读取布尔(source.启用饱腹口渴系统, fallback.启用饱腹口渴系统 !== false),
-        启用修炼体系: false,
         剧情风格: 规范化剧情风格(source.剧情风格, fallback.剧情风格),
         NTL后宫档位: 规范化NTL档位(source.NTL后宫档位, fallback.NTL后宫档位),
         启用酒馆预设模式: 读取布尔(source.启用酒馆预设模式, fallback.启用酒馆预设模式 === true),

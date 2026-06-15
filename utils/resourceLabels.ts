@@ -47,7 +47,7 @@ export interface 题材界面文案 {
         | 'story'
         | 'plan'
         | 'memory'
-        | 'auctionHouse'
+        | 'retiredMarket'
         | 'imageManager'
         | 'settings',
         string
@@ -221,7 +221,7 @@ export const 获取题材资源文案 = (
 
 const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文案 => {
     const profile = 获取题材模式配置(mode || undefined);
-    const auctionHouse = profile.auctionName || '拍卖行';
+    const retiredMarket = profile.auctionName || '拍卖行';
     const base: 题材界面文案 = {
         菜单: {
             character: '角色',
@@ -229,7 +229,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
             equipment: '全身披挂',
             inventory: '江湖行囊',
             social: '江湖谱',
-            kungfu: '功法',
+            kungfu: '能力',
             skills: '技艺',
             world: '世界',
             map: '地图',
@@ -240,7 +240,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
             story: '剧情',
             plan: '规划',
             memory: '记忆',
-            auctionHouse,
+            retiredMarket,
             imageManager: '图册',
             settings: '江湖设置'
         },
@@ -284,7 +284,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
             能力详情提示: '请在左侧寻阅经典卷宗',
             能力来源: '传自',
             能力默认来源: '未知高人',
-            能力描述兜底: '此功法精妙绝伦，非恒心者不能大成。',
+            能力描述兜底: '此能力精妙绝伦，非恒心者不能大成。',
             能力熟练标题: '修炼造诣',
             能力当前等级: '当前境界',
             能力等级单位: '重',
@@ -295,7 +295,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
             能力提升兜底: '水到渠成，顺其自然',
             能力参数标题: '武道真意',
             能力类别: '类别',
-            能力圆满: '功法圆满',
+            能力圆满: '能力圆满',
             能力基础数值: '基础伤害',
             能力加成数值: '属性加成',
             能力能量系数: '内力振幅',
@@ -340,7 +340,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'xianxia':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '法宝装备', inventory: '乾坤袋', social: '道友录', skills: '百艺', team: '同道', sect: '宗门', auctionHouse },
+                菜单: { ...base.菜单, equipment: '法宝装备', inventory: '乾坤袋', social: '道友录', skills: '百艺', team: '同道', sect: '宗门', retiredMarket },
                 标题: {
                     ...base.标题,
                     装备: '法宝装备',
@@ -378,7 +378,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
                     能力全部: '览尽法门',
                     能力空状态: '暂无修行法门',
                     能力详情提示标题: '选择左侧法门查看详情',
-                    能力详情提示: '功法、术法与神通会显示在这里',
+                    能力详情提示: '能力、术法与神通会显示在这里',
                     能力来源: '传承',
                     能力默认来源: '无名传承',
                     能力描述兜底: '此法门承接灵机，可随修行逐步精进。',
@@ -405,7 +405,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'western_fantasy':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '冒险装备', inventory: '冒险行囊', social: '同伴名册', kungfu: '能力', skills: '专长', team: '队伍', sect: '公会', auctionHouse, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '冒险装备', inventory: '冒险行囊', social: '同伴名册', kungfu: '能力', skills: '专长', team: '队伍', sect: '公会', retiredMarket, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '冒险装备',
@@ -489,7 +489,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'urban_xianxia':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '关系网', kungfu: '修行法', skills: '技能', team: '团队', sect: '组织', auctionHouse, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '关系网', kungfu: '修行法', skills: '技能', team: '团队', sect: '组织', retiredMarket, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '随身装备',
@@ -573,7 +573,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'modern':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '联系人', kungfu: '能力', skills: '技能', team: '团队', sect: '组织', auctionHouse, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '联系人', kungfu: '能力', skills: '技能', team: '团队', sect: '组织', retiredMarket, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '随身装备',
@@ -657,7 +657,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'apocalypse':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '求生装备', inventory: '物资背包', social: '幸存者档案', kungfu: '技能', skills: '生存技能', team: '小队', sect: '营地', auctionHouse, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '求生装备', inventory: '物资背包', social: '幸存者档案', kungfu: '技能', skills: '生存技能', team: '小队', sect: '营地', retiredMarket, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '求生装备',
@@ -744,7 +744,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'infinite':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '强化装备', inventory: '储物清单', social: '轮回者档案', kungfu: '能力', skills: '专长', team: '小队', sect: '团队', auctionHouse, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '强化装备', inventory: '储物清单', social: '轮回者档案', kungfu: '能力', skills: '专长', team: '小队', sect: '团队', retiredMarket, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '强化装备',

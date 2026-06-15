@@ -30,7 +30,7 @@ const baseState = {
     战斗: {},
     剧情: {},
     剧情规划: {},
-    玩家门派: {}
+    玩家组织: {}
 };
 
 describe('variableRegistry', () => {
@@ -66,15 +66,13 @@ describe('variableRegistry', () => {
         expect(prompt).toContain('- 角色.当前精力');
         expect(prompt).toContain('- 社交[0].记忆');
         expect(prompt).not.toContain('- 战斗');
-        expect(prompt).not.toContain('- 玩家门派');
+        expect(prompt).not.toContain('- 玩家组织');
     });
 
     it('blocks retired feature roots from variable commands', () => {
         [
             ['战斗.敌方', []],
-            ['玩家门派.名称', '旧组织'],
-            ['同人剧情规划.当前章目标', '旧同人规划'],
-            ['同人女主剧情规划.阶段推进', '旧同人女主规划'],
+            ['玩家组织.名称', '旧组织'],
             ['战斗态势.主角.当前血量', 1]
         ].forEach(([key, value]) => {
             const result = 校验变量命令是否登记({
@@ -156,9 +154,7 @@ describe('variableRegistry', () => {
             baseState.剧情 as any,
             baseState.剧情规划 as any,
             undefined,
-            undefined,
-            undefined,
-            baseState.玩家门派 as any,
+            baseState.玩家组织 as any,
             baseState.任务列表 as any,
             baseState.约定列表 as any,
             '世界.地图建筑',
@@ -179,8 +175,6 @@ describe('variableRegistry', () => {
             baseState.剧情 as any,
             baseState.剧情规划 as any,
             undefined,
-            { 当前章目标: '旧目标' } as any,
-            { 阶段推进: [] } as any,
             { 名称: '旧组织' } as any,
             baseState.任务列表 as any,
             baseState.约定列表 as any,
@@ -191,6 +185,5 @@ describe('variableRegistry', () => {
 
         expect(result.battle).toEqual({ 是否战斗中: false });
         expect(result.sect).toEqual({ 名称: '旧组织' });
-        expect(result.fandomStoryPlan).toEqual({ 当前章目标: '旧目标' });
     });
 });

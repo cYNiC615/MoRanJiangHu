@@ -44,9 +44,7 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         `- AI 生成角色性别硬约束：本次只允许新生成的 NPC、开局伙伴、组织成员、队友、路人、敌人与任务人物使用这些性别：${允许生成性别.join('、')}。不得生成未允许性别的新角色；不得用“未知性别/待定/不详”绕过限制。`,
         '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；不要额外扩写未允许性别的新原创角色。',
         `- 题材开局边界：${开局文案.promptBoundary}`,
-        openingConfig.开局生成门派 === false
-            ? '- 开局组织变量：本次不生成废弃的组织根变量；如题材需要组织归属，只写进地点、社交、任务或世界观语境。'
-            : `- 开局组织变量：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”。`,
+        `- 开局组织口径：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”；组织可以是公司、学校、社区、项目组、营地、队伍、公会、协会或其他当前题材合适的社会结构，不等同于旧门派系统。`,
         openingConfig.开局生成同门 === false
             ? '- 开局成员名录：本次明确不生成同门/同道/队友名录变量；社交人物必须按剧情证据自然落位。'
             : `- 开局成员名录：允许生成与题材匹配的初始成员，界面语义为“${开局文案.memberTitle}”。`,
@@ -60,9 +58,4 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         );
     }
     return blocks.join('\n');
-};
-
-export const 构建世界观同人融合提示词 = (openingConfig?: OpeningConfig | null): string => {
-    void openingConfig;
-    return '';
 };

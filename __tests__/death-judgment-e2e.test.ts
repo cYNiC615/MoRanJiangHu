@@ -84,7 +84,7 @@ describe('死亡判定端到端测试', () => {
                 社交: socialList,
                 世界: { 地图层级: [] } as any,
                 战斗: {} as any,
-                玩家门派: {} as any,
+                玩家组织: {} as any,
                 任务列表: [],
                 约定列表: [],
                 剧情: {} as any,
@@ -99,8 +99,6 @@ describe('死亡判定端到端测试', () => {
                 规范化剧情状态: (raw?: any) => raw || {},
                 规范化剧情规划状态: (raw?: any) => raw || {},
                 规范化女主剧情规划状态: (raw?: any) => raw,
-                规范化同人剧情规划状态: (raw?: any) => raw,
-                规范化同人女主剧情规划状态: (raw?: any) => raw,
                 规范化角色物品容器映射,
                 战斗结束自动清空: (battle: any) => battle
             },

@@ -8,7 +8,7 @@ const 构建基础状态 = (): 响应命令处理状态 => ({
     社交: [],
     世界: {} as any,
     战斗: {} as any,
-    玩家门派: {} as any,
+    玩家组织: {} as any,
     任务列表: [],
     约定列表: [],
     剧情: {} as any,
@@ -24,8 +24,6 @@ const deps = {
     规范化剧情状态: (value?: any) => value || {},
     规范化剧情规划状态: (value?: any) => value || {},
     规范化女主剧情规划状态: (value?: any) => value,
-    规范化同人剧情规划状态: (value?: any) => value,
-    规范化同人女主剧情规划状态: (value?: any) => value,
     规范化角色物品容器映射: (value?: any) => value || {},
     战斗结束自动清空: (value?: any) => value || {}
 };
@@ -539,18 +537,15 @@ describe('responseCommandProcessor female relationship target major role fallbac
     it('ignores heroine planning commands when heroine planning is disabled', () => {
         const state = 构建基础状态();
         state.女主剧情规划 = { 现状: '旧规划' } as any;
-        state.同人女主剧情规划 = { 现状: '旧同人规划' } as any;
 
         const result = 执行响应命令处理({
             logs: [{ sender: '旁白', text: '本回合没有女主规划。' }],
             tavern_commands: [
-                { action: 'set', key: '女主剧情规划.现状', value: '新规划' },
-                { action: 'set', key: '同人女主剧情规划.现状', value: '新同人规划' }
+                { action: 'set', key: '女主剧情规划.现状', value: '新规划' }
             ]
         } as any, state, deps, undefined, { applyState: false, heroinePlanEnabled: false });
 
         expect((result.女主剧情规划 as any)?.现状).toBe('旧规划');
-        expect((result.同人女主剧情规划 as any)?.现状).toBe('旧同人规划');
     });
 
     it('marks an existing female NPC as major when relationship is established by story fact', () => {

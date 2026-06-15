@@ -13,9 +13,15 @@ import { 状态效果是死亡判定 } from '../../utils/npcDeathGuard';
 import { 合并子宫档案值, 标准化子宫档案值 } from '../../utils/reproduction';
 import { 补齐自动丹药预设, 古风丹药预设名称集合, 生存补给预设名称集合 } from '../../utils/autoConsumables';
 import type { ModeRuntimeProfile, 题材模式类型 } from '../../models/system';
-import { 获取境界配置, 规范化境界显示文本 as 规范化境界显示文本共享, 获取境界层级, 获取境界名称列表 } from '../../utils/realmConfig';
 import { 确保角色金钱BaseAmount, 规范化角色金钱 } from '../../utils/currencyDisplay';
-import type { 境界配置 } from '../../utils/realmConfig';
+
+type 境界配置 = undefined;
+const 获取境界配置 = () => undefined;
+const 规范化境界显示文本共享 = (value: unknown, fallback = ''): string => (
+    typeof value === 'string' && value.trim() ? value.trim() : fallback
+);
+const 获取境界层级 = () => 1;
+const 获取境界名称列表 = () => [] as string[];
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 
@@ -907,7 +913,7 @@ const 合并同名可堆叠物品 = (items: any[]): any[] => {
 
 const 重算物品负重 = (items: any[]): number => 重算背包物品负重(items);
 
-const 功法品质预算: Record<string, {
+const 能力品质预算: Record<string, {
     最高重数: number;
     升级经验: number;
     基础伤害: number;
@@ -926,23 +932,23 @@ const 功法品质预算: Record<string, {
     传说: { 最高重数: 12, 升级经验: 900, 基础伤害: 90, 加成系数: 2.15, 内力系数: 1.6, 消耗数值: 48, 最大目标数: 5, 被动修正: 20, 效果概率: 38 }
 };
 
-const 功法品质列表 = Object.keys(功法品质预算);
-const 功法类型列表 = (): string[] => 当前题材默认值().kungfuTypes;
-const 功法消耗类型列表 = (): string[] => 当前题材默认值().resourceTypes;
-const 功法伤害类型列表 = ['物理', '内功', '真实', '混合'];
-const 功法目标类型列表 = ['单体', '全体', '扇形', '自身', '随机'];
+const 能力品质列表 = Object.keys(能力品质预算);
+const 能力类型列表 = (): string[] => 当前题材默认值().kungfuTypes;
+const 能力消耗类型列表 = (): string[] => 当前题材默认值().resourceTypes;
+const 能力伤害类型列表 = ['物理', '内功', '真实', '混合'];
+const 能力目标类型列表 = ['单体', '全体', '扇形', '自身', '随机'];
 
-const 规范化功法枚举 = (value: unknown, allowed: string[], fallback: string): string => {
+const 规范化能力枚举 = (value: unknown, allowed: string[], fallback: string): string => {
     const text = 规范化文本(value);
     return allowed.includes(text) ? text : fallback;
 };
 
-const 功法偏被动 = (类型: string): boolean => {
+const 能力偏被动 = (类型: string): boolean => {
     const 被动类 = ['内功', '轻功', '被动', '阵诀', '遁法', '战术', '驾驶', '工程', '医疗', '侦查', '生存', '社交', '潜入', '强化', '召唤', '炼金', '血统'];
     return 被动类.includes(类型);
 };
 
-const 计算功法重数倍率 = (当前重数: number, 最高重数: number): number => {
+const 计算能力重数倍率 = (当前重数: number, 最高重数: number): number => {
     const level = Math.max(1, Math.floor(当前重数));
     const maxLevel = Math.max(level, Math.floor(最高重数));
     const linear = 1 + (level - 1) * 0.12;
@@ -951,8 +957,8 @@ const 计算功法重数倍率 = (当前重数: number, 最高重数: number): n
     return Number((linear + milestone + capstone).toFixed(2));
 };
 
-const 计算功法重数数值下限 = (base: number, 当前重数: number, 最高重数: number): number => (
-    Math.max(0, Number((base * 计算功法重数倍率(当前重数, 最高重数)).toFixed(2)))
+const 计算能力重数数值下限 = (base: number, 当前重数: number, 最高重数: number): number => (
+    Math.max(0, Number((base * 计算能力重数倍率(当前重数, 最高重数)).toFixed(2)))
 );
 
 const 提升数值文本参数 = (value: string, multiplier: number): string => {
@@ -963,7 +969,7 @@ const 提升数值文本参数 = (value: string, multiplier: number): string => 
     return `${Number.isInteger(next) ? Math.round(next) : next}${match[2] || ''}`;
 };
 
-const 构建功法重数描述 = (名称: string, 品质: string, 类型: string, 最高重数: number): Array<{ 重数: number; 描述: string }> => {
+const 构建能力重数描述 = (名称: string, 品质: string, 类型: string, 最高重数: number): Array<{ 重数: number; 描述: string }> => {
     const pivots = Array.from(new Set([1, Math.max(1, Math.ceil(最高重数 / 2)), 最高重数]))
         .filter((value) => value >= 1 && value <= 最高重数)
         .sort((a, b) => a - b);
@@ -975,37 +981,37 @@ const 构建功法重数描述 = (名称: string, 品质: string, 类型: string
     }));
 };
 
-const 标准化功法列表 = (raw: any): any[] => {
+const 标准化能力列表 = (raw: any): any[] => {
     if (!Array.isArray(raw)) return [];
     return raw
         .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
         .map((source, index) => {
             const item = { ...source } as any;
-            const 名称 = 规范化文本(item?.名称, `未命名功法${index + 1}`) || `未命名功法${index + 1}`;
-            const 品质 = 规范化功法枚举(item?.品质, 功法品质列表, '凡品');
-            const 类型 = 规范化功法枚举(item?.类型, 功法类型列表(), '被动');
-            const budget = 功法品质预算[品质] || 功法品质预算.凡品;
-            const passiveLike = 功法偏被动(类型);
+            const 名称 = 规范化文本(item?.名称, `未命名能力${index + 1}`) || `未命名能力${index + 1}`;
+            const 品质 = 规范化能力枚举(item?.品质, 能力品质列表, '凡品');
+            const 类型 = 规范化能力枚举(item?.类型, 能力类型列表(), '被动');
+            const budget = 能力品质预算[品质] || 能力品质预算.凡品;
+            const passiveLike = 能力偏被动(类型);
             const 最高重数 = Math.max(1, 规范化整数(item?.最高重数, budget.最高重数), budget.最高重数);
             const 当前重数 = Math.min(最高重数, Math.max(1, 规范化整数(item?.当前重数, 1)));
             const 基础伤害下限 = passiveLike ? Math.max(0, Math.floor(budget.基础伤害 * 0.45)) : budget.基础伤害;
             const 加成系数下限 = passiveLike ? Math.max(0.1, Number((budget.加成系数 * 0.75).toFixed(2))) : budget.加成系数;
             const 内力系数下限 = passiveLike ? Math.max(0.1, Number((budget.内力系数 * 0.85).toFixed(2))) : budget.内力系数;
-            const 重数倍率 = 计算功法重数倍率(当前重数, 最高重数);
-            const 重数基础伤害下限 = 计算功法重数数值下限(基础伤害下限, 当前重数, 最高重数);
-            const 重数加成系数下限 = 计算功法重数数值下限(加成系数下限, 当前重数, 最高重数);
-            const 重数内力系数下限 = 计算功法重数数值下限(内力系数下限, 当前重数, 最高重数);
+            const 重数倍率 = 计算能力重数倍率(当前重数, 最高重数);
+            const 重数基础伤害下限 = 计算能力重数数值下限(基础伤害下限, 当前重数, 最高重数);
+            const 重数加成系数下限 = 计算能力重数数值下限(加成系数下限, 当前重数, 最高重数);
+            const 重数内力系数下限 = 计算能力重数数值下限(内力系数下限, 当前重数, 最高重数);
             const 被动属性 = 类型 === '轻功' || 类型 === '遁法' ? '敏捷' : (类型 === '内功' || 类型 === '被动' ? '根骨' : '攻击力');
             const rawPassive = Array.isArray(item?.被动修正) ? item.被动修正 : [];
             const 被动修正 = rawPassive
                 .filter((entry: any) => entry && typeof entry === 'object' && 规范化文本(entry?.属性名))
                 .map((entry: any) => ({
                     属性名: 规范化文本(entry?.属性名),
-                    数值: Math.max(规范化数值(entry?.数值, 0), 计算功法重数数值下限(budget.被动修正, 当前重数, 最高重数)),
+                    数值: Math.max(规范化数值(entry?.数值, 0), 计算能力重数数值下限(budget.被动修正, 当前重数, 最高重数)),
                     类型: entry?.类型 === '百分比' ? '百分比' : '固定值'
                 }));
             if ((passiveLike || 品质 === '绝世' || 品质 === '传说') && 被动修正.length === 0) {
-                被动修正.push({ 属性名: 被动属性, 数值: 计算功法重数数值下限(budget.被动修正, 当前重数, 最高重数), 类型: passiveLike ? '百分比' : '固定值' });
+                被动修正.push({ 属性名: 被动属性, 数值: 计算能力重数数值下限(budget.被动修正, 当前重数, 最高重数), 类型: passiveLike ? '百分比' : '固定值' });
             }
             const rawEffects = Array.isArray(item?.附带效果) ? item.附带效果 : [];
             const 附带效果 = rawEffects
@@ -1033,7 +1039,7 @@ const 标准化功法列表 = (raw: any): any[] => {
                         描述: 规范化文本(entry?.描述)
                     }))
                     .filter((entry: any) => entry.描述)
-                : 构建功法重数描述(名称, 品质, 类型, 最高重数);
+                : 构建能力重数描述(名称, 品质, 类型, 最高重数);
             const 境界特效 = Array.isArray(item?.境界特效) && item.境界特效.length > 0
                 ? item.境界特效
                     .map((entry: any) => ({
@@ -1057,12 +1063,12 @@ const 标准化功法列表 = (raw: any): any[] => {
                 最高重数,
                 当前熟练度: Math.max(0, 规范化整数(item?.当前熟练度, 0)),
                 升级经验: Math.max(budget.升级经验, 规范化整数(item?.升级经验, budget.升级经验)),
-                突破条件: 规范化文本(item?.突破条件, `需将${名称}修至当前重数圆融，并满足${品质}功法对应的实战或悟性门槛。`),
+                突破条件: 规范化文本(item?.突破条件, `需将${名称}修至当前重数圆融，并满足${品质}能力对应的实战或悟性门槛。`),
                 境界限制: 规范化文本(item?.境界限制, '无明确境界限制'),
                 大成方向: 规范化文本(item?.大成方向, passiveLike ? '强化身法、内息循环与长期战斗稳定性。' : '强化正面威力、破防与招式压制。'),
                 圆满效果: 规范化文本(item?.圆满效果, `${名称}圆满后，${品质}底蕴完全显现，核心效果、数值增益与战斗表现同步提升。`),
                 武器限制: Array.isArray(item?.武器限制) ? item.武器限制.map((value: any) => 规范化文本(value)).filter(Boolean) : [],
-                消耗类型: 规范化功法枚举(item?.消耗类型, 功法消耗类型列表(), 类型 === '术法' || 类型 === '神通' || 类型 === '法诀' ? '灵力' : '内力'),
+                消耗类型: 规范化能力枚举(item?.消耗类型, 能力消耗类型列表(), 类型 === '术法' || 类型 === '神通' || 类型 === '法诀' ? '灵力' : '内力'),
                 消耗数值: Math.max(0, 规范化整数(item?.消耗数值, budget.消耗数值)),
                 施展耗时: 规范化文本(item?.施展耗时, '一息'),
                 冷却时间: 规范化文本(item?.冷却时间, '无'),
@@ -1070,8 +1076,8 @@ const 标准化功法列表 = (raw: any): any[] => {
                 基础伤害: Math.max(重数基础伤害下限, 规范化数值(item?.基础伤害, 重数基础伤害下限)),
                 加成系数: Math.max(重数加成系数下限, 规范化数值(item?.加成系数, 重数加成系数下限)),
                 内力系数: Math.max(重数内力系数下限, 规范化数值(item?.内力系数, 重数内力系数下限)),
-                伤害类型: 规范化功法枚举(item?.伤害类型, 功法伤害类型列表, 类型 === '外功' ? '物理' : '内功'),
-                目标类型: 规范化功法枚举(item?.目标类型, 功法目标类型列表, passiveLike ? '自身' : '单体'),
+                伤害类型: 规范化能力枚举(item?.伤害类型, 能力伤害类型列表, 类型 === '外功' ? '物理' : '内功'),
+                目标类型: 规范化能力枚举(item?.目标类型, 能力目标类型列表, passiveLike ? '自身' : '单体'),
                 最大目标数: Math.max(1, Math.max(规范化整数(item?.最大目标数, 1), budget.最大目标数)),
                 重数描述映射,
                 附带效果,
@@ -1388,9 +1394,6 @@ const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF�
         (role as any).功德 = 规范化数值((role as any).功德, 0);
         (role as any).业力 = 规范化数值((role as any).业力, 0);
     }
-    (role as any).所属门派ID = 规范化文本((role as any).所属门派ID, 'none');
-    (role as any).门派职位 = 规范化文本((role as any).门派职位, '无');
-    (role as any).门派贡献 = Math.max(0, 规范化整数((role as any).门派贡献, 0));
     (role as any).当前精力 = Math.max(0, 规范化数值((role as any).当前精力, 0));
     (role as any).最大精力 = Math.max(0, 规范化数值((role as any).最大精力, 0));
     const 当前资源类型 = 当前题材默认值().resourceTypes;
@@ -1464,7 +1467,7 @@ const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF�
         })
         .filter(Boolean)
         .map((item: any, idx: number) => ({ ...item, 索引: idx }));
-    (role as any).功法列表 = 标准化功法列表((role as any).功法列表);
+    (role as any).能力列表 = 标准化能力列表((role as any).能力列表);
     (role as any).技艺 = 标准化角色技艺((role as any).技艺);
 
     // 兜底：如果技艺全为"未入门/熟练度0"，根据角色信息自动给基础值
@@ -1476,14 +1479,12 @@ const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF�
                 role?.姓名,
                 role?.性别,
                 role?.出身背景?.名称,
-                role?.所属门派ID,
                 role?.称号
             ].map((value) => 规范化文本(value)).join('|'),
             text: [
                 role?.出身背景?.名称,
                 role?.出身背景?.描述,
                 role?.出身背景?.效果,
-                role?.所属门派ID,
                 role?.性格,
                 role?.外貌,
                 role?.称号
@@ -3663,5 +3664,5 @@ export {
     构建完整地点文本,
     规范化角色物品容器映射,
     规范化社交列表,
-    标准化功法列表
+    标准化能力列表
 };

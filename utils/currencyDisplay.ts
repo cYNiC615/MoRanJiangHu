@@ -1,6 +1,5 @@
 import type { OpeningConfig, 角色数据结构 } from '../types';
 import type { 角色金钱 } from '../models/character';
-import { 推断单位仙侠 } from './realmDisplay';
 import { 获取题材模式配置, 题材是否仙侠 } from './topicModeProfiles';
 import type { CurrencySystem, CurrencyUnit, ModeRuntimeProfile } from '../models/system';
 
@@ -204,7 +203,7 @@ export const 获取货币显示模式 = (
     character?: Partial<角色数据结构> | null
 ): 货币显示模式 => {
     const mode = 获取题材模式配置(openingConfig?.题材模式).currencyDisplayMode;
-    if (推断单位仙侠(character) && mode === 'wuxia') return 'xianxia';
+    void character;
     return mode;
 };
 
@@ -674,7 +673,6 @@ export const 是否仙侠货币模式 = (
     character?: Partial<角色数据结构> | null
 ): boolean => (
     题材是否仙侠(openingConfig?.题材模式)
-    || 推断单位仙侠(character)
 );
 
 export const 规范化角色金钱 = 创建兼容角色金钱;

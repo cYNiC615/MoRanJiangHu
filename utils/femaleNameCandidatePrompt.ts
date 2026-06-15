@@ -27,7 +27,6 @@ export const 构建女性姓名候选提示词 = (params?: {
     usedNames?: Iterable<string>;
     seed?: string;
     count?: number;
-    fandomEnabled?: boolean;
 }): string => {
     void params;
     return 构建女性姓名黑名单提示词();

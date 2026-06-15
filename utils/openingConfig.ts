@@ -2,15 +2,12 @@ import type {
     OpeningConfig,
     OpeningRuntimeSnapshot,
     初始伙伴配置结构,
-    同人角色替换规则结构,
     游戏难度,
     初始关系模板类型,
     关系侧重类型,
     开局切入偏好类型,
     开局生成性别类型,
-    题材模式类型,
-    同人来源类型,
-    同人融合强度类型
+    题材模式类型
 } from '../types';
 import { 获取题材模式配置, 获取题材模式选项, 规范化题材模式 } from './topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置 } from './modeRuntimeProfile';
@@ -405,19 +402,6 @@ export const 规范化开局生成性别列表 = (value: unknown): 开局生成�
     return result.length > 0 ? result : [...默认开局生成性别列表];
 };
 
-export const 同人来源类型选项: Array<{ value: 同人来源类型; label: string }> = [
-    { value: '小说', label: '小说' },
-    { value: '动漫', label: '动漫' },
-    { value: '游戏', label: '游戏' },
-    { value: '影视', label: '影视' }
-];
-
-export const 同人融合强度选项: Array<{ value: 同人融合强度类型; label: string; hint: string }> = [
-    { value: '轻度映射', label: '轻度映射', hint: '只借设定气质与世界母题，不直接搬角色。' },
-    { value: '中度混编', label: '中度混编', hint: '允许部分势力、设定和风格直接进入原创世界。' },
-    { value: '显性同台', label: '显性同台', hint: '允许原著角色或势力直接以世界母本形式存在。' }
-];
-
 export const 默认开局配置 = (): OpeningConfig => ({
     ...创建主题默认开局配置('武侠'),
     modeRuntimeProfile: 构建官方模式运行时配置('武侠'),
@@ -431,7 +415,6 @@ export const 默认初始伙伴配置 = (): 初始伙伴配置结构 => ({
 });
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
-const 角色替换名称分隔正则 = /[\r\n,，、;；]+/u;
 
 const 规范化创意工坊上下文 = (value: unknown, fallbackMode: OpeningConfig['题材模式']) => {
     const source = value && typeof value === 'object' && !Array.isArray(value) ? value as any : {};
@@ -550,68 +533,6 @@ const 规范化运行时快照 = (value: unknown): OpeningConfig['runtimeSnapsho
         modeTalents: 规范化快照天赋列表((value as any)?.modeTalents)
     };
 };
-export const 规范化角色替换名称列表 = (value: unknown): string[] => {
-    const rawList = Array.isArray(value)
-        ? value
-        : typeof value === 'string'
-            ? value.split(角色替换名称分隔正则)
-            : [];
-    const result: string[] = [];
-    const seen = new Set<string>();
-    rawList.forEach((item) => {
-        const name = 读取文本(item);
-        if (!name || seen.has(name)) return;
-        seen.add(name);
-        result.push(name);
-    });
-    return result;
-};
-
-export const 规范化角色替换规则列表 = (value: unknown): 同人角色替换规则结构[] => {
-    const source = Array.isArray(value) ? value : [];
-    const result: 同人角色替换规则结构[] = [];
-    source.forEach((item) => {
-        const 原名称 = 读取文本((item as 同人角色替换规则结构 | null | undefined)?.原名称);
-        const 替换为 = 读取文本((item as 同人角色替换规则结构 | null | undefined)?.替换为);
-        if (!原名称 || !替换为) return;
-        result.push({ 原名称, 替换为 });
-    });
-    return result;
-};
-
-export const 获取同人角色替换规则列表 = (
-    config?: OpeningConfig | null,
-    playerName?: string
-): 同人角色替换规则结构[] => {
-    const ruleMap = new Map<string, string>();
-    const resolvedPlayerName = 读取文本(playerName);
-    const 写入规则 = (原名称: unknown, 替换为: unknown) => {
-        const sourceName = 读取文本(原名称);
-        const replacementName = 读取文本(替换为);
-        if (!sourceName || !replacementName || sourceName === replacementName) return;
-        ruleMap.set(sourceName, replacementName);
-    };
-
-    写入规则(config?.同人融合?.替换目标角色名, resolvedPlayerName);
-    规范化角色替换名称列表(config?.同人融合?.附加替换角色名列表)
-        .forEach((name) => 写入规则(name, resolvedPlayerName));
-    规范化角色替换规则列表(config?.同人融合?.附加角色替换规则列表)
-        .forEach((rule) => 写入规则(rule.原名称, rule.替换为));
-
-    return Array.from(ruleMap.entries()).map(([原名称, 替换为]) => ({ 原名称, 替换为 }));
-};
-
-export const 格式化角色替换规则摘要 = (
-    rules: 同人角色替换规则结构[],
-    options?: { maxItems?: number }
-): string => {
-    const list = 规范化角色替换规则列表(rules).map((rule) => `${rule.原名称} -> ${rule.替换为}`);
-    if (list.length <= 0) return '';
-    const maxItems = Math.max(1, Math.floor(options?.maxItems || 3));
-    if (list.length <= maxItems) return list.join('；');
-    return `${list.slice(0, maxItems).join('；')} 等${list.length}项`;
-};
-
 export const 获取难度总属性点 = (difficulty?: 游戏难度): number => (
     获取难度设定(difficulty).起始属性点
 );
@@ -787,15 +708,6 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const 开局切入偏好 = 开局切入偏好选项.some((item) => item.value === raw?.开局切入偏好)
         ? raw.开局切入偏好
         : fallback.开局切入偏好;
-    const 来源类型 = 同人来源类型选项.some((item) => item.value === raw?.同人融合?.来源类型)
-        ? raw.同人融合.来源类型
-        : fallback.同人融合.来源类型;
-    const 融合强度 = 同人融合强度选项.some((item) => item.value === raw?.同人融合?.融合强度)
-        ? raw.同人融合.融合强度
-        : fallback.同人融合.融合强度;
-    const 同人融合启用 = raw?.同人融合?.enabled === true;
-    const 启用附加小说 = 同人融合启用 && raw?.同人融合?.启用附加小说 === true;
-
     const 初始伙伴列表 = 规范化初始伙伴列表(raw?.初始伙伴列表, raw?.初始伙伴 ?? fallback.初始伙伴);
     const 第一初始伙伴 = 初始伙伴列表[0] || 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴);
 
@@ -816,20 +728,7 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         ),
         生成性别锁定: raw?.生成性别锁定 === true || raw?.modeRuntimeProfile?.opening?.lockGeneratedGenders === true,
         初始伙伴列表,
-        初始伙伴: 第一初始伙伴,
-        同人融合: {
-            enabled: 同人融合启用,
-            作品名: 读取文本(raw?.同人融合?.作品名),
-            来源类型,
-            融合强度,
-            保留原著角色: raw?.同人融合?.保留原著角色 === true,
-            启用角色替换: raw?.同人融合?.启用角色替换 === true,
-            替换目标角色名: 读取文本(raw?.同人融合?.替换目标角色名),
-            附加替换角色名列表: 规范化角色替换名称列表(raw?.同人融合?.附加替换角色名列表),
-            附加角色替换规则列表: 规范化角色替换规则列表(raw?.同人融合?.附加角色替换规则列表),
-            启用附加小说,
-            附加小说数据集ID: 启用附加小说 ? 读取文本(raw?.同人融合?.附加小说数据集ID) : ''
-        }
+        初始伙伴: 第一初始伙伴
     };
 };
 

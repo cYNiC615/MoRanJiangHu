@@ -10,8 +10,7 @@ import {
     构建变量相关规则提示词
 } from '../../prompts/runtime/variableCalibrationReference';
 import type { 响应命令处理状态 } from './responseCommandProcessor';
-import { 构建同人运行时提示词包, 同人运行时模式已启用 } from '../../prompts/runtime/fandom';
-import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../../utils/variableRegistry';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
@@ -147,7 +146,7 @@ const 序列化变量模型状态 = (
     };
     const trimmedPayload = cultivationSystemEnabled
         ? payload
-        : 裁剪修炼体系上下文数据(payload, { 启用修炼体系: false });
+        : 裁剪成长体系上下文数据(payload, { 启用成长体系: false });
     return JSON.stringify(清理变量模型上下文(trimmedPayload), null, 2);
 };
 
@@ -497,7 +496,7 @@ export const 执行变量模型校准工作流 = async (
 ): Promise<变量模型校准结果 | null> => {
     const runtimeGameConfig = 规范化游戏设置(deps.gameConfig);
     const 启用饱腹口渴系统 = runtimeGameConfig.启用饱腹口渴系统 !== false;
-    const 启用修炼体系 = runtimeGameConfig.启用修炼体系 === true;
+    const 启用成长体系 = false;
     const 启用男娘NSFW内容 = runtimeGameConfig.启用NSFW模式 === true && runtimeGameConfig.启用男娘NSFW内容 !== false;
     if (!变量校准功能已启用(deps.apiConfig)) return null;
 
@@ -512,17 +511,7 @@ export const 执行变量模型校准工作流 = async (
         const hit = (Array.isArray(params.promptPool) ? params.promptPool : []).find((item) => item?.id === 'core_world');
         return typeof hit?.内容 === 'string' ? hit.内容.trim() : '';
     })();
-    const realmPrompt = (() => {
-        if (!启用修炼体系) return '';
-        const hit = (Array.isArray(params.promptPool) ? params.promptPool : []).find((item) => item?.id === 'core_realm');
-        const raw = typeof hit?.内容 === 'string' ? hit.内容.trim() : '';
-        return raw.includes('开局后此处会被完整替换') ? '' : raw;
-    })();
-    const fandomPromptBundle = 构建同人运行时提示词包({
-        openingConfig: params.openingConfig,
-        worldPrompt,
-        realmPrompt
-    });
+    const realmPrompt = '';
     const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交, {
         femboyNsfwEnabled: 启用男娘NSFW内容,
         xianxiaMode: false
@@ -542,8 +531,7 @@ export const 执行变量模型校准工作流 = async (
             params.baseState?.环境?.小地点,
             params.baseState?.环境?.具体地点
         ].filter(Boolean).join('|'),
-        count: 100,
-        fandomEnabled: 同人运行时模式已启用(params.openingConfig)
+        count: 100
     });
     const templateNameBlacklistPrompt = 构建模板姓名黑名单提示词();
     const mergedExtraPrompt = [
@@ -559,7 +547,6 @@ export const 执行变量模型校准工作流 = async (
                 runtimeGameConfig.启用NSFW模式 === true ? 名器世界书触发词 : ''
             ]
         }).combinedText, runtimeGameConfig),
-        按功能开关过滤提示词内容(fandomPromptBundle.同人设定摘要, runtimeGameConfig),
         dialogueNpcAuditPrompt,
         socialCompletenessAuditPrompt,
         femaleNameCandidatePrompt,
@@ -573,27 +560,19 @@ export const 执行变量模型校准工作流 = async (
         promptPool: Array.isArray(params.promptPool) ? params.promptPool : [],
         gameConfig: runtimeGameConfig
     });
-    const calibrationRulesContextWithFandom = [
-        calibrationRulesContext,
-        按功能开关过滤提示词内容(fandomPromptBundle.变量校准补丁, runtimeGameConfig),
-        启用修炼体系 ? fandomPromptBundle.境界母板补丁 : ''
-    ]
-        .filter(Boolean)
-        .join('\n\n');
-
     const 请求变量模型 = (retryHint = '') => textAIService.generateVariableCalibrationUpdate(
         {
             stateJson: 序列化变量模型状态(params.baseState, {
                 survivalNeedsEnabled: 启用饱腹口渴系统,
-                cultivationSystemEnabled: 启用修炼体系
+                cultivationSystemEnabled: 启用成长体系
             }),
             response: params.parsedResponse,
-            calibrationRulesContext: calibrationRulesContextWithFandom,
+            calibrationRulesContext,
             worldEvolutionEnabled: params.worldEvolutionEnabled,
             worldEvolutionUpdated: params.worldEvolutionUpdated === true,
             builtinPromptEntries: params.builtinPromptEntries,
             survivalNeedsEnabled: 启用饱腹口渴系统,
-            cultivationSystemEnabled: 启用修炼体系,
+            cultivationSystemEnabled: 启用成长体系,
             recentRounds: params.recentRounds,
             isOpeningRound: params.isOpeningRound === true,
             openingTaskContext: params.openingTaskContext

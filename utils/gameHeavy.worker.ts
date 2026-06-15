@@ -1,5 +1,5 @@
 import { 构建世界书注入文本 } from './worldbook';
-import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from './promptFeatureToggles';
+import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from './promptFeatureToggles';
 import { 构建世界演变上下文文本, 规范化世界演变命令列表 } from '../hooks/useGame/worldEvolutionUtils';
 import { 构建系统提示词 } from '../hooks/useGame/systemPromptBuilder';
 
@@ -18,7 +18,7 @@ const 处理任务 = (type: string, payload: any): any => {
             );
         case 'stringifyTrimCultivation':
             return JSON.stringify(
-                裁剪修炼体系上下文数据(payload?.value, payload?.gameConfig),
+                裁剪成长体系上下文数据(payload?.value, payload?.gameConfig),
                 null,
                 Number.isFinite(Number(payload?.space)) ? Number(payload.space) : 2
             );

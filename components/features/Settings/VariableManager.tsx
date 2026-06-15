@@ -3,7 +3,7 @@ import type { OpeningConfig, TavernCommand } from '../../../types';
 import { 构建变量管理动态钱包视图, 构建角色金钱显示快照 } from '../../../utils/currencyDisplay';
 import { 构建变量路径登记表, 校验变量命令是否登记 } from '../../../utils/variableRegistry';
 
-type 变量根键 = '角色' | '环境' | '社交' | '世界' | '地图系统' | '战斗' | '剧情' | '女主剧情规划' | '玩家门派' | '任务列表' | '约定列表' | '记忆系统';
+type 变量根键 = '角色' | '环境' | '社交' | '世界' | '地图系统' | '剧情' | '女主剧情规划' | '任务列表' | '约定列表' | '记忆系统';
 
 const 地图系统字段 = new Set(['地图', '建筑', '地图层级', '地图建筑', '地图道路', '地图人物']);
 
@@ -44,10 +44,8 @@ const 分区列表: Array<{ key: 变量根键; label: string; description: strin
     { key: '社交', label: '社交', description: 'NPC 列表与其动态状态。' },
     { key: '世界', label: '世界', description: '活跃NPC、事件、势力、江湖史册等。' },
     { key: '地图系统', label: '地图系统', description: '地图层级、建筑、道路、人物等空间数据。' },
-    { key: '战斗', label: '战斗', description: '当前战斗态势。' },
     { key: '剧情', label: '剧情', description: '章节、剧情规划、关键剧情变量组。' },
     { key: '女主剧情规划', label: '女主剧情规划', description: '女主排期与推进指引。' },
-    { key: '玩家门派', label: '玩家门派', description: '门派结构、职位和门派资源。' },
     { key: '任务列表', label: '任务列表', description: '全部任务条目。' },
     { key: '约定列表', label: '约定列表', description: '全部约定条目。' },
     { key: '记忆系统', label: '记忆系统', description: '回忆档案、即时/短期/中期/长期记忆。' }

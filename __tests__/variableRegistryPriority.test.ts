@@ -15,8 +15,10 @@ describe('variable registry priority', () => {
             约定列表: []
         });
 
-        expect(prompt).toContain('- 战斗');
-        expect(prompt).toContain('- 玩家门派');
+        expect(prompt).not.toContain('- 战斗');
+        expect(prompt).not.toContain('- 玩家门派');
+        expect(prompt).not.toContain('- 同人剧情规划');
+        expect(prompt).not.toContain('- 同人女主剧情规划');
         expect(prompt).toContain('- 任务列表');
         expect(prompt).toContain('- 约定列表');
     });

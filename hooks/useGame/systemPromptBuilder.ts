@@ -98,8 +98,6 @@ export type 系统提示词上下文片段 = {
     世界状态: string;
     环境状态: string;
     角色状态: string;
-    战斗状态: string;
-    门派状态: string;
     任务状态: string;
     约定状态: string;
 };
@@ -625,8 +623,6 @@ export const 构建系统提示词 = ({
                 关联人物: 取数组(event?.关联人物),
                 关联势力: 取数组(event?.关联势力),
                 关联地点: 取数组(event?.关联地点),
-                关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线),
                 当前状态: 取文本(event?.当前状态)
             })),
             进行中事件: 取数组(world?.进行中事件).map((event: any, idx: number) => ({
@@ -640,9 +636,7 @@ export const 构建系统提示词 = ({
                 已产生影响: 取数组(event?.已产生影响),
                 关联人物: 取数组(event?.关联人物),
                 关联势力: 取数组(event?.关联势力),
-                关联地点: 取数组(event?.关联地点),
-                关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线)
+                关联地点: 取数组(event?.关联地点)
             })),
             已结算事件: 取数组(world?.已结算事件).map((event: any, idx: number) => ({
                 索引: idx,
@@ -655,9 +649,7 @@ export const 构建系统提示词 = ({
                 是否进入史册: typeof event?.是否进入史册 === 'boolean' ? event.是否进入史册 : false,
                 关联人物: 取数组(event?.关联人物),
                 关联势力: 取数组(event?.关联势力),
-                关联地点: 取数组(event?.关联地点),
-                关联分解组: 取数组(event?.关联分解组),
-                关联分歧线: 取数组(event?.关联分歧线)
+                关联地点: 取数组(event?.关联地点)
             })),
             世界镜头规划: 取数组(world?.世界镜头规划).map((item: any, idx: number) => ({
                 索引: idx,
@@ -667,12 +659,10 @@ export const 构建系统提示词 = ({
                 触发条件: 取数组(item?.触发条件),
                 关联人物: 取数组(item?.关联人物),
                 关联地点: 取数组(item?.关联地点),
-                关联分解组: 取数组(item?.关联分解组),
-                关联分歧线: 取数组(item?.关联分歧线),
                 沉淀内容: 取数组(item?.沉淀内容),
                 当前状态: 取文本(item?.当前状态)
             })),
-            江湖史册: 取数组(world?.江湖史册).map((event: any, idx: number) => ({
+            世界记录: 取数组(world?.江湖史册).map((event: any, idx: number) => ({
                 索引: idx,
                 标题: 取文本(event?.标题),
                 归档时间: 取文本(event?.归档时间),
@@ -680,8 +670,7 @@ export const 构建系统提示词 = ({
                 长期影响: 取数组(event?.长期影响),
                 关联人物: 取数组(event?.关联人物),
                 关联势力: 取数组(event?.关联势力),
-                关联地点: 取数组(event?.关联地点),
-                关联分歧线: 取数组(event?.关联分歧线)
+                关联地点: 取数组(event?.关联地点)
             }))
         };
 
@@ -846,11 +835,6 @@ export const 构建系统提示词 = ({
         const orderedStory = {
             当前章节: {
                 标题: chapter?.标题 ?? '',
-                当前分解组: chapter?.当前分解组 ?? 1,
-                原著章节标题: chapter?.原著章节标题 ?? '',
-                原著推进状态: chapter?.原著推进状态 ?? '未开始',
-                原著换章条件: Array.isArray(chapter?.原著换章条件) ? chapter.原著换章条件 : [],
-                原著切换说明: Array.isArray(chapter?.原著切换说明) ? chapter.原著切换说明 : [],
                 已完成摘要: Array.isArray(chapter?.已完成摘要) ? chapter.已完成摘要 : [],
                 当前待解问题: Array.isArray(chapter?.当前待解问题) ? chapter.当前待解问题 : [],
                 切章后沉淀要点: Array.isArray(chapter?.切章后沉淀要点) ? chapter.切章后沉淀要点 : []
@@ -865,11 +849,8 @@ export const 构建系统提示词 = ({
                 ? normalizedStory.历史卷宗.map((item: any, idx: number) => ({
                     索引: idx,
                     标题: item?.标题 ?? '',
-                    所属章节范围: item?.所属章节范围 ?? '',
-                    所属分解组: item?.所属分解组 ?? 1,
                     章节总结: Array.isArray(item?.章节总结) ? item.章节总结 : [],
                     延续事项: Array.isArray(item?.延续事项) ? item.延续事项 : [],
-                    分歧线变化: Array.isArray(item?.分歧线变化) ? item.分歧线变化 : [],
                     记录时间: item?.记录时间 ?? ''
                 }))
                 : [],
@@ -1125,7 +1106,7 @@ export const 构建系统提示词 = ({
         'write_perspective_third'
     ];
     const normalizedGameConfig = 规范化游戏设置(gameConfig);
-    const 启用修炼体系 = normalizedGameConfig.启用修炼体系 !== false;
+    const 启用修炼体系 = normalizedGameConfig.启用修炼体系 === true;
     const activeWorldbookScopes: 世界书作用域[] = Array.isArray(options?.世界书作用域) && options.世界书作用域.length > 0
         ? options.世界书作用域
         : [normalizedGameConfig.启用酒馆预设模式 === true ? 'tavern' : 'main'];
@@ -1546,8 +1527,6 @@ export const 构建系统提示词 = ({
     const contextWorldState = 构建世界状态文本(statePayload);
     const contextEnvironmentState = 构建环境状态文本(statePayload);
     const contextRoleState = 构建角色状态文本(statePayload);
-    const contextBattleState = 构建战斗状态文本(statePayload);
-    const contextSectState = 构建门派状态文本(statePayload);
     const contextTaskState = 构建任务列表文本(statePayload);
     const contextAgreementState = 构建约定列表文本(statePayload);
     const normalizedMemoryConfig = 规范化记忆配置(memoryConfig);
@@ -1577,8 +1556,6 @@ export const 构建系统提示词 = ({
             contextWorldState,
             contextEnvironmentState,
             contextRoleState,
-            contextBattleState,
-            contextSectState,
             contextTaskState,
             contextAgreementState,
             cotPrompt
@@ -1609,8 +1586,6 @@ export const 构建系统提示词 = ({
             世界状态: contextWorldState,
             环境状态: contextEnvironmentState,
             角色状态: contextRoleState,
-            战斗状态: contextBattleState,
-            门派状态: contextSectState,
             任务状态: contextTaskState,
             约定状态: contextAgreementState
         }

@@ -56,8 +56,6 @@ export type 酒馆上下文结构 = {
         世界状态: string;
         环境状态: string;
         角色状态: string;
-        战斗状态: string;
-        门派状态: string;
         任务状态: string;
         约定状态: string;
     };
@@ -289,8 +287,6 @@ const 构建酒馆世界书文本 = (
         contextPieces.世界状态,
         contextPieces.环境状态,
         contextPieces.角色状态,
-        contextPieces.战斗状态,
-        contextPieces.门派状态,
         contextPieces.任务状态,
         contextPieces.约定状态,
         shortMemoryContext,
@@ -678,7 +674,7 @@ export const 构建酒馆预设消息链 = (params: {
     const playerBirthday = typeof playerRole?.出生日期 === 'string' ? playerRole.出生日期.trim() : '';
     const playerAppearance = typeof playerRole?.外貌 === 'string' ? playerRole.外貌.trim() : '';
     const playerIdentity = 提取玩家身份(playerRole, {
-        includeRealm: params.config?.启用修炼体系 !== false
+        includeRealm: params.config?.启用修炼体系 === true
     });
     const playerProfile = 构建玩家设定文本({
         playerName,

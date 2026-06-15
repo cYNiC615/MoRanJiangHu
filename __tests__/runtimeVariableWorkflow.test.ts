@@ -106,4 +106,36 @@ describe('运行时变量管理', () => {
         expect(getState().同人女主剧情规划).toBeUndefined();
         expect(performAutoSave).not.toHaveBeenCalled();
     });
+
+    it('忽略已退役功能分区保存', async () => {
+        const { deps, getState, performAutoSave } = 创建依赖();
+        const workflow = 创建运行时变量工作流(deps);
+
+        await workflow.updateRuntimeVariableSection('战斗', { 是否战斗中: true });
+        await workflow.updateRuntimeVariableSection('玩家门派', { 名称: '旧组织' });
+        await workflow.updateRuntimeVariableSection('同人剧情规划', { 当前章目标: '旧目标' });
+        await workflow.updateRuntimeVariableSection('同人女主剧情规划', { 阶段推进: ['旧目标'] });
+
+        expect(getState().战斗).toEqual({});
+        expect(getState().玩家门派).toEqual({});
+        expect(getState().同人剧情规划).toBeUndefined();
+        expect(getState().同人女主剧情规划).toBeUndefined();
+        expect(performAutoSave).not.toHaveBeenCalled();
+    });
+
+    it('忽略已退役功能变量命令且不触发全量旧状态写回', async () => {
+        const { deps, getState, performAutoSave } = 创建依赖();
+        const workflow = 创建运行时变量工作流(deps);
+
+        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '战斗.是否战斗中', value: true } as any);
+        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '玩家门派.名称', value: '旧组织' } as any);
+        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '同人剧情规划.当前章目标', value: '旧目标' } as any);
+        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '同人女主剧情规划.阶段推进', value: ['旧目标'] } as any);
+
+        expect(getState().战斗).toEqual({});
+        expect(getState().玩家门派).toEqual({});
+        expect(getState().同人剧情规划).toBeUndefined();
+        expect(getState().同人女主剧情规划).toBeUndefined();
+        expect(performAutoSave).not.toHaveBeenCalled();
+    });
 });

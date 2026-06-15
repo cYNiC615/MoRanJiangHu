@@ -387,7 +387,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             ? deps.开局配置.启用女主剧情规划 === true
             : 规范化游戏设置(deps.gameConfig).启用女主剧情规划 === true;
         const normalizedGameConfig = 规范化游戏设置(deps.gameConfig);
-        const 启用修炼体系 = normalizedGameConfig.启用修炼体系 !== false;
+        const 启用修炼体系 = normalizedGameConfig.启用修炼体系 === true;
         const 独立规划分析GPT模式 = normalizedGameConfig.独立APIGPT模式?.规划分析 === true;
         const worldPrompt = (() => {
             const hit = Array.isArray(deps.prompts)

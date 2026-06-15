@@ -164,7 +164,7 @@ const MobileCharacter: React.FC<Props> = ({
         [character]
     );
     const 启用饱腹口渴系统 = gameConfig?.启用饱腹口渴系统 !== false;
-    const 启用修炼体系 = gameConfig?.启用修炼体系 !== false;
+    const 启用修炼体系 = gameConfig?.启用修炼体系 === true;
     const 身份信息 = useMemo(() => 构建角色身份摘要(character), [character]);
     const normalizedApiConfig = useMemo(() => 规范化接口设置(apiConfig), [apiConfig]);
     const feature = normalizedApiConfig.功能模型占位;

@@ -209,7 +209,7 @@ export const 执行世界演变更新工作流 = async (
         const worldStateBase = params?.stateBase;
         const worldEnv = probe.time('规范化世界演变环境', () => deps.规范化环境信息(worldStateBase?.环境 || deps.环境));
         const worldRuntimeGameConfig = probe.time('规范化游戏设置', () => 规范化游戏设置(deps.gameConfig));
-        const 启用修炼体系 = worldRuntimeGameConfig.启用修炼体系 !== false;
+        const 启用修炼体系 = worldRuntimeGameConfig.启用修炼体系 === true;
         const worldState = probe.time('规范化并裁剪世界状态', () => 裁剪修炼体系上下文数据(
             deps.规范化世界状态(worldStateBase?.世界 || deps.世界),
             worldRuntimeGameConfig

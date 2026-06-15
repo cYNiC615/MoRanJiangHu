@@ -15,6 +15,10 @@ that affect cleanup decisions.
 - `backend_removed`: Runtime code and active data/schema handling are gone.
 - `backend_pending`: Services, prompts, model fields, API routes, tests, or
   scripts still exist and belong to a later cleanup pass.
+- `command_root_retired`: Active command registry or apply logic rejects/no-ops
+  retired structured roots.
+- `active_prompt_schema_retired`: Always-on prompt/schema surfaces no longer ask
+  the model to write the retired structured state.
 - `storage_pending`: Historical IndexedDB/localStorage/save data may still
   exist and can be dropped in a strong migration.
 - `prose_atmosphere_only`: The concept may appear in AI prose, but is no longer
@@ -60,27 +64,33 @@ done until:
 | Feature family | Current status | Remaining owner |
 | --- | --- | --- |
 | `novel_decomposition` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later backend/model/prompt/storage cleanup |
-| `new_game_fandom_entrypoints` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later fandom/model/prompt cleanup |
+| `new_game_fandom_entrypoints` | `entrypoint_removed`, `automatic_side_effect_removed`, `command_root_retired`, `backend_pending`, `storage_pending` | Later fandom/model/prompt cleanup |
 | `music_playback` | `entrypoint_removed`, `backend_removed`, `storage_pending` | Strong storage migration only |
 | `auction_house` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later backend/storage cleanup |
-| `legacy_battle_system` | `entrypoint_removed`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later replacement design |
-| `wuxia_cultivation_system` | `entrypoint_removed`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later model/prompt cleanup |
+| `legacy_battle_system` | `entrypoint_removed`, `command_root_retired`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later replacement design |
+| `wuxia_cultivation_system` | `entrypoint_removed`, `command_root_retired`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later model/prompt cleanup |
 | `cloud_play_and_sync` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later cloud/API/storage cleanup |
 | `creative_workshop_cloud_ugc` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later workshop cloud/API cleanup |
 | `online_presence_public_ops` | `entrypoint_removed`, `static_pages_removed`, `backend_pending`, `storage_pending` | Later operations/API/test cleanup |
 | `apk_app_update_system` | `entrypoint_removed`, `backend_pending`, `storage_pending` | Later Android/APK/release cleanup |
 | `mobile_frontend` | `entrypoint_removed`, `backend_pending` | Phase 1.5 frontend residue, later Capacitor/native cleanup |
-| `festival_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
-| `weather_game_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
+| `festival_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
+| `weather_game_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
 
-Phase 1 is currently in closeout audit. The remaining checks are:
+Phase 1 is currently in closeout audit. Static closeout checks are green:
+
+- retired command roots are rejected/no-op by registry/apply logic;
+- active system and Tavern context no longer serialize `战斗`, `玩家门派`,
+  fandom decomposition fields, or cultivation-only character fields;
+- targeted registry/runtime tests and production build pass.
+
+The remaining check is browser/manual play smoke before Phase 1.5:
 
 1. confirm no retired feature can still be triggered from the desktop playable
    flow;
-2. confirm no retired feature still runs top-level side effects;
-3. confirm active prompt/schema/command filters no longer ask AI to maintain
-   retired structured state;
-4. run build/static regression, then manual play verification before Phase 1.5.
+2. confirm the main local desktop flow still reaches the playable shell and
+   key retained surfaces such as settings, save/load, worldbook, prompt, and
+   memory views.
 
 ## Phase 1.5 Frontend Cleanup Queue
 
@@ -132,15 +142,9 @@ the fandom/model cleanup pass.
 
 ### `music_playback`
 
-Runtime removal is complete. Compact completion evidence:
+Runtime removal is complete. Only historical settings/storage migration remains:
 
-- deleted `components/features/Music`;
-- deleted `components/features/Settings/MusicSettings.tsx`;
-- deleted `utils/turnNotificationSound.ts`;
-- deleted `public/sounds/turn-notify.mp3`;
-- removed active `music_tracks` handling.
-
-Only historical settings/storage migration remains.
+- storage key: `music_tracks`
 
 ### `auction_house`
 
@@ -165,7 +169,7 @@ Current residue:
 
 - `components/features/Battle`
 - `models/battle.ts`
-- old battle roots in `prompts/runtime`
+- legacy battle prompt/model/test surfaces
 - battle-related tests and fixtures
 - historical save state under `战斗`
 
@@ -183,7 +187,7 @@ Current residue:
 - `models/sect.ts`
 - `prompts/stats/kungfu.ts`
 - `prompts/core/realm.ts`
-- cultivation/sect command roots and historical save fields
+- historical save fields and legacy prompt/model surfaces
 
 The homebrew default is modern urban with optional near-future sci-fi. Wuxia
 and cultivation compatibility is not preserved.
@@ -228,8 +232,6 @@ Current residue:
 
 - `services/onlinePresence.ts`
 - `functions/api/admin/online`
-- deleted static entrypoints recorded compactly:
-  `public/online-ranking.html`, `public/admin/online.html`
 - tests: `tests/online-ranking-session-regression.test.ts`,
   `tests/e2e-admin-online.spec.mjs`
 - localStorage key: `moranjianghu.onlineHourlyHistory`

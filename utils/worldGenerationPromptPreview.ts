@@ -32,7 +32,7 @@ export const 构建开局世界观生成提示词预览 = ({
     const normalizedWorldExtraRequirement = typeof worldConfig.worldExtraRequirement === 'string'
         ? worldConfig.worldExtraRequirement.trim()
         : '';
-    const 启用修炼体系 = normalizedGameConfig.启用修炼体系 !== false;
+    const 启用修炼体系 = normalizedGameConfig.启用修炼体系 === true;
     const isXianxiaOpening = 是否仙侠开局模式(openingConfig);
     const initialFandomBundle = 构建同人运行时提示词包({ openingConfig: openingConfig || undefined });
     const fandomEnabled = initialFandomBundle.enabled;

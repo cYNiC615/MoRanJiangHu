@@ -24,7 +24,7 @@ export const 构建题材模式提示词 = (openingConfig?: OpeningConfig | null
         `- 运行时物品口径：初始物品优先从 ${runtime.items.initialItemPool.join('、')} 中选择；奖励物品优先从 ${runtime.items.rewardItemPool.join('、')} 中选择；禁止混入 ${runtime.items.bannedItemKeywords.join('、') || '无'}。`,
         `- 运行时地图口径：地点类型优先使用 ${runtime.map.locationTypes.join('、')}；POI 优先使用 ${runtime.map.poiTypes.join('、') || '当前题材默认地点'}。`,
         `- 运行时生图口径：人物服饰=${runtime.image.characterClothingEra}；场景材质=${runtime.image.sceneMaterials}；负面提示=${runtime.image.negativePrompt || '无'}。`,
-        '- 仍沿用现有变量树、境界层级、品质枚举和战斗结算口径；不要另造根路径或第二套不可落地字段。'
+        '- 仍沿用当前 homebrew 变量树、品质枚举和可落地字段；不要另造根路径或第二套不可落地状态。'
     ].join('\n');
 };
 
@@ -42,10 +42,10 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         `- 关系侧重：${关系侧重}。生成初始社交网时，应优先让人物结构与关系情绪落在这些方向上。`,
         `- 开局切入偏好：${openingConfig.开局切入偏好}。第一幕镜头与气氛优先贴近该切入方式，不要无痕偏离。`,
         `- AI 生成角色性别硬约束：本次只允许新生成的 NPC、开局伙伴、组织成员、队友、路人、敌人与任务人物使用这些性别：${允许生成性别.join('、')}。不得生成未允许性别的新角色；不得用“未知性别/待定/不详”绕过限制。`,
-        '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；同人原著章节中已明确存在且性别固定的角色也不强行改性别，但不要额外扩写未允许性别的新原创角色。',
+        '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；不要额外扩写未允许性别的新原创角色。',
         `- 题材开局边界：${开局文案.promptBoundary}`,
         openingConfig.开局生成门派 === false
-            ? '- 开局组织变量：本次明确不生成 `玩家门派` 或等价门派/宗门变量；如题材需要组织归属，只写进地点、社交、任务或世界观语境，不写成门派系统。'
+            ? '- 开局组织变量：本次不生成废弃的组织根变量；如题材需要组织归属，只写进地点、社交、任务或世界观语境。'
             : `- 开局组织变量：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”。`,
         openingConfig.开局生成同门 === false
             ? '- 开局成员名录：本次明确不生成同门/同道/队友名录变量；社交人物必须按剧情证据自然落位。'

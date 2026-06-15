@@ -1,5 +1,10 @@
 import type { TavernCommand } from '../types';
-import { normalizeStateCommandKey, 是否废弃世界地图字段路径, 是否废弃环境字段路径 } from './stateHelpers';
+import {
+    normalizeStateCommandKey,
+    是否废弃世界地图字段路径,
+    是否废弃环境字段路径,
+    是否废弃命令根路径
+} from './stateHelpers';
 
 type 路径片段 = string | number;
 
@@ -14,13 +19,9 @@ const 变量登记根路径 = [
     '环境',
     '社交',
     '世界',
-    '战斗',
     '剧情',
     '剧情规划',
     '女主剧情规划',
-    '同人剧情规划',
-    '同人女主剧情规划',
-    '玩家门派',
     '任务列表',
     '约定列表',
     '记忆系统'
@@ -279,6 +280,9 @@ export const 校验变量命令是否登记 = (
     stateLike: Record<string, any>
 ): 变量命令校验结果 => {
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
+    if (是否废弃命令根路径(normalizedKey)) {
+        return { allowed: false, normalizedKey, reason: '废弃功能根路径已退役' };
+    }
     if (是否废弃环境字段路径(normalizedKey)) {
         return { allowed: false, normalizedKey, reason: '天气和节日结构化环境字段已废弃' };
     }

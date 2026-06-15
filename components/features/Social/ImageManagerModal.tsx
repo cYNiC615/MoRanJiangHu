@@ -278,7 +278,7 @@ const 读取NPC展示摘要 = (
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
     if (!npc) return '';
-    const 显示境界 = options?.cultivationSystemEnabled !== false;
+    const 显示境界 = options?.cultivationSystemEnabled === true;
     const fragments = [
         npc.姓名 ? `姓名：${npc.姓名}` : '',
         npc.性别 ? `性别：${npc.性别}` : '',
@@ -376,7 +376,7 @@ const 空状态: React.FC<{ title: string; desc?: string }> = ({ title, desc }) 
 const ImageManagerModal: React.FC<Props> = ({
     socialList,
     playerCharacter,
-    cultivationSystemEnabled = true,
+    cultivationSystemEnabled = false,
     femboyNsfwEnabled = true,
     itemImageSequence = [],
     queue,
@@ -429,7 +429,7 @@ const ImageManagerModal: React.FC<Props> = ({
     onClose
 }) => {
     use图片资源回源预取(socialList, playerCharacter, sceneArchive, currentPersistentWallpaper, apiConfig);
-    const 显示境界 = cultivationSystemEnabled !== false;
+    const 显示境界 = cultivationSystemEnabled === true;
     const [filters, setFilters] = React.useState<图片管理筛选条件>({
         目标类型: '全部',
         角色姓名: '',

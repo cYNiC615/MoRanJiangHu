@@ -176,7 +176,7 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
     const 金钱 = 规范化角色金钱(角色.金钱);
     const 玩家BUFF列表 = Array.isArray(角色.玩家BUFF) ? 角色.玩家BUFF : [];
     const 启用饱腹口渴系统 = gameConfig?.启用饱腹口渴系统 !== false;
-    const 启用修炼体系 = gameConfig?.启用修炼体系 !== false;
+    const 启用修炼体系 = gameConfig?.启用修炼体系 === true;
     const areaStyle = 构建区域文字样式(visualConfig, '左侧栏');
     const 基础字号 = Number(areaStyle.fontSize) || 13;
     const 缩放字号 = (ratio: number, min = 13) => `${Math.max(min, Math.round(基础字号 * ratio))}px`;

@@ -3,7 +3,7 @@ import type { GameResponse, OpeningConfig, TavernCommand, 世界书结构, 内�
 import { 获取变量计算接口配置, 接口配置是否可用, 变量校准功能已启用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
-import { normalizeStateCommandKey } from '../../utils/stateHelpers';
+import { normalizeStateCommandKey, 是否废弃命令根路径 } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
 import {
@@ -23,7 +23,7 @@ export { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 
 type 变量模型基态 = Pick<
     响应命令处理状态,
-    '角色' | '环境' | '世界' | '社交' | '战斗' | '玩家门派' | '任务列表' | '约定列表'
+    '角色' | '环境' | '世界' | '社交' | '任务列表' | '约定列表'
 >;
 
 export type 变量模型校准参数 = {
@@ -73,8 +73,6 @@ const 允许根路径 = [
     'gameState.环境',
     'gameState.世界',
     'gameState.社交',
-    'gameState.战斗',
-    'gameState.玩家门派',
     'gameState.任务列表',
     'gameState.约定列表'
 ] as const;
@@ -125,7 +123,7 @@ const 序列化变量模型状态 = (
     options?: { survivalNeedsEnabled?: boolean; cultivationSystemEnabled?: boolean }
 ): string => {
     const survivalNeedsEnabled = options?.survivalNeedsEnabled !== false;
-    const cultivationSystemEnabled = options?.cultivationSystemEnabled !== false;
+    const cultivationSystemEnabled = options?.cultivationSystemEnabled === true;
     const role = state.角色 && typeof state.角色 === 'object'
         ? {
             ...state.角色,
@@ -144,8 +142,6 @@ const 序列化变量模型状态 = (
         环境: state.环境,
         世界: state.世界,
         社交: state.社交,
-        战斗: state.战斗,
-        玩家门派: state.玩家门派,
         任务列表: state.任务列表,
         约定列表: state.约定列表
     };
@@ -217,7 +213,7 @@ const 查找社交NPC索引 = (socialRaw: unknown, sender: string): number => {
 
 const 对白人物基础缺口 = (npc: any, options?: { xianxiaMode?: boolean }): string[] => {
     const missing: string[] = [];
-    ['姓名', '性别', '年龄', '身份', '境界', '简介', '关系状态', '出身背景'].forEach((key) => {
+    ['姓名', '性别', '年龄', '身份', '简介', '关系状态', '出身背景'].forEach((key) => {
         if (文本疑似占位(npc?.[key])) missing.push(key);
     });
     ['是否主要角色', '是否在场'].forEach((key) => {
@@ -227,7 +223,7 @@ const 对白人物基础缺口 = (npc: any, options?: { xianxiaMode?: boolean })
     ['天赋列表', '背包', 'BUFF', 'DEBUFF', '技艺', '记忆'].forEach((key) => {
         if (!Array.isArray(npc?.[key])) missing.push(key);
     });
-    ['力量', '敏捷', '体质', '根骨', '悟性', '福源', '境界层级', '攻击力', '防御力', '当前血量', '最大血量', '当前精力', '最大精力'].forEach((key) => {
+    ['力量', '敏捷', '体质', '攻击力', '防御力', '当前血量', '最大血量', '当前精力', '最大精力'].forEach((key) => {
         if (!Number.isFinite(Number(npc?.[key]))) missing.push(key);
     });
     if (NPC缺少七部位状态(npc)) missing.push('七部位血量与状态');
@@ -245,7 +241,7 @@ export const 构建正文对白人物审计提示 = (
     const lines = senders.map((sender) => {
         const index = 查找社交NPC索引(baseState.社交, sender);
         if (index < 0) {
-            return `- ${sender}：本回合有独立对白框，但当前 \`社交[]\` 未找到对应完整档案；必须通过 \`push 社交 = {...}\` 新建完整 NPC 档案，包含真实姓名(2-4字)、性别、年龄、境界、身份、简介、是否主要角色、是否在场、位置、记忆、天赋列表、出身背景、当前装备、背包、BUFF、DEBUFF、技艺、战斗数值与七部位状态；当前装备未确认的槽位写“无”，背包没有明确随身物就写空数组，禁止只写“剧情对话人物/未知身份/未知境界”。`;
+            return `- ${sender}：本回合有独立对白框，但当前 \`社交[]\` 未找到对应完整档案；必须通过 \`push 社交 = {...}\` 新建完整 NPC 档案，包含真实姓名(2-4字)、性别、年龄、身份、简介、是否主要角色、是否在场、位置、记忆、天赋列表、出身背景、当前装备、背包、BUFF、DEBUFF、技艺、基础数值与七部位状态；当前装备未确认的槽位写“无”，背包没有明确随身物就写空数组，禁止只写“剧情对话人物/未知身份”等占位档案。`;
         }
         const npc = Array.isArray(baseState.社交) ? (baseState.社交 as any[])[index] : null;
         const gaps = 对白人物基础缺口(npc, { xianxiaMode: options?.xianxiaMode === true });
@@ -258,7 +254,7 @@ export const 构建正文对白人物审计提示 = (
         '【本回合正文对白人物审计】',
         '- 变量生成必须逐个核对本回合 `【角色名】` 对话框人物；凡是非旁白、非判定、非主角的人物，都必须在 `社交[]` 中有长期可承接档案。',
         '- 有对白框的人物一律优先视为持续承接对象；未建档就完整建档，半残档就补齐字段。正文中可用代称，但变量里必须落真实姓名，并把代称优先写入 `身份/简介/记忆`；只有确有旧称、化名、曾用称呼时才写 `曾用名`，不要给每个 NPC 强行生成曾用名。',
-        '- NPC 当前装备与背包只记录正文、设定或既有变量明确成立的事实；不得凭身份、性别、门派、境界或“时间过去了”自动补佩剑、制服、内衣、袜鞋、干粮等默认物。',
+        '- NPC 当前装备与背包只记录正文、设定或既有变量明确成立的事实；不得凭身份、性别、职业或“时间过去了”自动补武器、制服、内衣、袜鞋、干粮等默认物。',
         '- 若该人物已被判定为女性主要角色或长期关系对象，还要按 NPC 协议补齐外貌、身材、衣着、称呼、关系突破、私密档案和名器档案；不要等后续回合再补。',
         '',
         ...lines
@@ -340,7 +336,6 @@ const 构建社交档案完整性审计提示 = (
         const 名称 = 读取文本(npc?.姓名) || `社交[${index}]`;
         const 通用缺口: string[] = [];
         if (文本疑似占位(npc?.身份)) 通用缺口.push('身份');
-        if (文本疑似占位(npc?.境界)) 通用缺口.push('境界');
         if (文本疑似占位(npc?.简介)) 通用缺口.push('简介');
         if (文本疑似占位(npc?.关系状态)) 通用缺口.push('关系状态');
         if (!Array.isArray(npc?.记忆) || npc.记忆.length <= 0) 通用缺口.push('记忆');
@@ -488,6 +483,7 @@ const 是否允许变量生成命令 = (cmd: TavernCommand): boolean => {
     if (typeof cmd?.key !== 'string' || 包含非法伪索引(cmd.key)) return false;
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
     if (!normalizedKey) return false;
+    if (是否废弃命令根路径(normalizedKey)) return false;
     if (/^gameState\.世界\.(地图|建筑|地图建筑|地图道路|地图人物)(?:\.|\[|$)/u.test(normalizedKey)) return false;
 
     const allowed = 允许根路径.find((root) => normalizedKey === root || normalizedKey.startsWith(`${root}.`) || normalizedKey.startsWith(`${root}[`));
@@ -501,7 +497,7 @@ export const 执行变量模型校准工作流 = async (
 ): Promise<变量模型校准结果 | null> => {
     const runtimeGameConfig = 规范化游戏设置(deps.gameConfig);
     const 启用饱腹口渴系统 = runtimeGameConfig.启用饱腹口渴系统 !== false;
-    const 启用修炼体系 = runtimeGameConfig.启用修炼体系 !== false;
+    const 启用修炼体系 = runtimeGameConfig.启用修炼体系 === true;
     const 启用男娘NSFW内容 = runtimeGameConfig.启用NSFW模式 === true && runtimeGameConfig.启用男娘NSFW内容 !== false;
     if (!变量校准功能已启用(deps.apiConfig)) return null;
 
@@ -529,14 +525,12 @@ export const 执行变量模型校准工作流 = async (
     });
     const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交, {
         femboyNsfwEnabled: 启用男娘NSFW内容,
-        xianxiaMode: params.openingConfig?.题材模式 === '仙侠'
+        xianxiaMode: false
     });
     const dialogueNpcAuditPrompt = 构建正文对白人物审计提示(params.parsedResponse, params.baseState, {
-        xianxiaMode: params.openingConfig?.题材模式 === '仙侠'
+        xianxiaMode: false
     });
-    const playerXianxiaAuditPrompt = params.openingConfig?.题材模式 === '仙侠' && 缺少仙侠字段((params.baseState as any)?.角色)
-        ? '【当前主角仙侠字段审计】\n- 当前存档为仙侠模式，角色档案需要补齐/修正：灵根、灵根资质、当前灵力、最大灵力、当前神识、最大神识、丹田状态、道基状态、心魔值、功德、业力。'
-        : '';
+    const playerXianxiaAuditPrompt = '';
     const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
     const femaleNameCandidatePrompt = 构建女性姓名候选提示词({
         usedNames: 收集女性姓名候选已用名(params.baseState),

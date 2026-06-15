@@ -9,7 +9,7 @@ type 生图基础数据选项 = {
 };
 
 export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数据选项) => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
+    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
     const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
         return Object.fromEntries(
             Object.entries(obj).filter(([, value]) => {
@@ -80,7 +80,7 @@ export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数�
 };
 
 export const 提取主角生图基础数据 = (character: any, options?: 生图基础数据选项) => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
+    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
     const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
         return Object.fromEntries(
             Object.entries(obj).filter(([, value]) => {
@@ -157,7 +157,7 @@ export const 构建NPC上下文 = (
     离场数据块: string;
 } => {
     const npcList = Array.isArray(socialData) ? socialData : [];
-    const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
+    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
     const 普通关键记忆条数N = 5;
     const 重要角色关键记忆条数N = 规范化记忆配置(memoryConfig).重要角色关键记忆条数N;
 

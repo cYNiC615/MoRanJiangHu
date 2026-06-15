@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { 核心_剧情推动 } from '../prompts/core/story';
 import { 核心_思维链 } from '../prompts/core/cot';
+import { 核心_核心规则 } from '../prompts/core/rules';
+import { 核心_数据格式 } from '../prompts/core/data';
 import { 核心_思维链_女主规划版, 核心_思维链_NTL女主规划版 } from '../prompts/core/cotHeroine';
 import { 获取开局思维链提示词 } from '../prompts/core/cotOpening';
 import { 构建同人运行时提示词包, 同人运行时模式已启用 } from '../prompts/runtime/fandom';
@@ -24,8 +26,13 @@ import {
 } from '../prompts/runtime/openingWorldEvolutionInit';
 import { 构建世界演变系统提示词, 构建世界演变用户提示词 } from '../prompts/runtime/worldEvolution';
 import { 构建世界演变COT提示词 } from '../prompts/runtime/worldEvolutionCot';
+import { 构建变量模型系统提示词 } from '../prompts/runtime/variableModel';
+import { 构建变量生成提示词 } from '../prompts/runtime/variableGeneration';
 import { 数值_世界演化 } from '../prompts/stats/world';
+import { 数值_其他设定 } from '../prompts/stats/others';
+import { 构建系统提示词 } from '../hooks/useGame/systemPromptBuilder';
 import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelector';
+import { 按功能开关过滤提示词内容 } from '../utils/promptFeatureToggles';
 
 const readProjectFile = (relativePath: string) => {
     const absolutePath = resolve(process.cwd(), relativePath);
@@ -130,8 +137,6 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('backend_removed');
         expect(registry).toContain('storage_pending');
         expect(registry).toContain('music_tracks');
-        expect(registry).toContain('turnNotificationSound.ts');
-        expect(registry).toContain('turn-notify.mp3');
     });
 
     it('removes auction house player-visible entrypoints', () => {
@@ -341,8 +346,6 @@ describe('homebrew dead feature registry', () => {
         expect(registry).toContain('backend_pending');
         expect(registry).toContain('services/onlinePresence.ts');
         expect(registry).toContain('functions/api/admin/online');
-        expect(registry).toContain('public/online-ranking.html');
-        expect(registry).toContain('public/admin/online.html');
         expect(registry).toContain('tests/online-ranking-session-regression.test.ts');
         expect(registry).toContain('tests/e2e-admin-online.spec.mjs');
     });
@@ -610,6 +613,172 @@ describe('homebrew dead feature registry', () => {
                 expect(content, `${name}: ${phrase}`).not.toContain(phrase);
             }
         }
+    });
+
+    it('removes retired writable roots from active prompt and schema surfaces', () => {
+        const filterPrompt = (content: string) => 按功能开关过滤提示词内容(content, { 启用修炼体系: false });
+        const promptSurfaces = [
+            ['core_rules', 核心_核心规则.内容],
+            ['core_data', filterPrompt(核心_数据格式.内容)],
+            ['cot_opening', 获取开局思维链提示词({ 启用修炼体系: false })],
+            ['stat_other', filterPrompt(数值_其他设定.内容)],
+            ['variable_generation', 构建变量生成提示词()],
+            ['variable_model', 构建变量模型系统提示词({
+                survivalNeedsEnabled: true,
+                cultivationSystemEnabled: false
+            })]
+        ] as const;
+
+        const retiredRootPatterns = [
+            /`?战斗(?:\.|\/|`|\b)/u,
+            /`?玩家门派(?:\.|\/|`|\b)/u,
+            /同人剧情规划/u,
+            /同人女主剧情规划/u,
+            /功法列表/u,
+            /境界层级/u,
+            /修炼体系/u,
+            /灵根/u,
+            /宗门/u
+        ];
+
+        for (const [name, content] of promptSurfaces) {
+            for (const pattern of retiredRootPatterns) {
+                expect(content, `${name}: ${pattern}`).not.toMatch(pattern);
+            }
+        }
+    });
+
+    it('does not serialize retired roots or fandom decomposition fields into active system context', () => {
+        const result = 构建系统提示词({
+            promptPool: [],
+            memoryData: {
+                长期记忆: [],
+                中期记忆: [],
+                短期记忆: [],
+                即时记忆: []
+            } as any,
+            socialData: [],
+            statePayload: {
+                开局配置: {
+                    题材模式: '现代都市',
+                    启用女主剧情规划: true,
+                    同人融合: {
+                        enabled: true,
+                        作品名: '旧原著'
+                    }
+                },
+                角色: {
+                    姓名: '测试主角',
+                    境界: '旧境界',
+                    境界层级: 9,
+                    根骨: 99,
+                    悟性: 99,
+                    福源: 99,
+                    所属门派ID: 'sect-old',
+                    门派职位: '旧职位',
+                    门派贡献: 100,
+                    当前内力: 100,
+                    最大内力: 100,
+                    功法列表: [{ 名称: '旧功法' }]
+                },
+                环境: {
+                    时间: '0001:01:01:08:00',
+                    大地点: '现代都市'
+                },
+                战斗: {
+                    是否战斗中: true,
+                    敌方: [{ 名字: '旧敌人' }]
+                },
+                玩家门派: {
+                    名称: '旧门派'
+                },
+                剧情: {
+                    当前章节: {
+                        标题: '当前章节',
+                        当前分解组: 7,
+                        原著章节标题: '旧原著章节',
+                        原著推进状态: '已完成',
+                        原著换章条件: ['旧换章条件'],
+                        原著切换说明: ['旧切换说明']
+                    },
+                    历史卷宗: [{
+                        标题: '旧完成章节',
+                        所属分解组: 7,
+                        分歧线变化: ['旧分歧线变化']
+                    }]
+                },
+                剧情规划: {
+                    当前章目标: ['现代目标']
+                },
+                女主剧情规划: {
+                    阶段推进: [{
+                        阶段名: '关系推进',
+                        阶段目标: ['现代关系目标']
+                    }]
+                },
+                世界: {
+                    待执行事件: [{
+                        事件名: '现代事件',
+                        关联分解组: [7],
+                        关联分歧线: ['旧分歧线']
+                    }],
+                    江湖史册: [{
+                        标题: '历史记录',
+                        关联分歧线: ['旧分歧线']
+                    }]
+                },
+                任务列表: [],
+                约定列表: []
+            },
+            gameConfig: {
+                启用修炼体系: false,
+                启用女主剧情规划: true
+            } as any,
+            memoryConfig: {} as any,
+            builtinPromptEntries: [],
+            worldbooks: [],
+            worldEvolutionEnabled: false,
+            options: {
+                openingConfig: {
+                    题材模式: '现代都市',
+                    启用女主剧情规划: true,
+                    同人融合: {
+                        enabled: true,
+                        作品名: '旧原著'
+                    }
+                } as any
+            }
+        });
+
+        const activeContext = [
+            result.systemPrompt,
+            result.contextPieces.剧情安排,
+            result.contextPieces.世界状态,
+            result.contextPieces.角色状态
+        ].join('\n\n');
+
+        expect(activeContext).not.toContain('【战斗】');
+        expect(activeContext).not.toContain('【玩家门派】');
+        expect(activeContext).not.toContain('旧敌人');
+        expect(activeContext).not.toContain('旧门派');
+        expect(activeContext).not.toContain('当前分解组');
+        expect(activeContext).not.toContain('原著章节标题');
+        expect(activeContext).not.toContain('原著推进状态');
+        expect(activeContext).not.toContain('原著换章条件');
+        expect(activeContext).not.toContain('原著切换说明');
+        expect(activeContext).not.toContain('所属分解组');
+        expect(activeContext).not.toContain('关联分解组');
+        expect(activeContext).not.toContain('关联分歧线');
+        expect(activeContext).not.toContain('分歧线变化');
+        expect(activeContext).not.toContain('境界层级');
+        expect(activeContext).not.toContain('旧功法');
+        expect(activeContext).not.toContain('旧境界');
+        expect(activeContext).not.toContain('sect-old');
+        expect(activeContext).not.toContain('旧职位');
+        expect(activeContext).toContain('现代目标');
+        expect(activeContext).toContain('现代关系目标');
+        expect(activeContext).toContain('现代事件');
+        expect(activeContext).toContain('世界记录');
     });
 
     it('removes legacy battle player-visible entrypoints', () => {

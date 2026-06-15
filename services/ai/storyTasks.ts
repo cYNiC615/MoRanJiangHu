@@ -890,7 +890,7 @@ export const generateVariableCalibrationUpdate = async (
         worldEvolutionEnabled: params.worldEvolutionUpdated === true,
         worldEvolutionUpdated: params.worldEvolutionUpdated === true,
         survivalNeedsEnabled: params.survivalNeedsEnabled !== false,
-        cultivationSystemEnabled: params.cultivationSystemEnabled !== false
+        cultivationSystemEnabled: params.cultivationSystemEnabled === true
     }).trim();
     const 去重后的系统补充提示词 = (() => {
         const source = (systemPrompt || '').trim();
@@ -933,7 +933,7 @@ export const generateVariableCalibrationUpdate = async (
             role: 'system',
             content: `【职责】\n${构建变量模型职责提示词({
                 survivalNeedsEnabled: params.survivalNeedsEnabled !== false,
-                cultivationSystemEnabled: params.cultivationSystemEnabled !== false
+                cultivationSystemEnabled: params.cultivationSystemEnabled === true
             })}`
         },
         ...(去重后的系统补充提示词

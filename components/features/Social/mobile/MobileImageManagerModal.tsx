@@ -260,7 +260,7 @@ const 读取NPC展示摘要 = (
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
     if (!npc) return '';
-    const 显示境界 = options?.cultivationSystemEnabled !== false;
+    const 显示境界 = options?.cultivationSystemEnabled === true;
     const fragments = [
         npc.姓名 ? `姓名：${npc.姓名}` : '',
         npc.性别 ? `性别：${npc.性别}` : '',
@@ -322,7 +322,7 @@ const 空状态: React.FC<{ title: string; desc?: string }> = ({ title, desc }) 
 
 const MobileImageManagerModal: React.FC<Props> = ({
     socialList,
-    cultivationSystemEnabled = true,
+    cultivationSystemEnabled = false,
     femboyNsfwEnabled = true,
     itemImageSequence = [],
     queue,

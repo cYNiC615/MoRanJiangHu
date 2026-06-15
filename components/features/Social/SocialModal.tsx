@@ -63,7 +63,7 @@ const 计算社交排序权重 = (npc: NPC结构): number => {
 
 const SocialModal: React.FC<Props> = ({
     socialList,
-    cultivationSystemEnabled = true,
+    cultivationSystemEnabled = false,
     onClose,
     selectedNpcId,
     onSelectedNpcIdChange,
@@ -88,7 +88,7 @@ const SocialModal: React.FC<Props> = ({
         })
     ), [socialList]);
     use图片资源回源预取(sortedSocialList);
-    const 显示境界 = cultivationSystemEnabled !== false;
+    const 显示境界 = cultivationSystemEnabled === true;
     const 获取NPC稳定ID = React.useCallback((npc: any, index = 0): string => (
         String(npc?.id || npc?.ID || npc?.姓名 || `npc-${index}`).trim()
     ), []);

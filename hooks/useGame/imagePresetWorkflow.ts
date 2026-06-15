@@ -590,7 +590,7 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
             throw new Error('未配置可用的接口模型，无法提取角色锚点。');
         }
         const baseData = 提取NPC生图基础数据附带私密描述(targetNpc, {
-            cultivationSystemEnabled: deps.isCultivationSystemEnabled?.() !== false
+            cultivationSystemEnabled: deps.isCultivationSystemEnabled?.() === true
         });
         const imageAIService = await deps.加载图片AI服务();
         const extracted = await imageAIService.提取角色锚点提示词(baseData, anchorApi, {
@@ -643,7 +643,7 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
             throw new Error('未配置可用的接口模型，无法提取角色锚点。');
         }
         const baseData = 提取主角生图基础数据(targetCharacter, {
-            cultivationSystemEnabled: deps.isCultivationSystemEnabled?.() !== false
+            cultivationSystemEnabled: deps.isCultivationSystemEnabled?.() === true
         });
         const imageAIService = await deps.加载图片AI服务();
         const extracted = await imageAIService.提取角色锚点提示词(baseData, anchorApi, {

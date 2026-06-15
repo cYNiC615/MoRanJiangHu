@@ -78,14 +78,15 @@ const 兼容值路径别名 = (rawPath: string): string => {
     const path = (rawPath || '').trim();
     if (!path) return '';
     if (path === '战斗态势') return '战斗';
-    if (path.startsWith('战斗态势.主角.')) return `角色.${path.slice('战斗态势.主角.'.length)}`;
-    if (path.startsWith('战斗态势.角色.')) return `角色.${path.slice('战斗态势.角色.'.length)}`;
+    if (path.startsWith('战斗态势.主角.')) return `战斗.${path.slice('战斗态势.主角.'.length)}`;
+    if (path.startsWith('战斗态势.角色.')) return `战斗.${path.slice('战斗态势.角色.'.length)}`;
     if (path.startsWith('战斗态势.')) return `战斗.${path.slice('战斗态势.'.length)}`;
     return path;
 };
 
 const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
 const 废弃环境字段 = new Set(['天气', '节日']);
+const 废弃命令根路径 = new Set(['战斗', '玩家门派', '同人剧情规划', '同人女主剧情规划']);
 
 export const 是否废弃世界地图字段路径 = (normalizedKey: string): boolean => {
     const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
@@ -101,6 +102,12 @@ export const 是否废弃环境字段路径 = (normalizedKey: string): boolean =
     const match = comparable.match(/^环境(?:\.|\[|$)([^.\[]*)/u);
     if (!match) return false;
     return 废弃环境字段.has(match[1] || '');
+};
+
+export const 是否废弃命令根路径 = (normalizedKey: string): boolean => {
+    const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
+    const root = comparable.split(/[.\[]/u)[0] || '';
+    return 废弃命令根路径.has(root);
 };
 
 export const normalizeStateCommandKey = (rawKey: string): string => {
@@ -322,6 +329,10 @@ export const applyStateCommand = (
     };
 
     if (!parsed) {
+        return result;
+    }
+
+    if (是否废弃命令根路径(normalizedKey)) {
         return result;
     }
 

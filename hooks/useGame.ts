@@ -1741,7 +1741,7 @@ export const useGame = () => {
         后台场景生图监控Ref.current = pendingMonitors;
     }, [场景生图任务队列]);
 
-    const 读取修炼体系开关 = (): boolean => gameConfig?.启用修炼体系 !== false;
+    const 读取修炼体系开关 = (): boolean => gameConfig?.启用修炼体系 === true;
 
     const 构建文生图额外要求 = (extra?: string): string => {
         const runtimeGameConfig = 规范化游戏设置(gameConfig);

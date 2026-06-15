@@ -1,5 +1,5 @@
 import type { TavernCommand } from '../../types';
-import { applyStateCommand, normalizeStateCommandKey } from '../../utils/stateHelpers';
+import { applyStateCommand, normalizeStateCommandKey, 是否废弃命令根路径 } from '../../utils/stateHelpers';
 import { preserveInventoryOnUnsafeRoleReplace, sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 同步角色与门派状态 } from './storyState';
 
@@ -71,18 +71,19 @@ type 运行时变量工作流依赖 = {
 };
 
 const 是否女主规划分区 = (section: string): boolean => (
-    section === '女主剧情规划' || section === '同人女主剧情规划'
+    section === '女主剧情规划'
 );
 
 const 是否女主规划命令 = (rawKey: string): boolean => {
     const normalizedKey = normalizeStateCommandKey(rawKey || '');
     return normalizedKey === 'gameState.女主剧情规划'
         || normalizedKey.startsWith('gameState.女主剧情规划.')
-        || normalizedKey.startsWith('gameState.女主剧情规划[')
-        || normalizedKey === 'gameState.同人女主剧情规划'
-        || normalizedKey.startsWith('gameState.同人女主剧情规划.')
-        || normalizedKey.startsWith('gameState.同人女主剧情规划[');
+        || normalizedKey.startsWith('gameState.女主剧情规划[');
 };
+
+const 是否废弃运行时变量分区 = (section: string): boolean => (
+    是否废弃命令根路径(normalizeStateCommandKey(section || ''))
+);
 
 export const 创建运行时变量工作流 = (deps: 运行时变量工作流依赖) => {
     const 女主规划允许写入 = () => deps.女主规划已启用?.() !== false;
@@ -161,6 +162,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
     };
 
     const updateRuntimeVariableSection = async (section: 运行时变量分区类型, value: any) => {
+        if (是否废弃运行时变量分区(section)) return;
         if (!女主规划允许写入() && 是否女主规划分区(section)) return;
         const 历史记录 = deps.获取历史记录();
         const 当前状态 = deps.获取当前状态();
@@ -270,6 +272,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         const 当前状态 = deps.获取当前状态();
         const 历史记录 = deps.获取历史记录();
         const normalizedKey = normalizeStateCommandKey(command?.key || '');
+        if (是否废弃命令根路径(normalizedKey)) return;
         const isMemoryCommand = normalizedKey.startsWith('记忆系统')
             || normalizedKey.startsWith('gameState.记忆系统')
             || (command?.key || '').trim().startsWith('记忆系统');
@@ -310,7 +313,6 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         const nextChar = deps.规范化角色物品容器映射(result.char, { 当前时间: nextEnv });
         const nextSocial = deps.规范化社交列表(result.social, { 合并同名: false, 保留非姓名库主要女性名: true });
         const nextWorld = deps.规范化世界状态(result.world);
-        const nextBattle = deps.规范化战斗状态(result.battle);
         const nextStory = await 同步剧情时间校准({
             previousStory: 当前状态.剧情,
             nextStory: deps.规范化剧情状态(result.story),
@@ -318,41 +320,25 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         });
         const nextStoryPlan = deps.规范化剧情规划状态(result.storyPlan);
         const nextHeroinePlan = deps.规范化女主剧情规划状态(result.heroinePlan);
-        const nextFandomStoryPlan = deps.规范化同人剧情规划状态(result.fandomStoryPlan);
-        const nextFandomHeroinePlan = deps.规范化同人女主剧情规划状态(result.fandomHeroinePlan);
-        const syncedSectState = 同步角色与门派状态({
-            角色: nextChar,
-            玩家门派: deps.规范化门派状态(result.sect)
-        });
-        const syncedChar = deps.规范化角色物品容器映射(syncedSectState.角色, { 当前时间: nextEnv });
-        const nextSect = deps.规范化门派状态(syncedSectState.玩家门派);
         const nextTasks = Array.isArray(result.tasks) ? result.tasks : [];
         const nextAgreements = Array.isArray(result.agreements) ? result.agreements : [];
-        deps.设置角色(syncedChar);
+        deps.设置角色(nextChar);
         deps.设置环境(nextEnv);
         deps.设置社交(nextSocial);
         deps.设置世界(nextWorld);
-        deps.设置战斗(nextBattle);
         deps.设置剧情(nextStory);
         deps.设置剧情规划(nextStoryPlan);
         deps.设置女主剧情规划(nextHeroinePlan);
-        deps.设置同人剧情规划(nextFandomStoryPlan);
-        deps.设置同人女主剧情规划(nextFandomHeroinePlan);
-        deps.设置玩家门派(nextSect);
         deps.设置任务列表(nextTasks);
         deps.设置约定列表(nextAgreements);
         void deps.performAutoSave({
-            char: syncedChar,
+            char: nextChar,
             env: nextEnv,
             social: nextSocial,
             world: nextWorld,
-            battle: nextBattle,
             story: nextStory,
             storyPlan: nextStoryPlan,
             heroinePlan: nextHeroinePlan,
-            fandomStoryPlan: nextFandomStoryPlan,
-            fandomHeroinePlan: nextFandomHeroinePlan,
-            sect: nextSect,
             tasks: nextTasks,
             agreements: nextAgreements,
             history: 历史记录,

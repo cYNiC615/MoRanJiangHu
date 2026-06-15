@@ -13,7 +13,13 @@ const 修炼体系字段集合 = new Set([
     '最大内力',
     '功法列表',
     '境界映射值',
-    '推荐境界'
+    '推荐境界',
+    '根骨',
+    '悟性',
+    '福源',
+    '所属门派ID',
+    '门派职位',
+    '门派贡献'
 ]);
 
 const 按关键词过滤整行 = (content: string, keyword: RegExp): string => (
@@ -41,7 +47,7 @@ const 功能附加块是否启用 = (
 ): boolean => {
     switch ((featureId || '').trim().toLowerCase()) {
         case 'cultivation':
-            return config?.启用修炼体系 !== false;
+            return config?.启用修炼体系 === true;
         case 'survival':
             return config?.启用饱腹口渴系统 !== false;
         case 'femboy_nsfw':
@@ -121,6 +127,6 @@ export const 裁剪修炼体系上下文数据 = <T>(
     value: T,
     config?: Partial<游戏设置结构> | null
 ): T => {
-    if (config?.启用修炼体系 !== false) return value;
+    if (config?.启用修炼体系 === true) return value;
     return 递归裁剪修炼字段(value) as T;
 };

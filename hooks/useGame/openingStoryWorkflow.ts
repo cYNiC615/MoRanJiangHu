@@ -274,7 +274,7 @@ const 构建开局角色建档摘要 = (
     roleData: any,
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
+    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -328,7 +328,7 @@ const 构建开局伙伴建档摘要 = (
         : (openingConfig?.初始伙伴 ? [openingConfig.初始伙伴] : [])
     ).filter((partner) => partner && partner.enabled !== false && typeof partner.姓名 === 'string' && partner.姓名.trim());
     if (partners.length <= 0) return '';
-    const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
+    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -696,7 +696,7 @@ export const 执行开场剧情生成工作流 = async (
                 }
             }
         };
-        const 启用修炼体系 = openingGameConfig.启用修炼体系 !== false;
+        const 启用修炼体系 = openingGameConfig.启用修炼体系 === true;
         let openingPromptSnapshot = promptSnapshot.map(p => {
             if (p.id === 'core_cot') {
                 return {

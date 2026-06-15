@@ -73,7 +73,7 @@ const 移动社交筛选项: Array<{ key: 社交筛选键; label: string }> = [
 
 const MobileSocial: React.FC<Props> = ({
     socialList,
-    cultivationSystemEnabled = true,
+    cultivationSystemEnabled = false,
     onClose,
     selectedNpcId,
     onSelectedNpcIdChange,
@@ -106,7 +106,7 @@ const MobileSocial: React.FC<Props> = ({
     const searchInputRef = React.useRef<HTMLInputElement | null>(null);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [activeFilter, setActiveFilter] = useState<社交筛选键>('all');
-    const 显示境界 = cultivationSystemEnabled !== false;
+    const 显示境界 = cultivationSystemEnabled === true;
     const [香闺展示模式, set香闺展示模式] = useState<Record<string, 'text' | 'image'>>({});
     const [showFullBackground, setShowFullBackground] = useState<boolean>(false);
     const 界面文案 = 获取题材界面文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);

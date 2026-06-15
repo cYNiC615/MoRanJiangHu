@@ -157,7 +157,7 @@ const 构建主角建档自然语言摘要 = (
     charData: any,
     options?: { cultivationSystemEnabled?: boolean }
 ): string => {
-    const 启用修炼体系 = options?.cultivationSystemEnabled !== false;
+    const 启用修炼体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -220,7 +220,7 @@ ${是否仙侠开局模式(openingConfig) ? '- 当前题材模式具备修真体
 ${构建修炼体系附加块('- 生成结果必须能支撑后续修炼系统与境界体系长期一致运行。')}
 
 ${构建主角建档自然语言摘要(charData, {
-    cultivationSystemEnabled: config?.启用修炼体系 !== false
+    cultivationSystemEnabled: config?.启用修炼体系 === true
 })}
 - 仅用于边界约束与避冲突，不可直接把这些内容当成已完成初始化的变量数据。
 - 输出中不出现玩家信息，世界描述围绕母本结构展开。

@@ -52,8 +52,6 @@ type 主剧情上下文片段 = {
     世界状态: string;
     环境状态: string;
     角色状态: string;
-    战斗状态: string;
-    门派状态: string;
     任务状态: string;
     约定状态: string;
     COT提示词: string;
@@ -260,8 +258,6 @@ export const 构建主剧情请求参数 = (
         pushEntry('state_world', '世界', '系统', 'system', params.builtContext.contextPieces.世界状态);
         pushEntry('state_environment', '当前环境', '系统', 'system', params.builtContext.contextPieces.环境状态);
         pushEntry('state_role', '用户角色数据', '系统', 'system', params.builtContext.contextPieces.角色状态);
-        pushEntry('state_battle', '战斗', '系统', 'system', params.builtContext.contextPieces.战斗状态);
-        pushEntry('state_sect', '玩家门派', '系统', 'system', params.builtContext.contextPieces.门派状态);
         pushEntry('state_tasks', '任务列表', '系统', 'system', params.builtContext.contextPieces.任务状态);
         pushEntry('state_agreements', '约定列表', '系统', 'system', params.builtContext.contextPieces.约定状态);
         pushEntry('memory_short', '短期记忆', '记忆', 'system', params.builtContext.shortMemoryContext);

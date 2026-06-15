@@ -16,7 +16,7 @@ that affect cleanup decisions.
 - `static_pages_removed`: Direct public/admin static pages have been deleted.
 - `backend_removed`: Runtime code and active data/schema handling are gone.
 - `backend_pending`: Services, prompts, model fields, API routes, tests, or
-  scripts still exist and belong to a later cleanup pass.
+  scripts still exist and now belong to the new Phase 2 deep deletion pass.
 - `command_root_retired`: Active command registry or apply logic rejects/no-ops
   retired structured roots.
 - `active_prompt_schema_retired`: Always-on prompt/schema surfaces no longer ask
@@ -30,7 +30,7 @@ that affect cleanup decisions.
 
 ## Current Phase Boundary
 
-Phase 1 retires feature families from the active game loop:
+Phase 1 retired feature families from the active game loop:
 
 1. Player-visible entrypoints are gone or inert.
 2. Top-level side effects are disconnected.
@@ -39,10 +39,11 @@ Phase 1 retires feature families from the active game loop:
 4. Remaining residue is tracked here as current cleanup inventory only.
 
 Phase 1 implementation-side closeout is complete, and the user's initial
-manual smoke is acceptable. Phase 1.5 is now cleaning the retired frontend and
-public release residue before Phase 2 modern-urban defaultization.
+manual smoke is acceptable. Phase 1.5 is being closed as a historical
+frontend/public-surface cleanup phase, not as the final simplification phase.
 
-Phase 1.5 deletes unreachable frontend residue:
+Phase 1.5 deleted or disconnected major unreachable frontend and public
+release residue:
 
 - public release/community/support homepage links, static pages, APK/release
   scripts, release metadata, and app-update surfaces;
@@ -52,9 +53,10 @@ Phase 1.5 deletes unreachable frontend residue:
 - retired settings pages, lazy imports, UI state, props, styles, and frontend
   tests.
 
-Later cleanup deletes backend services, APIs, model fields, prompt files,
-storage keys, scripts, and strong migrations. Do not keep detailed old UI
-history in this file.
+The stricter current rule is: retired feature families should not leave
+complete dormant packages behind. The old Phase 3 backend/model/prompt/storage
+cleanup is therefore promoted to the new Phase 2, before modern-urban
+defaultization. Do not keep detailed old UI history in this file.
 
 ## Project Quality Gate
 
@@ -67,24 +69,24 @@ done until:
 - retired feature tests, prompts, types, storage keys, and fixtures are deleted
   or migrated instead of becoming permanent debt.
 
-## Current Phase 1.5 Snapshot
+## Phase 1 / 1.5 Closeout Snapshot
 
 | Feature family | Current status | Remaining owner |
 | --- | --- | --- |
-| `novel_decomposition` | `entrypoint_removed`, `frontend_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later backend/model/prompt/storage cleanup |
-| `new_game_fandom_entrypoints` | `entrypoint_removed`, `automatic_side_effect_removed`, `command_root_retired`, `backend_pending`, `storage_pending` | Later fandom/model/prompt cleanup |
+| `novel_decomposition` | `entrypoint_removed`, `frontend_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | New Phase 2 deep deletion |
+| `new_game_fandom_entrypoints` | `entrypoint_removed`, `automatic_side_effect_removed`, `command_root_retired`, `backend_pending`, `storage_pending` | New Phase 2 deep deletion |
 | `music_playback` | `entrypoint_removed`, `backend_removed`, `storage_pending` | Strong storage migration only |
-| `auction_house` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later backend/storage cleanup |
-| `legacy_battle_system` | `entrypoint_removed`, `command_root_retired`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending` | Phase 1.5 frontend residue, later replacement design |
-| `wuxia_cultivation_system` | `entrypoint_removed`, `frontend_removed`, `command_root_retired`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending` | Later model/prompt/storage cleanup |
-| `cloud_play_and_sync` | `entrypoint_removed`, `frontend_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later cloud/API/storage cleanup |
-| `creative_workshop_cloud_ugc` | `entrypoint_removed`, `frontend_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | Later workshop API cleanup |
-| `online_presence_public_ops` | `entrypoint_removed`, `frontend_removed`, `static_pages_removed`, `backend_pending`, `storage_pending` | Later operations/API/test cleanup |
+| `auction_house` | `entrypoint_removed`, `automatic_side_effect_removed`, `backend_pending`, `storage_pending` | New Phase 2 deep deletion |
+| `legacy_battle_system` | `entrypoint_removed`, `command_root_retired`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending` | New Phase 2 deep deletion, then replacement design later |
+| `wuxia_cultivation_system` | `entrypoint_removed`, `frontend_removed`, `command_root_retired`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending` | New Phase 2 deep deletion |
+| `cloud_play_and_sync` | `entrypoint_removed`, `frontend_removed`, `automatic_side_effect_removed`, `backend_removed`, `storage_pending` | Old local storage values only |
+| `creative_workshop_cloud_ugc` | `entrypoint_removed`, `frontend_removed`, `automatic_side_effect_removed`, `backend_removed`, `storage_pending` | Local mode packages remain; public/cloud UGC removed |
+| `online_presence_public_ops` | `entrypoint_removed`, `frontend_removed`, `static_pages_removed`, `backend_removed`, `storage_pending` | Old localStorage history only |
 | `apk_app_update_system` | `fully_removed` | None |
 | `public_release_static_pages` | `fully_removed` | None |
-| `mobile_frontend` | `frontend_removed` | Shared responsive branches can be simplified opportunistically |
-| `festival_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
-| `weather_game_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | Later environment schema/storage cleanup |
+| `mobile_frontend` | `frontend_removed`, `backend_pending` | New Phase 2 removes shared responsive/native remnants |
+| `festival_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | New Phase 2 environment schema/storage cleanup |
+| `weather_game_system` | `entrypoint_removed`, `automatic_side_effect_removed`, `active_prompt_schema_retired`, `backend_pending`, `storage_pending`, `prose_atmosphere_only` | New Phase 2 environment schema/storage cleanup |
 
 Phase 1 implementation-side checks are green:
 
@@ -97,29 +99,31 @@ Phase 1 implementation-side checks are green:
 - browser smoke confirms the homepage, settings, game-style dropdown, and
   worldbook manager do not expose retired feature entrypoints.
 
-Before Phase 1.5, do a user-side manual play smoke:
+Phase 1.5 closeout note: the previous boundary allowed deep backend/model/
+prompt/storage residue to remain registered. That is no longer sufficient for
+the next implementation stage. New Phase 2 must delete those packages before
+new stable test saves are created for feature iteration.
 
-1. send at least one real main-story turn with the user's normal local model
-   settings;
-2. confirm save/load, worldbook, prompt, memory, and settings surfaces still
-   fit the actual play workflow.
+## Phase 1.5 Historical Cleanup Record
 
-## Phase 1.5 Frontend Cleanup Queue
-
-Phase 1.5 should remove unreachable frontend residue without mixing in backend
-schema migrations.
+Phase 1.5 removed the following player-visible or public-surface residue. Any
+remaining dormant packages now move to new Phase 2.
 
 | Candidate | Current frontend residue | Boundary |
 | --- | --- | --- |
-| `prompt_manager_retired_prompts` | Phase 1.5 frontend slice complete: `components/features/Settings/PromptManager.tsx` hides `core_realm`, `stat_kungfu`, and `stat_cultivation`, and labels prompt state as active-context state instead of runtime injection/control | Later delete prompt files, models, storage snapshots, and strong migrations |
-| `homepage_public_links` | Phase 1.5 complete: landing page now keeps local play, local mode packages, image manager, worldbook manager, and settings; public changelog/tutorial/feedback/release links are gone | Later rename Creative Workshop if desired |
-| `mobile_frontend` | Phase 1.5 complete for independent files: `components/layout/MobileQuickMenu.tsx`, `components/features/NewGame/mobile/MobileNewGameWizard.tsx`, `components/features/Settings/mobile/MobileSettingsModal.tsx`, and unmounted `Mobile*` feature modals were deleted | Shared responsive branches may be simplified when touching those desktop components |
-| `legacy_battle_system` | `components/features/Battle` and related unmounted battle UI | Future replacement is a new lightweight opposition system, not the old stance/kungfu battle model |
-| `auction_house` | `components/features/AuctionHouse/AuctionHouseModal.tsx` | Leave `services/auctionHouse.ts`, model fields, storage, and tests to backend cleanup |
-| `novel_decomposition` | Phase 1.5 frontend files, runtime services, workshop bridge/API, and decomposition tests removed | Leave dormant storyTasks export, prompt files, storage keys, and model migration to backend cleanup |
-| `wuxia_cultivation_system` | Phase 1.5 frontend files removed: `components/features/Kungfu`, `components/features/Sect`, `components/features/Skills`; App/Social/Task no longer pass player-sect or learn-skill props | Leave `models/kungfu.ts`, `models/sect.ts`, and prompt roots to model/prompt cleanup |
+| `prompt_manager_retired_prompts` | Phase 1.5 frontend slice complete: `components/features/Settings/PromptManager.tsx` hides `core_realm`, `stat_kungfu`, and `stat_cultivation`, and labels prompt state as active-context state instead of runtime injection/control | New Phase 2 deletes prompt files, models, storage snapshots, and strong migrations |
+| `homepage_public_links` | Phase 1.5 complete: landing page now keeps local play, local mode packages, image manager, worldbook manager, and settings; public changelog/tutorial/feedback/release links are gone | Rename Creative Workshop later if desired |
+| `mobile_frontend` | Phase 1.5 complete for independent files: `components/layout/MobileQuickMenu.tsx`, `components/features/NewGame/mobile/MobileNewGameWizard.tsx`, `components/features/Settings/mobile/MobileSettingsModal.tsx`, and unmounted `Mobile*` feature modals were deleted | New Phase 2 removes shared responsive/native remnants |
+| `legacy_battle_system` | Entry points and active command/prompt maintenance are removed; `components/features/Battle` still exists | New Phase 2 deletes the old package; future replacement is a new lightweight opposition system |
+| `auction_house` | Player entrypoints and automatic side effects are removed; `components/features/AuctionHouse/AuctionHouseModal.tsx` still exists | New Phase 2 deletes component, service, data, model, storage, and tests |
+| `novel_decomposition` | Phase 1.5 frontend files, runtime services, workshop bridge/API, and decomposition tests removed | New Phase 2 deletes dormant storyTasks export, prompt files, storage keys, and models |
+| `wuxia_cultivation_system` | Phase 1.5 frontend files removed: `components/features/Kungfu`, `components/features/Sect`, `components/features/Skills`; App/Social/Task no longer pass player-sect or learn-skill props | New Phase 2 deletes `models/kungfu.ts`, `models/sect.ts`, prompt roots, storage, and tests |
 
-## Later Backend And Storage Cleanup Queue
+## New Phase 2 Deep Deletion Queue
+
+This queue used to be Phase 3. It is now the immediate next phase, before
+modern-urban defaultization, so the user can create stable new test saves
+without legacy package risk.
 
 ### `novel_decomposition`
 
@@ -160,8 +164,8 @@ Current residue:
 - `data/creativeWorkshopModules.ts`
 - saved opening config fields such as `同人融合`
 
-Legacy fandom config is inert in active runtime paths. Delete the residue with
-the fandom/model cleanup pass.
+Legacy fandom config is inert in active runtime paths. New Phase 2 deletes the
+residue with the fandom/model cleanup pass.
 
 ### `music_playback`
 
@@ -196,8 +200,9 @@ Current residue:
 - battle-related tests and fixtures
 - historical save state under `战斗`
 
-Replacement direction: build a new lightweight opposition system later. Do not
-reuse the old stance/kungfu/formation battle model as the target design.
+Replacement direction after new Phase 2 deletion: build a new lightweight
+opposition system later. Do not reuse the old stance/kungfu/formation battle
+model as the target design.
 
 ### `wuxia_cultivation_system`
 
@@ -217,13 +222,13 @@ Current residue:
 
 PromptManager no longer shows the retired cultivation prompt-pool entries
 `core_realm`, `stat_kungfu`, or `stat_cultivation`; stored local snapshots can
-still contain those ids until the later prompt/storage cleanup.
+still contain those ids until the new Phase 2 prompt/storage cleanup.
 
 The homebrew default is modern urban with optional near-future sci-fi. Wuxia
 and cultivation compatibility is not preserved.
 
 Known current behavior: the no-change new-game path still tends to create a
-wuxia world. That belongs to Phase 2 modern-urban defaultization, not Phase
+wuxia world. That belongs to Phase 3 modern-urban defaultization, not Phase
 1.5 frontend residue cleanup.
 
 ### `cloud_play_and_sync`
@@ -268,7 +273,7 @@ Current residue:
 
 Keep local mode packages, local JSON import/export, local ComfyUI workflow save,
 and local injection preview. The remaining "workshop" name is plain UI copy and
-can be renamed later with the mode-package UX pass.
+can be renamed later with the mode-package UX pass after new Phase 2 cleanup.
 
 ### `online_presence_public_ops`
 
@@ -335,8 +340,8 @@ Current residue:
 - responsive/mobile-only branches inside shared desktop files
 
 Native/Capacitor project files and package dependencies were removed together
-with APK cleanup. Remaining shared responsive branches can be simplified when
-those desktop components are next touched.
+with APK cleanup. New Phase 2 removes the remaining shared responsive/native
+branches instead of carrying a second UI/runtime path forward.
 
 ### `festival_system`
 

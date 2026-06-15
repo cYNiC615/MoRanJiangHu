@@ -24,10 +24,10 @@
 - AI 驱动角色扮演是核心体验，不丢。后续即使把一部分规则游戏化、本地代码化，也不能削弱上下文控制、世界书/提示词、schema 解析和状态回写这条主轴。
 - 保留男性向、强恋爱和亲密关系内容，保留“女主”概念。现有“主推女主”在后宫模式下表现不佳，这是优化项，不是删除项。
 - 不兼容旧武侠存档。这个 fork 暂时只服务个人使用，后续清理可以直接破坏旧武侠/修仙/同人/小说分解存档兼容。
-- 武侠和修仙完全不要，不只是“不作为默认”。当前新建流程如果一路使用默认值仍会生成武侠世界，这是已确认未完成项，归入 Phase 2“现代都市默认化”。
+- 武侠和修仙完全不要，不只是“不作为默认”。当前新建流程如果一路使用默认值仍会生成武侠世界，这是已确认未完成项，但先不立刻改默认；新 Phase 2 先彻底删除历史包袱，现代都市默认化顺延到新 Phase 3。
 - 旧战斗系统不要。后续需要一个新的轻量级对抗系统替代它，可能会更偏系统玩法；但不保留功法、站位、传统对打体系作为目标。
 - 社交/NPC 关系是核心体验，甚至可能扩展；但当前 AI 驱动的位置管理和在场判定 bug 很多，后续要停用、强约束或重做，暂不急着拍板具体实现。
-- 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。当前前端入口、强制上下文和结构化写入已经断开，模型字段与旧存档残留后续清理。
+- 天气和节日不作为游戏系统。天气只作为 AI 正文里的氛围描写，写了就有，不写就没有；节日系统直接删除。当前前端入口、强制上下文和结构化写入已经断开，模型字段与旧存档残留进入新 Phase 2 清理。
 - 时间仍可能需要保留，但应设计成轻量、低上下文占用的系统。
 - 工程健康本身也是 Phase 目标。当前 `npx tsc --noEmit` 暴露了大量仓库既有类型债，最终完成整体精简后要求回到 0 error / 0 warning 的验证状态；后续每个模块删除都不能继续扩大类型债。
 
@@ -36,7 +36,7 @@
 - SillyTavern World Info / Lorebooks: https://docs.sillytavern.app/usage/core-concepts/worldinfo/
 - SillyTavern Prompt Manager: https://docs.sillytavern.app/usage/prompts/prompt-manager/
 
-### 1.1 Phase 1 / Phase 1.5 完成契约
+### 1.1 Phase 1 / Phase 1.5 历史契约与新阶段边界
 
 当前仓库是重前端项目，很多业务逻辑、状态桥接、弹窗挂载和 prompt 入口都和 React 层耦合。Phase 1 不再追求“把不需要的前端文件删干净”，而是先把已明确废弃的功能族退役到当前可玩主链路不可达。
 
@@ -54,9 +54,9 @@ Phase 1.5 的目标是前端残骸清理：
 2. 清掉这些不可达前端代码带来的类型、测试、导入、懒加载和样式残留。
 3. 保留真正还在当前桌面主体验里使用的前端面，不为了“目录干净”误伤核心链路。
 
-Phase 1 当前实现侧已完成；用户已做初步人工测试，功能能跑通。Phase 1.5 已进入收官清理，当前刀口删除公共发布/APK、投稿/社区云工坊、Auth/cloud 前端、故事导出、小说分解前端、功法/门派/技能前端和独立移动端组件；不做 Phase 2 的现代都市默认化。
+Phase 1 当前实现侧已完成；用户已做初步人工测试，功能能跑通。Phase 1.5 作为历史阶段收官：它已经删除公共发布/APK、投稿/社区云工坊、Auth/cloud 前端、故事导出、小说分解前端与服务、功法/门派/技能前端和独立移动端组件，并修正 PromptManager 的退役提示词可见项。
 
-Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存在；Phase 1.5 才负责集中拆除这些前端残留。不能接受的是：玩家仍能实际进入、系统仍会自动触发、AI 仍被提示主动维护，或残留没有登记。
+现在采用更严格的收口定义：进入功能迭代和稳定新存档测试前，不应继续保留完整的历史功能包、prompt/model/storage/test 残留。旧 Phase 3 的后端、prompt、模型和存储深删前移为新 Phase 2；现代都市默认化顺延为新 Phase 3。Phase 1 和 Phase 1.5 只作为历史完成边界保留，不再作为“可以继续留包袱”的理由。
 
 ## 2. 仓库层级地图
 
@@ -140,7 +140,7 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | 女主规划 | 支撑男性向恋爱/亲密关系体验与重要女角色推进 | `models/heroinePlan.ts`, `prompts/core/heroinePlan*.ts` | 保留并优化；后宫模式下弱化“唯一主推女主”的副作用 |
 | 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 入口和 runtime 注入已钝化；旧配置不再切换活跃 UI/COT/规划上下文；active prompt/schema 已停止维护原著/分解组字段；后端 prompt/schema 待删 |
 | 小说分解提示词 | 小说章节拆解、滑窗、拆分 COT、工作台注入 | `prompts/runtime/novelDecomposition*.ts`, `services/ai/storyTasks.ts` | 前端、runtime 服务、workshop bridge/API 和测试已删除；active prompt/schema 已停止维护小说分解字段；剩余 dormant prompt/export 待删 |
-| 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 玩家入口和当前可见内置提示词入口已移除/后端待删，不保留为默认或兼容目标 |
+| 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 玩家入口和当前可见内置提示词入口已移除；新 Phase 2 深删后端/prompt/model/storage，不保留为默认或兼容目标 |
 
 ## 6. 前端功能地图
 
@@ -149,8 +149,8 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | Home/Game Shell | 主页、游戏视图、面板挂载、全局弹窗 | `App.tsx`, `components/layout` | 保留但瘦身 | 主页已瘦身为本地游玩/设置/存档/世界书/图片管理/本地模式包入口；release、教程、反馈、GitHub/Discord、在线统计已删 |
 | Chat | 主聊天、输入、行动选项、回合队列状态 | `components/features/Chat` | 核心保留 | 保留桌面体验，删移动专用适配 |
 | Settings | API、流程图、记忆、世界书、提示词、存储、模型配置等 | `components/features/Settings` | 保留但大幅瘦身 | 已移除小说分解设置页、音乐、节日、修炼体系、APK 手动更新、社区工坊发布、移动设置壳、云同步 schema 项等入口 |
-| PromptManager | 旧提示词池管理、当前上下文状态展示 | `components/features/Settings/PromptManager.tsx`, `prompts/index.ts` | Phase 1.5 首刀已完成 | 已隐藏/归档 `core_realm`、`stat_kungfu`、`stat_cultivation` 等退役提示词可见项，并把“运行时注入/接管”口径改成当前上下文状态；旧 prompt 文件、模型字段和本地快照留到后续深删 |
-| NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | 废弃题材/同人/小说分解入口当前不可达；当前默认一路向下仍生成武侠世界，归入 Phase 2 现代都市默认化 |
+| PromptManager | 旧提示词池管理、当前上下文状态展示 | `components/features/Settings/PromptManager.tsx`, `prompts/index.ts` | Phase 1.5 首刀已完成 | 已隐藏/归档 `core_realm`、`stat_kungfu`、`stat_cultivation` 等退役提示词可见项，并把“运行时注入/接管”口径改成当前上下文状态；旧 prompt 文件、模型字段和本地快照进入新 Phase 2 深删 |
+| NewGame | 新开局向导、主题/模式包、角色、世界、开局配置 | `components/features/NewGame`, `utils/workshopEngine.ts` | 保留但重写默认 | 废弃题材/同人/小说分解入口当前不可达；当前默认一路向下仍生成武侠世界，归入新 Phase 3 现代都市默认化 |
 | Worldbook | 世界书管理、导入、编辑 | `components/features/Worldbook` | 核心保留 | 保留本地世界书，不接社区 UGC |
 | Workshop | 本地模式包、JSON 导入导出、Comfy 工作流、本地注入预览 | `components/features/Workshop`, `services/creativeWorkshop.ts`, `data/creativeWorkshopModules.ts` | 保留本地模式包，社区云链路已移除 | `services/creativeWorkshop.ts` 只列 builtin/local，不再发布/编辑/删除/远程下载；后续可改名为“模式包/本地扩展” |
 | SaveLoad | 存档读写、导入导出 | `components/features/SaveLoad`, `services/saveArchiveService.ts` | 必须保留 | 已移除“转云端游玩”入口；保留 ZIP 导入导出、本地时间树、删除与存档保护 |
@@ -158,15 +158,15 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | Map | 地图层级、地点浏览、NPC 位置 | `components/features/Map`, `utils/mapSpatial.ts`, `utils/mapNpcLocation.ts` | 保留但重做边界 | 地点/移动可保留；NPC 位置和在场判定暂列重做，不急着让 AI 继续写 |
 | Social | NPC、关系、社交档案、立绘 | `components/features/Social`, `models/social.ts` | 核心保留并可能扩展 | 社交/关系保留；位置管理和在场判定作为问题子系统单独重做 |
 | Inventory/Equipment | 背包、装备、物品、画像展示 | `components/features/Inventory`, `components/features/Equipment`, `models/item.ts` | 保留；规则化候选 | 交易、消耗、装备变更优先转本地规则 |
-| AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 入口和副作用已移除/后端待删 | 当前不可达且不再参与补货、存档桥接或 AI 待投放写入；不可达前端进 Phase 1.5，服务/模型/测试后续深删 |
-| Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 入口已移除/后端待删 | 当前不可达；后续另做新的轻量级系统化对抗，不复用旧功法/站位/传统对打 |
-| Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `models/sect.ts`, `models/kungfu.ts` | 前端已删除/后端待删 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills` 已删除；App/Social/Task 主链不再传 `玩家门派`/学艺 props；模型/prompt/存档字段后续清理 |
+| AuctionHouse | 拍卖行物品投放、价格、AI/正则抽取 | `components/features/AuctionHouse`, `services/auctionHouse.ts` | 入口和副作用已移除/新 Phase 2 深删 | 当前不可达且不再参与补货、存档桥接或 AI 待投放写入；组件、服务、模型、测试和存储残留进入新 Phase 2 |
+| Battle | 旧战斗 UI 与战斗状态 | `components/features/Battle`, `models/battle.ts` | 入口已移除/新 Phase 2 深删 | 当前不可达；新 Phase 2 先删除旧包，后续另做新的轻量级系统化对抗，不复用旧功法/站位/传统对打 |
+| Sect/Kungfu/Skills | 门派、功法、修炼、技能 | `models/sect.ts`, `models/kungfu.ts` | 前端已删除/新 Phase 2 深删 | `components/features/Sect`, `components/features/Kungfu`, `components/features/Skills` 已删除；App/Social/Task 主链不再传 `玩家门派`/学艺 props；模型/prompt/存档字段进入新 Phase 2 |
 | Task/Agreement/Team | 任务、约定、队伍 | `components/features/Task`, `components/features/Agreement`, `components/features/Team` | 保留但重命名/瘦身 | 适合事件系统，先保留 |
 | Music / Audio Cues | 背景音乐、播放器、音乐设置、曲库持久化、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/turnNotificationSound.ts` | 已移除 | 当前无运行时代码和玩家入口；仅历史存储数据待强迁移清理 |
 | Visual/Image Manager | 视觉设置、图片资源管理 | `components/features/Settings`, `hooks/useGame/*Image*`, `components/features/Social/ImageManagerModal.tsx` | 暂缓 | 等视觉方向确认，不继续扩功能 |
 | Auth | GitHub/OAuth/云同步账号 | 已删除：`components/features/Auth`, `hooks/useGitHubOAuth.ts`, `functions/api/auth` | 已删除 | 不再保留云同步账号/OAuth 入口 |
 | Online Presence/Public Ops | 在线心跳、首页在线人数、公开在线时长榜 | 已删除：`services/onlinePresence.ts`, `functions/api/admin/online`, online tests | 已删除 | 当前不再启动心跳或展示公开在线运营入口 |
-| NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 入口和活跃注入已移除/后端待删 | 当前不可达，且不再参与主剧情、开局、世界演变、规划、回档或运行时变量注入/校准；服务、模型、prompt、测试和存储键后续清理 |
+| NovelDecomposition | 小说分解工作台 | `components/features/NovelDecomposition`, `components/features/Settings/NovelDecompositionSettings.tsx` | 入口和活跃注入已移除/新 Phase 2 深删 | 当前不可达，且不再参与主剧情、开局、世界演变、规划、回档或运行时变量注入/校准；服务、模型、prompt、测试和存储键进入新 Phase 2 |
 
 ## 7. 服务与数据功能地图
 
@@ -181,10 +181,10 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | Online Presence/Public Ops | 在线心跳、公开在线统计、在线时长榜 | 已删除：`services/onlinePresence.ts`, `functions/api/admin/online`, online tests | 已删除 | 无心跳副作用、公开统计或在线榜 |
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | 已删除：`services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android`, `capacitor.config.ts` | 已删除 | `npm run build` 改为直接 `vite build`；release metadata、APK scripts/API/Android 工程已删 |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | 已删除：`functions/api/workshop`, cloud helper tests | 已删除 | 保留本地模式包；`services/creativeWorkshop.ts` 只处理 builtin/local |
-| Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | 已删除：`services/novelDecomposition*`, `services/workshopNovelDecomposition.ts`, workshop API/tests | 服务/API 已删除 | 剩余 dormant `storyTasks` export、prompt 文件、model 和 storage keys 待删 |
-| Fandom Preset | 同人预设投稿、原著融合 | 已删除：`services/fandomPresetSubmission.ts`, `functions/api/fandom-presets` | 投稿/API 已删除 | `models/fandomPlanning`、fandom prompt 和 legacy schema 字段后续清理 |
+| Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | 已删除：`services/novelDecomposition*`, `services/workshopNovelDecomposition.ts`, workshop API/tests | 服务/API 已删除 | 剩余 dormant `storyTasks` export、prompt 文件、model 和 storage keys 进入新 Phase 2 |
+| Fandom Preset | 同人预设投稿、原著融合 | 已删除：`services/fandomPresetSubmission.ts`, `functions/api/fandom-presets` | 投稿/API 已删除 | `models/fandomPlanning`、fandom prompt 和 legacy schema 字段进入新 Phase 2 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 已降级为正文氛围/模型待删 | 当前不再作为 UI/上下文/命令写入系统；`环境.节日` / `环境.天气` 模型字段和旧存档残留待强迁移 |
-| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口和副作用已移除/后端待删 | 不改二手市场，不保留拍卖行；当前仅剩服务/图片数据/脚本/模型字段等深层残留 |
+| Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口和副作用已移除/新 Phase 2 深删 | 不改二手市场，不保留拍卖行；当前服务/图片数据/脚本/模型字段等深层残留进入新 Phase 2 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
 | Image Host/Backend | 图床、图片后端、NovelAI/Comfy/SD 代理 | `services/imageHostService.ts`, `functions/api/image-*`, `functions/api/novelai` | 暂缓 | 如果保留图像体验，需要重构而不是直接删 |
 | Diagnostic | 上下文诊断、日志、报告 | `services/diagnostic*`, `components/features/Settings/WorkflowGraphSettings.tsx` | 保留开发态 | 可从玩家 UI 隐藏，研发保留 |
@@ -209,24 +209,24 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | 本地设置/存档/ZIP | 核心保留 | 用户明确要求完整保留 | 删除云同步时先加保护清单 |
 | 主回合后台队列 | 保留但瘦身 | 变量、规划、世界、地图都在这里运行；但流程过重 | 先文档化阶段边界，再考虑拆文件 |
 | Settings 控制台 | 保留但瘦身 | API/提示词/记忆/存储有用，但 tab 太多 | 移除小说分解、云同步、移动/APK、社区相关 tab |
-| NewGame 开局 | 保留但瘦身 | 需要现代都市默认体验 | 当前默认仍会生成武侠世界；Phase 2 改默认主题、开局配置、世界观生成和模式包口径 |
+| NewGame 开局 | 保留但瘦身 | 需要现代都市默认体验 | 当前默认仍会生成武侠世界；新 Phase 3 改默认主题、开局配置、世界观生成和模式包口径 |
 | 本地模式包 | 保留但瘦身 | 可作为题材/风味扩展机制 | 从“创意工坊”改为本地扩展，不接社区 |
 | Cloudflare Worker | 暂缓/冻结 | 可能仍有托管/API 代理价值 | 不新增依赖；删除社区/同步/API 后再评估 |
 | 图片生成 | 暂缓/冻结 | 可能提升体验，但链路很重 | 暂不扩展；等确定视觉目标 |
-| 旧战斗系统 | 入口已移除/后端待删 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | 当前不可达；不可达 UI 进 Phase 1.5，模型/prompt/命令根/旧测试后续删除 |
-| 拍卖行/市场 | 入口和副作用已移除/后端待删 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | 当前不可达且无活跃副作用；不可达 UI 进 Phase 1.5，服务/模型字段/题材 profile/测试后续删除 |
-| 武侠/修炼/功法/门派 | 入口已移除/后端待删 | 用户明确不做武侠修仙；未来组织、能力和对抗都应按现代都市/近未来方向重设 | 当前玩家入口不可达，设置下拉和内置世界书不再暴露“修炼”叙事风格；不可达 UI 进 Phase 1.5，模型/prompt/命令根/存档字段/测试后续删除 |
+| 旧战斗系统 | 入口已移除/新 Phase 2 深删 | 不做功法、站位、传统对打体系；未来由新的轻量级对抗系统替代 | 当前不可达；新 Phase 2 删除 UI、模型、prompt、命令根、旧测试和存档残留 |
+| 拍卖行/市场 | 入口和副作用已移除/新 Phase 2 深删 | 用户明确拍卖行功能整体全部删；不改成现代交易/二手市场 | 当前不可达且无活跃副作用；新 Phase 2 删除组件、服务、模型字段、题材 profile、脚本和测试 |
+| 武侠/修炼/功法/门派 | 入口已移除/新 Phase 2 深删 | 用户明确不做武侠修仙；未来组织、能力和对抗都应按现代都市/近未来方向重设 | 当前玩家入口不可达，设置下拉和内置世界书不再暴露“修炼”叙事风格；新 Phase 2 删除模型、prompt、命令根、存档字段和测试 |
 | 社交/NPC 关系 | 核心保留/重构候选 | 男性向恋爱、亲密关系和重要 NPC 互动是核心体验 | 保留并扩展关系体验；位置/在场系统单独重做 |
 | 地图/地点 | 保留/重构候选 | 地点和移动非常适合代码化 | 优先做本地移动/地点合法性校验 |
 | 背包/装备/货币 | 保留/重构候选 | 账务最适合代码接管 | 优先规则化交易、消耗、装备穿脱 |
 | 时间 | 重构候选 | 仍可能需要轻量时间轴，但不能占用过多上下文 | 单独设计轻量时间系统 |
 | 音乐/音频提示 | 已移除 | 与 homebrew 核心体验无关，且增加设置、持久化、媒体资产和 UI 面板负担 | 当前无运行时代码和玩家入口；历史 storage 后续强清理 |
-| 天气 | 已降级/模型待删 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 当前仅保留正文氛围；后续删除 `环境.天气` 模型字段与旧存档残留 |
-| 节日 | 已降级/模型待删 | 意义小且占上下文 | 当前不作为 UI、上下文或命令写入系统；后续删除 `环境.节日` 模型字段与旧 settings key |
+| 天气 | 已降级/模型待删 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 当前仅保留正文氛围；新 Phase 2 删除 `环境.天气` 模型字段与旧存档残留 |
+| 节日 | 已降级/模型待删 | 意义小且占上下文 | 当前不作为 UI、上下文或命令写入系统；新 Phase 2 删除 `环境.节日` 模型字段与旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
-| 同人/原著融合 | 入口和 runtime 注入已钝化/后端待删 | 用户明确不做同人 | 当前不可达，旧同人配置不再激活运行时同人口径或切换当前规划源；后续删除模型/prompt/服务/API 和 legacy schema 字段 |
-| 小说分解 | 前端、runtime 服务、workshop API 和测试已删除 | 用户明确不做小说分解 | 剩余 dormant storyTasks export、模型、prompts 和 storage keys 后续删除 |
-| 移动端 UI | 独立组件已删除 | 用户明确不做移动端 | `MobileQuickMenu`、`Mobile*.tsx`、`mobile/` 子目录已删；共享桌面组件内的响应式分支可在后续触碰时顺手简化 |
+| 同人/原著融合 | 入口和 runtime 注入已钝化/新 Phase 2 深删 | 用户明确不做同人 | 当前不可达，旧同人配置不再激活运行时同人口径或切换当前规划源；新 Phase 2 删除模型/prompt/服务/API 和 legacy schema 字段 |
+| 小说分解 | 前端、runtime 服务、workshop API 和测试已删除 | 用户明确不做小说分解 | 剩余 dormant storyTasks export、模型、prompts 和 storage keys 进入新 Phase 2 |
+| 移动端 UI | 独立组件已删除 | 用户明确不做移动端 | `MobileQuickMenu`、`Mobile*.tsx`、`mobile/` 子目录已删；新 Phase 2 删除共享桌面组件内的响应式/native 分支 |
 | Android/APK | 已删除 | 用户明确不做 APK | scripts、Capacitor 依赖、android 工程、app update、APK manifest/API 已删 |
 | GitHub/WebDAV/Object 云同步 | 已删除 | 用户明确不做多设备同步 | 首页、SaveLoad、服务、API、settings schema 和测试均已删除 |
 | 社区 UGC/云工坊 | 云 API 已删除，本地模式包保留 | 用户明确不做社区 UGC | 保留本地 JSON 导入、下载 JSON、复制摘要和本地工作流保存 |
@@ -269,22 +269,22 @@ Phase 1 当前目标：
 4. 残留登记：暂时不删的前端、服务、API、模型字段、storage key、测试和迁移点只登记当前状态，不记录旧 UI 细节。
 5. 可验证：Phase 1 收口时必须完成构建、核心静态测试和浏览器 smoke。人工游玩确认放在进入 Phase 1.5 前。
 
-Phase 1 当前状态：实现侧已完成，用户初步测试通过；Phase 1.5 当前正在收官删除前端和公共发布残骸。
+Phase 1 当前状态：实现侧已完成，用户初步测试通过；Phase 1.5 作为前端和公共发布残骸清理阶段收官。它不再承载后续工作；深层功能包删除改由新 Phase 2 承担。
 
 | 功能族 | 当前 Phase 1 状态 | 当前归属 |
 | --- | --- | --- |
-| 同人/小说分解 | Phase 1.5 深删一层：小说分解前端、runtime 服务、workshop API、测试和同人投稿 API 已删；活跃注入已断 | 后端 prompt 文件、dormant fandom branches、storage/model 残留进后续深删 |
+| 同人/小说分解 | Phase 1.5 深删一层：小说分解前端、runtime 服务、workshop API、测试和同人投稿 API 已删；活跃注入已断 | 后端 prompt 文件、dormant fandom branches、storage/model 残留进入新 Phase 2 |
 | 云同步/云端游玩 | Phase 1.5 收官：玩家入口、自动副作用、服务、API、settings schema 和测试已删除 | 仅旧本地 storage 数据残留 |
 | 社区 UGC/云工坊 | Phase 1.5 收官：社区/云端入口、自动云列表、云 API 和测试已删除；本地模式包保留 | 仅命名/UX 后续可改 |
 | 公共在线状态/在线榜 | Phase 1.5 收官：App 心跳、首页在线统计、公开榜、静态页、服务/API 和测试已删除 | 仅旧 localStorage 数据残留 |
-| 移动端 | Phase 1.5 收官：独立移动组件、移动设置/新建壳和移动快捷菜单已删除 | 共享桌面组件里的响应式分支后续按需顺手简化 |
+| 移动端 | Phase 1.5 收官：独立移动组件、移动设置/新建壳和移动快捷菜单已删除 | 共享桌面组件里的响应式/native 分支进入新 Phase 2 |
 | Android/APK | Phase 1.5 收官：release scripts、Capacitor 依赖、Android 工程、APK API 和 app-update 服务已删除 | 无保留目标 |
-| 旧战斗 | Phase 1 已完成：玩家入口、App 挂载、预加载、主系统/酒馆上下文和 `战斗` 命令根维护已断 | 不可达战斗前端进 Phase 1.5；旧模型/prompt/测试后续深删 |
-| 拍卖行 | Phase 1 已完成：玩家入口、自动补货、存档桥接、AI 待投放写入已断 | 不可达前端进 Phase 1.5；服务/model/storage/test 后续深删 |
+| 旧战斗 | Phase 1 已完成：玩家入口、App 挂载、预加载、主系统/酒馆上下文和 `战斗` 命令根维护已断 | 组件、模型、prompt、测试和旧存档残留进入新 Phase 2 |
+| 拍卖行 | Phase 1 已完成：玩家入口、自动补货、存档桥接、AI 待投放写入已断 | 组件、服务、model、storage、script 和 test 残留进入新 Phase 2 |
 | 音乐/音频提示 | Phase 1 已完成：运行时代码、设置、曲库、提示音和音频资产已删 | 仅历史 storage 进强迁移 |
-| 节日 | Phase 1 已完成：设置、TopBar、强制上下文、自动写入和命令写入已断 | 模型字段和旧存档字段进环境 schema 清理 |
-| 天气游戏系统 | Phase 1 已完成：UI、强制上下文、prompt/schema 写入、命令写入已断 | 模型字段和旧存档字段进环境 schema 清理 |
-| 武侠/修仙专属入口 | Phase 1.5 收官：功法、门派、技能前端目录已删除；新建角武侠入口、设置叙事风格“修炼”、内置世界书“叙事风格 · 修炼”、主系统/酒馆上下文、修炼体系默认开关和 `玩家门派` 命令根维护已断 | 模型/prompt/存档字段后续深删 |
+| 节日 | Phase 1 已完成：设置、TopBar、强制上下文、自动写入和命令写入已断 | 模型字段和旧存档字段进入新 Phase 2 环境 schema 清理 |
+| 天气游戏系统 | Phase 1 已完成：UI、强制上下文、prompt/schema 写入、命令写入已断 | 模型字段和旧存档字段进入新 Phase 2 环境 schema 清理 |
+| 武侠/修仙专属入口 | Phase 1.5 收官：功法、门派、技能前端目录已删除；新建角武侠入口、设置叙事风格“修炼”、内置世界书“叙事风格 · 修炼”、主系统/酒馆上下文、修炼体系默认开关和 `玩家门派` 命令根维护已断 | 模型/prompt/存档字段进入新 Phase 2 |
 
 Phase 1 当前验证：
 
@@ -294,9 +294,9 @@ Phase 1 当前验证：
 4. `git diff --check` 通过。
 5. 浏览器 smoke 通过：主页、设置、剧情风格下拉、世界书管理没有废弃功能入口；世界书内置叙事风格不再包含“修炼”。
 
-### Phase 1.5：删除不可达前端残骸
+### Phase 1.5：删除不可达前端残骸（历史收官）
 
-Phase 1.5 已进入收官。它只清理已经不可达或不应继续暴露给玩家/作者的前端入口，不把深层后端、模型、prompt、storage 强迁移混进同一刀。
+Phase 1.5 已进入收官。旧定义下它只清理已经不可达或不应继续暴露给玩家/作者的前端入口，不把深层后端、模型、prompt、storage 强迁移混进同一刀。当前策略已经升级：这些深层残留不再延后到现代都市默认化之后，而是进入新 Phase 2 先删。
 
 Phase 1.5 当前目标：
 
@@ -310,12 +310,12 @@ Phase 1.5 优先候选：
 
 | 候选 | 适合原因 | 边界 |
 | --- | --- | --- |
-| 提示词管理退役项 | `core_realm`、`stat_kungfu`、`stat_cultivation` 已从 PromptManager 可见列表隐藏，状态标签改为当前上下文状态 | 前端首刀完成；彻底删除 prompt 文件、模型字段和旧存档提示词池留到后续深删 |
+| 提示词管理退役项 | `core_realm`、`stat_kungfu`、`stat_cultivation` 已从 PromptManager 可见列表隐藏，状态标签改为当前上下文状态 | 前端首刀完成；彻底删除 prompt 文件、模型字段和旧存档提示词池进入新 Phase 2 |
 | 主页公共入口 | `更新日志`、教程、反馈、GitHub/Discord 等偏公开发布产品，不服务个人 homebrew 主界面 | 不动核心入口：本地游玩、模式包/本地扩展、图片管理、世界书管理、设置 |
-| 移动端组件 | 独立 `Mobile*.tsx`、`mobile/` 子目录和 `MobileQuickMenu` 已删除 | 共享桌面组件内响应式分支可后续按需简化 |
+| 移动端组件 | 独立 `Mobile*.tsx`、`mobile/` 子目录和 `MobileQuickMenu` 已删除 | 共享桌面组件内响应式/native 分支进入新 Phase 2 |
 | 旧战斗前端 | 玩家入口已断，未来会另做轻量对抗系统 | 不复用旧功法/站位/传统战斗模型 |
-| 拍卖行前端 | 玩家入口和副作用已断，功能方向明确废弃 | 服务、模型字段和测试留到后续深删 |
-| 小说分解前端 | 工作台和设置页已删除，玩家入口和活跃注入已断 | 服务、prompt、storage 和模型迁移留到后续深删 |
+| 拍卖行前端 | 玩家入口和副作用已断，功能方向明确废弃 | 组件、服务、模型字段和测试进入新 Phase 2 |
+| 小说分解前端 | 工作台和设置页已删除，玩家入口和活跃注入已断 | 服务、prompt、storage 和模型迁移进入新 Phase 2 |
 
 ### 后续 Phase 路线图
 
@@ -323,9 +323,9 @@ Phase 1.5 优先候选：
 
 | Phase | 当前目标 | 说明 |
 | --- | --- |
-| Phase 1.5 | 前端/设置/服务/API 残骸瘦身 | 当前已删除主页公共入口、release/APK、退役提示词可见项、投稿/社区云工坊 API、云同步/云端游玩服务/API、在线运营 API、移动组件、小说分解前端与服务、故事导出、功法/门派/技能前端；旧战斗停放 |
-| Phase 2 | 现代都市默认化 | 新建默认一路向下必须进入现代都市；同步调整默认题材、开局、世界观生成、模式包、组织/地点/货币口径，可扩展近未来科幻 |
-| Phase 3 | 后端、prompt、模型和存储深删 | 删除同人/小说分解、武侠修炼、旧战斗、拍卖行、云同步、APK、公共运营等服务/API/prompt/model/storage 残留；旧存档不兼容 |
+| Phase 1.5 | 历史收官：前端/设置/服务/API 残骸瘦身 | 已删除主页公共入口、release/APK、退役提示词可见项、投稿/社区云工坊 API、云同步/云端游玩服务/API、在线运营 API、独立移动组件、小说分解前端与服务、故事导出、功法/门派/技能前端；不再作为后续工作阶段 |
+| Phase 2 | 后端、prompt、模型和存储深删 | 删除同人/小说分解、武侠修炼、旧战斗、拍卖行、移动/native、云同步、APK、公共运营等服务/API/prompt/model/storage 残留；旧存档不兼容；目标是在功能迭代前彻底清掉历史包袱 |
+| Phase 3 | 现代都市默认化 | 新建默认一路向下必须进入现代都市；同步调整默认题材、开局、世界观生成、模式包、组织/地点/货币口径，可扩展近未来科幻 |
 | Phase 4 | 第一批真实代码化 | 优先地点移动、物品/货币/装备账务、轻量时间系统；AI 仍负责正文和角色扮演 |
 | Phase 5 | 社交/NPC 与轻量对抗重构 | 社交/亲密关系保留并扩展；NPC 位置/在场判定重做；旧战斗由新的轻量级对抗系统替代 |
 | 持续门禁 | 验证归零 | `npx tsc --noEmit`、常用测试和可控 build warning 最终回到 0 error / 0 warning |
@@ -334,17 +334,17 @@ Phase 1.5 优先候选：
 
 | 问题 | 当前判断 | 归属 |
 | --- | --- | --- |
-| 默认新建仍是武侠 | 用户实测“一路向下”仍会生成武侠世界；这与 homebrew 锚点冲突，但不是 Phase 1 的 active retirement 范围 | Phase 2 高优先级 |
-| 旧 prompt 文件和模型字段仍多 | PromptManager 已不再显示退役修炼提示词，但 `prompts/core/realm.ts`、修炼/功法/战斗/同人相关 prompt、model、schema 仍存在 | Phase 3 |
-| IndexedDB 旧世界书/内置提示词接管 | 本地保存过的 `builtin_prompt_entries` / `extra_worldbooks` 可能覆盖代码 fallback | Phase 3 强迁移/重置策略 |
-| 创意工坊命名和定位 | 目前保留本地模式包能力，但“工坊”这个公开 UGC 语义不适合 homebrew；投稿/发布链路已删除 | Phase 2 可改名 |
+| 默认新建仍是武侠 | 用户实测“一路向下”仍会生成武侠世界；这与 homebrew 锚点冲突，但先完成历史包袱深删 | Phase 3 高优先级 |
+| 旧 prompt 文件和模型字段仍多 | PromptManager 已不再显示退役修炼提示词，但 `prompts/core/realm.ts`、修炼/功法/战斗/同人相关 prompt、model、schema 仍存在 | Phase 2 |
+| IndexedDB 旧世界书/内置提示词接管 | 本地保存过的 `builtin_prompt_entries` / `extra_worldbooks` 可能覆盖代码 fallback | Phase 2 强迁移/重置策略 |
+| 创意工坊命名和定位 | 目前保留本地模式包能力，但“工坊”这个公开 UGC 语义不适合 homebrew；投稿/发布链路已删除 | Phase 3 可改名 |
 | NPC 位置/在场判定 | 当前 AI 驱动 bug 多；需要决定停用 AI 写入、强约束，还是重做本地判定 | Phase 5 |
 | 时间系统 | 仍需要轻量时间，但不能像天气/节日那样占用大量上下文 | Phase 4 设计项 |
 | 图片生成 | 暂缓冻结；是否作为核心体验保留、如何降复杂度未定 | 后续设计 |
-| Cloudflare 托管/AI 代理 | 云同步、社区、APK 已删除；图片代理/API 代理仍有保留价值 | Phase 3 后评估 |
+| Cloudflare 托管/AI 代理 | 云同步、社区、APK 已删除；图片代理/API 代理仍有保留价值 | Phase 2 清理外围后评估 |
 
 ## 12. 当前下一步
 
-当前 Phase 1.5 正在收官实现；本刀已覆盖主页公共入口、公共发布/APK、投稿/社区云工坊 API、Auth/cloud 服务与 API、在线运营服务与 API、小说分解前端与服务、故事导出、功法/门派/技能前端和独立移动端组件。剩余 prompt、模型、storage 与旧战斗/拍卖等深层逻辑按 registry 进入 Phase 3。
+当前 Phase 1.5 正在文档收官；本阶段已覆盖主页公共入口、公共发布/APK、投稿/社区云工坊 API、Auth/cloud 服务与 API、在线运营服务与 API、小说分解前端与服务、故事导出、功法/门派/技能前端和独立移动端组件。剩余 prompt、模型、storage 与旧战斗/拍卖等深层逻辑按 registry 进入新 Phase 2。
 
-默认现代都市不是 Phase 1.5 的主要目标，应作为 Phase 2 单独推进，避免把新建流程、prompt、题材 profile、世界书和模式包重写混进前端残骸清理。
+默认现代都市不是 Phase 1.5 的主要目标，也不再抢在深删之前推进；它顺延为新 Phase 3，避免在旧功能包未清干净时创建新的稳定测试存档。

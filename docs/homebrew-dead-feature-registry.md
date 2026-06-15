@@ -1,8 +1,9 @@
 # Homebrew Dead Feature Registry
 
-This registry tracks features that are intentionally retired during the
-homebrew simplification pass. It exists so an entrypoint-only removal does not
-hide backend code, stored data, prompts, or tests that still need a later pass.
+This registry tracks the current state of features intentionally retired from
+the homebrew build. It is not a historical changelog. Keep each entry focused
+on what is currently unreachable, what still exists, and which later phase owns
+the remaining cleanup.
 
 ## Status Vocabulary
 
@@ -23,19 +24,29 @@ hide backend code, stored data, prompts, or tests that still need a later pass.
 - `prose_atmosphere_only`: The concept may appear in generated prose or visual
   descriptions, but is no longer maintained as structured game state.
 - `prompt_copy_pending`: Retired feature language still exists in prompt text
-  that should be rewritten or deleted before Phase 1 is considered fully
-  closed.
+  that should be rewritten or deleted before the owning cleanup phase closes.
 - `fully_removed`: Entrypoints, backend code, prompt references, tests, and
   local data migration are complete.
 
-## Removal Rule
+## Current-State Rule
 
 For each retired feature:
 
-1. Remove or disable the visible entrypoint first.
-2. Register all remaining backend/storage/prompt/test surfaces here.
+1. Keep only current reachability, side-effect, backend, prompt, storage, and
+   test status here.
+2. Do not preserve a detailed record of every removed button or old UI shape.
 3. Only mark `fully_removed` after typecheck/tests pass, avoidable build
    warnings are gone, and the registry entry no longer lists pending surfaces.
+
+Phase split:
+
+- Phase 1: retired features are no longer reachable from the current playable
+  flow, no longer run top-level side effects, and are no longer actively
+  maintained by AI prompt/schema/command paths.
+- Phase 1.5: unreachable frontend components, modals, mobile files, props,
+  lazy imports, and frontend tests are deleted.
+- Later phases: backend services, APIs, models, prompt files, storage keys, and
+  strong migrations are removed.
 
 ## Project Quality Gate
 
@@ -60,7 +71,7 @@ Final homebrew simplification is not complete until:
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer lazy-loads or mounts
   `NovelDecompositionWorkbenchModal`.
@@ -84,7 +95,7 @@ Final homebrew simplification is not complete until:
   per-stage GPT-mode toggle for novel decomposition.
 - `hooks/useGameState.ts`: removed the deleted settings tabs from `activeTab`.
 
-### New-Game Entrypoints Removed In This Pass
+### Current Retired New-Game Entrypoints
 
 - `components/features/NewGame/NewGameWizard.tsx`: no longer exposes
   `Fandom Blend`, `启用同人融合`, `启用同人角色替换`, or
@@ -94,7 +105,7 @@ Final homebrew simplification is not complete until:
   same visible new-game path. Mobile itself remains a larger removal target,
   but the retired fandom/novel injection controls are no longer player-visible.
 
-### Active Injection Side Effects Removed In This Pass
+### Current Disconnected Injection Side Effects
 
 - `hooks/useGame/mainStoryRequest.ts`: no longer accepts or pushes a
   novel-decomposition prompt into main-story request messages.
@@ -209,7 +220,7 @@ normalizers, UI, and migration plan are updated together.
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `components/features/NewGame/NewGameWizard.tsx`: removed the desktop
   new-game fandom/fanfiction configuration panel, role-replacement controls,
@@ -243,7 +254,7 @@ normalizers, UI, and migration plan are updated together.
   `同人融合` values from custom presets, workshop modules, or saved runtime
   snapshots.
 
-### Active Runtime Injection Removed In This Pass
+### Current Disconnected Runtime Injection
 
 - `prompts/runtime/fandom.ts`: legacy `同人融合.enabled` opening configs no
   longer enable the runtime fandom prompt bundle. The realm-mapping helper
@@ -276,7 +287,7 @@ normalizers, UI, and migration plan are updated together.
   the AI-RPG engine direction.
 - Current status: `entrypoint_removed`, `backend_removed`, `storage_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer wraps the app in `MusicProvider`, owns
   `showMobileMusic`, opens `MobileMusicPlayer`, or handles the `music` /
@@ -328,7 +339,7 @@ normalizers, UI, and migration plan are updated together.
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer lazy-loads or mounts `AuctionHouseModal`.
 - `App.tsx`: no longer handles the `auction_house` mobile menu action.
@@ -343,7 +354,7 @@ normalizers, UI, and migration plan are updated together.
 - `components/features/Inventory/MobileInventoryModal.tsx`: removed the same
   mobile controls.
 
-### Automatic Side Effects Removed In This Pass
+### Current Disconnected Automatic Side Effects
 
 - `App.tsx`: no longer imports auction-house service helpers, owns auction
   state/scope, reads or saves auction-house state on startup, listens for
@@ -411,7 +422,7 @@ normalizers, UI, and migration plan are updated together.
   should not inherit this legacy battle surface by default.
 - Current status: `entrypoint_removed`, `backend_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer lazy-loads or mounts `BattleModal` /
   `MobileBattleModal`.
@@ -467,7 +478,7 @@ normalizers, UI, and migration plan are updated together.
   instead of inheriting the old cultivation surface.
 - Current status: `entrypoint_removed`, `backend_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer lazy-loads, preloads, opens, or mounts
   `KungfuModal`, `MobileKungfuModal`, `SkillsPanel`,
@@ -537,7 +548,7 @@ normalizers, UI, and migration plan are updated together.
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer lazy-loads, preloads, opens, or mounts
   `CloudPlayModal`.
@@ -555,7 +566,7 @@ normalizers, UI, and migration plan are updated together.
   "convert local save to cloud play" buttons, cloud-play status copy, and direct
   imports of cloud/object-storage sync services.
 
-### Automatic Side Effects Removed In This Pass
+### Current Disconnected Automatic Side Effects
 
 - `App.tsx`: returning home after auto-save no longer waits for cloud sync or
   pushes a background cloud-sync retry notification.
@@ -629,7 +640,7 @@ focused passes:
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`.
 
-### Entrypoints And Automatic Effects Removed In This Pass
+### Current Retired Entrypoints And Automatic Effects
 
 - `components/features/Workshop/CreativeWorkshopModal.tsx`: no longer imports
   cloud-play session state, reads a cloud username, exposes a cloud source
@@ -678,7 +689,7 @@ focused passes:
 - Current status: `entrypoint_removed`, `static_pages_removed`,
   `backend_pending`, `storage_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer imports `services/onlinePresence` or starts the global
   online heartbeat.
@@ -729,7 +740,7 @@ focused passes:
   product, not part of the local desktop-first AI-RPG loop.
 - Current status: `entrypoint_removed`, `backend_pending`, `storage_pending`.
 
-### Entrypoints And Automatic Effects Removed In This Pass
+### Current Retired Entrypoints And Automatic Effects
 
 - `App.tsx`: no longer imports `services/appUpdate`, checks for app updates,
   subscribes to app-update progress, listens for native foreground update
@@ -789,7 +800,7 @@ focused passes:
   or APK-oriented shell behavior.
 - Current status: `entrypoint_removed`, `backend_pending`.
 
-### Entrypoints Removed In This Pass
+### Current Retired Entrypoints
 
 - `App.tsx`: no longer imports, preloads, or mounts mobile-only components.
 - `App.tsx`: no longer renders `MobileQuickMenu`.
@@ -844,7 +855,7 @@ focused passes:
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`, `prose_atmosphere_only`.
 
-### Entrypoints, Context, And Runtime Effects Removed In This Pass
+### Current Retired Entrypoints, Context, And Runtime Effects
 
 - Deleted `data/world.ts`, the default festival list.
 - Deleted `components/features/Settings/WorldSettings.tsx`, the festival
@@ -900,7 +911,7 @@ focused passes:
 - Current status: `entrypoint_removed`, `automatic_side_effect_removed`,
   `backend_pending`, `storage_pending`, `prose_atmosphere_only`.
 
-### Entrypoints, Context, And Runtime Effects Removed In This Pass
+### Current Retired Entrypoints, Context, And Runtime Effects
 
 - `components/layout/TopBar.tsx`: removed the weather card, detail panel,
   mobile info button, fullscreen detail, and desktop divider slot.

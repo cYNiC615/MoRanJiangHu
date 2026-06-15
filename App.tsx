@@ -12,6 +12,7 @@ import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
 import { 获取主剧情接口配置, 获取文生图接口配置, 获取生图词组转化器接口配置, 获取记忆精炼接口配置, 接口配置是否可用 } from './utils/apiConfig';
 import { 请求模型文本 } from './services/ai/chatCompletionClient';
 import { 记忆精炼系统提示词 } from './prompts/runtime/memoryRefine';
+import { 同人运行时模式已启用 } from './prompts/runtime/fandom';
 import { 获取内置世界书槽位内容 } from './utils/worldbook';
 import { 生成地图更新 } from './hooks/useGame/mapUpdateWorkflow';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
@@ -737,7 +738,7 @@ const App: React.FC = () => {
     }, [state.世界, state.worldEvents]);
 
     const 启用同人模式 = React.useMemo(
-        () => state.开局配置?.同人融合?.enabled === true && state.开局配置?.同人融合?.启用附加小说 === true,
+        () => 同人运行时模式已启用(state.开局配置),
         [state.开局配置]
     );
     const 当前剧情规划 = 启用同人模式 ? state.同人剧情规划 : state.剧情规划;

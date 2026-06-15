@@ -18,6 +18,7 @@ import { 获取酒馆预设顺序 } from '../../utils/tavernPreset';
 import { 按功能开关过滤提示词内容 } from '../../utils/promptFeatureToggles';
 import { 提取响应规划文本 } from './thinkingContext';
 import { 变量命令提示词ID集合 } from '../../prompts/runtime/promptOwnership';
+import { 同人运行时模式已启用 } from '../../prompts/runtime/fandom';
 
 type 消息角色 = 'system' | 'user' | 'assistant';
 type 内部消息来源 = 'preset' | 'worldbook' | 'history' | 'latest_input' | 'persona';
@@ -137,13 +138,6 @@ const 剥离主剧情世界命令_格式 = (content: string): string => {
     return out.replace(/\n{3,}/g, '\n\n').trim();
 };
 
-const 同人模式已启用 = (openingConfig?: OpeningConfig | null): boolean => {
-    const title = typeof openingConfig?.同人融合?.作品名 === 'string'
-        ? openingConfig.同人融合.作品名.trim()
-        : '';
-    return openingConfig?.同人融合?.enabled === true && title.length > 0;
-};
-
 const 选择剧情COT提示词ID = (
     config: 游戏设置结构,
     options?: { openingConfig?: OpeningConfig | null }
@@ -152,7 +146,7 @@ const 选择剧情COT提示词ID = (
         ? options.openingConfig.启用女主剧情规划 === true
         : config?.启用女主剧情规划 === true;
     const ntlEnabled = heroineEnabled && config?.剧情风格 === 'NTL后宫';
-    const fandomEnabled = 同人模式已启用(options?.openingConfig);
+    const fandomEnabled = 同人运行时模式已启用(options?.openingConfig);
 
     if (fandomEnabled && heroineEnabled) {
         return ntlEnabled

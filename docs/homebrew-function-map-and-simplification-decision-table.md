@@ -136,7 +136,7 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | 酒馆预设 | 导入 SillyTavern/酒馆预设，按预设顺序生成消息链 | `components/features/Settings/TavernPresetSettings.tsx`, `hooks/useGame/promptRuntime.ts`, `utils/tavernPreset.ts` | 核心保留 |
 | 剧情规划 | 维护剧情承接、任务、镜头、后续推进 | `models/storyPlan.ts`, `prompts/runtime/planningAnalysis.ts`, `hooks/useGame/planningUpdateWorkflow.ts` | 保留，删除同人/小说分解分支 |
 | 女主规划 | 支撑男性向恋爱/亲密关系体验与重要女角色推进 | `models/heroinePlan.ts`, `prompts/core/heroinePlan*.ts` | 保留并优化；后宫模式下弱化“唯一主推女主”的副作用 |
-| 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/默认 always-on 标签已清/后端待删 |
+| 同人提示词 | 原著、同人、分歧线、原著角色比例等 | `prompts/runtime/fandom*.ts`, `models/fandomPlanning` | 入口和 runtime 注入已钝化；旧配置不再切换活跃 UI/COT/规划上下文；后端 prompt/schema 待删 |
 | 小说分解提示词 | 小说章节拆解、滑窗、拆分 COT、工作台注入 | `prompts/runtime/novelDecomposition*.ts`, `services/novelDecomposition*` | 入口和活跃注入已移除/后端待删 |
 | 武侠/修仙口径 | 默认江湖、门派、境界、修炼体系口径 | `prompts`, `data/workshopThemes`, `models/kungfu.ts`, `models/sect.ts` | 入口已移除/后端待删，不保留为默认或兼容目标 |
 
@@ -179,7 +179,7 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | App Update/APK | 更新 manifest、APK 检查、原生更新 | `services/appUpdate.ts`, `services/nativeApkUpdater.ts`, `functions/api/apk`, `android` | 入口已移除/后端待删 | 当前玩家更新/下载路径不可达；release scripts/API/Android 仍待删 |
 | Creative Workshop Cloud | 云端投稿、下载、编辑、删除 | `services/creativeWorkshop.ts`, `functions/api/workshop` | 入口和自动列表已移除/后端待删 | `列出创意工坊模块` 不再 fetch 云端列表；保留本地模式包时后续删除 publish/edit/delete/download API |
 | Novel Decomposition | 小说拆分、滑窗注入、运行时、调度、数据集 | `services/novelDecomposition*`, `services/workshopNovelDecomposition.ts` | 入口和活跃注入已断/后端待删 | 前端可见入口已断；主剧情、开局、世界演变、规划、回档和运行时变量链路不再注入/校准小说分解；服务、prompt、tests 和 IndexedDB keys 分布很广，适合后端分批删 |
-| Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/默认 always-on 标签已清/后端待删 | 新建角同人配置入口已断；旧 `同人融合.enabled` 配置不再生成运行时同人提示词或世界观融合提示；默认 always-on prompt 不再暴露同人/小说分解命名标签；创意工坊、提示词文件、legacy schema 字段、设置和 API 残留后续清理 |
+| Fandom Preset | 同人预设投稿、原著融合 | `services/fandomPresetSubmission.ts`, `functions/api/fandom-presets`, `models/fandomPlanning` | 入口和 runtime 注入已钝化/后端待删 | 新建角同人配置入口已断；旧 `同人融合.enabled` 配置不再生成运行时同人提示词、世界观融合提示，也不再切换活跃 UI/COT/规划上下文/姓名保护；创意工坊、提示词文件、legacy schema 字段、设置和 API 残留后续清理 |
 | Festival/Weather System | 节日配置、天气作为结构化环境字段 | `models/system.ts`, `models/environment.ts`, `hooks/useGame/systemPromptBuilder.ts`, `components/layout/TopBar.tsx` 等 | 已降级为正文氛围/模型待删 | 当前不再作为 UI/上下文/命令写入系统；`环境.节日` / `环境.天气` 模型字段和旧存档残留待强迁移 |
 | Auction House | 物品抽取、投放、价格估算 | `services/auctionHouse.ts`, `data/defaultAuctionItemImages.ts`, `scripts/generate-gpt-image2-auction-images.mjs` | 入口和副作用已移除/后端待删 | 不改二手市场，不保留拍卖行；当前仅剩服务/图片数据/脚本/模型字段等深层残留 |
 | Music / Audio Cues | 背景音乐曲库、曲目信息读取、设置存储、回合提示音 | `components/features/Music`, `components/features/Settings/MusicSettings.tsx`, `data/defaultMusicTracks.ts`, `utils/musicMetadata.ts`, `utils/turnNotificationSound.ts`, `utils/settingsSchema.ts` | 已移除 | 已删除播放器、`music_tracks` 存储键、回合提示音开关、播放副作用和音频资产；历史 IndexedDB/settings 数据后续强迁移丢弃 |
@@ -221,7 +221,7 @@ Phase 1 可以接受深层 `backend_pending` 和不可达前端文件继续存�
 | 天气 | 已降级/模型待删 | 不作为游戏概念；AI 正文写了就有，不写就没有 | 当前仅保留正文氛围；后续删除 `环境.天气` 模型字段与旧存档残留 |
 | 节日 | 已降级/模型待删 | 意义小且占上下文 | 当前不作为 UI、上下文或命令写入系统；后续删除 `环境.节日` 模型字段与旧 settings key |
 | 任务/事件池 | 重构候选 | 能把“真正的游戏”感做出来 | 等时间/地点/物品规则稳定后推进 |
-| 同人/原著融合 | 入口和 runtime 注入已钝化/默认 always-on 标签已清/后端待删 | 用户明确不做同人 | 当前不可达且不再生成运行时同人口径；后续删除模型/prompt/服务/API 和 legacy schema 字段 |
+| 同人/原著融合 | 入口和 runtime 注入已钝化/后端待删 | 用户明确不做同人 | 当前不可达，旧同人配置不再激活运行时同人口径或切换当前规划源；后续删除模型/prompt/服务/API 和 legacy schema 字段 |
 | 小说分解 | 入口和活跃注入已移除/后端待删 | 用户明确不做小说分解 | 当前不可达且不再参与主剧情链路注入/校准；服务、模型、prompts、tests 和 storage keys 后续删除 |
 | 移动端 UI | 入口已移除/组件待删 | 用户明确不做移动端 | 当前 App 移动壳不可达；移动组件文件、响应式分支、Capacitor/native helper 和移动测试进入 Phase 1.5/后续深删 |
 | Android/APK | 入口已移除/后端待删 | 用户明确不做 APK | 当前玩家更新/下载入口不可达；后续删除 scripts、Capacitor、android、app update、APK manifest/API |
@@ -268,7 +268,7 @@ Phase 1 当前进度：
 
 | 功能族 | 当前状态 | Phase 1 剩余判断 |
 | --- | --- | --- |
-| 同人/小说分解 | 入口、同人 runtime 注入和小说分解活跃注入已断；默认 always-on 标签已清 | 后端/prompt/schema/storage 可进入后续阶段 |
+| 同人/小说分解 | 入口、同人 runtime 注入、旧同人配置激活路径和小说分解活跃注入已断；仍有后端 prompt/schema/storage 残留 | 后端/prompt/schema/storage 可进入后续阶段 |
 | 云同步/云端游玩 | 玩家入口和保存/返回主页自动副作用已断 | 服务/API/storage 可进入后续阶段 |
 | 社区 UGC/云工坊 | 本地模式包保留，社区/云端入口已断 | 云端 helper/API/storage 可进入后续阶段 |
 | 公共在线状态/在线榜 | App 心跳、首页在线统计、公开榜和静态页已断 | 服务/API/测试可进入后续阶段 |

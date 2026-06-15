@@ -58,7 +58,7 @@ import {
     规范化战斗状态
 } from './storyState';
 import { 构建地图空间场景 } from '../../utils/mapSpatial';
-import { 构建同人运行时提示词包, 应用境界体系区块替换 } from '../../prompts/runtime/fandom';
+import { 构建同人运行时提示词包, 同人运行时模式已启用, 应用境界体系区块替换 } from '../../prompts/runtime/fandom';
 import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
 import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePlanCot';
 import { 核心_境界体系 } from '../../prompts/core/realm';
@@ -837,7 +837,7 @@ export const 构建系统提示词 = ({
     };
     const 构建剧情安排 = (payload: any) => {
         const normalizedStory = 规范化剧情状态(payload?.剧情);
-        const fandomEnabled = payload?.开局配置?.同人融合?.enabled === true && payload?.开局配置?.同人融合?.启用附加小说 === true;
+        const fandomEnabled = 同人运行时模式已启用(payload?.开局配置);
         const normalizedStoryPlan = fandomEnabled
             ? 规范化同人剧情规划状态(payload?.同人剧情规划)
             : 规范化剧情规划状态(payload?.剧情规划);
@@ -989,7 +989,7 @@ export const 构建系统提示词 = ({
         return 包装树状上下文('剧情安排', orderedStory);
     };
     const 构建女主剧情规划文本 = (payload: any) => {
-        const fandomEnabled = payload?.开局配置?.同人融合?.enabled === true && payload?.开局配置?.同人融合?.启用附加小说 === true;
+        const fandomEnabled = 同人运行时模式已启用(payload?.开局配置);
         const normalizedPlan = fandomEnabled
             ? 规范化同人女主剧情规划状态(payload?.同人女主剧情规划)
             : 规范化女主剧情规划状态(payload?.女主剧情规划);
@@ -1519,7 +1519,7 @@ export const 构建系统提示词 = ({
                 statePayload?.环境?.具体地点
             ].filter(Boolean).join('|'),
             count: 100,
-            fandomEnabled: openingConfig?.同人融合?.enabled === true
+            fandomEnabled: 同人运行时模式已启用(openingConfig)
         }),
         构建模板姓名黑名单提示词(),
         fandomSummaryPrompt,

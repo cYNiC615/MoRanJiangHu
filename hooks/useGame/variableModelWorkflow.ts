@@ -10,7 +10,7 @@ import {
     构建变量相关规则提示词
 } from '../../prompts/runtime/variableCalibrationReference';
 import type { 响应命令处理状态 } from './responseCommandProcessor';
-import { 构建同人运行时提示词包 } from '../../prompts/runtime/fandom';
+import { 构建同人运行时提示词包, 同人运行时模式已启用 } from '../../prompts/runtime/fandom';
 import { 按功能开关过滤提示词内容, 裁剪修炼体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../../utils/variableRegistry';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
@@ -549,7 +549,7 @@ export const 执行变量模型校准工作流 = async (
             params.baseState?.环境?.具体地点
         ].filter(Boolean).join('|'),
         count: 100,
-        fandomEnabled: params.openingConfig?.同人融合?.enabled === true
+        fandomEnabled: 同人运行时模式已启用(params.openingConfig)
     });
     const templateNameBlacklistPrompt = 构建模板姓名黑名单提示词();
     const mergedExtraPrompt = [

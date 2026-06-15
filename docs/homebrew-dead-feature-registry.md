@@ -257,9 +257,10 @@ normalizers, UI, and migration plan are updated together.
 ### Current Disconnected Runtime Injection
 
 - `prompts/runtime/fandom.ts`: legacy `同人融合.enabled` opening configs no
-  longer enable the runtime fandom prompt bundle. The realm-mapping helper
-  behavior remains intact for now because other legacy cultivation/realm code
-  still depends on it until the broader wuxia cleanup.
+  longer enable the runtime fandom prompt bundle or the active fandom runtime
+  mode helper. Active UI, COT selection, system-prompt planning context,
+  opening-planning name guards, variable-model name guards, and social
+  normalization no longer read that legacy flag directly.
 - `prompts/runtime/openingConfig.ts`: world-generation no longer emits
   `同人融合世界观要求` even if a historical opening config still contains
   fandom fields.
@@ -271,8 +272,9 @@ normalizers, UI, and migration plan are updated together.
 
 - Several workflows still carry `同人剧情规划` /
   `同人女主剧情规划` state plumbing and type dependencies while the deeper model
-  deletion is pending. The runtime fandom prompt bundle is disabled, but these
-  fields should still be deleted during the backend/model cleanup.
+  deletion is pending. The runtime fandom prompt bundle and active-mode helper
+  are disabled, so these fields should no longer become the selected runtime
+  planning source; delete the residual fields during the backend/model cleanup.
 - Default always-on prompt copy has been cleaned of retired fandom /
   novel-decomposition feature labels. Remaining references are deeper
   backend/model/prompt files or legacy schema field names that require a

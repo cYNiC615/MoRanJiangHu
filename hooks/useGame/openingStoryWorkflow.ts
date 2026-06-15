@@ -28,7 +28,7 @@ import { 核心_开局思维链, 获取开局思维链提示词 } from '../../pr
 import { 核心_境界体系 } from '../../prompts/core/realm';
 import { 获取开场初始化任务提示词 } from '../../prompts/runtime/opening';
 import { 构建开局配置提示词 } from '../../prompts/runtime/openingConfig';
-import { 构建同人运行时提示词包, 校验境界体系提示词完整性 } from '../../prompts/runtime/fandom';
+import { 构建同人运行时提示词包, 同人运行时模式已启用, 校验境界体系提示词完整性 } from '../../prompts/runtime/fandom';
 import { 数值_世界演化 } from '../../prompts/stats/world';
 import { 构建字数要求提示词 } from '../../prompts/runtime/protocolDirectives';
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
@@ -722,11 +722,7 @@ export const 执行开场剧情生成工作流 = async (
         const openingRealmPromptRaw = 启用修炼体系
             ? (openingPromptSnapshot.find((item) => item.id === 'core_realm')?.内容 || '').trim()
             : '';
-        const 同人已启用 = Boolean(
-            options?.开局配置?.同人融合?.enabled
-            && typeof options?.开局配置?.同人融合?.作品名 === 'string'
-            && options.开局配置.同人融合.作品名.trim()
-        );
+        const 同人已启用 = 同人运行时模式已启用(options?.开局配置);
         let openingRealmPrompt = openingRealmPromptRaw.includes('开局后此处会被完整替换')
             ? ''
             : openingRealmPromptRaw;

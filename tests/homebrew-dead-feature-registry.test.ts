@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { 核心_剧情推动 } from '../prompts/core/story';
 import { 获取开局思维链提示词 } from '../prompts/core/cotOpening';
-import { 构建同人运行时提示词包 } from '../prompts/runtime/fandom';
+import { 构建同人运行时提示词包, 同人运行时模式已启用 } from '../prompts/runtime/fandom';
 import { 构建世界观同人融合提示词 } from '../prompts/runtime/openingConfig';
 import {
     构建统一规划分析系统提示词,
@@ -503,8 +503,29 @@ describe('homebrew dead feature registry', () => {
         expect(bundle.女主思考补丁).toBe('');
         expect(bundle.世界演变补丁).toBe('');
         expect(bundle.变量校准补丁).toBe('');
+        expect(同人运行时模式已启用(legacyFandomOpeningConfig)).toBe(false);
         expect(构建世界观同人融合提示词(legacyFandomOpeningConfig)).toBe('');
         expect(构建女性姓名黑名单提示词()).not.toMatch(/同人|原著|小说拆分|分解组/);
+    });
+
+    it('prevents legacy fandom config from activating active runtime branches', () => {
+        const activeRuntimeFiles = [
+            'App.tsx',
+            'hooks/useGame.ts',
+            'hooks/useGame/promptRuntime.ts',
+            'hooks/useGame/systemPromptBuilder.ts',
+            'hooks/useGame/variableModelWorkflow.ts',
+            'hooks/useGame/openingStoryWorkflow.ts'
+        ];
+
+        for (const relativePath of activeRuntimeFiles) {
+            const content = readProjectFile(relativePath);
+            expect(content, relativePath).not.toContain('同人融合?.enabled === true');
+            expect(content, relativePath).not.toContain('同人融合?.enabled');
+        }
+
+        expect(readProjectFile('prompts/runtime/fandom.ts')).toContain('HOMEBREW_FANDOM_RUNTIME_DISABLED = true');
+        expect(readProjectFile('prompts/runtime/fandom.ts')).toContain('同人运行时模式已启用');
     });
 
     it('removes retired fandom and novel-decomposition labels from always-on prompts', () => {

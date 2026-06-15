@@ -2669,7 +2669,7 @@ export const useGame = () => {
         const list = Array.isArray(raw) ? raw : [];
         return 规范化社交列表(list, {
             ...options,
-            保留非姓名库主要女性名: options?.保留非姓名库主要女性名 === true || 开局配置?.同人融合?.enabled === true
+            保留非姓名库主要女性名: options?.保留非姓名库主要女性名 === true
         });
     }
 

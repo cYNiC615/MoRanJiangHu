@@ -44,7 +44,7 @@ Phase split:
   flow, no longer run top-level side effects, and are no longer actively
   maintained by AI prompt/schema/command paths.
 - Phase 1.5: unreachable frontend components, modals, mobile files, props,
-  lazy imports, and frontend tests are deleted.
+  lazy imports, UI state, styles, and frontend tests are deleted.
 - Later phases: backend services, APIs, models, prompt files, storage keys, and
   strong migrations are removed.
 
@@ -167,6 +167,12 @@ novel-decomposition feature labels (`同人模式`, `小说分解`, `小说拆�
 it may describe the same context-budgeting / worldbook-like injection technique
 used by the core AI harness.
 
+Active story/planning/world prompt surfaces also no longer ask the model to
+maintain retired original-work/decomposition fields such as `当前分解组`,
+`原著章节标题`, `原著推进状态`, `原著换章条件`, `原著切换说明`,
+`关联分解组`, or `关联分歧线`. The TypeScript model fields still exist as
+backend/storage residue and should be removed during the later schema migration.
+
 Later backend cleanup should still delete retired prompt files and conditional
 branches in:
 
@@ -178,11 +184,13 @@ branches in:
 - `prompts/core/cot*.ts`
 - `prompts/core/data.ts`
 
-The active schema still contains legacy fields such as `剧情.当前章节.当前分解组`,
-`剧情.当前章节.原著章节标题`, `世界.*.关联分解组`, and `世界.*.关联分歧线`.
-They are tracked as `backend_pending` model/storage migration work. Do not
-rename these paths only in prompt text before the model, command filters,
-normalizers, UI, and migration plan are updated together.
+Legacy TypeScript model fields, normalizers, command filters, UI assumptions,
+or historical save shapes may still contain paths such as
+`剧情.当前章节.当前分解组`, `剧情.当前章节.原著章节标题`,
+`世界.*.关联分解组`, and `世界.*.关联分歧线`. They are tracked as
+`backend_pending` model/storage migration work. Do not rename or delete those
+paths piecemeal before the model, command filters, normalizers, UI, and
+migration plan are updated together.
 
 ### Tests And Scripts Still Pending
 

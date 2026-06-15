@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { 核心_剧情推动 } from '../prompts/core/story';
+import { 核心_思维链 } from '../prompts/core/cot';
+import { 核心_思维链_女主规划版, 核心_思维链_NTL女主规划版 } from '../prompts/core/cotHeroine';
 import { 获取开局思维链提示词 } from '../prompts/core/cotOpening';
 import { 构建同人运行时提示词包, 同人运行时模式已启用 } from '../prompts/runtime/fandom';
 import { 构建世界观同人融合提示词 } from '../prompts/runtime/openingConfig';
@@ -11,6 +13,15 @@ import {
     构建规划性别比例约束摘要
 } from '../prompts/runtime/planningAnalysis';
 import { 剧情规划变量结构提示词 } from '../prompts/runtime/storyPlanSchema';
+import {
+    开局规划初始化附加提示词,
+    构建开局规划初始化审计重点,
+    构建开局规划初始化正文上下文
+} from '../prompts/runtime/openingPlanningInit';
+import {
+    开局世界演变初始化附加提示词,
+    构建开局世界演变初始化上下文
+} from '../prompts/runtime/openingWorldEvolutionInit';
 import { 构建世界演变系统提示词, 构建世界演变用户提示词 } from '../prompts/runtime/worldEvolution';
 import { 构建世界演变COT提示词 } from '../prompts/runtime/worldEvolutionCot';
 import { 数值_世界演化 } from '../prompts/stats/world';
@@ -531,8 +542,28 @@ describe('homebrew dead feature registry', () => {
     it('removes retired fandom and novel-decomposition labels from always-on prompts', () => {
         const promptSurfaces = [
             ['core_story', 核心_剧情推动.内容],
+            ['core_cot', 核心_思维链.内容],
+            ['core_heroine_cot', 核心_思维链_女主规划版.内容],
+            ['core_heroine_ntl_cot', 核心_思维链_NTL女主规划版.内容],
             ['cot_opening', 获取开局思维链提示词({})],
             ['story_plan_schema', 剧情规划变量结构提示词],
+            ['opening_planning_init_append', 开局规划初始化附加提示词],
+            ['opening_planning_init_context', 构建开局规划初始化正文上下文({
+                openingBodyText: '开局正文',
+                openingPlanText: '开局规划',
+                currentGameTime: '0001:01:01:08:00'
+            })],
+            ['opening_planning_init_audit', 构建开局规划初始化审计重点({
+                fandomEnabled: false,
+                heroineEnabled: true
+            })],
+            ['opening_world_evolution_init_append', 开局世界演变初始化附加提示词],
+            ['opening_world_evolution_init_context', 构建开局世界演变初始化上下文({
+                openingBodyText: '开局正文',
+                openingPlanText: '开局规划',
+                openingCommandTexts: [],
+                currentGameTime: '0001:01:01:08:00'
+            })],
             ['planning_system', 构建统一规划分析系统提示词({ heroineEnabled: true })],
             ['planning_user', 构建统一规划分析用户提示词({
                 currentStoryJson: '{}',
@@ -564,7 +595,14 @@ describe('homebrew dead feature registry', () => {
             '小说分解后的章节滑窗',
             '原著章节锚点',
             '原著角色信息',
-            '原著硬约束'
+            '原著硬约束',
+            '原著',
+            '分解组',
+            '本组概括',
+            '原著章节标题',
+            '原著推进状态',
+            '原著换章条件',
+            '原著切换说明'
         ];
 
         for (const [name, content] of promptSurfaces) {

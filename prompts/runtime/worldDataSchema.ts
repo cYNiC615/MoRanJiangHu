@@ -70,8 +70,6 @@ export const 世界变量结构参考提示词 = `
   关联人物:string[],
   关联势力:string[],
   关联地点:string[],
-  关联分解组:number[],
-  关联分歧线:string[],
   当前状态:string
 }
 
@@ -86,9 +84,7 @@ export const 世界变量结构参考提示词 = `
   已产生影响:string[],
   关联人物:string[],
   关联势力:string[],
-  关联地点:string[],
-  关联分解组:number[],
-  关联分歧线:string[]
+  关联地点:string[]
 }
 
 ### 2.4 【类型别名】世界.已结算事件[i]
@@ -102,9 +98,7 @@ export const 世界变量结构参考提示词 = `
   是否进入史册:boolean,
   关联人物:string[],
   关联势力:string[],
-  关联地点:string[],
-  关联分解组:number[],
-  关联分歧线:string[]
+  关联地点:string[]
 }
 
 ### 2.5 【类型别名】世界.世界镜头规划[i]
@@ -115,8 +109,6 @@ export const 世界变量结构参考提示词 = `
   触发条件:string[],
   关联人物:string[],
   关联地点:string[],
-  关联分解组:number[],
-  关联分歧线:string[],
   沉淀内容:string[],
   当前状态:string
 }
@@ -129,8 +121,7 @@ export const 世界变量结构参考提示词 = `
   长期影响:string[],
   关联人物:string[],
   关联势力:string[],
-  关联地点:string[],
-  关联分歧线:string[]
+  关联地点:string[]
 }
 
 ### 2.7 【类型别名】世界.地图层级[i]

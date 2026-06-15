@@ -91,11 +91,14 @@ describe('homebrew dead feature registry', () => {
         expect(projectFileExists('components/features/Music/MusicProvider.tsx')).toBe(false);
         expect(projectFileExists('components/features/Music/MusicPlayerUI.tsx')).toBe(false);
         expect(projectFileExists('components/features/Music/mobile/MobileMusicPlayer.tsx')).toBe(false);
+        expect(projectFileExists('components/features/Music/mobile')).toBe(false);
+        expect(projectFileExists('components/features/Music')).toBe(false);
         expect(projectFileExists('components/features/Settings/MusicSettings.tsx')).toBe(false);
         expect(projectFileExists('data/defaultMusicTracks.ts')).toBe(false);
         expect(projectFileExists('utils/musicMetadata.ts')).toBe(false);
         expect(projectFileExists('utils/turnNotificationSound.ts')).toBe(false);
         expect(projectFileExists('public/sounds/turn-notify.mp3')).toBe(false);
+        expect(projectFileExists('public/sounds')).toBe(false);
     });
 
     it('records music playback as removed except for storage migration history', () => {

@@ -36,6 +36,21 @@
 - SillyTavern World Info / Lorebooks: https://docs.sillytavern.app/usage/core-concepts/worldinfo/
 - SillyTavern Prompt Manager: https://docs.sillytavern.app/usage/prompts/prompt-manager/
 
+### 1.1 Phase 1 完成契约
+
+Phase 1 的目标不是“把所有旧代码一次性删光”，而是把已明确废弃的功能族从当前可玩的 homebrew 主链路里切出去，并且给后续深删留下准确地图。
+
+删到这里算 Phase 1 完：
+
+1. 入口清零：主页、游戏壳、右栏、设置、新建角、创意工坊、快捷菜单、全局弹窗、移动壳等位置不再能打开已废弃功能。
+2. 活跃副作用清零：启动、回合结束、保存、返回主页、定时器、心跳、后台队列和自动预加载不再替已废弃功能工作。
+3. AI 写入清零：核心 prompt、schema、命令过滤和后台世界演变不再主动要求模型维护已废弃结构化状态；天气只保留正文氛围，节日、拍卖行待投放、小说分解滑窗等不能继续作为游戏概念写入。
+4. 残留可追踪：暂时不删的服务、API、模型字段、storage key、测试、静态资源、迁移点必须登记到 `docs/homebrew-dead-feature-registry.md`，并标明 `backend_pending`、`storage_pending` 或 `prompt_copy_pending` 等状态。
+5. 回归有保护：每个功能族至少有静态回归测试或等价验证覆盖入口和关键副作用，防止后续换 session 时只删前端、漏掉后端或 prompt。
+6. 验证不退化：`npx vite build` 不能因本轮删除失败；新增/可控 warning 不得扩大。全项目最终目标仍是 0 error / 0 warning，但既有 `tsc` 类型债允许进入后续统一治理。
+
+Phase 1 可以接受深层 `backend_pending`，尤其是旧模型字段、历史存档字段和未触达的服务文件；但不能接受玩家仍能进入、系统仍会自动触发、AI 仍被提示维护，或残留没有登记。
+
 ## 2. 仓库层级地图
 
 | 层级 | 当前职责 | 关键位置 | 初步判断 |

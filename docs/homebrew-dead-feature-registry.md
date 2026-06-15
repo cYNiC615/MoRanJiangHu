@@ -36,11 +36,13 @@ Phase 1 retires feature families from the active game loop:
    structured state.
 4. Remaining residue is tracked here as current cleanup inventory only.
 
-Phase 1 implementation-side closeout is complete. Phase 1.5 is not started
-yet; run one manual play smoke before deleting more frontend residue.
+Phase 1 implementation-side closeout is complete, and the user's initial
+manual smoke is acceptable. Phase 1.5 is ready to start.
 
 Phase 1.5 deletes unreachable frontend residue:
 
+- public release/community/support homepage links;
+- retired prompt-manager entries and misleading runtime-injection labels;
 - unmounted components and modals;
 - mobile-only files and old panels;
 - retired settings pages, lazy imports, UI state, props, styles, and frontend
@@ -104,6 +106,8 @@ schema migrations.
 
 | Candidate | Current frontend residue | Boundary |
 | --- | --- | --- |
+| `prompt_manager_retired_prompts` | `components/features/Settings/PromptManager.tsx` still exposes retired prompt-pool items such as `core_realm`, and may mark them as runtime injected | First hide/archive and fix labels; later delete prompt files, models, and storage snapshots |
+| `homepage_public_links` | Landing-page public release/community/support links such as changelog, tutorials, feedback, GitHub, Discord, and API-sharing copy | Keep local play, local mode packages, image manager, worldbook manager, and settings |
 | `mobile_frontend` | `components/layout/MobileQuickMenu.tsx`, `components/features/NewGame/mobile/MobileNewGameWizard.tsx`, `components/features/Settings/mobile/MobileSettingsModal.tsx`, plus other unmounted mobile modals | Do not deep-delete Capacitor/native helpers in the same slice |
 | `legacy_battle_system` | `components/features/Battle` and related unmounted battle UI | Future replacement is a new lightweight opposition system, not the old stance/kungfu battle model |
 | `auction_house` | `components/features/AuctionHouse/AuctionHouseModal.tsx` | Leave `services/auctionHouse.ts`, model fields, storage, and tests to backend cleanup |
@@ -185,6 +189,8 @@ reuse the old stance/kungfu/formation battle model as the target design.
 
 Current residue:
 
+- `components/features/Settings/PromptManager.tsx` visible retired prompt-pool
+  entries such as `core_realm`
 - `components/features/Kungfu`
 - `components/features/Sect`
 - `components/features/Skills`
@@ -196,6 +202,10 @@ Current residue:
 
 The homebrew default is modern urban with optional near-future sci-fi. Wuxia
 and cultivation compatibility is not preserved.
+
+Known current behavior: the no-change new-game path still tends to create a
+wuxia world. That belongs to Phase 2 modern-urban defaultization, not Phase
+1.5 frontend residue cleanup.
 
 ### `cloud_play_and_sync`
 

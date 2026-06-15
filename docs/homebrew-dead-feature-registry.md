@@ -116,30 +116,34 @@ schema migrations.
 | `mobile_frontend` | Phase 1.5 complete for independent files: `components/layout/MobileQuickMenu.tsx`, `components/features/NewGame/mobile/MobileNewGameWizard.tsx`, `components/features/Settings/mobile/MobileSettingsModal.tsx`, and unmounted `Mobile*` feature modals were deleted | Shared responsive branches may be simplified when touching those desktop components |
 | `legacy_battle_system` | `components/features/Battle` and related unmounted battle UI | Future replacement is a new lightweight opposition system, not the old stance/kungfu battle model |
 | `auction_house` | `components/features/AuctionHouse/AuctionHouseModal.tsx` | Leave `services/auctionHouse.ts`, model fields, storage, and tests to backend cleanup |
-| `novel_decomposition` | Phase 1.5 frontend files removed: `components/features/NovelDecomposition/NovelDecompositionWorkbenchModal.tsx`, `components/features/Settings/NovelDecompositionSettings.tsx`, `NovelDecompositionApiSettings.tsx`, and `CurrentNovelDecompositionInjectionSettings.tsx` | Leave services, prompt files, storage keys, and model migration to backend cleanup |
+| `novel_decomposition` | Phase 1.5 frontend files, runtime services, workshop bridge/API, and decomposition tests removed | Leave dormant storyTasks export, prompt files, storage keys, and model migration to backend cleanup |
 | `wuxia_cultivation_system` | Phase 1.5 frontend files removed: `components/features/Kungfu`, `components/features/Sect`, `components/features/Skills`; App/Social/Task no longer pass player-sect or learn-skill props | Leave `models/kungfu.ts`, `models/sect.ts`, and prompt roots to model/prompt cleanup |
 
 ## Later Backend And Storage Cleanup Queue
 
 ### `novel_decomposition`
 
-Phase 1.5 removed the frontend workbench and settings panels:
+Phase 1.5 removed the frontend workbench, settings panels, runtime services,
+workshop bridge/API, and decomposition tests:
 
 - `components/features/NovelDecomposition/NovelDecompositionWorkbenchModal.tsx`
 - `components/features/Settings/NovelDecompositionSettings.tsx`
 - `components/features/Settings/NovelDecompositionApiSettings.tsx`
 - `components/features/Settings/CurrentNovelDecompositionInjectionSettings.tsx`
+- `services/novelDecomposition*.ts`
+- `services/workshopNovelDecomposition.ts`
+- `data/builtinNovelDecompositionWorkshop.ts`
+- `functions/api/workshop/novel-decomposition.ts`
+- `__tests__/novelDecomposition*.test.ts`
+- `__tests__/workshopNovelDecomposition.test.ts`
+- `tests/e2e-novel-injection*`
 
 Current residue:
 
-- `services/novelDecompositionPipeline.ts`
-- `services/novelDecompositionRuntime.ts`
-- `services/novelDecompositionStore.ts`
-- `services/novelDecompositionInjection.ts`
+- dormant `generateNovelDecomposition` export in `services/ai/storyTasks.ts`
 - `prompts/runtime/novelDecomposition.ts`
 - `prompts/runtime/novelDecompositionCot.ts`
 - `models/novelDecomposition.ts`
-- `functions/api/workshop/novel-decomposition.ts`
 - storage keys: `novel_decomposition_datasets`,
   `novel_decomposition_tasks`, `novel_decomposition_snapshots`
 
@@ -154,7 +158,6 @@ Current residue:
 - `models/fandomPlanning`
 - `prompts/runtime/fandom*.ts`
 - `data/creativeWorkshopModules.ts`
-- `functions/api/fandom-presets`
 - saved opening config fields such as `同人融合`
 
 Legacy fandom config is inert in active runtime paths. Delete the residue with
@@ -225,16 +228,14 @@ wuxia world. That belongs to Phase 2 modern-urban defaultization, not Phase
 
 ### `cloud_play_and_sync`
 
-Phase 1.5 removed cloud/auth frontend components and OAuth hook:
+Phase 1.5 removed cloud/auth frontend components, OAuth hook, cloud services,
+sync services, API routes, settings schema entries, and related tests:
 
 - `components/features/Auth/CloudPlayModal.tsx`
 - `components/features/Auth/GitHubSyncButton.tsx`
 - `components/features/Auth/ObjectStorageSyncPanel.tsx`
 - `components/features/Auth/WebDAVSyncPanel.tsx`
 - `hooks/useGitHubOAuth.ts`
-
-Current residue:
-
 - `services/cloudPlayService.ts`
 - `services/githubSync.ts`
 - `services/objectStorageSync.ts`
@@ -247,6 +248,9 @@ Current residue:
 - `utils/settingsSchema.ts`
 - storage keys such as `webdav_sync_settings`,
   `object_storage_sync_settings`, and `moranjianghu.cloudPlay.*`
+
+Current residue: old browser localStorage/IndexedDB values only; no active
+runtime service or player-visible entrypoint remains.
 
 Local settings, local saves, and ZIP import/export stay.
 
@@ -261,23 +265,23 @@ Current residue:
 - `components/features/Workshop/CreativeWorkshopModal.tsx`
 - `components/features/Settings/ImageGenerationSettings.tsx`
 - `services/creativeWorkshop.ts`
-- `services/workshopNovelDecomposition.ts`
-- `functions/api/workshop/modules.ts`
-- `functions/api/workshop/novel-decomposition.ts`
 
 Keep local mode packages, local JSON import/export, local ComfyUI workflow save,
-and local injection preview. Delete remaining workshop API routes with the
-backend/API cleanup pass.
+and local injection preview. The remaining "workshop" name is plain UI copy and
+can be renamed later with the mode-package UX pass.
 
 ### `online_presence_public_ops`
 
-Current residue:
+Phase 1.5 removed:
 
 - `services/onlinePresence.ts`
 - `functions/api/admin/online`
 - tests: `tests/online-ranking-session-regression.test.ts`,
   `tests/e2e-admin-online.spec.mjs`
 - localStorage key: `moranjianghu.onlineHourlyHistory`
+
+Current residue: old localStorage history only; no heartbeat service, public API,
+static page, or test remains.
 
 This is public operations surface, not part of the personal homebrew game loop.
 

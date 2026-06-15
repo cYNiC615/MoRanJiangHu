@@ -90,13 +90,17 @@ describe('homebrew dead feature registry', () => {
         }
     });
 
-    it('records the remaining novel decomposition backend as pending removal', () => {
+    it('records novel decomposition services/API as removed with only dormant prompt/model residue left', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('novel_decomposition');
-        expect(registry).toContain('backend_pending');
-        expect(registry).toContain('services/novelDecompositionPipeline.ts');
+        expect(projectFileExists('services/novelDecompositionPipeline.ts')).toBe(false);
+        expect(projectFileExists('services/novelDecompositionRuntime.ts')).toBe(false);
+        expect(projectFileExists('services/novelDecompositionStore.ts')).toBe(false);
+        expect(projectFileExists('services/novelDecompositionInjection.ts')).toBe(false);
+        expect(projectFileExists('services/workshopNovelDecomposition.ts')).toBe(false);
+        expect(projectFileExists('functions/api/workshop/novel-decomposition.ts')).toBe(false);
         expect(registry).toContain('prompts/runtime/novelDecomposition.ts');
-        expect(registry).toContain('functions/api/workshop/novel-decomposition.ts');
+        expect(registry).toContain('dormant `generateNovelDecomposition`');
     });
 
     it('removes music playback entrypoints and runtime files', () => {
@@ -254,10 +258,7 @@ describe('homebrew dead feature registry', () => {
         expect(landing).not.toContain('读取云端游玩会话');
         expect(landing).not.toContain('云端游玩');
 
-        const mobileMenu = readProjectFile('components/layout/MobileQuickMenu.tsx');
-        expect(mobileMenu).not.toContain("| 'cloud_play'");
-        expect(mobileMenu).not.toContain('cloud_play');
-        expect(mobileMenu).not.toContain("label: '云端'");
+        expect(projectFileExists('components/layout/MobileQuickMenu.tsx')).toBe(false);
 
         const saveLoad = readProjectFile('components/features/SaveLoad/SaveLoadModal.tsx');
         expect(saveLoad).not.toContain('读取云端游玩会话');
@@ -276,18 +277,19 @@ describe('homebrew dead feature registry', () => {
         expect(saveCoordinator).not.toContain('services/cloudPlayService');
     });
 
-    it('records cloud play and sync backend as pending removal after entrypoints are gone', () => {
+    it('removes cloud play and sync backend services and API after entrypoints are gone', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('cloud_play_and_sync');
-        expect(registry).toContain('entrypoint_removed');
-        expect(registry).toContain('automatic_side_effect_removed');
-        expect(registry).toContain('backend_pending');
-        expect(registry).toContain('services/cloudPlayService.ts');
-        expect(registry).toContain('services/githubSync.ts');
-        expect(registry).toContain('services/objectStorageSync.ts');
-        expect(registry).toContain('services/webdavSync.ts');
-        expect(registry).toContain('functions/api/cloud-play.ts');
-        expect(registry).toContain('utils/settingsSchema.ts');
+        expect(projectFileExists('services/cloudPlayService.ts')).toBe(false);
+        expect(projectFileExists('services/githubSync.ts')).toBe(false);
+        expect(projectFileExists('services/objectStorageSync.ts')).toBe(false);
+        expect(projectFileExists('services/webdavSync.ts')).toBe(false);
+        expect(projectFileExists('functions/api/cloud-play.ts')).toBe(false);
+        expect(projectFileExists('functions/api/object-storage-proxy.ts')).toBe(false);
+        expect(projectFileExists('functions/api/webdav-proxy.ts')).toBe(false);
+        expect(readProjectFile('utils/settingsSchema.ts')).not.toContain('WebDAV同步配置');
+        expect(readProjectFile('utils/settingsSchema.ts')).not.toContain('对象存储同步配置');
+        expect(registry).toContain('old browser localStorage/IndexedDB values only');
     });
 
     it('removes creative-workshop community publishing entrypoints', () => {
@@ -317,15 +319,15 @@ describe('homebrew dead feature registry', () => {
         expect(imageSettings).not.toContain('其他玩家');
     });
 
-    it('records creative-workshop community backend as pending removal after entrypoints are gone', () => {
+    it('removes creative-workshop community backend API after entrypoints are gone', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('creative_workshop_cloud_ugc');
-        expect(registry).toContain('entrypoint_removed');
-        expect(registry).toContain('backend_pending');
         expect(registry).toContain('components/features/Workshop/CreativeWorkshopModal.tsx');
         expect(registry).toContain('components/features/Settings/ImageGenerationSettings.tsx');
         expect(registry).toContain('services/creativeWorkshop.ts');
-        expect(registry).toContain('functions/api/workshop/modules.ts');
+        expect(projectFileExists('functions/api/workshop/modules.ts')).toBe(false);
+        expect(projectFileExists('functions/api/workshop/novel-decomposition.ts')).toBe(false);
+        expect(projectFileExists('services/workshopNovelDecomposition.ts')).toBe(false);
     });
 
     it('removes online presence and public ranking player-visible entrypoints', () => {
@@ -344,16 +346,14 @@ describe('homebrew dead feature registry', () => {
         expect(projectFileExists('public/admin/online.html')).toBe(false);
     });
 
-    it('records online presence backend and public pages as pending removal', () => {
+    it('removes online presence backend and public pages', () => {
         const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
         expect(registry).toContain('online_presence_public_ops');
-        expect(registry).toContain('entrypoint_removed');
-        expect(registry).toContain('static_pages_removed');
-        expect(registry).toContain('backend_pending');
-        expect(registry).toContain('services/onlinePresence.ts');
-        expect(registry).toContain('functions/api/admin/online');
-        expect(registry).toContain('tests/online-ranking-session-regression.test.ts');
-        expect(registry).toContain('tests/e2e-admin-online.spec.mjs');
+        expect(projectFileExists('services/onlinePresence.ts')).toBe(false);
+        expect(projectFileExists('functions/api/admin/online.ts')).toBe(false);
+        expect(projectFileExists('tests/online-ranking-session-regression.test.ts')).toBe(false);
+        expect(projectFileExists('tests/e2e-admin-online.spec.mjs')).toBe(false);
+        expect(registry).toContain('old localStorage history only');
     });
 
     it('removes festival settings, top-bar display, and automatic festival side effects', () => {

@@ -5,10 +5,10 @@ import { 构建物品图提示词, 构建物品负面提示词, 构建物品视�
 
 describe('item image preset fallback', () => {
     const expectHostedPreset = (url: string | undefined) => {
-        expect(url).toMatch(/^https:\/\/(?:(?:cdn\.nodeimage\.com\/i|i\.111666\.best\/image|s3\.hi168\.com\/hi168-19275-07130td3)\/.+|msjh\.bacon159\.pp\.ua\/api\/preset-image\/.+)\.(?:jpg|jpeg|png|webp)$/);
+        expect(url).toMatch(/^(?:\/assets\/item-presets\/.+|https:\/\/(?:i\.111666\.best\/image|s3\.hi168\.com\/hi168-19275-07130td3)\/.+)\.(?:jpg|jpeg|png|webp)$/);
     };
 
-    it('uses safe preset icons for known starter equipment instead of stale generated images', () => {
+    it('keeps explicitly selected icons for known starter equipment', () => {
         const item: any = {
             ID: 'Item001',
             名称: '精钢长剑',
@@ -33,7 +33,7 @@ describe('item image preset fallback', () => {
             }
         };
 
-        expectHostedPreset(获取物品已选图标地址(item));
+        expect(获取物品已选图标地址(item)).toBe('https://example.com/wrong-spear.png');
     });
 
     it('uses distinct starter clothing presets for pants and shoes', () => {
@@ -68,7 +68,7 @@ describe('item image preset fallback', () => {
         expectHostedPreset(获取物品已选图标地址(item));
     });
 
-    it('uses preset image first for every exact preset name', () => {
+    it('keeps selected images first even when the item name has an exact preset', () => {
         const item: any = {
             ID: 'Item002',
             名称: '青钢剑',
@@ -93,10 +93,10 @@ describe('item image preset fallback', () => {
             }
         };
 
-        expectHostedPreset(获取物品已选图标地址(item));
+        expect(获取物品已选图标地址(item)).toBe('https://example.com/custom-sword.png');
     });
 
-    it('does not use a preset image when the Chinese name differs by even one character', () => {
+    it('keeps selected generated images when the display name differs from presets', () => {
         const item: any = {
             ID: 'Item003',
             名称: '精铁长剑',
@@ -128,27 +128,19 @@ describe('item image preset fallback', () => {
         const item: any = {
             名称: ' 精钢长剑 ',
             类型: '武器',
-            品质: '良品',
-            图片档案: {
-                最近生图结果: {
-                    id: 'generated_for_spaced_name',
-                    状态: 'success',
-                    图片URL: 'https://example.com/generated-spaced-name.png',
-                    构图: '物品图标'
-                }
-            }
+            品质: '良品'
         };
 
         expectHostedPreset(获取物品已选图标地址(item));
     });
 
-    it('treats item-hosted image URLs as existing icons so auto generation can skip them', () => {
+    it('treats item remote image URLs as existing icons so auto generation can skip them', () => {
         const item: any = {
             ID: 'ItemRemote001',
             名称: '无名玉佩',
             类型: '饰品',
             品质: '良品',
-            图床链接: 'https://cdn.example.com/items/jade-pendant.png'
+            图片URL: 'https://cdn.example.com/items/jade-pendant.png'
         };
 
         expect(获取物品已选图标地址(item)).toBe('https://cdn.example.com/items/jade-pendant.png');

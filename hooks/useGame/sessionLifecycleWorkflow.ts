@@ -35,10 +35,8 @@ type 回合快照结构 = {
         环境: any;
         社交: any[];
         世界: any;
-        战斗: any;
         玩家组织: any;
         任务列表: any[];
-        约定列表: any[];
         剧情: any;
         剧情规划?: any;
         女主剧情规划?: any;
@@ -64,10 +62,8 @@ type 会话生命周期依赖 = {
     环境: any;
     角色: any;
     世界: any;
-    战斗: any;
     玩家组织: any;
     任务列表: any[];
-    约定列表: any[];
     剧情: any;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -92,10 +88,8 @@ type 会话生命周期依赖 = {
     设置游戏初始时间: (value: string) => void;
     设置社交: (value: any[]) => void;
     设置世界: (value: any) => void;
-    设置战斗: (value: any) => void;
     设置玩家组织: (value: any) => void;
     设置任务列表: (value: any[]) => void;
-    设置约定列表: (value: any[]) => void;
     设置剧情: (value: any) => void;
     设置剧情规划: (value: any) => void;
     设置女主剧情规划: (value: any) => void;
@@ -114,8 +108,7 @@ type 会话生命周期依赖 = {
     创建开场命令基态: (角色?: any) => any;
     创建开场空白环境: () => any;
     创建开场空白世界: () => any;
-    创建开场空白战斗: () => any;
-    创建空门派状态: () => any;
+    创建空组织状态: () => any;
     创建开场空白剧情: () => any;
     创建空剧情规划: () => any;
     创建空记忆系统: () => any;
@@ -134,8 +127,7 @@ type 会话生命周期依赖 = {
     规范化角色物品容器映射: (raw?: any) => any;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => any;
-    规范化战斗状态: (raw?: any) => any;
-    规范化门派状态: (raw?: any) => any;
+    规范化组织状态: (raw?: any) => any;
     游戏设置启用自动重试: (config?: any) => boolean;
     执行带自动重试的生成请求: <T>(params: {
         enabled: boolean;
@@ -180,10 +172,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         deps.设置游戏初始时间('');
         deps.设置社交([]);
         deps.设置世界(deps.创建开场空白世界());
-        deps.设置战斗(deps.创建开场空白战斗());
-        deps.设置玩家组织(deps.创建空门派状态());
+        deps.设置玩家组织(deps.创建空组织状态());
         deps.设置任务列表([]);
-        deps.设置约定列表([]);
         deps.设置剧情(deps.创建开场空白剧情());
         deps.设置剧情规划(deps.创建空剧情规划());
         deps.设置女主剧情规划(undefined);
@@ -227,10 +217,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 环境: deps.深拷贝(contextData?.环境 || deps.环境),
                 社交: deps.深拷贝(Array.isArray(contextData?.社交) ? contextData.社交 : deps.社交),
                 世界: deps.深拷贝(contextData?.世界 || deps.世界),
-                战斗: deps.深拷贝(contextData?.战斗 || deps.战斗),
                 玩家组织: deps.深拷贝(contextData?.玩家组织 || deps.玩家组织),
                 任务列表: deps.深拷贝(Array.isArray(contextData?.任务列表) ? contextData.任务列表 : deps.任务列表),
-                约定列表: deps.深拷贝(Array.isArray(contextData?.约定列表) ? contextData.约定列表 : deps.约定列表),
                 剧情: deps.深拷贝(contextData?.剧情 || deps.剧情),
                 剧情规划: deps.深拷贝(contextData?.剧情规划 ?? deps.剧情规划),
                 女主剧情规划: deps.深拷贝(contextData?.女主剧情规划 ?? deps.女主剧情规划),
@@ -253,10 +241,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 环境: deps.环境,
                 角色: deps.角色,
                 世界: deps.世界,
-                战斗: deps.战斗,
                 玩家组织: deps.玩家组织,
                 任务列表: deps.任务列表,
-                约定列表: deps.约定列表,
                 剧情: deps.剧情,
                 剧情规划: deps.剧情规划,
                 女主剧情规划: deps.女主剧情规划,
@@ -271,13 +257,11 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 设置环境: deps.设置环境,
                 设置社交: deps.设置社交,
                 设置世界: deps.设置世界,
-                设置战斗: deps.设置战斗,
                 设置剧情: deps.设置剧情,
                 设置剧情规划: deps.设置剧情规划,
                 设置女主剧情规划: deps.设置女主剧情规划,
                 设置玩家组织: deps.设置玩家组织,
                 设置任务列表: deps.设置任务列表,
-                设置约定列表: deps.设置约定列表,
                 设置开局文章优化进度: deps.设置开局文章优化进度,
                 设置开局主剧情进度: deps.设置开局主剧情进度,
                 设置开局变量生成进度: deps.设置开局变量生成进度,
@@ -297,8 +281,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 规范化角色物品容器映射: deps.规范化角色物品容器映射,
                 规范化社交列表: deps.规范化社交列表,
                 规范化世界状态: deps.规范化世界状态,
-                规范化战斗状态: deps.规范化战斗状态,
-                规范化门派状态: deps.规范化门派状态,
+                规范化组织状态: deps.规范化组织状态,
                 规范化剧情规划状态: deps.规范化剧情规划状态,
                 游戏设置启用自动重试: deps.游戏设置启用自动重试,
                 执行带自动重试的生成请求: deps.执行带自动重试的生成请求,

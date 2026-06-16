@@ -53,7 +53,6 @@ export type 酒馆上下文结构 = {
         环境状态: string;
         角色状态: string;
         任务状态: string;
-        约定状态: string;
     };
 };
 
@@ -270,7 +269,6 @@ const 构建酒馆世界书文本 = (
         contextPieces.环境状态,
         contextPieces.角色状态,
         contextPieces.任务状态,
-        contextPieces.约定状态,
         shortMemoryContext,
         includeCot ? cotPrompt : ''
     ]

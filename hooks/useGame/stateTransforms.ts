@@ -13,7 +13,7 @@ import { 状态效果是死亡判定 } from '../../utils/npcDeathGuard';
 import { 合并子宫档案值, 标准化子宫档案值 } from '../../utils/reproduction';
 import { 补齐自动丹药预设, 古风丹药预设名称集合, 生存补给预设名称集合 } from '../../utils/autoConsumables';
 import type { ModeRuntimeProfile, 题材模式类型 } from '../../models/system';
-import { 确保角色金钱BaseAmount, 规范化角色金钱 } from '../../utils/currencyDisplay';
+import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
 
 type 境界配置 = undefined;
 const 获取境界配置 = () => undefined;
@@ -55,11 +55,7 @@ const 奇幻装备模板 = {
     主武器: '无', 副武器: '无',
     背部: '无', 腰部: '无', 戒指: '无', 项链: '无'
 };
-const 武侠金钱模板 = { 金元宝: 0, 银子: 0, 铜钱: 0 };
-const 仙侠金钱模板 = { 灵石: 0, 灵玉: 0 };
-const 现代金钱模板 = { 现金: 0, 存款: 0 };
-const 末世金钱模板 = { 通用点数: 0, 稀缺物资: 0 };
-const 奇幻金钱模板 = { 金币: 0, 银币: 0, 铜币: 0 };
+const 单一金钱模板 = { baseAmount: 0 };
 
 const 题材组默认定制 = (mode: 题材模式类型): {
     equipment: Record<string, string>;
@@ -71,7 +67,7 @@ const 题材组默认定制 = (mode: 题材模式类型): {
     const group = 获取题材模式配置(mode).group;
     if (group === 'apocalypse') return {
         equipment: 末世装备模板,
-        currency: 末世金钱模板,
+        currency: 单一金钱模板,
         resourceTypes: ['体力', '精力', '气血', '弹药', '燃料'],
         kungfuTypes: ['射击', '格斗', '战术', '生存', '被动', '驾驶', '工程', '医疗', '侦查'],
         attributeBias: {
@@ -85,7 +81,7 @@ const 题材组默认定制 = (mode: 题材模式类型): {
     };
     if (group === 'urban_xianxia' || group === 'modern') return {
         equipment: 现代装备模板,
-        currency: 现代金钱模板,
+        currency: 单一金钱模板,
         resourceTypes: ['体力', '精力', '理智'],
         kungfuTypes: ['格斗', '射击', '驾驶', '战术', '科技', '医疗', '社交', '潜入', '被动'],
         attributeBias: {
@@ -99,7 +95,7 @@ const 题材组默认定制 = (mode: 题材模式类型): {
     };
     if (group === 'western_fantasy') return {
         equipment: 奇幻装备模板,
-        currency: 奇幻金钱模板,
+        currency: 单一金钱模板,
         resourceTypes: ['魔力', '精力', '体力', '气血'],
         kungfuTypes: ['剑术', '格斗', '魔法', '神术', '射击', '被动', '潜行', '召唤', '炼金'],
         attributeBias: {
@@ -113,7 +109,7 @@ const 题材组默认定制 = (mode: 题材模式类型): {
     };
     if (group === 'infinite') return {
         equipment: 现代装备模板,
-        currency: 现代金钱模板,
+        currency: 单一金钱模板,
         resourceTypes: ['精神力', '体力', '积分'],
         kungfuTypes: ['格斗', '射击', '异能', '科技', '血统', '魔法', '被动', '侦查', '强化'],
         attributeBias: {
@@ -127,7 +123,7 @@ const 题材组默认定制 = (mode: 题材模式类型): {
     };
     if (group === 'xianxia') return {
         equipment: 仙侠装备模板,
-        currency: 仙侠金钱模板,
+        currency: 单一金钱模板,
         resourceTypes: ['灵力', '神识', '法力', '气血'],
         kungfuTypes: ['剑诀', '法诀', '术法', '神通', '遁法', '阵诀', '被动', '内功', '轻功'],
         attributeBias: {
@@ -141,7 +137,7 @@ const 题材组默认定制 = (mode: 题材模式类型): {
     };
     return {
         equipment: 武侠装备模板,
-        currency: 武侠金钱模板,
+        currency: 单一金钱模板,
         resourceTypes: ['内力', '精力', '气血'],
         kungfuTypes: ['内功', '外功', '轻功', '绝技', '被动'],
         attributeBias: {
@@ -175,10 +171,9 @@ const 合并运行时覆写 = (
 ): ReturnType<typeof 题材组默认定制> => {
     const ab = profile?.ability;
     const it = profile?.items;
-    const op = profile?.opening;
     return {
-        equipment: op?.defaultEquipment ?? base.equipment,
-        currency: op?.defaultCurrency ?? base.currency,
+        equipment: profile?.opening?.defaultEquipment ?? base.equipment,
+        currency: base.currency,
         resourceTypes: it?.resourceTypes ?? base.resourceTypes,
         kungfuTypes: ab?.kungfuTypes ?? base.kungfuTypes,
         attributeBias: base.attributeBias,
@@ -198,80 +193,34 @@ const 规范化货币数值 = (value: unknown): number => {
     if (!Number.isFinite(n)) return 0;
     return Math.max(0, Math.floor(n));
 };
-type 货币层级键 = '上层货币' | '中层货币' | '底层货币';
-type 货币类型信息 = {
-    原始类型: string;
-    分类名: string;
-    货币键: 货币层级键 | null;
-};
 type 背景货币展开结果 = {
     名称: string;
     数量: number;
     描述: string;
     类型?: string;
-    货币键?: 货币层级键;
 };
-const 获取当前货币层级名称 = (): Record<货币层级键, string> => {
-    const tiers = _当前运行时配置?.economy?.currencyTiers;
-    const currency = 当前题材默认值().currency || {};
-    const keys = Object.keys(currency);
-    return {
-        上层货币: 规范化文本(tiers?.upperName) || (keys.length >= 3 ? keys[0] : '') || '上层货币',
-        中层货币: 规范化文本(tiers?.middleName) || (keys.length >= 3 ? keys[1] : '') || '中层货币',
-        底层货币: 规范化文本(tiers?.lowerName) || (keys.length >= 3 ? keys[2] : '') || '底层货币'
-    };
-};
-const 解析货币类型信息 = (itemType: unknown): 货币类型信息 | null => {
+const 是否货币类型物品 = (itemType: unknown): boolean => {
     const type = 规范化文本(itemType);
-    if (!type.startsWith('货币:')) return null;
-    const rawKey = type.slice(3).trim();
-    if (!rawKey) return null;
-    let 货币键: 货币层级键 | null = null;
-    if (rawKey === '上层货币' || rawKey === '中层货币' || rawKey === '底层货币') 货币键 = rawKey;
-    else if (rawKey === '上层' || rawKey === '高级' || rawKey === '高阶') 货币键 = '上层货币';
-    else if (rawKey === '中层' || rawKey === '中级' || rawKey === '中阶') 货币键 = '中层货币';
-    else if (rawKey === '底层' || rawKey === '下层' || rawKey === '低级' || rawKey === '低阶') 货币键 = '底层货币';
-    if (!货币键) {
-        const 货币层级名 = 获取当前货币层级名称();
-        if (rawKey === 规范化文本(货币层级名.上层货币)) 货币键 = '上层货币';
-        else if (rawKey === 规范化文本(货币层级名.中层货币)) 货币键 = '中层货币';
-        else if (rawKey === 规范化文本(货币层级名.底层货币)) 货币键 = '底层货币';
-        else if (rawKey === '灵石' || rawKey === '灵晶' || rawKey === '仙石') 货币键 = '底层货币';
-        else if (rawKey === '金币' || rawKey === '金元宝' || rawKey === '金币') 货币键 = '上层货币';
-        else if (rawKey === '银币' || rawKey === '银子' || rawKey === '银两') 货币键 = '中层货币';
-        else if (rawKey === '铜币' || rawKey === '铜钱' || rawKey === '文') 货币键 = '底层货币';
-    }
-    return {
-        原始类型: type,
-        分类名: rawKey,
-        货币键,
-    };
+    return type === '货币' || type.startsWith('货币:');
 };
-const 构建零值货币模板 = (currency: Record<string, number> = {}) => (
-    Object.fromEntries(Object.keys(currency).map((key) => [key, 0])) as Record<string, number>
-);
-const 是否货币类型物品 = (itemType: unknown): boolean => 解析货币类型信息(itemType) != null;
 const 展开背景货币代理物品 = (itemName: string, itemType?: unknown, mode?: unknown): 背景货币展开结果[] | null => {
+    void mode;
     const name = 规范化文本(itemName);
     if (!name) return null;
-    const group = 获取题材模式配置(mode).group;
-    const 货币层级名 = 获取当前货币层级名称();
-    const typedCurrency = 解析货币类型信息(itemType);
-    if (typedCurrency?.货币键) {
+    const type = 规范化文本(itemType);
+    if (是否货币类型物品(type)) {
         return [{
-            名称: 货币层级名[typedCurrency.货币键],
+            名称: name,
             数量: 1,
             描述: '可直接流通的货币。',
-            类型: 规范化文本(itemType) || undefined,
-            货币键: typedCurrency.货币键
+            类型: type || '货币'
         }];
     }
     if (name === '盘缠') {
-        const key = group === 'modern' || group === 'infinite' || group === 'apocalypse' ? '底层货币' : '中层货币';
-        return [{ 名称: 货币层级名[key], 数量: 10, 描述: '可直接支配的出行用度。', 货币键: key }];
+        return [{ 名称: '现金', 数量: 10, 描述: '可直接支配的出行用度。', 类型: '货币:现金' }];
     }
     if (name === '零钱盒') {
-        return [{ 名称: 货币层级名.底层货币, 数量: 50, 描述: '拆零找用的零散现款。', 货币键: '底层货币' }];
+        return [{ 名称: '零钱', 数量: 50, 描述: '拆零找用的零散现款。', 类型: '货币:现金' }];
     }
     return null;
 };
@@ -282,79 +231,24 @@ const 构建背景货币实体物品 = (entry: 背景货币展开结果) => ({
     描述: entry.描述,
     类型: entry.类型 || '货币',
     品质: '凡品',
-    重量: entry.货币键 === '底层货币' ? 0.005 : entry.货币键 === '中层货币' ? 0.02 : 0.01,
+    重量: 0,
     堆叠数量: entry.数量,
     是否可堆叠: true,
     最大堆叠: 999999,
     当前耐久: 1,
     最大耐久: 1,
-    价值: entry.货币键 === '上层货币' ? 10000 : entry.货币键 === '中层货币' ? 100 : 1,
+    价值: 1,
     词条列表: [],
 } as any);
 const 从物品列表汇总角色货币 = (items: any[], fallbackMoney: Record<string, number>) => {
-    const hasCurrencyItems = items.some((item: any) => {
+    const baseAmount = 确保角色金钱BaseAmount(fallbackMoney as any).baseAmount;
+    const itemAmount = items.reduce((sum, item: any) => {
         const name = 规范化文本(item?.名称);
-        const typeCurrencyKey = 解析货币类型信息(item?.类型)?.货币键;
-        const isCurrencyItem = 是否货币类型物品(item?.类型) || 规范化文本(item?.类型) === '货币';
-        const 货币层级名 = 获取当前货币层级名称();
-        return Boolean(
-            typeCurrencyKey
-            || isCurrencyItem
-            || name === 货币层级名.上层货币
-            || name === 货币层级名.中层货币
-            || name === 货币层级名.底层货币
-            || Object.prototype.hasOwnProperty.call(fallbackMoney || {}, name)
-        );
-    });
-    const fallbackCompat = 规范化角色金钱(fallbackMoney as any);
-    const next: Record<string, number> = {
-        ...(hasCurrencyItems ? 构建零值货币模板(fallbackMoney || {}) : fallbackMoney),
-        上层货币: hasCurrencyItems ? 0 : fallbackCompat.上层货币,
-        中层货币: hasCurrencyItems ? 0 : fallbackCompat.中层货币,
-        底层货币: hasCurrencyItems ? 0 : fallbackCompat.底层货币,
-        金元宝: hasCurrencyItems ? 0 : fallbackCompat.金元宝,
-        银子: hasCurrencyItems ? 0 : fallbackCompat.银子,
-        铜钱: hasCurrencyItems ? 0 : fallbackCompat.铜钱
-    };
-    const 货币层级名 = 获取当前货币层级名称();
-    const 累加 = (key: keyof typeof next, amount: number) => {
-        next[key] = 规范化货币数值(next[key]) + 规范化货币数值(amount);
-    };
-    items.forEach((item: any) => {
-        const name = 规范化文本(item?.名称);
-        const typeCurrencyKey = 解析货币类型信息(item?.类型)?.货币键;
-        const isCurrencyItem = 是否货币类型物品(item?.类型) || 规范化文本(item?.类型) === '货币';
-        const count = Math.max(1, 规范化整数(item?.堆叠数量 ?? item?.数量, 1));
-        if (typeCurrencyKey === '中层货币' || name === 货币层级名.中层货币) {
-            累加('中层货币', count);
-            累加('银子', count);
-        } else if (typeCurrencyKey === '底层货币' || name === 货币层级名.底层货币) {
-            累加('底层货币', count);
-            累加('铜钱', count);
-        } else if (typeCurrencyKey === '上层货币' || name === 货币层级名.上层货币) {
-            累加('上层货币', count);
-            累加('金元宝', count);
-        } else if (name === '金元宝') {
-            累加('上层货币', count);
-            累加('金元宝', count);
-        } else if (name === '银子') {
-            累加('中层货币', count);
-            累加('银子', count);
-        } else if (name === '铜钱') {
-            累加('底层货币', count);
-            累加('铜钱', count);
-        } else if (name && Object.prototype.hasOwnProperty.call(next, name)) {
-            累加(name as keyof typeof next, count);
-        } else if (isCurrencyItem && name) {
-            next[name] = 规范化货币数值(next[name]) + count;
-        }
-    });
-    const nextForBaseAmount = hasCurrencyItems ? { ...next, baseAmount: undefined } : next;
-    return 确保角色金钱BaseAmount(
-        nextForBaseAmount,
-        _当前运行时配置,
-        _当前运行时配置?.economy?.currencyDisplayMode as any
-    );
+        const isCurrencyItem = 是否货币类型物品(item?.类型) || ['现金', '人民币', '元', '电子支付', '零钱'].includes(name);
+        if (!isCurrencyItem) return sum;
+        return sum + Math.max(0, 规范化整数(item?.堆叠数量 ?? item?.数量, 1));
+    }, 0);
+    return { baseAmount: Math.max(baseAmount, itemAmount) };
 };
 const 规范化数值 = (value: unknown, fallback = 0): number => {
     const n = Number(value);
@@ -625,7 +519,7 @@ const 技艺关键词表: Record<string, string[]> = {
     符箓: ['符', '箓', '道士', '道门', '镇邪', '符纸', '符师'],
     机关: ['机关', '工', '巧', '墨', '傀儡', '机括', '陷阱', '匠作'],
     采集: ['猎', '山', '林', '野', '采', '农', '樵', '渔', '草药', '山民', '猎户'],
-    鉴定: ['鉴', '商', '当铺', '古玩', '宝', '掌柜', '账房', '行商', '拍卖', '珠宝']
+    鉴定: ['鉴', '商', '当铺', '古玩', '宝', '掌柜', '账房', '行商', '市场', '交易', '珠宝']
 };
 
 const 计算技艺信号 = (text: string, skillName: string): number => {
@@ -1155,37 +1049,6 @@ const 规范化环境信息 = (rawEnv?: any): 环境信息结构 => {
     const 小地点 = 取地点片段(source?.小地点);
     const 原始具体地点 = 取地点片段(source?.具体地点);
     const 具体地点 = 去除具体地点冗余(原始具体地点, 小地点);
-    const rawFestival = source?.节日 && typeof source.节日 === 'object' ? source.节日 : null;
-    const rawFestivalName = typeof source?.节日 === 'string' ? source.节日.trim() : '';
-    const festivalSource = rawFestival;
-    const 节日 = festivalSource
-        ? {
-            名称: typeof festivalSource?.名称 === 'string'
-                ? festivalSource.名称.trim()
-                : rawFestivalName,
-            简介: typeof festivalSource?.简介 === 'string'
-                ? festivalSource.简介.trim()
-                : '',
-            效果: typeof festivalSource?.效果 === 'string' ? festivalSource.效果.trim() : ''
-        }
-        : (rawFestivalName ? { 名称: rawFestivalName, 简介: '', 效果: '' } : null);
-    const rawWeather = source?.天气 && typeof source.天气 === 'object' ? source.天气 : {};
-    const 天气结束日期 = (() => {
-        if (typeof rawWeather?.结束日期 === 'string') {
-            const canonical = normalizeCanonicalGameTime(rawWeather.结束日期);
-            if (canonical) return canonical;
-        }
-        const structured = 结构化时间转标准串(rawWeather?.结束日期);
-        if (structured) {
-            const canonical = normalizeCanonicalGameTime(structured);
-            return canonical || structured;
-        }
-        return 时间;
-    })();
-    const 天气 = {
-        天气: typeof rawWeather?.天气 === 'string' ? rawWeather.天气.trim() : '',
-        结束日期: 天气结束日期
-    };
     const 标准化环境变量条目 = (raw: any) => {
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
         const 名称 = typeof raw?.名称 === 'string' ? raw.名称.trim() : '';
@@ -1208,8 +1071,6 @@ const 规范化环境信息 = (rawEnv?: any): 环境信息结构 => {
         中地点,
         小地点,
         具体地点,
-        节日,
-        天气,
         环境变量
     };
 };
@@ -1440,13 +1301,7 @@ const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF�
     }
     const rawMoney = (role as any).金钱 && typeof (role as any).金钱 === 'object' ? (role as any).金钱 : {};
     const 默认货币 = 当前题材默认值().currency;
-    (role as any).金钱 = { ...默认货币 };
-    const 兼容货币字段 = new Set(['上层货币', '中层货币', '底层货币', '金元宝', '银子', '铜钱', 'baseAmount', '灵石', '灵玉', '金币', '银币', '铜币', '信用点', '奖励点']);
-    Object.entries(rawMoney).forEach(([key, value]) => {
-        if (key in 默认货币 || 兼容货币字段.has(key)) {
-            (role as any).金钱[key] = 规范化货币数值(value);
-        }
-    });
+    (role as any).金钱 = 确保角色金钱BaseAmount({ ...默认货币, ...rawMoney });
     (role as any).玩家BUFF = 标准化玩家BUFF列表((role as any).玩家BUFF, options);
     const rawBreakthroughs = Array.isArray((role as any).突破条件) ? (role as any).突破条件 : [];
     (role as any).突破条件 = rawBreakthroughs
@@ -1689,7 +1544,7 @@ const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF�
     }
     (role as any).金钱 = 从物品列表汇总角色货币(
         role.物品列表,
-        本轮背景资产已落地 ? 构建零值货币模板(默认货币) : ((role as any).金钱 || {})
+        本轮背景资产已落地 ? { baseAmount: 0 } : ((role as any).金钱 || {})
     );
     role.当前负重 = 清理旧储物字段并重算负重(role.物品列表);
     同步角色储物负重上限(role);
@@ -2372,7 +2227,7 @@ const 推断NPC出身背景 = (npc: any): { 名称: string; 描述: string; 效�
     }
     if (group === 'western_fantasy') {
         if (/医|药|祭司|牧师|神殿|庙/.test(text)) return { 名称: '神职医疗背景', 描述: '接触过神术、草药与伤患处置。', 效果: '医疗、炼金与鉴别药性更容易形成基础。' };
-        if (/商|贸易|商队|拍卖|行商|账房/.test(text)) return { 名称: '商旅背景', 描述: '在商路、账目与人情往来中长大。', 效果: '估价、交涉与物价知识更容易形成基础。' };
+        if (/商|贸易|商队|市场|交易|行商|账房/.test(text)) return { 名称: '商旅背景', 描述: '在商路、账目与人情往来中长大。', 效果: '估价、交涉与物价知识更容易形成基础。' };
         if (/铁|锻|匠|铸|工|机关|巧|手艺/.test(text)) return { 名称: '工匠背景', 描述: '长期接触器物、工坊与手艺活。', 效果: '锻造、机关与器物辨识更容易形成基础。' };
         if (/猎|山|林|采|农|樵|渔/.test(text)) return { 名称: '荒野出身', 描述: '熟悉野外行走与资源采集。', 效果: '采集、追踪与求生经验更容易形成基础。' };
         if (/魔|法|咒|术|元素|奥术|秘/.test(text)) return { 名称: '魔法学徒出身', 描述: '耳濡目染魔法与神秘学。', 效果: '魔法理解、符文与附魔更容易形成基础。' };
@@ -2382,18 +2237,18 @@ const 推断NPC出身背景 = (npc: any): { 名称: string; 描述: string; 效�
     }
     if (group === 'xianxia') {
         if (/医|药|郎中|大夫|医馆|药铺|药堂/.test(text)) return { 名称: '医药出身', 描述: '自幼接触药材、病症与伤患处置。', 效果: '医术、炼丹与鉴别药性更容易形成基础。' };
-        if (/商|掌柜|账房|当铺|古玩|拍卖|行商/.test(text)) return { 名称: '商旅出身', 描述: '在账目、货物流转与人情往来中长大。', 效果: '鉴定、采买与察看物价更容易形成基础。' };
+        if (/商|掌柜|账房|当铺|古玩|市场|交易|行商/.test(text)) return { 名称: '商旅出身', 描述: '在账目、货物流转与人情往来中长大。', 效果: '鉴定、采买与察看物价更容易形成基础。' };
         if (/铁|锻|匠|铸|工|机关|墨|巧/.test(text)) return { 名称: '匠作出身', 描述: '长期接触器物、工坊与手艺活。', 效果: '炼器、机关与器物辨识更容易形成基础。' };
         if (/猎|山|林|采|农|樵|渔|草药/.test(text)) return { 名称: '山野出身', 描述: '熟悉山林物候、野外行走与采猎门道。', 效果: '采集、辨物与求生经验更容易形成基础。' };
         if (/阵|符|道|观|术|玄/.test(text)) return { 名称: '术法旁支出身', 描述: '耳濡目染符阵术数与玄门杂学。', 效果: '阵法、符箓与机关理解更容易形成基础。' };
         if (/官|府|衙|捕|军|将|吏/.test(text)) return { 名称: '公门出身', 描述: '熟悉规矩、案牍、兵械与城镇秩序。', 效果: '鉴定、医术与基础器械经验更容易形成基础。' };
-        if (/门|派|宗|山庄|弟子|长老|供奉|掌门|师/.test(text)) return { 名称: '宗门出身', 描述: '受过门规、杂役、演武与师门日课熏陶。', 效果: '采集、鉴定与门中杂学更容易形成基础。' };
+        if (/门|派|宗|山庄|弟子|长老|供奉|掌门|师/.test(text)) return { 名称: '宗门出身', 描述: '受过组织规则、杂役、演武与师门日课熏陶。', 效果: '采集、鉴定与门中杂学更容易形成基础。' };
         return { 名称: '散修出身', 描述: '在寻常人情与修真见闻中积累生活经验。', 效果: '采集、鉴定等基础技艺有少量自然积累。' };
     }
     if (/医|药|郎中|大夫|医馆|药铺|药堂/.test(text)) {
         return { 名称: '医药出身', 描述: '自幼接触药材、病症与伤患处置。', 效果: '医术、炼丹与鉴别药性更容易形成基础。' };
     }
-    if (/商|掌柜|账房|当铺|古玩|拍卖|行商/.test(text)) {
+    if (/商|掌柜|账房|当铺|古玩|市场|交易|行商/.test(text)) {
         return { 名称: '商旅出身', 描述: '在账目、货物流转与人情往来中长大。', 效果: '鉴定、采买与察看物价更容易形成基础。' };
     }
     if (/铁|锻|匠|铸|工|机关|墨|巧/.test(text)) {
@@ -2409,7 +2264,7 @@ const 推断NPC出身背景 = (npc: any): { 名称: string; 描述: string; 效�
         return { 名称: '公门出身', 描述: '熟悉规矩、案牍、兵械与城镇秩序。', 效果: '鉴定、医术与基础器械经验更容易形成基础。' };
     }
     if (/门|派|宗|山庄|弟子|长老|供奉|掌门|师/.test(text)) {
-        return { 名称: '江湖门派出身', 描述: '受过门规、杂役、演武与师门日课熏陶。', 效果: '采集、鉴定与门中杂学更容易形成基础。' };
+        return { 名称: '江湖门派出身', 描述: '受过组织规则、杂役、演武与师门日课熏陶。', 效果: '采集、鉴定与门中杂学更容易形成基础。' };
     }
     return { 名称: '市井江湖出身', 描述: '在寻常人情与江湖见闻中积累生活经验。', 效果: '采集、鉴定等基础技艺有少量自然积累。' };
 };
@@ -3093,7 +2948,7 @@ const 规范化NPC身份 = (npc: any): string => {
     if (/同门|师兄|师姐|师弟|师妹|青云山庄/.test(text)) return '同门';
     if (/侍卫|护卫|守卫/.test(text)) return '护卫';
     if (/侍女|丫鬟/.test(text)) return '侍女';
-    if (/掌柜|商会|商贾|牙行|拍卖/.test(text)) return '商会人士';
+    if (/掌柜|商会|商贾|牙行|市场|交易/.test(text)) return '商会人士';
     if (/敌|水贼|山贼|匪|刺客/.test(text)) return '敌对人物';
     return npc?.是否队友 === true ? '随行同伴' : '江湖人物';
 };

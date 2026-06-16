@@ -7,7 +7,7 @@ import { 获取图片展示地址 } from '../../../utils/imageAssets';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { IconSwords, IconDagger, IconShield, IconArmor, IconBackpack, IconRing, IconBelt, IconHelmet, IconBoot, IconPants, IconGlove, IconHorse, ItemTypeIcon } from '../../ui/Icons';
 import { 获取物品可装备槽位, 计算装备评分, 装备物品到角色, 卸下角色装备 } from '../../../utils/equipmentActions';
-import { 格式化世界观BaseAmount, 获取世界观货币卡片信息, 获取货币完整单位标签, 获取货币显示模式 } from '../../../utils/currencyDisplay';
+import { 格式化世界观BaseAmount, 获取世界观货币卡片信息 } from '../../../utils/currencyDisplay';
 import { 获取题材界面文案 } from '../../../utils/resourceLabels';
 
 interface Props {
@@ -80,16 +80,13 @@ const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, on
     const [actionMessage, setActionMessage] = useState('');
     const [imageViewer, setImageViewer] = useState<{ src: string; alt: string } | null>(null);
     const 界面文案 = 获取题材界面文案(openingConfig?.题材模式, openingConfig?.modeRuntimeProfile);
-    const 估值单位 = 获取货币完整单位标签('铜钱', 获取货币显示模式(openingConfig, character));
     const 格式化装备估值 = (value: unknown): string => {
         const parsedValue = Math.floor(Number(value));
         const numericValue = Number.isFinite(parsedValue) ? Math.max(0, parsedValue) : 0;
-        const fallback = `${numericValue} ${估值单位}`;
         return 格式化世界观BaseAmount(
             numericValue,
             openingConfig,
-            character,
-            fallback
+            character
         );
     };
     const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);

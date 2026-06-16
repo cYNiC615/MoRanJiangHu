@@ -30,13 +30,9 @@ const SCHEDULER = getArg('scheduler', 'sgm_uniform');
 const WORKFLOW = getArg('workflow', 'normal');
 const DRY_RUN = hasFlag('dry-run');
 const MISSING_ONLY = hasFlag('missing');
-const MISSING_REMOTE_ONLY = hasFlag('missing-remote');
 const SKIP_REGISTRY = hasFlag('no-registry');
 const REUSE_EXISTING = hasFlag('reuse-existing');
 const LOCAL_ONLY = hasFlag('local-only');
-const UPLOAD_HOST = hasFlag('upload-host');
-const UPLOAD_BASE = getArg('upload-base', 'https://msjh.bacon159.pp.ua').replace(/\/+$/, '');
-const UPLOAD_STORAGE = getArg('upload-storage', 'telegram');
 
 if (!COMFY_URL && !DRY_RUN) throw new Error('Missing --comfy');
 
@@ -319,68 +315,6 @@ async function localPresetExists(item) {
 
 const readLocalPreset = async (item) => fs.readFile(path.join(outDir, `${item.名称}.png`));
 
-async function uploadImageToHost(item, buf) {
-  if (!UPLOAD_HOST) return `/assets/item-presets/${item.filename}`;
-  const attemptUpload = async () => {
-    const form = new FormData();
-    const blob = new Blob([buf], { type: 'image/png' });
-    form.append('file', blob, item.filename);
-    const url = `${UPLOAD_BASE}/api/image-host/upload?storage=${encodeURIComponent(UPLOAD_STORAGE)}`;
-    const res = await fetch(url, { method: 'POST', body: form });
-    const text = await res.text();
-    return { res, text };
-  };
-  let res = null;
-  let text = '';
-  let lastError = null;
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    try {
-      ({ res, text } = await attemptUpload());
-      if (res.ok) break;
-      lastError = new Error(`HTTP ${res.status}: ${text.slice(0, 300)}`);
-    } catch (error) {
-      lastError = error;
-    }
-    if (attempt < 4) {
-      const waitMs = attempt * 2500;
-      console.warn(`  upload retry ${attempt}/4 after ${waitMs}ms: ${lastError?.message || String(lastError)}`);
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-    }
-  }
-  if (!res) throw lastError || new Error('upload host failed');
-  let payload = null;
-  try {
-    payload = text ? JSON.parse(text) : null;
-  } catch {
-    payload = null;
-  }
-  if (!res.ok || payload?.success === false) {
-    throw new Error(`upload host failed ${res.status}: ${String(payload?.error || text).slice(0, 800)}`);
-  }
-  const candidates = [
-    payload?.links?.download,
-    payload?.data?.links?.download,
-    payload?.download,
-    payload?.download_url,
-    payload?.downloadUrl,
-    payload?.data?.download,
-    payload?.data?.download_url,
-    payload?.data?.downloadUrl,
-    payload?.data?.url,
-    payload?.data?.file?.url,
-    payload?.file?.links?.download,
-    payload?.file?.download,
-    payload?.file?.download_url,
-    payload?.file?.downloadUrl,
-    payload?.file?.url,
-    payload?.url
-  ].map((value) => typeof value === 'string' ? value.trim() : '').find(Boolean);
-  const id = payload?.file?.id || payload?.id || payload?.data?.file?.id || payload?.data?.id || '';
-  const remoteUrl = candidates || (id ? `https://image1.bacon159.pp.ua/api/v1/file/${encodeURIComponent(id)}` : '');
-  if (!remoteUrl) throw new Error(`upload host response has no url: ${text.slice(0, 800)}`);
-  return remoteUrl;
-}
-
 async function selectTargets() {
   let items = 结构化物品库.map((item) => ({ ...item, filename: `${item.名称}.png` }));
   if (ONLY) {
@@ -393,16 +327,6 @@ async function selectTargets() {
       if (!(await localPresetExists(item))) filtered.push(item);
     }
     items = filtered;
-  }
-  if (MISSING_REMOTE_ONLY) {
-    const registry = await fs.readFile(presetRegistryPath, 'utf8').catch(() => '');
-    items = items.filter((item) => {
-      const idx = registry.indexOf(`名称: '${item.名称}'`);
-      if (idx < 0) return true;
-      const lineEnd = registry.indexOf('\n', idx);
-      const line = registry.slice(idx, lineEnd >= 0 ? lineEnd : undefined);
-      return !line.includes('https://image.bacon159.pp.ua') && !line.includes('https://image1.bacon159.pp.ua');
-    });
   }
   if (LOCAL_ONLY) {
     const filtered = [];
@@ -488,8 +412,7 @@ for (const item of targets) {
     await fs.writeFile(localPath, buf);
     console.log(`  saved ${localPath} ${(buf.length / 1024).toFixed(1)}KB`);
   }
-  const imageUrl = await uploadImageToHost(item, buf);
-  if (UPLOAD_HOST) console.log(`  uploaded ${imageUrl}`);
+  const imageUrl = `/assets/item-presets/${item.filename}`;
   const completed = { ...item, 图片URL: imageUrl };
   generated.push(completed);
   await syncPresetRegistry([completed]);

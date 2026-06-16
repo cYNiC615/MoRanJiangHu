@@ -69,10 +69,6 @@ const 获取图片后端显示名 = (apiConfig: 当前可用接口结构): strin
     switch (apiConfig.图片后端类型) {
         case 'comfyui':
             return 'ComfyUI';
-        case 'sd_webui':
-            return 'Stable Diffusion WebUI';
-        case 'novelai':
-        case 'openai':
         default:
             return (apiConfig.model || '').trim() || '图片模型';
     }

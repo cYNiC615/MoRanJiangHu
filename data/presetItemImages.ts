@@ -798,7 +798,7 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     { 名称: '银币袋', 类型: '杂物', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E9%93%B6%E5%B8%81%E8%A2%8B.png' },
     // ─── 结构化物品库自动生成 ─────────────────────────────────────────
     { 名称: '金币袋', 类型: '杂物', 品质: '上品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E9%87%91%E5%B8%81%E8%A2%8B.png' },
-    // ─── 无限流预设物品（gpt-image2）──────────────────────────────
+    // ─── 无限流预设物品──────────────────────────────
     { 名称: '消音手枪', 类型: '武器', 品质: '上品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%B6%88%E9%9F%B3%E6%89%8B%E6%9E%AA.png' },
     { 名称: '战术匕首', 类型: '武器', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%88%98%E6%9C%AF%E5%8C%95%E9%A6%96.png' },
     { 名称: '折叠弩', 类型: '武器', 品质: '上品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%8A%98%E5%8F%A0%E5%BC%A9.png' },
@@ -824,7 +824,7 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     { 名称: '轮回者腕表', 类型: '饰品', 品质: '上品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E8%BD%AE%E5%9B%9E%E8%80%85%E8%85%95%E8%A1%A8.png' },
     { 名称: '枪械速成模块', 类型: '秘籍', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%9E%AA%E6%A2%B0%E9%80%9F%E6%88%90%E6%A8%A1%E5%9D%97.png' },
     { 名称: '单兵火箭筒', 类型: '武器', 品质: '极品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E5%8D%95%E5%85%B5%E7%81%AB%E7%AE%AD%E7%AD%92.png' },
-    // ─── 无限流常见无前缀物品（gpt-image2）──────────────────────────
+    // ─── 无限流常见无前缀物品──────────────────────────
     { 名称: '手枪', 类型: '武器', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%89%8B%E6%9E%AA.png' },
     { 名称: '防护背心', 类型: '防具', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E9%98%B2%E6%8A%A4%E8%83%8C%E5%BF%83.png' },
     { 名称: '护符', 类型: '饰品', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E6%8A%A4%E7%AC%A6.png' },
@@ -921,7 +921,6 @@ export const 预置物品图片列表: 预置物品图片条目[] = [
     { 名称: '火折子', 类型: '杂物', 品质: '凡品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E7%81%AB%E6%8A%98%E5%AD%90.png' },
     { 名称: '绳索', 类型: '杂物', 品质: '凡品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E7%BB%B3%E7%B4%A2.png' },
     { 名称: '地图', 类型: '杂物', 品质: '良品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E5%9C%B0%E5%9B%BE.png' },
-    { 名称: '银两', 类型: '杂物', 品质: '凡品', 图片URL: 'https://s3.hi168.com/hi168-19275-07130td3/MoRanJiangHu/preset-items/%E9%93%B6%E4%B8%A4.png' },
 ];
 
 /**

@@ -95,9 +95,9 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(requestBody.model).toBe('gemini-3.1-pro-high-search');
     });
 
-    it('treats Android OkHttp stream truncation as a retryable transport error', async () => {
+    it('treats stream truncation as a retryable transport error', async () => {
         const fetchMock = vi.spyOn(globalThis, 'fetch')
-            .mockRejectedValueOnce(new Error('unexpected end of stream on com.android.okhttp.Address@4ea9fa8e'))
+            .mockRejectedValueOnce(new Error('unexpected end of stream while reading response body'))
             .mockResolvedValueOnce(new Response(JSON.stringify({
                 choices: [{ message: { content: 'retried-ok' } }]
             }), {
@@ -116,11 +116,11 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('normalizes Android stream truncation into a user-readable message', () => {
-        const raw = 'unexpected end of stream on com.android.okhttp.Address@4ea9fa8e';
+    it('normalizes stream truncation into a user-readable message', () => {
+        const raw = 'unexpected end of stream while reading response body';
 
         expect(是否流式连接中断错误消息(raw)).toBe(true);
         expect(规范化流式连接错误提示(raw)).toContain('模型流式连接中途断开');
-        expect(规范化流式连接错误提示(raw)).not.toContain('com.android.okhttp.Address');
+        expect(规范化流式连接错误提示(raw)).not.toContain('unexpected end of stream');
     });
 });

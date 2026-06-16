@@ -9,13 +9,13 @@ import InAppConfirmModal, { ConfirmOptions } from './components/ui/InAppConfirmM
 import { useGame } from './hooks/useGame';
 import { use图片资源回源预取 } from './hooks/useImageAssetPrefetch';
 import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
-import { 获取主剧情接口配置, 获取文生图接口配置, 获取生图词组转化器接口配置, 获取记忆精炼接口配置, 接口配置是否可用 } from './utils/apiConfig';
+import { 获取主剧情接口配置, 获取文生图接口配置, 获取记忆精炼接口配置, 接口配置是否可用 } from './utils/apiConfig';
 import { 请求模型文本 } from './services/ai/chatCompletionClient';
 import { 记忆精炼系统提示词 } from './prompts/runtime/memoryRefine';
 import { 获取内置世界书槽位内容 } from './utils/worldbook';
 import { 生成地图更新 } from './hooks/useGame/mapUpdateWorkflow';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
-import { 获取图片资源文本地址, 读取远程图片兜底资源ID } from './utils/imageAssets';
+import { 获取图片资源文本地址 } from './utils/imageAssets';
 import { 生成物品图标 } from './services/ai/itemImageGeneration';
 import { 合并物品图片档案, 获取物品图标复用Key, 物品已有可用图标, 获取物品已选图标地址 } from './utils/itemImage';
 import { 生图最大自动重试次数, 执行生图模型调用带重试, 读取生图错误文本 } from './utils/imageGenerationRetry';
@@ -26,7 +26,7 @@ import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { 分配角色属性点, type 可分配六维属性键 } from './utils/characterAttributePoints';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
-import { 获取本地图片图床迁移状态, 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 读取图片资源兜底地址, 订阅旧存档谱系迁移状态, 订阅本地图片图床迁移状态, 执行延迟上传队列, type 旧存档谱系迁移状态, type 本地图片图床迁移状态 } from './services/dbService';
+import { 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 订阅旧存档谱系迁移状态, type 旧存档谱系迁移状态 } from './services/dbService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
@@ -65,79 +65,7 @@ type 物品自动生图近期结果 = {
     nextItem: 游戏物品;
 };
 
-type 本回合变化区域 = '角色' | '背包' | '装备' | '队伍' | '社交' | '地图' | '任务列表' | '约定列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
-
-const 旧图迁移阶段文案: Record<本地图片图床迁移状态['stage'], string> = {
-    idle: '等待扫描',
-    scanning: '正在扫描',
-    running: '正在迁移',
-    completed: '迁移完成',
-    partial_failed: '部分完成',
-    failed: '迁移失败'
-};
-
-const 旧图迁移提示条: React.FC<{
-    status: 本地图片图床迁移状态;
-    onClose: () => void;
-}> = ({ status, onClose }) => {
-    const total = Math.max(0, Number(status.totalAssets) || 0);
-    const processed = Math.min(total, Math.max(0, Number(status.processedAssets) || 0));
-    const percent = total > 0 ? Math.round((processed / total) * 100) : (status.stage === 'completed' ? 100 : 0);
-    const isActive = status.stage === 'scanning' || status.stage === 'running';
-    const isFailed = status.stage === 'failed' || status.stage === 'partial_failed';
-    const title = isActive ? '旧存档图片正在自动迁移' : isFailed ? '旧存档图片迁移需要重试' : '旧存档图片迁移完成';
-    const message = isActive
-        ? '系统正在后台把旧存档本地图片上传到图床。可以关闭此提示并继续使用；如果关闭网页，未完成部分会在下次打开时继续扫描和重试。'
-        : isFailed
-            ? '部分图片暂时未迁移成功，原图会保留，后续会自动重试。已迁移成功的内容重新加载存档后会切换为图床链接。'
-            : '图片来源已写回本地存档。请重新加载当前存档，游戏内图片才会完整切换为图床链接。';
-
-    return (
-        <div className="fixed left-1/2 top-4 z-[10020] w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 pointer-events-auto">
-            <div className={`rounded-xl border px-4 py-3 shadow-[0_18px_45px_rgba(0,0,0,0.55)] backdrop-blur-md ${
-                isFailed
-                    ? 'border-amber-500/50 bg-amber-950/90 text-amber-50'
-                    : isActive
-                        ? 'border-sky-500/50 bg-sky-950/90 text-sky-50'
-                        : 'border-emerald-500/50 bg-emerald-950/90 text-emerald-50'
-            }`}>
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                            <div className="font-semibold" style={{ fontSize: 'var(--ui-compact-font-size, 14px)' }}>{title}</div>
-                            <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] opacity-90">{旧图迁移阶段文案[status.stage]}</span>
-                        </div>
-                        <div className="mt-1 opacity-90" style={{ fontSize: 'var(--ui-compact-font-size, 14px)', lineHeight: '1.55' }}>{message}</div>
-                        <div className="mt-3 space-y-1.5">
-                            <div className="flex items-center justify-between text-[11px] opacity-85">
-                                <span>{status.lastMessage || '正在等待迁移进度更新'}</span>
-                                <span>{total > 0 ? `${processed}/${total}` : `${percent}%`}</span>
-                            </div>
-                            <div className="h-2 rounded-full bg-black/45 border border-white/10 overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${isFailed ? 'bg-amber-300' : isActive ? 'bg-sky-300' : 'bg-emerald-300'} ${isActive ? 'animate-pulse' : ''}`}
-                                    style={{ width: `${percent}%` }}
-                                />
-                            </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] opacity-80">
-                                <span>已迁移 {status.migratedAssets} 张</span>
-                                <span>更新存档 {status.updatedSaves} 个</span>
-                                {status.failedAssets > 0 && <span>失败 {status.failedAssets} 张</span>}
-                            </div>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="shrink-0 rounded border border-white/20 px-2 py-1 text-xs opacity-75 hover:opacity-100 hover:bg-white/10"
-                    >
-                        关闭
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
+type 本回合变化区域 = '角色' | '背包' | '装备' | '队伍' | '社交' | '地图' | '任务列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
 
 const 旧存档谱系迁移提示条: React.FC<{
     status: 旧存档谱系迁移状态;
@@ -210,7 +138,6 @@ const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] =
         if (key.includes('社交')) areas.add('社交');
         if (key.includes('队伍') || key.includes('是否队友')) areas.add('队伍');
         if (key.includes('任务列表')) areas.add('任务列表');
-        if (key.includes('约定列表')) areas.add('约定列表');
         if (key.includes('世界')) areas.add('世界');
         if (key.includes('剧情规划') || key.includes('女主剧情规划')) {
             areas.add('剧情规划');
@@ -282,7 +209,6 @@ const TeamModal = 创建可预加载懒组件('team-modal', () => import('./comp
 const WorldModal = 创建可预加载懒组件('world-modal', () => import('./components/features/World/WorldModal'));
 const MapModal = 创建可预加载懒组件('map-modal', () => import('./components/features/Map/MapModal'));
 const TaskModal = 创建可预加载懒组件('task-modal', () => import('./components/features/Task/TaskModal'));
-const AgreementModal = 创建可预加载懒组件('agreement-modal', () => import('./components/features/Agreement/AgreementModal'));
 const StoryModal = 创建可预加载懒组件('story-modal', () => import('./components/features/Story/StoryModal'));
 const HeroinePlanModal = 创建可预加载懒组件('heroine-plan-modal', () => import('./components/features/Story/HeroinePlanModal'));
 const MemoryModal = 创建可预加载懒组件('memory-modal', () => import('./components/features/Memory/MemoryModal'));
@@ -307,7 +233,6 @@ const 桌面轻量预热目标 = [
     WorldModal,
     MapModal,
     TaskModal,
-    AgreementModal,
     StoryModal,
     HeroinePlanModal,
     MemoryModal,
@@ -424,8 +349,6 @@ const App: React.FC = () => {
     const [sceneQuickGenToastVisible, setSceneQuickGenToastVisible] = React.useState(false);
     const [contextSnapshot, setContextSnapshot] = React.useState<Awaited<ReturnType<typeof actions.getContextSnapshot>> | undefined>(undefined);
     const [returnHomeSaving, setReturnHomeSaving] = React.useState(false);
-    const [legacyImageMigrationStatus, setLegacyImageMigrationStatus] = React.useState(() => 获取本地图片图床迁移状态());
-    const [legacyImageMigrationNoticeClosed, setLegacyImageMigrationNoticeClosed] = React.useState(false);
     const [legacySaveLineageMigrationStatus, setLegacySaveLineageMigrationStatus] = React.useState(() => 读取旧存档谱系迁移状态());
     const [legacySaveLineageMigrationNoticeClosed, setLegacySaveLineageMigrationNoticeClosed] = React.useState(false);
     const [selectedSocialNpcId, setSelectedSocialNpcId] = React.useState<string | null>(null);
@@ -445,7 +368,6 @@ const App: React.FC = () => {
     const [autoItemImageWakeTick, setAutoItemImageWakeTick] = React.useState(0);
     const 最近运行报错提示IDRef = React.useRef('');
     const 最近运行报错提示时间Ref = React.useRef(0);
-    const legacyImageMigrationNoticeStageRef = React.useRef(legacyImageMigrationStatus.stage);
     const legacySaveLineageMigrationNoticeStageRef = React.useRef(legacySaveLineageMigrationStatus.stage);
     const 唤醒物品自动生图扫描 = React.useCallback((delayMs = 0) => {
         if (typeof window === 'undefined') return;
@@ -464,31 +386,6 @@ const App: React.FC = () => {
             autoItemImageWakeTimerRef.current = null;
         }
     }, []);
-    React.useEffect(() => {
-        const handleImageError = (event: Event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLImageElement)) return;
-            if (target.dataset.moranjianghuFallbackApplied === '1') return;
-            const sourceUrl = target.currentSrc || target.src;
-            const fallbackAssetId = 读取远程图片兜底资源ID(sourceUrl);
-            if (!fallbackAssetId) return;
-            target.dataset.moranjianghuFallbackApplied = '1';
-            void 读取图片资源兜底地址(fallbackAssetId).then((fallbackSrc) => {
-                if (fallbackSrc) target.src = fallbackSrc;
-            });
-        };
-        window.addEventListener('error', handleImageError, true);
-        return () => {
-            window.removeEventListener('error', handleImageError, true);
-        };
-    }, []);
-    React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
-        setLegacyImageMigrationStatus(status);
-        if (legacyImageMigrationNoticeStageRef.current !== status.stage) {
-            legacyImageMigrationNoticeStageRef.current = status.stage;
-            setLegacyImageMigrationNoticeClosed(false);
-        }
-    }), []);
     React.useEffect(() => 订阅旧存档谱系迁移状态((status) => {
         setLegacySaveLineageMigrationStatus(status);
         if (legacySaveLineageMigrationNoticeStageRef.current !== status.stage) {
@@ -585,7 +482,6 @@ const App: React.FC = () => {
         state.环境,
         state.世界,
         state.任务列表,
-        state.约定列表,
         state.剧情,
         state.女主剧情规划,
         state.开局配置,
@@ -786,9 +682,8 @@ const App: React.FC = () => {
         剧情: state.剧情,
         女主剧情规划: state.女主剧情规划,
         任务列表: state.任务列表,
-        约定列表: state.约定列表,
         记忆系统: state.记忆系统
-    }), [state.角色, state.环境, state.社交, state.世界, state.剧情, state.女主剧情规划, state.任务列表, state.约定列表, state.记忆系统]);
+    }), [state.角色, state.环境, state.社交, state.世界, state.剧情, state.女主剧情规划, state.任务列表, state.记忆系统]);
 
     const latestAssistantMessage = React.useMemo(
         () => [...state.历史记录]
@@ -813,14 +708,11 @@ const App: React.FC = () => {
         ) {
             areas.add('剧情规划');
         }
-        if (!Array.isArray(state.约定列表) || state.约定列表.length === 0) {
-            areas.delete('约定列表');
-        }
         if (!Array.isArray(state.任务列表) || state.任务列表.length === 0) {
             areas.delete('任务列表');
         }
         return Array.from(areas);
-    }, [latestAssistantMessage, state.约定列表]);
+    }, [latestAssistantMessage, state.任务列表]);
     const itemImageSequence = React.useMemo(() => {
         const bagRecords = (Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : []).flatMap((item: any) => {
             const history = Array.isArray(item?.图片档案?.生图历史) ? item.图片档案.生图历史 : [];
@@ -1114,7 +1006,6 @@ const App: React.FC = () => {
         state.showMap ? 'map' :
         state.showTeam ? 'team' :
         state.showTask ? 'task' :
-        state.showAgreement ? 'agreement' :
         state.showStory ? 'story' :
         state.showHeroinePlan ? 'plan' :
         state.showMemory ? 'memory' :
@@ -1132,7 +1023,6 @@ const App: React.FC = () => {
         || state.showWorld
         || state.showMap
         || state.showTask
-        || state.showAgreement
         || state.showStory
         || state.showHeroinePlan
         || state.showMemory
@@ -1203,7 +1093,6 @@ const App: React.FC = () => {
         setters.setShowWorld(false);
         setters.setShowMap(false);
         setters.setShowTask(false);
-        setters.setShowAgreement(false);
         setters.setShowStory(false);
         setters.setShowHeroinePlan(false);
         setters.setShowMemory(false);
@@ -1302,7 +1191,7 @@ const App: React.FC = () => {
         if (!npc) {
             actions.pushNotification?.({
                 title: '已打开角色列表',
-                message: '未在同门名录里找到对应角色档案。',
+                message: '未在成员名录里找到对应角色档案。',
                 tone: 'info'
             });
         }
@@ -1334,10 +1223,6 @@ const App: React.FC = () => {
     const openTask = React.useCallback(() => {
         closeAllPanels();
         setters.setShowTask(true);
-    }, [closeAllPanels, setters]);
-    const openAgreement = React.useCallback(() => {
-        closeAllPanels();
-        setters.setShowAgreement(true);
     }, [closeAllPanels, setters]);
     const openStory = React.useCallback(() => {
         closeAllPanels();
@@ -1660,7 +1545,6 @@ const App: React.FC = () => {
         try {
             await actions.performAutoSave({ force: true });
             closeAllPanels();
-            void 执行延迟上传队列();
             actions.handleReturnToHome();
             setters.setShowSettings(false);
         } catch (error: any) {
@@ -1687,42 +1571,15 @@ const App: React.FC = () => {
     }, [closeAllPanels, setters]);
 
     const openImageManagerWithCheck = React.useCallback(async () => {
-        const imageApi = 获取文生图接口配置(state.apiConfig);
-        if (接口配置是否可用(imageApi) && imageApi.图片后端类型 === 'novelai') {
-            const promptApi = 获取生图词组转化器接口配置(state.apiConfig);
-            if (!接口配置是否可用(promptApi)) {
-                const accepted = await requestConfirm({
-                    title: 'NovelAI 缺少词组转化器',
-                    message: 'NovelAI 模式必须绑定可用的词组转化器接口。是否立即跳转到“文生图”设置页？',
-                    confirmText: '前往设置',
-                    cancelText: '稍后再说'
-                });
-                if (accepted) {
-                    closeAllPanels();
-                    setters.setActiveTab('image_generation');
-                    setters.setShowSettings(true);
-                }
-                return;
-            }
-        }
-
         closeAllPanels();
         setShowImageManager(true);
-    }, [closeAllPanels, requestConfirm, setters, state.apiConfig]);
+    }, [closeAllPanels]);
 
     const apiConfigRef = React.useRef(state.apiConfig);
     apiConfigRef.current = state.apiConfig;
     const worldRef = React.useRef(state.世界);
     worldRef.current = state.世界;
 
-    const legacyImageMigrationNoticeVisible = !legacyImageMigrationNoticeClosed && (
-        legacyImageMigrationStatus.stage === 'scanning'
-        || legacyImageMigrationStatus.stage === 'running'
-        || (
-            (legacyImageMigrationStatus.stage === 'completed' || legacyImageMigrationStatus.stage === 'partial_failed' || legacyImageMigrationStatus.stage === 'failed')
-            && (legacyImageMigrationStatus.totalAssets > 0 || legacyImageMigrationStatus.migratedAssets > 0 || legacyImageMigrationStatus.failedAssets > 0)
-        )
-    );
     const legacySaveLineageMigrationNoticeVisible = !legacySaveLineageMigrationNoticeClosed && (
         legacySaveLineageMigrationStatus.stage === 'scanning'
         || legacySaveLineageMigrationStatus.stage === 'running'
@@ -1736,12 +1593,6 @@ const App: React.FC = () => {
         <>
             <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} p-3`} style={appRootStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
-                {legacyImageMigrationNoticeVisible && (
-                    <旧图迁移提示条
-                        status={legacyImageMigrationStatus}
-                        onClose={() => setLegacyImageMigrationNoticeClosed(true)}
-                    />
-                )}
                 {legacySaveLineageMigrationNoticeVisible && (
                     <旧存档谱系迁移提示条
                         status={legacySaveLineageMigrationStatus}
@@ -1962,7 +1813,6 @@ const App: React.FC = () => {
                                 onOpenWorld={openWorld}
                                 onOpenMap={openMap}
                                 onOpenTask={openTask} 
-                                onOpenAgreement={openAgreement} 
                                 onOpenStory={openStory}
                                 onOpenHeroinePlan={openHeroinePlan}
                                 onOpenMemory={openMemory}
@@ -2270,7 +2120,6 @@ const App: React.FC = () => {
                     <ImageManagerModal
                             socialList={state.社交}
                             playerCharacter={state.角色}
-                            cultivationSystemEnabled={false}
                             itemImageSequence={itemImageSequence}
                             queue={meta.imageGenerationQueue || []}
                             sceneArchive={meta.sceneImageArchive || {}}
@@ -2401,7 +2250,6 @@ const App: React.FC = () => {
                         <懒加载边界>
                             <SocialModal
                                 socialList={state.社交}
-                                cultivationSystemEnabled={false}
                                 openingConfig={state.开局配置}
                                 onClose={() => setters.setShowSocial(false)}
                                 selectedNpcId={selectedSocialNpcId}
@@ -2463,16 +2311,6 @@ const App: React.FC = () => {
                                 topicMode={state.开局配置?.题材模式}
                                 uiLabels={题材界面文案}
                                 onClose={() => setters.setShowTask(false)}
-                            />
-                        </懒加载边界>
-                    )}
-
-                    {state.showAgreement && (
-                        <懒加载边界>
-                            <AgreementModal
-                                agreements={state.约定列表}
-                                onDeleteAgreement={actions.removeAgreement}
-                                onClose={() => setters.setShowAgreement(false)}
                             />
                         </懒加载边界>
                     )}

@@ -44,10 +44,8 @@ type 构建上下文快照参数 = {
     角色: 角色数据结构;
     环境: any;
     世界: any;
-    战斗: any;
     玩家组织: any;
     任务列表: any[];
-    约定列表: any[];
     剧情: any;
     剧情规划: any;
     女主剧情规划?: any;
@@ -85,10 +83,8 @@ export const 构建上下文快照数据 = async (params: 构建上下文快照�
             角色: params.角色,
             环境: params.规范化环境信息(params.环境),
             世界: params.世界,
-            战斗: params.战斗,
             玩家组织: params.玩家组织,
             任务列表: params.任务列表,
-            约定列表: params.约定列表,
             剧情: normalizedStory,
             剧情规划: normalizedStoryPlan,
             女主剧情规划: normalizedHeroinePlan,

@@ -12,18 +12,6 @@ export * from './models/storyPlan';
 export * from './models/heroinePlan';
 export * from './models/worldbook';
 
-// Retired battle state shell. The old Battle UI/model package is removed, but
-// a shallow state root still exists until save/workflow plumbing is migrated.
-export type 战斗状态结构 = {
-    是否战斗中?: boolean;
-    回合数?: number;
-    敌方?: any[];
-    行动顺序?: any[];
-    逃跑难度?: number;
-    环境因素?: any[];
-    [key: string]: any;
-};
-
 // New types for the advanced chat system
 
 export interface TavernCommand {

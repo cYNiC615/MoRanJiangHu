@@ -10,7 +10,7 @@ const 读取请求体 = async (req: NodeJS.ReadableStream): Promise<Buffer> => {
   return Buffer.concat(chunks);
 };
 
-const 执行NovelAI代理请求 = async (
+const 执行图片代理请求 = async (
   url: string,
   method: string,
   headers: Record<string, string>,
@@ -38,103 +38,6 @@ const 执行NovelAI代理请求 = async (
     headers: responseHeaders,
     body: Buffer.from(await response.arrayBuffer())
   };
-};
-
-const handleNovelAiProxyRequest = async (
-  req: any,
-  res: any,
-  next: () => void,
-  logger: { error: (message: string) => void }
-) => {
-  if (!req.url) {
-    next();
-    return;
-  }
-
-  if (String(req.method || '').toUpperCase() === 'OPTIONS') {
-    res.statusCode = 204;
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-    res.end();
-    return;
-  }
-
-  try {
-    const body = await 读取请求体(req);
-    const targetUrl = `https://image.novelai.net${req.url}`;
-    const headers: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (typeof value === 'string') {
-        headers[key] = value;
-      }
-    }
-
-    const result = await 执行NovelAI代理请求(targetUrl, req.method || 'POST', headers, body);
-    res.statusCode = result.status;
-    Object.entries(result.headers).forEach(([key, value]) => {
-      if (key.toLowerCase() === 'content-length') return;
-      res.setHeader(key, value);
-    });
-    res.end(result.body);
-  } catch (error: any) {
-    logger.error(`[novelai-dev-proxy] ${error?.message || error}`);
-    res.statusCode = 502;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify({
-      error: 'NovelAI dev proxy failed',
-      detail: error?.message || String(error)
-    }));
-  }
-};
-
-const handlePucodingImageProxyRequest = async (
-  req: any,
-  res: any,
-  next: () => void,
-  logger: { error: (message: string) => void }
-) => {
-  if (!req.url) {
-    next();
-    return;
-  }
-
-  try {
-    if (!/^\/v1\/images\/(?:generations|edits)(?:[?#]|$)/i.test(req.url)) {
-      res.statusCode = 404;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(JSON.stringify({ error: 'Unsupported pucoding image proxy path' }));
-      return;
-    }
-
-    const body = await 读取请求体(req);
-    const targetUrl = `https://pucoding.com${req.url}`;
-    const headers: Record<string, string> = {};
-    const authorization = req.headers.authorization;
-    const contentType = req.headers['content-type'];
-    const accept = req.headers.accept;
-    if (typeof authorization === 'string' && authorization.trim()) headers.authorization = authorization;
-    if (typeof contentType === 'string' && contentType.trim()) headers['content-type'] = contentType;
-    if (typeof accept === 'string' && accept.trim()) headers.accept = accept;
-
-    const result = await 执行NovelAI代理请求(targetUrl, req.method || 'POST', headers, body);
-    res.statusCode = result.status;
-    Object.entries(result.headers).forEach(([key, value]) => {
-      if (key.toLowerCase() === 'content-length') return;
-      res.setHeader(key, value);
-    });
-    res.end(result.body);
-  } catch (error: any) {
-    logger.error(`[pucoding-image-dev-proxy] ${error?.message || error}`);
-    res.statusCode = 502;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify({
-      error: 'pucoding image dev proxy failed',
-      detail: error?.message || String(error),
-      cause: error?.cause?.message || error?.cause?.code || ''
-    }));
-  }
 };
 
 const isAllowedComfyProxyTarget = (value: string): boolean => {
@@ -203,7 +106,7 @@ const handleComfyUiProxyRequest = async (
     if (typeof authorization === 'string' && authorization.trim()) headers.authorization = authorization;
     if (typeof accept === 'string' && accept.trim()) headers.accept = accept;
 
-    const result = await 执行NovelAI代理请求(target.toString(), method, headers, body);
+    const result = await 执行图片代理请求(target.toString(), method, headers, body);
     res.statusCode = result.status;
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -228,23 +131,11 @@ const handleComfyUiProxyRequest = async (
 const imageDevProxyPlugin = (): Plugin => ({
   name: 'image-dev-proxy',
   configurePreviewServer(server) {
-    server.middlewares.use('/api/novelai', async (req, res, next) => {
-      await handleNovelAiProxyRequest(req, res, next, server.config.logger);
-    });
-    server.middlewares.use('/api/pucoding-image', async (req, res, next) => {
-      await handlePucodingImageProxyRequest(req, res, next, server.config.logger);
-    });
     server.middlewares.use('/api/image-backend/comfyui-proxy', async (req, res, next) => {
       await handleComfyUiProxyRequest(req, res, next, server.config.logger);
     });
   },
   configureServer(server) {
-    server.middlewares.use('/api/novelai', async (req, res, next) => {
-      await handleNovelAiProxyRequest(req, res, next, server.config.logger);
-    });
-    server.middlewares.use('/api/pucoding-image', async (req, res, next) => {
-      await handlePucodingImageProxyRequest(req, res, next, server.config.logger);
-    });
     server.middlewares.use('/api/image-backend/comfyui-proxy', async (req, res, next) => {
       await handleComfyUiProxyRequest(req, res, next, server.config.logger);
     });
@@ -290,9 +181,6 @@ export default defineConfig(({ mode }) => {
                 normalizedId.includes('/scheduler/')
               ) {
                 return 'react-vendor';
-              }
-              if (normalizedId.includes('/@capacitor/')) {
-                return 'capacitor-vendor';
               }
               if (normalizedId.includes('/fflate/')) {
                 return 'fflate-vendor';

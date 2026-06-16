@@ -16,7 +16,6 @@ type 图片预设工作流依赖 = {
     保存图片资源: (dataUrl: string) => Promise<string>;
     获取社交列表: () => any[];
     获取角色?: () => any;
-    isCultivationSystemEnabled?: () => boolean;
 };
 
 const 生成PNG画风预设ID = (): string => `png_preset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -68,11 +67,8 @@ const 打开JSON文件 = async (): Promise<string> => {
     });
 };
 
-export const 提取NPC生图基础数据附带私密描述 = (
-    npc: any,
-    options?: { cultivationSystemEnabled?: boolean }
-) => {
-    const baseData = 提取NPC生图基础数据(npc, options);
+export const 提取NPC生图基础数据附带私密描述 = (npc: any) => {
+    const baseData = 提取NPC生图基础数据(npc);
     const gender = typeof npc?.性别 === 'string' ? npc.性别.trim() : '';
     const isMajor = npc?.是否主要角色 === true;
     if (!isMajor || (gender !== '女' && gender !== '男')) return baseData;
@@ -589,9 +585,7 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
         if (!anchorApi || !接口配置是否可用(anchorApi)) {
             throw new Error('未配置可用的接口模型，无法提取角色锚点。');
         }
-        const baseData = 提取NPC生图基础数据附带私密描述(targetNpc, {
-            cultivationSystemEnabled: deps.isCultivationSystemEnabled?.() === true
-        });
+        const baseData = 提取NPC生图基础数据附带私密描述(targetNpc);
         const imageAIService = await deps.加载图片AI服务();
         const extracted = await imageAIService.提取角色锚点提示词(baseData, anchorApi, {
             名称: options?.名称 || (typeof targetNpc?.姓名 === 'string' ? targetNpc.姓名.trim() : '角色锚点'),
@@ -642,9 +636,7 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
         if (!anchorApi || !接口配置是否可用(anchorApi)) {
             throw new Error('未配置可用的接口模型，无法提取角色锚点。');
         }
-        const baseData = 提取主角生图基础数据(targetCharacter, {
-            cultivationSystemEnabled: deps.isCultivationSystemEnabled?.() === true
-        });
+        const baseData = 提取主角生图基础数据(targetCharacter);
         const imageAIService = await deps.加载图片AI服务();
         const extracted = await imageAIService.提取角色锚点提示词(baseData, anchorApi, {
             名称: options?.名称 || (typeof targetCharacter?.姓名 === 'string' ? targetCharacter.姓名.trim() : '主角角色锚点'),

@@ -9,7 +9,7 @@ const 构建NPC生图依赖 = (socialList: any[]) => {
             apiConfig: {} as any,
             获取NPC唯一标识: (npc: any) => npc?.id || npc?.姓名 || '',
             获取社交列表: () => socialList,
-            获取文生图接口配置: () => ({ 图片后端类型: 'openai', model: 'image-model' }) as any,
+            获取文生图接口配置: () => ({ 图片后端类型: 'comfyui', model: 'image-model', baseUrl: 'http://comfyui:8188', ComfyUI工作流JSON: '{}' }) as any,
             获取生图词组转化器接口配置: () => null,
             获取生图画师串预设: () => null,
             获取当前PNG画风预设: () => null,

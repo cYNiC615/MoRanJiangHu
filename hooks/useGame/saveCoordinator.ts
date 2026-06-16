@@ -7,8 +7,7 @@ import type {
     提示词结构,
     视觉设置结构,
     世界数据结构,
-    战斗状态结构,
-    详细门派结构,
+    玩家组织结构,
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
@@ -28,74 +27,7 @@ import { 清理内嵌图片冗余字段 } from '../../utils/imageAssets';
 import { 计算历史游玩回合数 } from '../../utils/saveTurn';
 import { 修复旧姓名库误改NPC姓名列表 } from '../../utils/npcNameRepair';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
-import { 同步角色与门派状态 } from './storyState';
-
-const 收集图床图片地址 = (
-    value: unknown,
-    urls: Set<string>,
-    seen: WeakSet<object> = new WeakSet()
-): void => {
-    if (typeof value === 'string') {
-        const text = value.trim();
-        if (是否可缓存图床图片地址(text)) urls.add(text);
-        return;
-    }
-    if (!value || typeof value !== 'object') return;
-    if (seen.has(value as object)) return;
-    seen.add(value as object);
-    if (Array.isArray(value)) {
-        value.forEach((item) => 收集图床图片地址(item, urls, seen));
-        return;
-    }
-    Object.values(value as Record<string, unknown>).forEach((child) => 收集图床图片地址(child, urls, seen));
-};
-
-const 是否可缓存图床图片地址 = (value: string): boolean => {
-    if (!/^https?:\/\//i.test(value)) return false;
-    try {
-        const url = new URL(value);
-        return /^image1\.bacon159\.pp\.ua$/i.test(url.hostname)
-            || /^image\.bacon159\.pp\.ua$/i.test(url.hostname)
-            || /(^|\.)picui\.ogmua\.cn$/i.test(url.hostname)
-            || /^imgurloss\.xqd\.cn$/i.test(url.hostname)
-            || /\.(png|jpe?g|webp|gif|bmp)(?:$|[?#])/i.test(url.pathname);
-    } catch {
-        return false;
-    }
-};
-
-const 后台缓存当前存档图床图片 = (save: 存档结构): void => {
-    if (typeof window === 'undefined') return;
-    const urls = new Set<string>();
-    收集图床图片地址(save.角色数据, urls);
-    收集图床图片地址(save.社交, urls);
-    收集图床图片地址(save.场景图片档案, urls);
-    收集图床图片地址(save.世界, urls);
-    if (urls.size === 0) return;
-
-    const queue = Array.from(urls).slice(0, 60);
-    const run = async () => {
-        const poolSize = 2;
-        let cursor = 0;
-        const worker = async () => {
-            while (cursor < queue.length) {
-                const url = queue[cursor++];
-                await dbService.确保远程图片本地兜底(url).catch(() => undefined);
-                await new Promise(resolve => window.setTimeout(resolve, 100));
-            }
-        };
-        await Promise.all(Array.from({ length: poolSize }, () => worker()));
-    };
-
-    const win = window as Window & {
-        requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
-    };
-    if (typeof win.requestIdleCallback === 'function') {
-        win.requestIdleCallback(() => void run(), { timeout: 5000 });
-        return;
-    }
-    window.setTimeout(() => void run(), 1200);
-};
+import { 同步角色与组织状态 } from './storyState';
 
 export type 自动存档快照结构 = {
     history?: 聊天记录结构[];
@@ -103,10 +35,8 @@ export type 自动存档快照结构 = {
     env?: 环境信息结构;
     social?: any[];
     world?: 世界数据结构;
-    battle?: 战斗状态结构;
-    sect?: 详细门派结构;
+    sect?: 玩家组织结构;
     tasks?: any[];
-    agreements?: any[];
     story?: 剧情系统结构;
     storyPlan?: 剧情规划结构;
     heroinePlan?: 女主剧情规划结构;
@@ -123,10 +53,8 @@ type 存档协调当前状态 = {
     环境: 环境信息结构;
     社交: any[];
     世界: 世界数据结构;
-    战斗: 战斗状态结构;
-    玩家组织: 详细门派结构;
+    玩家组织: 玩家组织结构;
     任务列表: any[];
-    约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -149,8 +77,7 @@ type 存档协调依赖 = {
     构建完整地点文本: (envLike?: any) => string;
     规范化环境信息: (envLike?: any) => 环境信息结构;
     规范化世界状态: (raw?: any) => 世界数据结构;
-    规范化战斗状态: (raw?: any) => 战斗状态结构;
-    规范化门派状态: (raw?: any) => 详细门派结构;
+    规范化组织状态: (raw?: any) => 玩家组织结构;
     规范化剧情状态: (raw?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
@@ -165,8 +92,7 @@ type 存档协调依赖 = {
     获取当前提示词池: () => 提示词结构[];
     创建开场空白环境: () => 环境信息结构;
     创建开场空白世界: () => 世界数据结构;
-    创建开场空白战斗: () => 战斗状态结构;
-    创建空门派状态: () => 详细门派结构;
+    创建空组织状态: () => 玩家组织结构;
     创建开场空白剧情: () => 剧情系统结构;
     应用并同步记忆系统: (memory: 记忆系统结构, options?: { 静默总结提示?: boolean }) => void;
     获取当前视觉设置: () => 视觉设置结构;
@@ -185,10 +111,8 @@ type 存档协调依赖 = {
     设置环境: (value: 环境信息结构) => void;
     设置社交: (value: any[]) => void;
     设置世界: (value: 世界数据结构) => void;
-    设置战斗: (value: 战斗状态结构) => void;
-    设置玩家组织: (value: 详细门派结构) => void;
+    设置玩家组织: (value: 玩家组织结构) => void;
     设置任务列表: (value: any[]) => void;
-    设置约定列表: (value: any[]) => void;
     设置剧情: (value: 剧情系统结构) => void;
     设置剧情规划: (value: 剧情规划结构) => void;
     设置女主剧情规划: (value: 女主剧情规划结构 | undefined) => void;
@@ -204,10 +128,8 @@ type 存档协调依赖 = {
             环境: 环境信息结构;
             社交: any[];
             世界: 世界数据结构;
-            战斗: 战斗状态结构;
-            玩家组织: 详细门派结构;
+            玩家组织: 玩家组织结构;
             任务列表: any[];
-            约定列表: any[];
             剧情: 剧情系统结构;
             剧情规划: 剧情规划结构;
             女主剧情规划?: 女主剧情规划结构;
@@ -430,10 +352,8 @@ const 构建读档后重Roll快照 = (
         env: 环境信息结构;
         social: any[];
         world: 世界数据结构;
-        battle: 战斗状态结构;
-        sect: 详细门派结构;
+        sect: 玩家组织结构;
         tasks: any[];
-        agreements: any[];
         story: 剧情系统结构;
         storyPlan: 剧情规划结构;
         heroinePlan?: 女主剧情规划结构;
@@ -462,10 +382,8 @@ const 构建读档后重Roll快照 = (
             环境: deps.规范化环境信息(deps.深拷贝(loaded.env)),
             社交: deps.深拷贝(loaded.social),
             世界: deps.深拷贝(loaded.world),
-            战斗: deps.深拷贝(loaded.battle),
             玩家组织: deps.深拷贝(loaded.sect),
             任务列表: deps.深拷贝(loaded.tasks),
-            约定列表: deps.深拷贝(loaded.agreements),
             剧情: deps.深拷贝(loaded.story),
             剧情规划: deps.深拷贝(loaded.storyPlan),
             女主剧情规划: deps.深拷贝(loaded.heroinePlan),
@@ -494,10 +412,8 @@ export const 创建存档数据 = (
     const envSource = snapshot?.env ? snapshot.env : currentState.环境;
     const rawSocialSource = Array.isArray(snapshot?.social) ? snapshot.social : currentState.社交;
     const worldSource = snapshot?.world ? snapshot.world : currentState.世界;
-    const battleSource = snapshot?.battle ? snapshot.battle : currentState.战斗;
     const sectSource = snapshot?.sect ? snapshot.sect : currentState.玩家组织;
     const tasksSource = Array.isArray(snapshot?.tasks) ? snapshot.tasks : currentState.任务列表;
-    const agreementsSource = Array.isArray(snapshot?.agreements) ? snapshot.agreements : currentState.约定列表;
     const storySource = snapshot?.story ? snapshot.story : currentState.剧情;
     const storyPlanSource = snapshot?.storyPlan ? snapshot.storyPlan : currentState.剧情规划;
     const heroinePlanSource = snapshot?.heroinePlan ?? currentState.女主剧情规划;
@@ -545,10 +461,8 @@ export const 创建存档数据 = (
         历史记录: historySnapshot,
         社交: deps.深拷贝(socialSource),
         世界: deps.深拷贝(worldSource),
-        战斗: deps.深拷贝(battleSource),
         玩家组织: deps.深拷贝(sectSource),
         任务列表: deps.深拷贝(tasksSource),
-        约定列表: deps.深拷贝(agreementsSource),
         剧情: deps.规范化剧情状态(deps.深拷贝(storySource)),
         剧情规划: deps.规范化剧情规划状态(deps.深拷贝(storyPlanSource)),
         女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanSource ? deps.深拷贝(heroinePlanSource) : undefined),
@@ -729,24 +643,19 @@ export const 执行读取存档 = async (
     trace('world.set.done', {
         layers: Array.isArray((normalizedWorld as any)?.地图层级) ? (normalizedWorld as any).地图层级.length : 0
     });
-    const loadedBattle = deps.规范化战斗状态(save.战斗 || deps.创建开场空白战斗());
-    let loadedSect = deps.规范化门派状态(save.玩家组织 || deps.创建空门派状态());
-    const syncedSectState = 同步角色与门派状态({
+    let loadedSect = deps.规范化组织状态(save.玩家组织 || deps.创建空组织状态());
+    const syncedSectState = 同步角色与组织状态({
         角色: loadedRole,
         玩家组织: loadedSect
     });
     loadedRole = syncedSectState.角色;
-    loadedSect = deps.规范化门派状态(syncedSectState.玩家组织);
+    loadedSect = deps.规范化组织状态(syncedSectState.玩家组织);
     const loadedTasks = 规范化任务列表自动结算(save.任务列表 || []);
-    const loadedAgreements = Array.isArray(save.约定列表) ? save.约定列表 : [];
     deps.设置角色(loadedRole);
-    deps.设置战斗(loadedBattle);
     deps.设置玩家组织(loadedSect);
     deps.设置任务列表(loadedTasks);
-    deps.设置约定列表(loadedAgreements);
-    trace('battleSectTasks.set.done', {
-        taskCount: Array.isArray(save.任务列表) ? save.任务列表.length : 0,
-        agreementCount: Array.isArray(save.约定列表) ? save.约定列表.length : 0
+    trace('sectTasks.set.done', {
+        taskCount: Array.isArray(save.任务列表) ? save.任务列表.length : 0
     });
     const loadedStory = deps.规范化剧情状态(save.剧情 || deps.创建开场空白剧情());
     const loadedStoryPlan = deps.规范化剧情规划状态((save as any).剧情规划);
@@ -851,10 +760,8 @@ export const 执行读取存档 = async (
         env: normalizedEnv,
         social: loadedSocial,
         world: normalizedWorld,
-        battle: loadedBattle,
         sect: loadedSect,
         tasks: loadedTasks,
-        agreements: loadedAgreements,
         story: loadedStory,
         storyPlan: loadedStoryPlan,
         heroinePlan: loadedHeroinePlan,
@@ -875,7 +782,5 @@ export const 执行读取存档 = async (
     deps.setView('game');
     deps.setShowSaveLoad({ show: false, mode: 'load' });
     trace('view.set.done');
-    trace('imageCache.schedule.start');
-    后台缓存当前存档图床图片(save);
     trace('done');
 };

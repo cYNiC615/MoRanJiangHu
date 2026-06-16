@@ -1,14 +1,13 @@
-// Generic player-organization model. Some exported names are kept as
-// compatibility aliases while the runtime moves away from sect-specific UI.
+// Generic player-organization model.
 
-export type 门派任务状态 = '可接取' | '进行中' | '已完成' | '已失败' | '已过期';
-export type 门派任务类型 = '日常' | '悬赏' | '建设' | '历练';
+export type 组织任务状态 = '可接取' | '进行中' | '已完成' | '已失败' | '已过期';
+export type 组织任务类型 = '日常' | '悬赏' | '建设' | '历练';
 
-export interface 门派任务 {
+export interface 组织任务 {
     id: string;
     标题: string;
     描述: string;
-    类型: 门派任务类型;
+    类型: 组织任务类型;
     难度: string;
     发布日期: string;
     截止日期: string;
@@ -16,10 +15,10 @@ export interface 门派任务 {
     奖励贡献: number;
     奖励资金: number;
     奖励物品?: string[];
-    当前状态: 门派任务状态;
+    当前状态: 组织任务状态;
 }
 
-export interface 门派商品 {
+export interface 组织商品 {
     id: string;
     物品名称: string;
     类型: '技能' | '训练' | '装备' | '材料' | string;
@@ -28,7 +27,7 @@ export interface 门派商品 {
     要求职位: string;
 }
 
-export interface 门派藏经 {
+export interface 组织资料 {
     id: string;
     名称: string;
     类型: '技能' | '训练' | '资料' | '杂学' | string;
@@ -38,17 +37,18 @@ export interface 门派藏经 {
     要求累计贡献: number;
 }
 
-export interface 门派成员简报 {
+export interface 组织成员简报 {
     id: string;
     姓名: string;
     性别: '男' | '女';
     年龄: number;
     境界: string;
     身份: string;
+    是否玩家本人?: boolean;
     简介: string;
 }
 
-export interface 门派战力分布 {
+export interface 组织能力分布 {
     凡俗?: number;
     入门?: number;
     中坚?: number;
@@ -57,38 +57,38 @@ export interface 门派战力分布 {
     [key: string]: number | undefined;
 }
 
-export interface 门派月俸规则 {
+export interface 组织津贴规则 {
     基础俸禄: number;
     贡献系数: number;
     规模系数: number;
     发放说明: string;
 }
 
-export interface 详细门派结构 {
+export interface 玩家组织结构 {
     ID: string;
     名称: string;
     简介: string;
-    门规: string[];
+    组织规则: string[];
     组织语义?: string;
     组织类型?: string;
     题材组织类型?: string;
-    门派资金: number;
-    门派物资: number;
+    组织资金: number;
+    组织物资: number;
     建设度: number;
-    门派等级?: string;
-    门派规模?: string;
-    弟子总数?: number;
-    战力分布?: 门派战力分布;
+    组织等级?: string;
+    组织规模?: string;
+    成员总数?: number;
+    能力分布?: 组织能力分布;
     财富评级?: string;
-    月俸规则?: 门派月俸规则;
-    上次俸禄月份?: string;
+    津贴规则?: 组织津贴规则;
+    上次津贴月份?: string;
     玩家职位: string;
     玩家贡献: number;
     累计贡献?: number;
-    任务列表: 门派任务[];
-    兑换列表: 门派商品[];
-    藏经阁列表?: 门派藏经[];
-    重要成员: 门派成员简报[];
+    任务列表: 组织任务[];
+    兑换列表: 组织商品[];
+    资料库列表?: 组织资料[];
+    重要成员: 组织成员简报[];
 }
 
 export const 职位等级排序: Record<string, number> = {

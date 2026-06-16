@@ -14,7 +14,7 @@ import GameButton from '../../ui/GameButton';
 import ToggleSwitch from '../../ui/ToggleSwitch';
 import InlineSelect from '../../ui/InlineSelect';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from '../../../data/defaultComfyWorkflow';
-import { 规范化接口设置, 获取文生图接口配置, 获取NSFW文生图接口配置, 接口配置是否可用, type 当前可用接口结构 } from '../../../utils/apiConfig';
+import { 规范化接口设置, 获取文生图接口配置, 获取NSFW文生图接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../utils/imageSizeOptions';
 import {
     buildDiscoveredBackendLabel,
@@ -37,13 +37,8 @@ import {
 import type { 创意工坊模块条目 } from '../../../data/creativeWorkshopModules';
 import {
     构建ComfyUI精确连接失败提示,
-    构建ComfyUI运行时代理端点,
-    构建OpenAI图片生成端点,
-    翻译连接测试错误,
-    规范化OpenAI图片基础地址,
-    规范化OpenAI图片模型名称
+    构建ComfyUI运行时代理端点
 } from '../../../services/ai/imageGenerationDiagnostics';
-import { generateImageByPrompt } from '../../../services/ai/image';
 import { 校验ComfyUI工作流可生图 } from '../../../services/ai/comfyWorkflowValidation';
 
 interface Props {
@@ -54,7 +49,7 @@ interface Props {
 type 生图模型字段 = '文生图模型使用模型' | '场景生图模型使用模型' | '词组转化器使用模型' | 'PNG提炼使用模型';
 type 设置分页 = 'basic' | 'backend' | 'nsfw' | 'transformer' | 'presets' | 'profiles' | 'automation';
 type 画师串适用页签 = 'npc' | 'scene';
-type 词组预设页签 = 'nai' | 'npc' | 'scene';
+type 词组预设页签 = 'tag' | 'npc' | 'scene';
 
 const 初始化模型列表 = (): Record<生图模型字段, string[]> => ({
     文生图模型使用模型: [],
@@ -80,148 +75,7 @@ const 基础页面选项: Array<{ value: 设置分页; label: string }> = [
 ];
 
 const 文生图后端选项: Array<{ value: 功能模型占位配置结构['文生图后端类型']; label: string }> = [
-    { value: 'openai', label: 'OpenAI 兼容' },
-    { value: 'novelai', label: 'NovelAI 官方' },
-    { value: 'sd_webui', label: 'Stable Diffusion WebUI' },
     { value: 'comfyui', label: 'ComfyUI' }
-];
-
-const 接口路径模式选项: Array<{ value: 功能模型占位配置结构['文生图接口路径模式']; label: string }> = [
-    { value: 'preset', label: '预设路径' },
-    { value: 'custom', label: '自定义路径' }
-];
-
-const 预设路径选项映射: Record<功能模型占位配置结构['文生图后端类型'], Array<{
-    value: 功能模型占位配置结构['文生图预设接口路径'];
-    label: string;
-}>> = {
-    openai: [
-        { value: 'openai_images', label: '/v1/images/generations' },
-        { value: 'openai_chat', label: '/v1/chat/completions' }
-    ],
-    novelai: [
-        { value: 'novelai_generate', label: '/ai/generate-image' }
-    ],
-    sd_webui: [
-        { value: 'sd_txt2img', label: '/sdapi/v1/txt2img' }
-    ],
-    comfyui: [
-        { value: 'comfyui_prompt', label: '/prompt' }
-    ]
-};
-
-const 读取文生图预设路径 = (
-    backend: 功能模型占位配置结构['文生图后端类型'],
-    preset: 功能模型占位配置结构['文生图预设接口路径']
-): string => {
-    return 预设路径选项映射[backend]?.find((item) => item.value === preset)?.label
-        || 预设路径选项映射[backend]?.[0]?.label
-        || '/v1/images/generations';
-};
-
-const 读取文生图接口路径 = (
-    feature: 功能模型占位配置结构,
-    backend: 功能模型占位配置结构['文生图后端类型'] = feature.文生图后端类型
-): string => {
-    if (feature.文生图接口路径模式 === 'custom') {
-        return feature.文生图接口路径 || 读取文生图预设路径(backend, feature.文生图预设接口路径);
-    }
-    return 读取文生图预设路径(backend, feature.文生图预设接口路径);
-};
-
-const 判断OpenAI图片测试参数错误 = (detail: string): boolean => {
-    return /prompt|message|messages|required|required parameter|missing|缺少|不能为空|参数|invalid_request/i.test(detail);
-};
-
-const 判断OpenAI图片测试模型错误 = (detail: string): boolean => {
-    return /invalid model|unknown model|model[^，。]*?(not|invalid|unknown|unsupported|does not exist)|模型[^，。]*?(不存在|无效|未知|不支持)|不支持[^，。]*?模型/i.test(detail);
-};
-
-const OPENAI图片测试超时MS = 25_000;
-
-const 测试OpenAI兼容图片接口 = async (params: {
-    rawBaseUrl: string;
-    apiKey: string;
-    model: string;
-    path?: string;
-    responseFormat?: 功能模型占位配置结构['文生图响应格式'];
-    label: string;
-}): Promise<string> => {
-    const endpoint = 构建OpenAI图片生成端点(params.rawBaseUrl, params.path, { useRuntimeProxy: true });
-    if (!endpoint) throw new Error('OpenAI 兼容图片接口缺少 API 地址。');
-    const rawModel = (params.model || '').trim();
-    const model = 规范化OpenAI图片模型名称(rawModel) || 'gpt-image-2';
-    const headers: Record<string, string> = {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-    };
-    if (params.apiKey) {
-        headers.Authorization = `Bearer ${params.apiKey}`;
-    }
-    const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), OPENAI图片测试超时MS);
-    let response: Response;
-    try {
-        response = await fetch(endpoint, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                model,
-                prompt: '一张干净的连接测试图片，plain connection test image',
-                n: 1,
-                size: '1024x1024',
-                response_format: params.responseFormat || 'b64_json'
-            }),
-            signal: abortController.signal
-        });
-    } catch (error: any) {
-        if (error?.name === 'AbortError') {
-            throw new Error(`OpenAI 兼容图片接口测试超时（${Math.round(OPENAI图片测试超时MS / 1000)} 秒）。接口地址可稍后重试；若服务端正在排队生图，测试按钮不会继续无限等待。`);
-        }
-        throw error;
-    } finally {
-        window.clearTimeout(timeoutId);
-    }
-    const detail = await response.text().catch(() => '');
-    const normalizedBase = 规范化OpenAI图片基础地址(params.rawBaseUrl);
-    const normalizedNote = normalizedBase && normalizedBase !== params.rawBaseUrl.replace(/\/+$/, '')
-        ? `已自动把网页地址识别为 API 根地址：${normalizedBase}。`
-        : '';
-    const modelNote = rawModel && rawModel !== model
-        ? `模型名已按 ${model} 测试。`
-        : `模型：${model}。`;
-
-    if (response.ok) {
-        return `${params.label}连接成功：${endpoint} 可访问。${normalizedNote}${modelNote}本次测试未提交实际 prompt。`;
-    }
-
-    if ((response.status === 401 || response.status === 403) && !params.apiKey) {
-        return `${params.label}地址可达，但还没有填写 API Key。${normalizedNote}已测试端点：${endpoint}。`;
-    }
-
-    if (response.status === 400 && (!detail || 判断OpenAI图片测试参数错误(detail)) && !判断OpenAI图片测试模型错误(detail)) {
-        const authNote = params.apiKey ? 'API Key 已通过基础验证。' : '接口已返回参数校验结果。';
-        return `${params.label}连接可达，${authNote}${normalizedNote}已测试端点：${endpoint}。${modelNote}本次测试未提交实际 prompt，不会消耗生图次数。`;
-    }
-
-    throw new Error(`HTTP ${response.status} ${detail}`.trim());
-};
-
-const OpenAI图片模型建议 = ['gpt-image-2', 'gpt-image-1'];
-const NovelAI模型建议 = ['nai-diffusion-4-5-full', 'nai-diffusion-4-5-curated', 'nai-diffusion-4-full'];
-const NovelAI采样器选项: Array<{ value: 功能模型占位配置结构['NovelAI采样器']; label: string }> = [
-    { value: 'k_euler_ancestral', label: 'Euler Ancestral' },
-    { value: 'k_euler', label: 'Euler' },
-    { value: 'k_dpmpp_2m', label: 'DPM++ 2M' },
-    { value: 'k_dpmpp_2s_ancestral', label: 'DPM++ 2S Ancestral' },
-    { value: 'k_dpmpp_sde', label: 'DPM++ SDE' },
-    { value: 'k_dpmpp_2m_sde', label: 'DPM++ 2M SDE' }
-];
-const NovelAI噪点表选项: Array<{ value: 功能模型占位配置结构['NovelAI噪点表']; label: string }> = [
-    { value: 'karras', label: 'Karras' },
-    { value: 'native', label: 'Native' },
-    { value: 'exponential', label: 'Exponential' },
-    { value: 'polyexponential', label: 'Polyexponential' }
 ];
 
 const ComfyUI工作流风格选项 = [
@@ -247,69 +101,12 @@ const ComfyUI工作流风格选项 = [
     '自定义'
 ];
 
-const 获取后端设置标签 = (backend: 功能模型占位配置结构['文生图后端类型']): string => {
-    switch (backend) {
-        case 'sd_webui':
-            return 'WebUI 设置';
-        case 'comfyui':
-            return 'ComfyUI 设置';
-        case 'novelai':
-            return 'NovelAI 设置';
-        case 'openai':
-        default:
-            return '后端设置';
-    }
-};
-
 const 图片后端需要模型选择 = (backend: 功能模型占位配置结构['文生图后端类型']): boolean => {
-    return backend === 'openai' || backend === 'novelai';
+    return false;
 };
 
 const 图片后端需要鉴权 = (backend: 功能模型占位配置结构['文生图后端类型']): boolean => {
-    return backend === 'openai' || backend === 'novelai';
-};
-
-const NovelAI试用验证码错误 = /recaptcha token is required for trial generation/i;
-const NovelAI访问受限错误 = /access_denied|ip .*not .*allow|ip .*not .*allowed|ip.*白名单|ip.*允许访问|不在令牌允许访问的列表/i;
-
-const 构建NovelAIToken未生效提示 = (status: number): string => {
-    return `NovelAI 没有识别到可用的 Persistent API Token。HTTP ${status}\n当前请求被 NovelAI 当作试用生图并要求 Recaptcha，请重新填写以 pst- 开头的 Persistent API Token，保存后再点击连接测试；如果仍失败，说明这枚 Token 可能已失效或账号订阅权限不可用。`;
-};
-
-const 构建NovelAI访问受限提示 = (status: number): string => {
-    return `NovelAI 拒绝访问。HTTP ${status}\n当前 IP 不在这枚 Token 允许访问的列表中。请在 NovelAI 后台调整 Token 的 IP 白名单，或更换允许当前网络出口 IP 的 Persistent API Token；连接测试和真实生图都需要通过同一项权限检查。`;
-};
-
-const 测试NovelAI官方连接 = async (apiConfig: 当前可用接口结构): Promise<string> => {
-    const token = (apiConfig?.apiKey || '').trim();
-    if (!token) throw new Error('缺少 Persistent API Token');
-    if (!(apiConfig?.model || '').trim()) throw new Error('缺少 NovelAI 模型名称');
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 60000);
-    try {
-        await generateImageByPrompt(
-            'masterpiece, best quality, simple landscape, ink wash painting, no text',
-            apiConfig,
-            controller.signal,
-            {
-                尺寸: '832x1216',
-                附加负面提示词: 'text, watermark, logo, signature'
-            }
-        );
-    } catch (error: any) {
-        const message = error?.message || '';
-        if (NovelAI试用验证码错误.test(message) || NovelAI试用验证码错误.test(error?.detail || '')) {
-            throw new Error(构建NovelAIToken未生效提示(error?.status || 403));
-        }
-        if (NovelAI访问受限错误.test(message) || NovelAI访问受限错误.test(error?.detail || '')) {
-            throw new Error(构建NovelAI访问受限提示(error?.status || 403));
-        }
-        throw error;
-    } finally {
-        window.clearTimeout(timer);
-    }
-    return 'NovelAI 真实生图测试成功：代理、Token、模型、IP 白名单和生成接口都可用。';
+    return false;
 };
 
 const ComfyUI工作流占位提示 = '__PROMPT__ / {{prompt}}，__NEGATIVE_PROMPT__ / {{negative_prompt}}，__WIDTH__ / {{width}}，__HEIGHT__ / {{height}}，__STEPS__ / {{steps}}，__CFG__ / {{cfg}}，__CFG_RESCALE__ / {{cfg_rescale}}，__SAMPLER__ / {{sampler}}，__SCHEDULER__ / {{scheduler}}，__SEED__ / {{seed}}，__SMEA__ / {{smea}}，__SMEA_DYN__ / {{smea_dyn}}';
@@ -335,7 +132,7 @@ const 创建空词组预设 = (scope: 词组预设页签): 词组转化器提示
     const now = Date.now();
     return {
         id: 生成预设ID('transformer_preset'),
-        名称: scope === 'nai' ? '新建NAI提示词' : scope === 'scene' ? '新建场景提示词' : '新建NPC提示词',
+        名称: scope === 'tag' ? '新建分段Tags提示词' : scope === 'scene' ? '新建场景提示词' : '新建NPC提示词',
         类型: scope,
         提示词: '',
         createdAt: now,
@@ -355,7 +152,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const [modelLoading, setModelLoading] = useState<Record<生图模型字段, boolean>>(初始化加载状态);
     const [activePage, setActivePage] = useState<设置分页>('basic');
     const [artistPresetScope, setArtistPresetScope] = useState<画师串适用页签>('npc');
-    const [transformerPresetScope, setTransformerPresetScope] = useState<词组预设页签>('nai');
+    const [transformerPresetScope, setTransformerPresetScope] = useState<词组预设页签>('tag');
     const [profileScope, setProfileScope] = useState<生图配置档适用范围>('npc');
     const [message, setMessage] = useState('');
     const [mainConnectionMessage, setMainConnectionMessage] = useState('');
@@ -384,7 +181,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setModelLoading(初始化加载状态());
         setActivePage('basic');
         setArtistPresetScope('npc');
-        setTransformerPresetScope('nai');
+        setTransformerPresetScope('tag');
         setProfileScope('npc');
         setDiscoveredBackends([]);
         setComfyWorkflowModules([]);
@@ -401,7 +198,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             const modules = await 列出创意工坊模块();
             setComfyWorkflowModules(modules.filter((entry) => entry.type === 'comfy_workflow'));
         } catch (error: any) {
-            setMessage(`读取 ComfyUI 工作流工坊失败：${error?.message || '未知错误'}`);
+            setMessage(`读取 ComfyUI 工作流模式包失败：${error?.message || '未知错误'}`);
             setShowSuccess(false);
         } finally {
             setComfyWorkflowLoading(false);
@@ -435,14 +232,9 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const 普通ComfyUI工作流显示值 = 普通使用默认ComfyUI工作流 ? 默认ComfyUI工作流JSON : form.功能模型占位.ComfyUI工作流JSON;
     const 场景ComfyUI工作流显示值 = 场景使用默认ComfyUI工作流 ? 默认ComfyUI工作流JSON : form.功能模型占位.场景ComfyUI工作流JSON;
     const NSFWComfyUI工作流显示值 = NSFW使用默认ComfyUI工作流 ? 默认NSFWComfyUI工作流JSON : form.功能模型占位.NSFWComfyUI工作流JSON;
-    const 当前预设路径选项 = 预设路径选项映射[当前后端];
-    const 当前预设路径值集合 = new Set(当前预设路径选项.map((item) => item.value));
-    const 当前预设路径 = 当前预设路径值集合.has(form.功能模型占位.文生图预设接口路径)
-        ? form.功能模型占位.文生图预设接口路径
-        : 当前预设路径选项[0]?.value || 'openai_images';
     const 文生图模型选项 = Array.from(new Set(
-        (当前后端 === 'novelai' ? NovelAI模型建议 : (当前后端 === 'openai' ? OpenAI图片模型建议 : []))
-            .concat(modelOptions.文生图模型使用模型, form.功能模型占位.文生图模型使用模型)
+        modelOptions.文生图模型使用模型
+            .concat(form.功能模型占位.文生图模型使用模型)
             .map((item) => (item || '').trim())
             .filter(Boolean)
     ));
@@ -459,13 +251,13 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             .filter(Boolean)
     ));
     const 场景文生图模型选项 = Array.from(new Set(
-        (当前场景后端 === 'novelai' ? NovelAI模型建议 : (当前场景后端 === 'openai' ? OpenAI图片模型建议 : []))
-            .concat(modelOptions.场景生图模型使用模型, form.功能模型占位.场景生图模型使用模型, form.功能模型占位.文生图模型使用模型)
+        modelOptions.场景生图模型使用模型
+            .concat(form.功能模型占位.场景生图模型使用模型, form.功能模型占位.文生图模型使用模型)
             .map((item) => (item || '').trim())
             .filter(Boolean)
     ));
     const 可见页面 = useMemo(() => 基础页面选项, []);
-    const 是否强制启用词组转化器 = 当前后端 === 'novelai';
+    const 是否强制启用词组转化器 = false;
     const artistPresets = useMemo(
         () => (Array.isArray(form.功能模型占位.画师串预设列表) ? form.功能模型占位.画师串预设列表 : [])
             .filter((item) => item && typeof item.id === 'string' && !item.id.startsWith('png_artist_')),
@@ -487,8 +279,8 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         || null;
     const transformerPresets = useMemo(() => Array.isArray(form.功能模型占位.词组转化器提示词预设列表) ? form.功能模型占位.词组转化器提示词预设列表 : [], [form.功能模型占位.词组转化器提示词预设列表]);
     const scopedTransformerPresets = useMemo(() => transformerPresets.filter((item) => item.类型 === transformerPresetScope), [transformerPresets, transformerPresetScope]);
-    const currentTransformerPresetId = transformerPresetScope === 'nai'
-        ? form.功能模型占位.当前NAI词组转化器提示词预设ID
+    const currentTransformerPresetId = transformerPresetScope === 'tag'
+        ? form.功能模型占位.当前Tag词组转化器提示词预设ID
         : transformerPresetScope === 'scene'
             ? form.功能模型占位.当前场景词组转化器提示词预设ID
             : form.功能模型占位.当前NPC词组转化器提示词预设ID;
@@ -701,8 +493,8 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     };
 
     const 更新当前词组预设ID = (scope: 词组预设页签, presetId: string) => {
-        if (scope === 'nai') {
-            updatePlaceholder('当前NAI词组转化器提示词预设ID', presetId);
+        if (scope === 'tag') {
+            updatePlaceholder('当前Tag词组转化器提示词预设ID', presetId);
             return;
         }
         if (scope === 'scene') {
@@ -725,26 +517,17 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             '文生图模型API地址',
             '文生图模型API密钥',
             '图片后端自动连接口令',
-            '文生图接口路径模式',
-            '文生图预设接口路径',
-            '文生图接口路径',
             '文生图响应格式',
-            '文生图OpenAI自定义格式',
             '当前图片后端发现ID',
             '使用默认ComfyUI工作流',
             'ComfyUI工作流JSON',
-            'NovelAI启用自定义参数',
-            'NovelAI采样器',
-            'NovelAI噪点表',
-            'NovelAI步数',
-            'NovelAI负面提示词',
             'NPC生图使用词组转化器',
             '词组转化兼容模式',
             '词组转化器启用独立模型',
             '词组转化器使用模型',
             '词组转化器API地址',
             '词组转化器API密钥',
-            '当前NAI词组转化器提示词预设ID',
+            '当前Tag词组转化器提示词预设ID',
             '自动角色锚点启用',
         ];
         const scopeKeys: Record<生图配置档适用范围, Array<keyof 功能模型占位配置结构>> = {
@@ -897,7 +680,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             功能模型占位: {
                 ...prev.功能模型占位,
                 词组转化器提示词预设列表: [...(Array.isArray(prev.功能模型占位.词组转化器提示词预设列表) ? prev.功能模型占位.词组转化器提示词预设列表 : []), nextPreset],
-                当前NAI词组转化器提示词预设ID: transformerPresetScope === 'nai' ? nextPreset.id : prev.功能模型占位.当前NAI词组转化器提示词预设ID,
+                当前Tag词组转化器提示词预设ID: transformerPresetScope === 'tag' ? nextPreset.id : prev.功能模型占位.当前Tag词组转化器提示词预设ID,
                 当前NPC词组转化器提示词预设ID: transformerPresetScope === 'npc' ? nextPreset.id : prev.功能模型占位.当前NPC词组转化器提示词预设ID,
                 当前场景词组转化器提示词预设ID: transformerPresetScope === 'scene' ? nextPreset.id : prev.功能模型占位.当前场景词组转化器提示词预设ID
             }
@@ -913,7 +696,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             功能模型占位: {
                 ...prev.功能模型占位,
                 词组转化器提示词预设列表: remaining,
-                当前NAI词组转化器提示词预设ID: prev.功能模型占位.当前NAI词组转化器提示词预设ID === selectedTransformerPreset.id ? nextByScope('nai') : prev.功能模型占位.当前NAI词组转化器提示词预设ID,
+                当前Tag词组转化器提示词预设ID: prev.功能模型占位.当前Tag词组转化器提示词预设ID === selectedTransformerPreset.id ? nextByScope('tag') : prev.功能模型占位.当前Tag词组转化器提示词预设ID,
                 当前NPC词组转化器提示词预设ID: prev.功能模型占位.当前NPC词组转化器提示词预设ID === selectedTransformerPreset.id ? nextByScope('npc') : prev.功能模型占位.当前NPC词组转化器提示词预设ID,
                 当前场景词组转化器提示词预设ID: prev.功能模型占位.当前场景词组转化器提示词预设ID === selectedTransformerPreset.id ? nextByScope('scene') : prev.功能模型占位.当前场景词组转化器提示词预设ID
             }
@@ -983,10 +766,10 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                             : { 使用默认ComfyUI工作流: false, ComfyUI工作流JSON: workflowJson })
                 } as 功能模型占位配置结构
             }));
-            setMessage(`已切换到工坊工作流「${module.title}」。保存设置后生效。`);
+            setMessage(`已切换到模式包工作流「${module.title}」。保存设置后生效。`);
             setShowSuccess(true);
         } catch (error: any) {
-            setMessage(`应用工坊工作流失败：${error?.message || '未知错误'}`);
+            setMessage(`应用模式包工作流失败：${error?.message || '未知错误'}`);
             setShowSuccess(false);
         } finally {
             setComfyWorkflowBusy('');
@@ -1005,7 +788,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 ? NSFW使用默认ComfyUI工作流
                 : 普通使用默认ComfyUI工作流;
         if (defaultUsing) {
-            setMessage('请先关闭“使用默认工作流”，再把当前自定义工作流保存到本地工坊。');
+            setMessage('请先关闭“使用默认工作流”，再把当前自定义工作流保存到本地模式包。');
             setShowSuccess(false);
             return;
         }
@@ -1039,11 +822,11 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             setMessage(`正在真实校验 ComfyUI 工作流「${module.title}」能否生图...`);
             const validation = await 校验ComfyUI工作流可生图({ settings: form, workflowJson });
             const local = 导入本地创意工坊模块(module);
-            setMessage(`${validation.message} 已保存为本地工坊工作流「${local.title}」。`);
+            setMessage(`${validation.message} 已保存为本地模式包工作流「${local.title}」。`);
             setShowSuccess(true);
             await refreshComfyWorkflowModules();
         } catch (error: any) {
-            setMessage(`保存工坊工作流失败：${error?.message || '请确认当前 workflow JSON 格式正确'}`);
+            setMessage(`保存模式包工作流失败：${error?.message || '请确认当前 workflow JSON 格式正确'}`);
             setShowSuccess(false);
         } finally {
             setComfyWorkflowBusy('');
@@ -1059,7 +842,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold tracking-[0.12em] text-gray-300">工坊工作流</label>
+                        <label className="text-xs font-bold tracking-[0.12em] text-gray-300">模式包工作流</label>
                         <InlineSelect
                             value=""
                             options={scoped.map((entry) => {
@@ -1067,7 +850,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 return { value: entry.id, label: `${entry.title}${style ? ` · ${style}` : ''}${entry.contributor ? ` · ${entry.contributor}` : ''}` };
                             })}
                             onChange={(value) => void applyComfyWorkflowModule(target, value)}
-                            placeholder={comfyWorkflowLoading ? '正在读取工坊工作流...' : scoped.length ? '选择本地或内置工作流' : '暂无可选工坊工作流'}
+                            placeholder={comfyWorkflowLoading ? '正在读取模式包工作流...' : scoped.length ? '选择本地或内置工作流' : '暂无可选模式包工作流'}
                             buttonClassName="bg-black/50 border-gray-600 py-2.5"
                             disabled={disabled || comfyWorkflowLoading || scoped.length <= 0 || Boolean(comfyWorkflowBusy)}
                         />
@@ -1078,7 +861,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         disabled={comfyWorkflowLoading}
                         className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50"
                     >
-                        {comfyWorkflowLoading ? '刷新中...' : '刷新工坊'}
+                        {comfyWorkflowLoading ? '刷新中...' : '刷新模式包'}
                     </button>
                     <button
                         type="button"
@@ -1093,7 +876,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         );
     };
 
-    const 主文生图后端可直接套用到NSFW = 当前后端 === 'openai' || 当前后端 === 'novelai' || 当前后端 === 'sd_webui' || 当前后端 === 'comfyui';
+    const 主文生图后端可直接套用到NSFW = true;
 
     const NSFW独立接口已有专用配置 = (feature: 功能模型占位配置结构): boolean => {
         return [
@@ -1109,24 +892,14 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         feature: 功能模型占位配置结构,
         options?: { overwrite?: boolean }
     ): Partial<功能模型占位配置结构> => {
-        if (!(feature.文生图后端类型 === 'openai' || feature.文生图后端类型 === 'novelai' || feature.文生图后端类型 === 'sd_webui' || feature.文生图后端类型 === 'comfyui')) {
-            return {};
-        }
         const overwrite = options?.overwrite === true;
         const pick = (current: string, fallback: string) => overwrite ? fallback : ((current || '').trim() || fallback);
-        const shouldCopyModel = 图片后端需要模型选择(feature.文生图后端类型);
-        const shouldCopyApiKey = 图片后端需要鉴权(feature.文生图后端类型);
-        const nsfwApiKey = shouldCopyApiKey
-            ? pick(feature.NSFW生图模型API密钥, feature.文生图模型API密钥)
-            : (overwrite ? '' : (feature.NSFW生图模型API密钥 || ''));
 
         return {
-            NSFW生图后端类型: feature.文生图后端类型,
-            NSFW生图模型使用模型: shouldCopyModel
-                ? pick(feature.NSFW生图模型使用模型, feature.文生图模型使用模型)
-                : (overwrite ? '' : (feature.NSFW生图模型使用模型 || '')),
+            NSFW生图后端类型: 'comfyui',
+            NSFW生图模型使用模型: overwrite ? '' : (feature.NSFW生图模型使用模型 || ''),
             NSFW生图模型API地址: pick(feature.NSFW生图模型API地址, feature.文生图模型API地址),
-            NSFW生图模型API密钥: nsfwApiKey,
+            NSFW生图模型API密钥: overwrite ? '' : (feature.NSFW生图模型API密钥 || ''),
             当前NSFW图片后端发现ID: overwrite
                 ? feature.当前图片后端发现ID
                 : ((feature.当前NSFW图片后端发现ID || '').trim() || feature.当前图片后端发现ID),
@@ -1137,20 +910,14 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         };
     };
 
-    const handleBackendChange = (value: 功能模型占位配置结构['文生图后端类型']) => {
-        const fallbackPreset = 预设路径选项映射[value][0]?.value || 'openai_images';
+    const handleBackendChange = (_value: 功能模型占位配置结构['文生图后端类型']) => {
         setForm((prev) => ({
             ...prev,
-                功能模型占位: {
-                    ...prev.功能模型占位,
-                    文生图后端类型: value,
-                    文生图预设接口路径: fallbackPreset,
-                    NPC生图使用词组转化器: value === 'novelai' ? true : prev.功能模型占位.NPC生图使用词组转化器,
-                    文生图模型API地址: value === 'novelai' && !prev.功能模型占位.文生图模型API地址.trim()
-                        ? 'https://image.novelai.net'
-                        : prev.功能模型占位.文生图模型API地址,
-                文生图OpenAI自定义格式: value === 'openai' ? prev.功能模型占位.文生图OpenAI自定义格式 : false,
-                文生图响应格式: value === 'openai' ? prev.功能模型占位.文生图响应格式 : 'url'
+            功能模型占位: {
+                ...prev.功能模型占位,
+                文生图后端类型: 'comfyui',
+                NPC生图使用词组转化器: prev.功能模型占位.NPC生图使用词组转化器,
+                文生图响应格式: 'url'
             }
         }));
         setMainConnectionMessage('');
@@ -1287,9 +1054,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const handleTestImageConnection = async () => {
         if (testingImageConnection) return;
         const feature = form.功能模型占位;
-        const backend = feature.文生图后端类型;
         const rawBaseUrl = (feature.文生图模型API地址 || '').trim() || (activeConfig?.baseUrl || '').trim();
-        const apiKey = (feature.文生图模型API密钥 || '').trim() || (activeConfig?.apiKey || '').trim();
         if (!rawBaseUrl) {
             setMainConnectionMessage('请先填写文生图 API 地址。');
             return;
@@ -1299,69 +1064,32 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setMainConnectionMessage('正在测试文生图连接...');
         try {
             const base = rawBaseUrl.replace(/\/+$/, '');
-            if (backend === 'comfyui') {
-                const response = await fetch(`${base}/system_stats`, { method: 'GET' });
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} ${await response.text().catch(() => '')}`.trim());
-                }
-                const matchedBackend = discoveredBackends.find((item) => (
-                    item.id === feature.当前图片后端发现ID
-                    || normalizeDiscoveredBackendUrl(item.url) === base
-                ));
-                setBackendConnectionStats(recordImageBackendConnectionSuccess('main', matchedBackend || base));
-                if (matchedBackend) {
-                    const saved = 保存生图设置({
-                        ...form,
-                        activeConfigId: selectedConfigId || form.activeConfigId,
-                        功能模型占位: {
-                            ...feature,
-                            当前图片后端发现ID: matchedBackend.id,
-                            文生图模型API地址: normalizeDiscoveredBackendUrl(matchedBackend.url)
-                        }
-                    }, { showSuccess: true });
-                    setMainConnectionMessage(`ComfyUI 连接成功：后端在线，已同步为当前生图地址：${saved.功能模型占位.文生图模型API地址}`);
-                    return;
-                }
-                setMainConnectionMessage('ComfyUI 连接成功：后端在线，可以继续生图。若要用于自动生图，请保存当前文生图配置。');
+            const response = await fetch(`${base}/system_stats`, { method: 'GET' });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} ${await response.text().catch(() => '')}`.trim());
+            }
+            const matchedBackend = discoveredBackends.find((item) => (
+                item.id === feature.当前图片后端发现ID
+                || normalizeDiscoveredBackendUrl(item.url) === base
+            ));
+            setBackendConnectionStats(recordImageBackendConnectionSuccess('main', matchedBackend || base));
+            if (matchedBackend) {
+                const saved = 保存生图设置({
+                    ...form,
+                    activeConfigId: selectedConfigId || form.activeConfigId,
+                    功能模型占位: {
+                        ...feature,
+                        文生图后端类型: 'comfyui',
+                        当前图片后端发现ID: matchedBackend.id,
+                        文生图模型API地址: normalizeDiscoveredBackendUrl(matchedBackend.url)
+                    }
+                }, { showSuccess: true });
+                setMainConnectionMessage(`ComfyUI 连接成功：后端在线，已同步为当前生图地址：${saved.功能模型占位.文生图模型API地址}`);
                 return;
             }
-            if (backend === 'sd_webui') {
-                const response = await fetch(`${base}/sdapi/v1/options`, { method: 'GET' });
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} ${await response.text().catch(() => '')}`.trim());
-                }
-                setMainConnectionMessage('Stable Diffusion WebUI 连接成功：API 已开启。');
-                return;
-            }
-            if (backend === 'novelai') {
-                const imageConfig = 获取文生图接口配置(form, { 忽略文生图总开关: true });
-                if (!imageConfig || !接口配置是否可用(imageConfig)) {
-                    throw new Error('NovelAI 文生图配置不可用，请先填写地址、Persistent API Token 和模型名称。');
-                }
-                setMainConnectionMessage(await 测试NovelAI官方连接(imageConfig));
-                return;
-            }
-            const rawModel = (feature.文生图模型使用模型 || '').trim() || 'gpt-image-2';
-            const normalizedModel = 规范化OpenAI图片模型名称(rawModel);
-            if (feature.文生图模型使用模型 !== normalizedModel) {
-                updatePlaceholder('文生图模型使用模型', normalizedModel);
-            }
-            const message = await 测试OpenAI兼容图片接口({
-                rawBaseUrl,
-                apiKey,
-                model: normalizedModel,
-                path: 读取文生图接口路径(feature, backend),
-                responseFormat: feature.文生图响应格式,
-                label: 'OpenAI 兼容文生图接口'
-            });
-            setMainConnectionMessage(message);
+            setMainConnectionMessage('ComfyUI 连接成功：后端在线，可以继续生图。若要用于自动生图，请保存当前文生图配置。');
         } catch (error: any) {
-            setMainConnectionMessage(backend === 'comfyui'
-                ? await 构建ComfyUI精确连接失败提示(rawBaseUrl, error)
-                : 翻译连接测试错误(error, {
-                    baseUrl: rawBaseUrl,
-                    backendLabel: 文生图后端选项.find((item) => item.value === backend)?.label || '文生图接口'
-                }));
+            setMainConnectionMessage(await 构建ComfyUI精确连接失败提示(rawBaseUrl, error));
         } finally {
             setTestingImageConnection(false);
         }
@@ -1383,49 +1111,22 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     details.push(`推断后端：${nsfwConfig.图片后端类型 || '未识别'}`);
                     details.push(`地址：${nsfwConfig.baseUrl || '未填写'}`);
                 }
-                throw new Error(`NSFW 生图配置不可用。${details.length ? '\n' + details.join('\n') : ''}\n请确认：1) 主文生图后端不是 OpenAI/Gemini 等不支持成人向的接口；2) 或者开启 NSFW 独立接口并配置 ComfyUI/SD WebUI/NovelAI 后端。`);
+                throw new Error(`NSFW 生图配置不可用。${details.length ? '\n' + details.join('\n') : ''}\n请确认已配置可用的 ComfyUI 地址和工作流。`);
             }
-            const backend = nsfwConfig.图片后端类型 || 'openai';
             const base = (nsfwConfig.baseUrl || '').replace(/\/+$/, '');
-            const apiKey = (nsfwConfig.apiKey || '').trim();
-            if (backend === 'comfyui') {
-                const response = await fetch(构建ComfyUI运行时代理端点(base, '/system_stats'), { method: 'GET' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const feature = form.功能模型占位;
-                const matchedBackend = discoveredBackends.find((item) => (
-                    item.id === feature.当前NSFW图片后端发现ID
-                    || normalizeDiscoveredBackendUrl(item.url) === base
-                ));
-                setBackendConnectionStats(recordImageBackendConnectionSuccess('nsfw', matchedBackend || base));
-                setNsfwConnectionMessage(`NSFW ComfyUI 连接成功：后端在线（${base}）。`);
-                return;
-            }
-            if (backend === 'sd_webui') {
-                const response = await fetch(`${base}/sdapi/v1/options`, { method: 'GET' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                setNsfwConnectionMessage(`NSFW SD WebUI 连接成功：API 已开启（${base}）。`);
-                return;
-            }
-            if (backend === 'novelai') {
-                setNsfwConnectionMessage(`NSFW ${await 测试NovelAI官方连接(nsfwConfig)}（${base}）`);
-                return;
-            }
-            const message = await 测试OpenAI兼容图片接口({
-                rawBaseUrl: base,
-                apiKey,
-                model: nsfwConfig.model || 'gpt-image-2',
-                path: nsfwConfig.图片接口路径 || '/v1/images/generations',
-                responseFormat: nsfwConfig.图片响应格式 || 'url',
-                label: 'NSFW OpenAI 兼容接口'
-            });
-            setNsfwConnectionMessage(message);
+            const response = await fetch(构建ComfyUI运行时代理端点(base, '/system_stats'), { method: 'GET' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const feature = form.功能模型占位;
+            const matchedBackend = discoveredBackends.find((item) => (
+                item.id === feature.当前NSFW图片后端发现ID
+                || normalizeDiscoveredBackendUrl(item.url) === base
+            ));
+            setBackendConnectionStats(recordImageBackendConnectionSuccess('nsfw', matchedBackend || base));
+            setNsfwConnectionMessage(`NSFW ComfyUI 连接成功：后端在线（${base}）。`);
         } catch (error: any) {
             const nsfwConfig = 获取NSFW文生图接口配置(form);
             const base = nsfwConfig?.baseUrl || '';
-            const backend = nsfwConfig?.图片后端类型 || 'openai';
-            setNsfwConnectionMessage(backend === 'comfyui'
-                ? await 构建ComfyUI精确连接失败提示(base, error)
-                : 翻译连接测试错误(error, { baseUrl: base, backendLabel: `NSFW ${backend}` }));
+            setNsfwConnectionMessage(await 构建ComfyUI精确连接失败提示(base, error));
         } finally {
             setTestingNsfwConnection(false);
         }
@@ -1433,60 +1134,27 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
 
     const fetchModelsFromCurrentConfig = async (key: 生图模型字段): Promise<string[] | null> => {
         const feature = form.功能模型占位;
-        const sceneBackend = feature.场景生图独立接口启用 ? feature.场景生图后端类型 : feature.文生图后端类型;
-        const targetBackend = key === '文生图模型使用模型'
-            ? feature.文生图后端类型
-            : key === '场景生图模型使用模型'
-                ? sceneBackend
-                : feature.文生图后端类型;
-        const customBaseUrl = key === '文生图模型使用模型'
-            ? (feature.文生图模型API地址 || '').trim()
-            : key === '场景生图模型使用模型'
-                ? ((feature.场景生图独立接口启用 ? feature.场景生图模型API地址 : feature.文生图模型API地址) || '').trim()
-                : key === 'PNG提炼使用模型'
-                    ? ((feature.PNG提炼启用独立模型 ? feature.PNG提炼API地址 : '') || '').trim()
-                    : ((feature.词组转化器启用独立模型 ? feature.词组转化器API地址 : '') || '').trim();
-        const customApiKey = key === '文生图模型使用模型'
-            ? (feature.文生图模型API密钥 || '').trim()
-            : key === '场景生图模型使用模型'
-                ? ((feature.场景生图独立接口启用 ? feature.场景生图模型API密钥 : feature.文生图模型API密钥) || '').trim()
-                : key === 'PNG提炼使用模型'
-                    ? ((feature.PNG提炼启用独立模型 ? feature.PNG提炼API密钥 : '') || '').trim()
-                    : ((feature.词组转化器启用独立模型 ? feature.词组转化器API密钥 : '') || '').trim();
-        const canReuseMainConnection = key !== '场景生图模型使用模型' || !feature.场景生图独立接口启用 || sceneBackend === feature.文生图后端类型;
-        const resolvedBaseUrl = customBaseUrl || (canReuseMainConnection ? (activeConfig?.baseUrl || '').trim() : '');
-        const resolvedApiKey = customApiKey || (canReuseMainConnection ? (activeConfig?.apiKey || '').trim() : '');
-        const targetNeedsModel = key === '词组转化器使用模型' || key === 'PNG提炼使用模型'
-            ? true
-            : 图片后端需要模型选择(targetBackend);
-        const targetNeedsAuth = key === '词组转化器使用模型' || key === 'PNG提炼使用模型'
-            ? true
-            : 图片后端需要鉴权(targetBackend);
-
-        if (!targetNeedsModel) {
-            setMessage(`${文生图后端选项.find((item) => item.value === targetBackend)?.label || '当前后端'}不需要模型选择，也不提供模型列表。`);
+        if (key === '文生图模型使用模型' || key === '场景生图模型使用模型') {
+            setMessage('ComfyUI 生图不需要模型列表。');
             return null;
         }
-        if (!resolvedBaseUrl || (targetNeedsAuth && !resolvedApiKey)) {
+        const customBaseUrl = key === 'PNG提炼使用模型'
+                    ? ((feature.PNG提炼启用独立模型 ? feature.PNG提炼API地址 : '') || '').trim()
+                    : ((feature.词组转化器启用独立模型 ? feature.词组转化器API地址 : '') || '').trim();
+        const customApiKey = key === 'PNG提炼使用模型'
+                    ? ((feature.PNG提炼启用独立模型 ? feature.PNG提炼API密钥 : '') || '').trim()
+                    : ((feature.词组转化器启用独立模型 ? feature.词组转化器API密钥 : '') || '').trim();
+        const resolvedBaseUrl = customBaseUrl || (activeConfig?.baseUrl || '').trim();
+        const resolvedApiKey = customApiKey || (activeConfig?.apiKey || '').trim();
+
+        if (!resolvedBaseUrl || !resolvedApiKey) {
             setMessage(key === 'PNG提炼使用模型'
                 ? '请先填写 PNG 提炼 API 地址与 API Key。'
-                : (targetBackend === 'novelai' ? '请先填写 API 地址与 Persistent API Token。' : '请先填写 API 地址与 API Key。'));
+                : '请先填写 API 地址与 API Key。');
             return null;
         }
         try {
-            if (targetBackend === 'novelai' && (key === '文生图模型使用模型' || key === '场景生图模型使用模型')) return NovelAI模型建议;
-            const normalizedModelBase = targetBackend === 'openai'
-                ? 规范化OpenAI图片基础地址(resolvedBaseUrl)
-                : resolvedBaseUrl;
-            if (targetBackend === 'openai') {
-                try {
-                    const host = new URL(normalizedModelBase).hostname;
-                    if (/(^|\.)pucoding\.com$/i.test(host)) return OpenAI图片模型建议;
-                } catch {
-                    // 继续按通用模型列表探测。
-                }
-            }
-            const base = normalizedModelBase.replace(/\/+$/, '');
+            const base = resolvedBaseUrl.replace(/\/+$/, '');
             const normalized = base.replace(/\/v1$/i, '');
             const candidateUrls = Array.from(new Set([
                 `${normalized}/v1/models`,
@@ -1495,7 +1163,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             ]));
             for (const url of candidateUrls) {
                 const res = await fetch(url, {
-                    headers: targetNeedsAuth ? { Authorization: `Bearer ${resolvedApiKey}` } : undefined
+                    headers: { Authorization: `Bearer ${resolvedApiKey}` }
                 });
                 if (!res.ok) continue;
                 const data = await res.json();
@@ -1591,7 +1259,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             功能模型占位: {
                 ...form.功能模型占位,
                 词组转化器提示词: '',
-                NPC生图使用词组转化器: 当前后端 === 'novelai' ? true : form.功能模型占位.NPC生图使用词组转化器
+                NPC生图使用词组转化器: form.功能模型占位.NPC生图使用词组转化器
             }
         }, { showSuccess: true });
     };
@@ -1602,7 +1270,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 <div>
                     <div className="text-base font-bold text-rose-200">NSFW 独立生图接口</div>
                     <div className="mt-1 text-xs leading-6 text-rose-100/70">
-                        开启后香闺秘档等成人向生图只走这里。OpenAI/GPT、Gemini、Nano Banana 会被自动视为不支持 NSFW，不会用于该类请求。
+                        开启后香闺秘档等成人向生图只走这里。当前只支持 ComfyUI 后端。
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1656,7 +1324,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     />
                 </div>
                 <div className="rounded-xl border border-rose-500/20 bg-black/25 px-4 py-3 text-xs leading-6 text-rose-100/80">
-                    成人向过滤规则：后端为 OpenAI 兼容，或模型/地址含 gpt、openai、gemini、banana、nano 时，系统会返回不可用，避免误发到不支持的接口。
+                    成人向过滤规则：成人向生图只会提交到 ComfyUI 工作流。
                 </div>
             </div>
 
@@ -1680,7 +1348,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         type="password"
                         value={form.功能模型占位.NSFW生图模型API密钥}
                         onChange={(e) => updatePlaceholder('NSFW生图模型API密钥', e.target.value)}
-                        placeholder={当前NSFW后端 === 'sd_webui' || 当前NSFW后端 === 'comfyui' ? '可留空' : '填写专用 Key / Token'}
+                        placeholder="可留空"
                         disabled={!form.功能模型占位.NSFW生图独立接口启用}
                         className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
                     />
@@ -1741,7 +1409,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         type="text"
                         value={form.功能模型占位.NSFW生图模型使用模型}
                         onChange={(e) => updatePlaceholder('NSFW生图模型使用模型', e.target.value)}
-                        placeholder={当前NSFW后端 === 'novelai' ? '例如：nai-diffusion-4-5-full' : '请选择支持成人向的专用模型'}
+                        placeholder="ComfyUI 不需要模型名称"
                         disabled={!form.功能模型占位.NSFW生图独立接口启用}
                         className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
                     />
@@ -1849,27 +1517,17 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                             type="text"
                             value={form.功能模型占位.文生图模型API地址}
                             onChange={(e) => updatePlaceholder('文生图模型API地址', e.target.value)}
-                            placeholder={当前后端 === 'novelai'
-                                ? 'https://image.novelai.net'
-                                : 当前后端 === 'sd_webui'
-                                    ? '例如：http://127.0.0.1:7860'
-                                    : 当前后端 === 'comfyui'
-                                        ? '例如：http://127.0.0.1:8188'
-                                        : 'https://api.openai.com/v1'}
+                            placeholder="例如：http://127.0.0.1:8188"
                             className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-fuchsia-400"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className={标签样式}>{当前后端 === 'novelai' ? 'Persistent API Token' : 'API Key'}</label>
+                        <label className={标签样式}>API Key</label>
                         <input
                             type="password"
                             value={form.功能模型占位.文生图模型API密钥}
                             onChange={(e) => updatePlaceholder('文生图模型API密钥', e.target.value)}
-                            placeholder={当前后端 === 'novelai'
-                                ? '在 NovelAI 账户设置中生成 Persistent API Token'
-                                : 当前后端 === 'sd_webui' || 当前后端 === 'comfyui'
-                                    ? '可留空；默认不会发送 Authorization'
-                                    : '留空则回退当前接口配置'}
+                            placeholder="可留空；默认不会发送 Authorization"
                             className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-fuchsia-400"
                         />
                     </div>
@@ -2004,7 +1662,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                             type="text"
                             value={form.功能模型占位.文生图模型使用模型}
                             onChange={(e) => updatePlaceholder('文生图模型使用模型', e.target.value)}
-                            placeholder="例如：gpt-image-2 / nai-diffusion-4-5-full"
+                            placeholder="例如：ComfyUI 不需要模型名称"
                             className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-fuchsia-400"
                         />
                     </>
@@ -2014,138 +1672,6 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     </div>
                 )}
             </div>
-
-            <div className={卡片样式}>
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <label className={标签样式}>接口路径模式</label>
-                        <InlineSelect
-                            value={form.功能模型占位.文生图接口路径模式}
-                            options={接口路径模式选项}
-                            onChange={(value) => updatePlaceholder('文生图接口路径模式', value as 功能模型占位配置结构['文生图接口路径模式'])}
-                            buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                        />
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white">{activeConfig?.名称 || '未选择接口配置'}</div>
-                </div>
-
-                {form.功能模型占位.文生图接口路径模式 === 'preset' ? (
-                    <div className="space-y-2">
-                        <label className={标签样式}>预设路径</label>
-                        <InlineSelect
-                            value={当前预设路径}
-                            options={当前预设路径选项.map((item) => ({ value: item.value, label: item.label }))}
-                            onChange={(value) => updatePlaceholder('文生图预设接口路径', value as 功能模型占位配置结构['文生图预设接口路径'])}
-                            buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                        />
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        <label className={标签样式}>自定义接口路径</label>
-                        <input
-                            type="text"
-                            value={form.功能模型占位.文生图接口路径}
-                            onChange={(e) => updatePlaceholder('文生图接口路径', e.target.value)}
-                            placeholder={当前后端 === 'novelai'
-                                ? '/ai/generate-image'
-                                : 当前后端 === 'sd_webui'
-                                    ? '/sdapi/v1/txt2img'
-                                    : 当前后端 === 'comfyui'
-                                        ? '/prompt'
-                                        : '/v1/images/generations'}
-                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-fuchsia-400"
-                        />
-                    </div>
-                )}
-            </div>
-
-            {当前后端 === 'openai' && (
-                <div className={卡片样式}>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <label className={标签样式}>图片响应格式</label>
-                            <InlineSelect
-                                value={form.功能模型占位.文生图响应格式}
-                                options={[
-                                    { value: 'url', label: 'URL' },
-                                    { value: 'b64_json', label: 'Base64 / b64_json' },
-                                    { value: 'base64', label: 'Base64 / base64' }
-                                ]}
-                                onChange={(value) => updatePlaceholder('文生图响应格式', value as 功能模型占位配置结构['文生图响应格式'])}
-                                buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                            />
-                        </div>
-                        <div className="flex items-center justify-between gap-3 rounded-xl border border-fuchsia-500/20 bg-fuchsia-950/10 p-3">
-                            <div className="text-sm font-bold text-fuchsia-200">OpenAI 兼容图片请求体</div>
-                            <ToggleSwitch
-                                checked={form.功能模型占位.文生图OpenAI自定义格式}
-                                onChange={(next) => updatePlaceholder('文生图OpenAI自定义格式', next)}
-                                ariaLabel="切换 OpenAI 图片请求体"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {当前后端 === 'novelai' && (
-                <div className="rounded-2xl border border-emerald-500/25 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%),rgba(1,10,16,0.7)] p-5 space-y-5">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="text-base font-bold text-emerald-200">NovelAI 自定义参数</div>
-                        <ToggleSwitch
-                            checked={form.功能模型占位.NovelAI启用自定义参数}
-                            onChange={(next) => updatePlaceholder('NovelAI启用自定义参数', next)}
-                            ariaLabel="切换 NovelAI 自定义参数"
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-emerald-200">采样方法</label>
-                            <InlineSelect
-                                value={form.功能模型占位.NovelAI采样器}
-                                options={NovelAI采样器选项}
-                                onChange={(value) => updatePlaceholder('NovelAI采样器', value as 功能模型占位配置结构['NovelAI采样器'])}
-                                buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                                disabled={!form.功能模型占位.NovelAI启用自定义参数}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-emerald-200">噪点表</label>
-                            <InlineSelect
-                                value={form.功能模型占位.NovelAI噪点表}
-                                options={NovelAI噪点表选项}
-                                onChange={(value) => updatePlaceholder('NovelAI噪点表', value as 功能模型占位配置结构['NovelAI噪点表'])}
-                                buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                                disabled={!form.功能模型占位.NovelAI启用自定义参数}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-emerald-200">步数</label>
-                            <input
-                                type="number"
-                                min={1}
-                                max={50}
-                                value={form.功能模型占位.NovelAI步数}
-                                onChange={(e) => updatePlaceholder('NovelAI步数', Math.max(1, Math.min(50, Number(e.target.value) || 28)))}
-                                disabled={!form.功能模型占位.NovelAI启用自定义参数}
-                                className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-emerald-200">负面提示词</label>
-                        <textarea
-                            value={form.功能模型占位.NovelAI负面提示词}
-                            onChange={(e) => updatePlaceholder('NovelAI负面提示词', e.target.value)}
-                            rows={6}
-                            disabled={!form.功能模型占位.NovelAI启用自定义参数}
-                            placeholder="例如：lowres, bad anatomy, text, watermark"
-                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-emerald-400 resize-y disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                    </div>
-                </div>
-            )}
 
             {当前后端 === 'comfyui' && (
                 <div className={卡片样式}>
@@ -2491,7 +2017,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         <InlineSelect
                             value={transformerPresetScope}
                             options={[
-                                { value: 'nai', label: 'NAI模式专属' },
+                                { value: 'tag', label: '分段Tags' },
                                 { value: 'npc', label: 'NPC角色生成' },
                                 { value: 'scene', label: '场景专属' }
                             ]}
@@ -2607,27 +2133,17 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                             type="text"
                                             value={form.功能模型占位.场景生图模型API地址}
                                             onChange={(e) => updatePlaceholder('场景生图模型API地址', e.target.value)}
-                                            placeholder={当前场景后端 === 'novelai'
-                                                ? 'https://image.novelai.net'
-                                                : 当前场景后端 === 'sd_webui'
-                                                    ? '例如：http://127.0.0.1:7860'
-                                                    : 当前场景后端 === 'comfyui'
-                                                        ? '例如：http://127.0.0.1:8188'
-                                                        : 'https://api.openai.com/v1'}
+                                            placeholder="例如：http://127.0.0.1:8188"
                                             className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-sky-400"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-sky-200">{当前场景后端 === 'novelai' ? '场景 Token' : '场景 API Key'}</label>
+                                        <label className="text-sm font-bold text-sky-200">场景 API Key</label>
                                         <input
                                             type="password"
                                             value={form.功能模型占位.场景生图模型API密钥}
                                             onChange={(e) => updatePlaceholder('场景生图模型API密钥', e.target.value)}
-                                            placeholder={当前场景后端 === 'sd_webui' || 当前场景后端 === 'comfyui'
-                                                ? '可留空；默认不会发送 Authorization'
-                                                : 当前场景后端 === 当前后端
-                                                    ? (当前场景后端 === 'novelai' ? '留空则沿用主文生图 Token' : '留空则沿用主文生图 API Key')
-                                                    : (当前场景后端 === 'novelai' ? '当前后端不同，建议填写独立 Token' : '当前后端不同，建议填写独立 API Key')}
+                                            placeholder="可留空；默认不会发送 Authorization"
                                             className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-sky-400"
                                         />
                                     </div>
@@ -2700,7 +2216,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                             type="text"
                                             value={form.功能模型占位.场景生图模型使用模型}
                                             onChange={(e) => updatePlaceholder('场景生图模型使用模型', e.target.value)}
-                                            placeholder="例如：nai-diffusion-4-5-full / gpt-image-2"
+                                            placeholder="例如：ComfyUI 不需要模型名称"
                                             className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-sky-400"
                                         />
                                     </>
@@ -2993,7 +2509,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                     <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">后端：<span className="text-gray-200">{backend}</span></div>
                                     <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">模型：<span className="text-gray-200">{model}</span></div>
                                     <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">画师串：<span className="text-gray-200">{(profile.配置 as any).当前场景画师串预设ID || (profile.配置 as any).当前NPC画师串预设ID || '未绑定'}</span></div>
-                                    <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">词组：<span className="text-gray-200">{(profile.配置 as any).当前场景词组转化器提示词预设ID || (profile.配置 as any).当前NPC词组转化器提示词预设ID || (profile.配置 as any).当前NAI词组转化器提示词预设ID || '未绑定'}</span></div>
+                                    <div className="rounded border border-white/10 bg-black/30 px-2 py-1.5">词组：<span className="text-gray-200">{(profile.配置 as any).当前场景词组转化器提示词预设ID || (profile.配置 as any).当前NPC词组转化器提示词预设ID || (profile.配置 as any).当前Tag词组转化器提示词预设ID || '未绑定'}</span></div>
                                 </div>
                                 <div className="mt-4 grid grid-cols-3 gap-2">
                                     <button type="button" onClick={() => handleApplyImageProfile(profile.id)} className="rounded-lg border border-fuchsia-400/40 bg-fuchsia-950/30 px-3 py-2 text-xs text-fuchsia-100 hover:bg-fuchsia-900/40">应用</button>

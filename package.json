@@ -9,16 +9,12 @@
     "cnb:workspace": "node scripts/cnb-workspace-start.mjs",
     "worker:functions": "node scripts/build-worker.mjs",
     "worker:build": "npm run build && npm run worker:functions",
-    "worker:deploy": "npm run worker:build && wrangler deploy",
-    "cf:secrets:bulk": "wrangler secret bulk",
-    "cf:secrets:list": "wrangler secret list",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "stress:test": "node scripts/promptStressTest.js",
-    "preset:images": "node scripts/generate-preset-item-images.mjs"
+    "stress:test": "node scripts/promptStressTest.js"
   },
   "dependencies": {
     "fflate": "^0.8.2",

@@ -339,7 +339,7 @@ const buildSyncPayload = ({ args, discovery, readiness, workspace }) => ({
   connectToken: args.connectToken || undefined,
   detectedFrom: discovery.source,
   detectedAt: new Date().toISOString(),
-  workspace: process.env.CNB_WORKSPACE || args.cnbRepo || process.env.CNB_REPO_SLUG || process.env.GITHUB_REPOSITORY || undefined,
+  workspace: process.env.CNB_WORKSPACE || args.cnbRepo || process.env.CNB_REPO_SLUG || undefined,
   workspaceStart: workspace?.started || undefined,
   workspaceDetail: workspace?.detail || undefined
 });

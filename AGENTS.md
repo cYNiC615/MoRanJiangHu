@@ -46,7 +46,7 @@ This file records current collaboration rules for the homebrew fork. Keep it sho
 
 ## Secrets And Environment
 
-- Never commit API keys, OAuth secrets, GitHub tokens, object-storage credentials, image-host tokens, Discord tokens, or AI keys.
+- Never commit API keys, OAuth secrets, GitHub tokens, object-storage credentials, Discord tokens, or AI keys.
 - Keep real secrets only in local env files, user environment variables, local `.dev.vars`, local `.env.*`, or platform secrets.
 - Commit only safe templates such as `.env.example` files.
 - Frontend `VITE_` variables are build-time public variables; do not put secrets there.
@@ -152,4 +152,4 @@ Keep these until the corresponding module is removed or rewritten:
 - When a social NPC is confirmed present in the current scene, local processing should maintain `当前位置`, `当前地点`, and `位置路径` where available.
 - In-game time must not roll back or reset to real-world dates. `游戏初始时间` is opening-only and should not be rewritten during normal turns.
 - Changing `prompts/*` may not affect runtime if IndexedDB has enabled builtin prompt overrides or saved extra worldbooks. Treat builtin prompt/worldbook reset or migration as part of prompt cleanup work.
-- External AI test credentials, image-host credentials, and object-storage credentials must stay in local user environment variables only.
+- External AI test credentials and object-storage credentials must stay in local user environment variables only.

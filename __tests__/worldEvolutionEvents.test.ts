@@ -26,7 +26,7 @@ describe('worldEvolution visible events', () => {
         expect(是否后台世界工程描述('建立活跃 NPC 列表：初始化杨镇远（叔父）作为后台活跃对象。')).toBe(true);
     });
 
-    it('synthesizes visible news from faction commands and ignores retired market buffers', () => {
+    it('synthesizes visible news from faction commands', () => {
         const commands = 规范化世界演变命令列表([
             {
                 action: 'push',
@@ -37,11 +37,6 @@ describe('worldEvolution visible events', () => {
                     事件摘要: '双方在洛水渡口争夺镖路，三家商队暂停北上。',
                     流出物品: []
                 }
-            },
-            {
-                action: 'push',
-                key: '世界.拍卖行待投放物品',
-                value: { 名称: '玄铁残卷', 类型: '秘籍', 品质: '稀世' }
             }
         ] as any);
 
@@ -54,14 +49,12 @@ describe('worldEvolution visible events', () => {
         ], commands);
 
         expect(updates[0]).toContain('青云门、铁衣帮发生争夺');
-        expect(updates.join('\n')).not.toContain('玄铁残卷');
         expect(updates.join('\n')).not.toContain('待执行事件');
     });
 
-    it('allows faction-related world evolution paths and rejects the retired market buffer', () => {
+    it('allows faction-related world evolution paths', () => {
         expect(normalizeStateCommandKey('势力列表')).toBe('gameState.世界.势力列表');
         expect(normalizeStateCommandKey('势力互动历史')).toBe('gameState.世界.势力互动历史');
-        expect(normalizeStateCommandKey('拍卖行待投放物品')).not.toBe('gameState.世界.拍卖行待投放物品');
 
         const commands = 规范化世界演变命令列表([
             {
@@ -73,11 +66,6 @@ describe('worldEvolution visible events', () => {
                 action: 'push',
                 key: '势力互动历史',
                 value: { 事件摘要: '青云门与铁衣帮互相试探。' }
-            },
-            {
-                action: 'push',
-                key: '拍卖行待投放物品',
-                value: { 名称: '玄铁残卷', 类型: '秘籍', 品质: '稀世' }
             }
         ] as any);
 
@@ -107,14 +95,10 @@ describe('worldEvolution visible events', () => {
                     参与势力: ['青云门', '铁衣帮'],
                     事件摘要: '双方在洛水渡口争夺镖路，三家商队暂停北上。'
                 }
-            ],
-            拍卖行待投放物品: [
-                { 名称: '玄铁残卷', 类型: '秘籍', 品质: '稀世' }
             ]
         });
 
         expect(updates.join('\n')).toContain('青云门、铁衣帮发生争夺');
-        expect(updates.join('\n')).not.toContain('玄铁残卷');
         expect(updates.join('\n')).not.toContain('晨间剑法考校');
         expect(updates.join('\n')).not.toContain('演武场');
     });
@@ -124,10 +108,8 @@ describe('worldEvolution visible events', () => {
             角色: {},
             环境: {},
             社交: [],
-            战斗: {},
             玩家组织: {},
             任务列表: [],
-            约定列表: [],
             世界: {
                 势力列表: [],
                 势力互动历史: []
@@ -141,8 +123,8 @@ describe('worldEvolution visible events', () => {
         }, baseState as any).allowed).toBe(true);
         expect(校验变量命令是否登记({
             action: 'push',
-            key: '世界.拍卖行待投放物品',
-            value: { 名称: '玄铁残卷' }
+            key: '世界.未知字段',
+            value: { 名称: '无效' }
         }, baseState as any).allowed).toBe(false);
     });
 

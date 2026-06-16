@@ -26,13 +26,13 @@ describe('diagnosticReport', () => {
         vi.resetModules();
         vi.stubGlobal('localStorage', createLocalStorageMock());
         vi.stubGlobal('navigator', {
-            userAgent: 'Mozilla/5.0 (Linux; Android 14) Mobile',
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             language: 'zh-CN',
-            platform: 'Android'
+            platform: 'Win32'
         });
         vi.stubGlobal('screen', {
-            width: 390,
-            height: 844
+            width: 1366,
+            height: 900
         });
         vi.stubGlobal('window', {
             location: {
@@ -41,10 +41,10 @@ describe('diagnosticReport', () => {
                 href: 'https://local.example'
             },
             screen: {
-                width: 390,
-                height: 844
+                width: 1366,
+                height: 900
             },
-            devicePixelRatio: 3,
+            devicePixelRatio: 1,
             addEventListener: vi.fn(),
             removeEventListener: vi.fn()
         });
@@ -73,7 +73,7 @@ describe('diagnosticReport', () => {
         const result = await submitDiagnosticReport([{
             id: 'log_test',
             level: 'error',
-            message: '图床上传失败：error code: 1102',
+            message: '远程接口失败：error code: 1102',
             detail: { status: 503 },
             createdAt: '2026-05-17T09:00:00+08:00'
         } as any]);

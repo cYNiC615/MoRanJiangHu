@@ -4,7 +4,6 @@ import type {
     接口设置结构,
     游戏设置结构,
     环境信息结构,
-    战斗状态结构,
     角色数据结构
 } from '../../types';
 import * as textAIService from '../../services/ai/text';
@@ -29,7 +28,6 @@ type 正文润色依赖 = {
     环境: 环境信息结构;
     剧情: any;
     社交: any[];
-    战斗: 战斗状态结构;
     角色: 角色数据结构;
     文章优化已开启: boolean;
     深拷贝: <T,>(data: T) => T;

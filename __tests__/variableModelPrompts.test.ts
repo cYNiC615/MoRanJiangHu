@@ -36,7 +36,7 @@ describe('variableModel prompts', () => {
         expect(systemPrompt).toContain('输入物/输出物/余额');
         expect(systemPrompt).toContain('输入物离开背包时，对 `角色.物品列表[i]` 执行 `delete` 或 `sub 堆叠数量`');
         expect(systemPrompt).toContain('输出物进入背包时，对 `角色.物品列表` 执行 `push/add`');
-        expect(systemPrompt).toContain('货币、贡献、信用、灵石等收支同步写入对应变量');
+        expect(systemPrompt).toContain('货币、信用等收支同步写入对应变量');
     });
 
     it('maps transaction and production facts to paired variable commands', () => {
@@ -45,7 +45,7 @@ describe('variableModel prompts', () => {
         expect(systemPrompt).toContain('卖出=扣原物+加收入');
         expect(systemPrompt).toContain('买入=扣货币+加物品');
         expect(systemPrompt).toContain('兑换=扣旧物+加新物');
-        expect(systemPrompt).toContain('炼制/制作=扣材料+加成品');
+        expect(systemPrompt).toContain('制作=扣材料+加成品');
         expect(systemPrompt).toContain('只写产出不扣输入');
     });
 

@@ -1,7 +1,7 @@
 import type { TavernCommand } from '../../types';
 import { applyStateCommand, normalizeStateCommandKey, 是否废弃命令根路径 } from '../../utils/stateHelpers';
 import { preserveInventoryOnUnsafeRoleReplace, sanitizeInventoryCommand } from './inventoryCommandGuard';
-import { 同步角色与门派状态 } from './storyState';
+import { 同步角色与组织状态 } from './storyState';
 
 const 同步剧情时间校准 = async ({ nextStory }: { previousStory: any; nextStory: any; envLike: any }) => nextStory;
 
@@ -10,13 +10,11 @@ export type 运行时变量分区类型 =
     | '环境'
     | '社交'
     | '世界'
-    | '战斗'
     | '剧情'
     | '剧情规划'
     | '女主剧情规划'
     | '玩家组织'
     | '任务列表'
-    | '约定列表'
     | '记忆系统';
 
 type 运行时变量工作流依赖 = {
@@ -27,24 +25,21 @@ type 运行时变量工作流依赖 = {
         环境: any;
         社交: any[];
         世界: any;
-        战斗: any;
         剧情: any;
         剧情规划: any;
         女主剧情规划: any;
         玩家组织: any;
         任务列表: any[];
-        约定列表: any[];
         记忆系统: any;
     };
     规范化角色物品容器映射: (value: any, options?: { 当前时间?: unknown; 事件文本?: string }) => any;
     规范化环境信息: (value: any) => any;
     规范化社交列表: (value: any[], options?: { 合并同名?: boolean; 保留非姓名库主要女性名?: boolean }) => any[];
     规范化世界状态: (value: any) => any;
-    规范化战斗状态: (value: any) => any;
     规范化剧情状态: (value: any) => any;
     规范化剧情规划状态: (value: any) => any;
     规范化女主剧情规划状态: (value: any) => any;
-    规范化门派状态: (value: any) => any;
+    规范化组织状态: (value: any) => any;
     规范化记忆系统: (value: any) => any;
     环境时间转标准串: (value: any) => string;
     获取开局配置: () => any;
@@ -52,13 +47,11 @@ type 运行时变量工作流依赖 = {
     设置环境: (value: any) => void;
     设置社交: (value: any) => void;
     设置世界: (value: any) => void;
-    设置战斗: (value: any) => void;
     设置剧情: (value: any) => void;
     设置剧情规划: (value: any) => void;
     设置女主剧情规划: (value: any) => void;
     设置玩家组织: (value: any) => void;
     设置任务列表: (value: any) => void;
-    设置约定列表: (updater: any) => void;
     应用并同步记忆系统: (value: any) => void;
     performAutoSave: (snapshot: any) => Promise<any> | any;
     女主规划已启用?: () => boolean;
@@ -196,12 +189,6 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 void deps.performAutoSave({ world: nextValue, history: 历史记录, force: true });
                 return;
             }
-            case '战斗': {
-                const nextValue = deps.规范化战斗状态(value);
-                deps.设置战斗(nextValue);
-                void deps.performAutoSave({ battle: nextValue, history: 历史记录, force: true });
-                return;
-            }
             case '剧情': {
                 const nextValue = deps.规范化剧情状态(value);
                 deps.设置剧情(nextValue);
@@ -221,9 +208,9 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 return;
             }
             case '玩家组织': {
-                const synced = 同步角色与门派状态({
+                const synced = 同步角色与组织状态({
                     角色: 当前状态.角色,
-                    玩家组织: deps.规范化门派状态(value)
+                    玩家组织: deps.规范化组织状态(value)
                 });
                 deps.设置角色(synced.角色);
                 deps.设置玩家组织(synced.玩家组织);
@@ -234,12 +221,6 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
                 const nextValue = Array.isArray(value) ? value : [];
                 deps.设置任务列表(nextValue);
                 void deps.performAutoSave({ tasks: nextValue, history: 历史记录, force: true });
-                return;
-            }
-            case '约定列表': {
-                const nextValue = Array.isArray(value) ? value : [];
-                deps.设置约定列表(nextValue);
-                void deps.performAutoSave({ agreements: nextValue, history: 历史记录, force: true });
                 return;
             }
             case '记忆系统': {
@@ -278,13 +259,11 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             当前状态.环境,
             当前状态.社交,
             当前状态.世界,
-            当前状态.战斗,
             当前状态.剧情,
             当前状态.剧情规划,
             当前状态.女主剧情规划,
             当前状态.玩家组织,
             当前状态.任务列表,
-            当前状态.约定列表,
             safeCommand.key,
             safeCommand.value,
             safeCommand.action
@@ -301,7 +280,6 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         const nextStoryPlan = deps.规范化剧情规划状态(result.storyPlan);
         const nextHeroinePlan = deps.规范化女主剧情规划状态(result.heroinePlan);
         const nextTasks = Array.isArray(result.tasks) ? result.tasks : [];
-        const nextAgreements = Array.isArray(result.agreements) ? result.agreements : [];
         deps.设置角色(nextChar);
         deps.设置环境(nextEnv);
         deps.设置社交(nextSocial);
@@ -310,7 +288,6 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         deps.设置剧情规划(nextStoryPlan);
         deps.设置女主剧情规划(nextHeroinePlan);
         deps.设置任务列表(nextTasks);
-        deps.设置约定列表(nextAgreements);
         void deps.performAutoSave({
             char: nextChar,
             env: nextEnv,
@@ -320,7 +297,6 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             storyPlan: nextStoryPlan,
             heroinePlan: nextHeroinePlan,
             tasks: nextTasks,
-            agreements: nextAgreements,
             history: 历史记录,
             force: true
         });
@@ -341,25 +317,9 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         }
     };
 
-    const removeAgreement = (agreementIndex: number) => {
-        if (!Number.isInteger(agreementIndex) || agreementIndex < 0) return;
-        let nextAgreementsSnapshot: any[] | null = null;
-        deps.设置约定列表((prev: any) => {
-            const baseList = Array.isArray(prev) ? prev : [];
-            if (agreementIndex >= baseList.length) return prev;
-            const nextList = baseList.filter((_: any, index: number) => index !== agreementIndex);
-            nextAgreementsSnapshot = nextList;
-            return nextList;
-        });
-        if (nextAgreementsSnapshot) {
-            void deps.performAutoSave({ agreements: nextAgreementsSnapshot, history: deps.获取历史记录(), force: true });
-        }
-    };
-
     return {
         updateRuntimeVariableSection,
         applyRuntimeVariableCommand,
-        removeTask,
-        removeAgreement
+        removeTask
     };
 };

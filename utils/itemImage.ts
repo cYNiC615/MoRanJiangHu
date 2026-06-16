@@ -53,13 +53,11 @@ export const 获取物品图标复用Key = (item?: 游戏物品 | null): string 
     return 规范化物品图标复用字段((item as any).ID) || 'unknown';
 };
 
-const 物品图床字段 = [
+const 物品远程图片字段 = [
     '图片URL',
     '图标URL',
     '图片地址',
     '图标地址',
-    '图床链接',
-    '图床URL',
     '远程图片URL',
     '远程图标URL',
     '封面URL',
@@ -67,9 +65,9 @@ const 物品图床字段 = [
     '图片'
 ];
 
-export const 获取物品远程图床地址 = (item?: 游戏物品 | null): string => {
+export const 获取物品远程图片地址 = (item?: 游戏物品 | null): string => {
     if (!item || typeof item !== 'object') return '';
-    for (const key of 物品图床字段) {
+    for (const key of 物品远程图片字段) {
         const value = (item as any)[key];
         if (typeof value === 'string' && 是否远程图片地址(value)) {
             return value.trim();
@@ -78,8 +76,8 @@ export const 获取物品远程图床地址 = (item?: 游戏物品 | null): stri
     return '';
 };
 
-const 获取物品远程图床记录 = (item?: 游戏物品 | null): 物品生图结果 | null => {
-    const remoteUrl = 获取物品远程图床地址(item);
+const 获取物品远程图片记录 = (item?: 游戏物品 | null): 物品生图结果 | null => {
+    const remoteUrl = 获取物品远程图片地址(item);
     if (!remoteUrl) return null;
     return {
         id: `hosted_${remoteUrl}`,
@@ -119,19 +117,19 @@ export const 获取物品已选图标记录 = (item?: 游戏物品 | null): 物�
         return recentRecord;
     }
 
-    const hostedRecord = 获取物品远程图床记录(item);
+    const hostedRecord = 获取物品远程图片记录(item);
     if (hostedRecord) return hostedRecord;
 
     return history.find((entry) => entry?.状态 === 'success' && 获取图片展示地址(entry)) || null;
 };
 
 export const 获取物品已选图标地址 = (item?: 游戏物品 | null): string => {
-    const presetUrl = 获取物品预置图地址(item);
-    if (presetUrl) return presetUrl;
-
     const record = 获取物品已选图标记录(item);
     const fromRecord = 获取图片展示地址(record);
     if (fromRecord) return fromRecord;
+
+    const presetUrl = 获取物品预置图地址(item);
+    if (presetUrl) return presetUrl;
 
     return '';
 };

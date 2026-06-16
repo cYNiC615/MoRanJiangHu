@@ -759,10 +759,8 @@ type 回合快照结构 = {
         环境: any;
         社交: any[];
         世界: any;
-        战斗: any;
         玩家组织: any;
         任务列表: any[];
-        约定列表: any[];
         剧情: 剧情系统结构;
         剧情规划: 剧情规划结构;
         女主剧情规划?: 女主剧情规划结构;
@@ -782,10 +780,8 @@ type 主剧情发送当前状态 = {
     环境: any;
     社交: any[];
     世界: any;
-    战斗: any;
     玩家组织: any;
     任务列表: any[];
-    约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -1162,10 +1158,8 @@ export const 执行主剧情发送工作流 = async (
             环境: deps.规范化环境信息(deps.深拷贝(currentState.环境)),
             社交: deps.深拷贝(currentState.社交),
             世界: deps.深拷贝(currentState.世界),
-            战斗: deps.深拷贝(currentState.战斗),
             玩家组织: deps.深拷贝(currentState.玩家组织),
             任务列表: deps.深拷贝(currentState.任务列表),
-            约定列表: deps.深拷贝(currentState.约定列表),
             剧情: deps.深拷贝(currentState.剧情),
             剧情规划: deps.深拷贝(currentState.剧情规划),
             女主剧情规划: deps.深拷贝(currentState.女主剧情规划),
@@ -1302,10 +1296,8 @@ export const 执行主剧情发送工作流 = async (
                 角色: currentState.角色,
                 环境: deps.规范化环境信息(currentState.环境),
                 世界: currentState.世界,
-                战斗: currentState.战斗,
                 玩家组织: currentState.玩家组织,
                 任务列表: currentState.任务列表,
-                约定列表: currentState.约定列表,
                 剧情: deps.规范化剧情状态(currentState.剧情, currentState.环境),
                 女主剧情规划: deps.规范化女主剧情规划状态(currentState.女主剧情规划),
                 开局配置: currentState.开局配置,
@@ -1523,10 +1515,8 @@ export const 执行主剧情发送工作流 = async (
             环境: deps.深拷贝(currentState.环境),
             社交: deps.深拷贝(currentState.社交),
             世界: deps.深拷贝(currentState.世界),
-            战斗: deps.深拷贝(currentState.战斗),
             玩家组织: deps.深拷贝(currentState.玩家组织),
             任务列表: deps.深拷贝(currentState.任务列表),
-            约定列表: deps.深拷贝(currentState.约定列表),
             剧情: deps.深拷贝(currentState.剧情),
             女主剧情规划: deps.深拷贝(currentState.女主剧情规划)
         };
@@ -1643,10 +1633,8 @@ export const 执行主剧情发送工作流 = async (
                 环境: deps.规范化环境信息(deps.深拷贝(currentState.环境)),
                 社交: deps.深拷贝(currentState.社交),
                 世界: deps.深拷贝(currentState.世界),
-                战斗: deps.深拷贝(currentState.战斗),
                 玩家组织: deps.深拷贝(currentState.玩家组织),
                 任务列表: deps.深拷贝(currentState.任务列表),
-                约定列表: deps.深拷贝(currentState.约定列表),
                 剧情: deps.深拷贝(currentState.剧情),
                 剧情规划: deps.深拷贝(currentState.剧情规划),
                 女主剧情规划: deps.深拷贝(currentState.女主剧情规划),
@@ -2459,10 +2447,8 @@ export const 执行主剧情发送工作流 = async (
                         env: finalState.环境,
                         social: finalState.社交,
                         world: finalState.世界,
-                        battle: finalState.战斗,
                         sect: finalState.玩家组织,
                         tasks: finalState.任务列表,
-                        agreements: finalState.约定列表,
                         story: finalState.剧情,
                         storyPlan: finalState.剧情规划,
                         heroinePlan: finalState.女主剧情规划,

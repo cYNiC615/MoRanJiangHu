@@ -73,7 +73,7 @@ const stageToggleTips: Record<string, StageToggleConfig> = {
     },
     variable: {
         enableKey: '变量计算独立模型开关',
-        tipText: '强烈建议开启！变量生成负责产出角色状态、物品、装备、技能等结构化命令。关闭后游戏基本只剩下纯文字，角色面板、背包、战斗系统等都不会正常更新。'
+        tipText: '强烈建议开启！变量生成负责产出角色状态、物品、装备、技能等结构化命令。关闭后游戏基本只剩下纯文字，角色面板、背包、伤势和任务等都不会正常更新。'
     },
     world: {
         enableKey: '世界演变功能启用',

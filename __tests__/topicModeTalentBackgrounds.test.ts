@@ -52,7 +52,7 @@ describe('topic mode talent and background presets', () => {
         expect(talentNames).toContain('情报记忆');
         expect(talentNames).toContain('恐惧抗性');
         expect(talentNames).toContain('主神商城估价');
-        expect(talentNames).toContain('奖励点规划');
+        expect(talentNames).toContain('兑换规划');
         expect(backgroundNames).toContain('恐怖片影迷');
         expect(backgroundNames).toContain('退役密室主持');
         expect(backgroundNames).toContain('末班地铁乘客');

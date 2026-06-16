@@ -1,8 +1,7 @@
 import type {
     WorldGenConfig,
     世界数据结构,
-    战斗状态结构,
-    详细门派结构,
+    玩家组织结构,
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
@@ -14,7 +13,6 @@ import type {
 } from '../../types';
 import { 补齐世界地图空间字段 } from '../../utils/mapSpatial';
 import type { 任务结构, 任务状态 } from '../../models/task';
-import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { buildWorldMapLayersFromDraft } from '../../utils/newGameDiy';
@@ -33,10 +31,8 @@ export type 开场命令基态 = {
     环境: 环境信息结构;
     社交: any[];
     世界: 世界数据结构;
-    战斗: 战斗状态结构;
-    玩家组织: 详细门派结构;
+    玩家组织: 玩家组织结构;
     任务列表: any[];
-    约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -271,7 +267,7 @@ const 取字符串数组 = (value: any): string[] => (
 
 const 无门派文本集合 = new Set(['', 'none', '无', '无门派', '无门无派', '尚未加入任何门派', '江湖散人', '散修', '无所属门派']);
 
-export const 是否无门派标识 = (value: any): boolean => {
+export const 是否无组织标识 = (value: any): boolean => {
     if (value === null || value === undefined) return true;
     const normalized = typeof value === 'string' ? value.trim().replace(/\s+/g, '') : String(value).trim();
     return 无门派文本集合.has(normalized);
@@ -287,7 +283,7 @@ const 是现代组织题材 = (openingConfig?: OpeningConfig) => 开局题材属
 const 是西幻题材 = (openingConfig?: OpeningConfig) => 开局题材属于(openingConfig, ['western_fantasy']);
 const 是仙侠宗门题材 = (openingConfig?: OpeningConfig) => 开局题材属于(openingConfig, ['xianxia']);
 const 开局配置允许生成组织 = (openingConfig?: OpeningConfig): boolean => (
-    Boolean(openingConfig) && openingConfig?.配置约束启用 !== false && openingConfig?.开局生成门派 === true
+    Boolean(openingConfig) && openingConfig?.配置约束启用 !== false && openingConfig?.开局生成组织 === true
 );
 
 const 推导组织语义 = (source?: any, openingConfig?: OpeningConfig): 组织题材 => {
@@ -314,10 +310,10 @@ const 推导组织语义 = (source?: any, openingConfig?: OpeningConfig): 组织
         source?.玩家职位,
         source?.简介,
         source?.描述,
-        ...(Array.isArray(source?.门规) ? source.门规 : []),
+        ...(Array.isArray(source?.组织规则) ? source.组织规则 : []),
         ...(Array.isArray(source?.兑换列表) ? source.兑换列表.map((item: any) => `${item?.物品名称 || ''}${item?.类型 || ''}${item?.要求职位 || ''}`) : []),
         ...(Array.isArray(source?.商城) ? source.商城.map((item: any) => `${item?.名称 || ''}${item?.物品名称 || ''}${item?.类型 || ''}${item?.描述 || ''}`) : []),
-        ...(Array.isArray(source?.藏经阁列表) ? source.藏经阁列表.map((item: any) => `${item?.名称 || ''}${item?.类型 || ''}${item?.简介 || ''}${item?.要求职位 || ''}`) : []),
+        ...(Array.isArray(source?.资料库列表) ? source.资料库列表.map((item: any) => `${item?.名称 || ''}${item?.类型 || ''}${item?.简介 || ''}${item?.要求职位 || ''}`) : []),
         ...(Array.isArray(source?.能力库) ? source.能力库.map((item: any) => `${item?.名称 || ''}${item?.类型 || ''}${item?.描述 || ''}`) : []),
         ...(Array.isArray(source?.重要成员) ? source.重要成员.map((item: any) => `${item?.身份 || ''}${item?.境界 || ''}${item?.简介 || ''}`) : []),
         ...(Array.isArray(source?.成员列表) ? source.成员列表.map((item: any) => `${item?.身份 || ''}${item?.境界 || ''}${item?.简介 || ''}`) : [])
@@ -376,7 +372,7 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
     业力: 0,
     天赋列表: [],
     出身背景: { 名称: '', 描述: '', 效果: '' },
-    金钱: 确保角色金钱BaseAmount({ 金元宝: 0, 银子: 0, 铜钱: 0 }),
+    金钱: 确保角色金钱BaseAmount({ baseAmount: 0 }),
     当前精力: 0,
     最大精力: 0,
     当前内力: 0,
@@ -440,38 +436,38 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
     突破条件: []
 });
 
-export const 创建空门派状态 = (): 详细门派结构 => ({
+export const 创建空组织状态 = (): 玩家组织结构 => ({
     ID: 'none',
     名称: '无门无派',
     简介: '尚未加入任何门派。',
-    门规: [],
-    门派资金: 0,
-    门派物资: 0,
+    组织规则: [],
+    组织资金: 0,
+    组织物资: 0,
     建设度: 0,
-    门派等级: '无',
-    门派规模: '无',
-    弟子总数: 0,
-    战力分布: {},
+    组织等级: '无',
+    组织规模: '无',
+    成员总数: 0,
+    能力分布: {},
     财富评级: '无',
-    月俸规则: {
+    津贴规则: {
         基础俸禄: 0,
         贡献系数: 0,
         规模系数: 0,
         发放说明: '未加入门派时没有月俸。'
     },
-    上次俸禄月份: '',
+    上次津贴月份: '',
     玩家职位: '无',
     玩家贡献: 0,
     累计贡献: 0,
     任务列表: [],
     兑换列表: [],
-    藏经阁列表: [],
+    资料库列表: [],
     重要成员: []
 });
 
-export const 同步角色与门派状态 = <T extends { 角色?: any; 玩家组织?: any }>(state: T): T => {
+export const 同步角色与组织状态 = <T extends { 角色?: any; 玩家组织?: any }>(state: T): T => {
     const role = state?.角色 && typeof state.角色 === 'object' ? state.角色 : undefined;
-    const sect = 规范化门派状态(state?.玩家组织);
+    const sect = 规范化组织状态(state?.玩家组织);
 
     if (!role) {
         return {
@@ -480,7 +476,7 @@ export const 同步角色与门派状态 = <T extends { 角色?: any; 玩家组�
         };
     }
 
-    if (是否无门派标识(sect.ID)) {
+    if (是否无组织标识(sect.ID)) {
         return {
             ...state,
             玩家组织: sect,
@@ -495,7 +491,7 @@ export const 同步角色与门派状态 = <T extends { 角色?: any; 玩家组�
     };
 };
 
-const 创建默认门派任务列表 = (sectName: string, seed = 0, openingConfig?: OpeningConfig): 详细门派结构['任务列表'] => {
+const 创建默认组织任务列表 = (sectName: string, seed = 0, openingConfig?: OpeningConfig): 玩家组织结构['任务列表'] => {
     const isApocalypse = 是末日题材(openingConfig);
     const isInfinite = 是无限流题材(openingConfig);
     const isModern = 是现代组织题材(openingConfig) || 是西幻题材(openingConfig);
@@ -565,7 +561,7 @@ const 创建默认门派任务列表 = (sectName: string, seed = 0, openingConfi
         ? `${sectName}安排成员结伴处理外出风险，目标会随附近尸群、物资点和路线变化，可从队友名录中挑选同行者。`
         : isModern
             ? `${sectName}安排成员结伴处理外勤事务，目标会随客户、社区和城市事件变化，可从成员名录中挑选协作者。`
-            : `${sectName}安排年轻弟子结伴历练，目标会随附近局势变化，可从同门名录中挑选同行者。`;
+            : `${sectName}安排年轻弟子结伴历练，目标会随附近局势变化，可从成员名录中挑选同行者。`;
     return [
     {
         id: 'sect_default_patrol',
@@ -612,16 +608,16 @@ const 创建默认门派任务列表 = (sectName: string, seed = 0, openingConfi
 ];
 };
 
-const 门派任务状态转任务状态 = (status: string): 任务状态 => {
+const 组织任务状态转任务状态 = (status: string): 任务状态 => {
     if (status === '已完成') return '已完成';
     if (status === '已失败' || status === '已过期') return '已失败';
     return '进行中';
 };
 
-const 从门派任务创建通用任务列表 = (sectName: string, missions: 详细门派结构['任务列表'], openingConfig?: OpeningConfig): 任务结构[] => {
+const 从组织任务创建通用任务列表 = (sectName: string, missions: 玩家组织结构['任务列表'], openingConfig?: OpeningConfig): 任务结构[] => {
     const isInfinite = 是无限流题材(openingConfig);
     const isTopicOrganization = isInfinite || 是末日题材(openingConfig) || 是现代组织题材(openingConfig) || 是西幻题材(openingConfig);
-    const contributionLabel = isInfinite ? '奖励点' : '组织信用';
+    const contributionLabel = isInfinite ? '团队贡献' : '组织信用';
     const taskContextLabel = isInfinite ? '团队任务' : isTopicOrganization ? '组织事务' : '门中事务';
     return (
     Array.isArray(missions) ? missions.map((mission) => ({
@@ -633,7 +629,7 @@ const 从门派任务创建通用任务列表 = (sectName: string, missions: 详
         ...(isInfinite ? { 任务世界: '当前任务世界' } : {}),
         推荐境界: 取文本(mission?.难度, isInfinite ? '按任务风险' : isTopicOrganization ? '按组织事务' : '按门派差遣'),
         截止时间: 取文本(mission?.截止日期) || undefined,
-        当前状态: 门派任务状态转任务状态(取文本(mission?.当前状态)),
+        当前状态: 组织任务状态转任务状态(取文本(mission?.当前状态)),
         目标列表: [{
             描述: 取文本(mission?.描述, mission?.标题 || (isTopicOrganization ? '处理组织事务' : '处理门派事务')),
             当前进度: mission?.当前状态 === '已完成' ? 1 : 0,
@@ -642,10 +638,10 @@ const 从门派任务创建通用任务列表 = (sectName: string, missions: 详
         }],
         奖励描述: [
             mission?.奖励贡献 ? `${contributionLabel || '组织贡献'} +${mission.奖励贡献}` : '',
-            mission?.奖励资金 ? (isInfinite ? `生存补给额度 +${mission.奖励资金}` : isTopicOrganization ? `资源额度 +${mission.奖励资金}` : `铜钱 +${mission.奖励资金}`) : '',
+            mission?.奖励资金 ? (isInfinite ? `生存补给额度 +${mission.奖励资金}` : isTopicOrganization ? `资源额度 +${mission.奖励资金}` : `元 +${mission.奖励资金}`) : '',
             ...(Array.isArray(mission?.奖励物品) ? mission.奖励物品 : [])
         ].filter(Boolean),
-        剧情暗线: `${isInfinite ? '团队任务：发布者一般是队长、资深者或团队协调人；奖励应由AI根据正文与变量规划生成，若涉及物品必须通过变量命令写入背包；契机必须来自小队协作、补给清点、侦查分工、防守加固或情报获取，不得复述主神发布的存活倒计时主线。' : isTopicOrganization ? '组织事务' : '门派任务'}：${sectName}的「${取文本(mission?.标题, isInfinite ? '小队协同任务' : isTopicOrganization ? '组织事务' : '门派差遣')}」必须结合当前剧情、地点、在场人物与${isInfinite ? '主神任务进度和小队状态' : isTopicOrganization ? '组织近况' : '门派近况'}推进。`
+        剧情暗线: `${isInfinite ? '团队任务：发布者一般是队长、资深者或团队协调人；奖励应由AI根据正文与变量规划生成，若涉及物品必须通过变量命令写入背包；契机必须来自小队协作、补给清点、侦查分工、防守加固或情报获取，不得复述主神发布的存活倒计时主线。' : isTopicOrganization ? '组织事务' : '组织任务'}：${sectName}的「${取文本(mission?.标题, isInfinite ? '小队协同任务' : isTopicOrganization ? '组织事务' : '门派差遣')}」必须结合当前剧情、地点、在场人物与${isInfinite ? '主神任务进度和小队状态' : isTopicOrganization ? '组织近况' : '门派近况'}推进。`
     })) : []
 );
 };
@@ -668,14 +664,14 @@ const 去重开局任务列表 = (tasks: 任务结构[]): 任务结构[] => {
     return 规范化任务列表自动结算(exactDeduped) as 任务结构[];
 };
 
-const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: OpeningConfig): 任务结构 => {
+const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: OpeningConfig): 任务结构 => {
     const topic = openingConfig?.题材模式;
-    const organizationName = 是否无门派标识(sect?.ID) ? '' : 取文本(sect?.名称);
+    const organizationName = 是否无组织标识(sect?.ID) ? '' : 取文本(sect?.名称);
     const publisher = topic === '无限流' ? '主神光球' : (organizationName || (topic === '末日丧尸' ? '求生本能' : topic === '现代都市' ? '现实处境' : topic === '仙侠' ? '问道路引' : '江湖因缘'));
     const location = topic === '无限流' ? '主神空间' : (organizationName || (topic === '末日丧尸' ? '临时落脚点' : topic === '现代都市' ? '当前城市' : topic === '仙侠' ? '当前落脚处' : '当前落脚处'));
     if (topic === '无限流') {
         return {
-            标题: '确认主神首轮任务',
+            标题: '主神任务倒计时',
             描述: `${publisher}的光球在头顶闪烁，屏幕上跳出本轮任务的标题、存活时限和失败惩罚。主角必须在倒计时归零前弄清楚：任务目标到底是什么、当前环境中最致命的威胁在哪里、队友各自擅长什么、以及如果局势失控该往哪撤。`,
             类型: '主线',
             发布人: publisher,
@@ -779,15 +775,13 @@ const 创建开局主线任务 = (sect: 详细门派结构, openingConfig?: Open
     };
 };
 
-const 确保开局主线任务 = (tasks: 任务结构[], sect: 详细门派结构, openingConfig?: OpeningConfig): 任务结构[] => {
+const 确保开局主线任务 = (tasks: 任务结构[], sect: 玩家组织结构, openingConfig?: OpeningConfig): 任务结构[] => {
     const safeTasks = Array.isArray(tasks) ? tasks : [];
     if (safeTasks.some((task) => 取文本(task?.类型) === '主线')) return safeTasks;
-    // 无限流不使用硬编码模板，由AI根据剧情自动生成个性化主线任务
-    if (是无限流题材(openingConfig)) return safeTasks;
     return [创建开局主线任务(sect, openingConfig), ...safeTasks];
 };
 
-const 创建默认兑换列表 = (sectName = '本门', openingConfig?: OpeningConfig): 详细门派结构['兑换列表'] => {
+const 创建默认兑换列表 = (sectName = '本门', openingConfig?: OpeningConfig): 玩家组织结构['兑换列表'] => {
     const seed = 生成稳定哈希(`${sectName}|${openingConfig?.题材模式 || ''}|exchange`);
     if (是无限流题材(openingConfig)) {
         return [
@@ -821,17 +815,17 @@ const 创建默认兑换列表 = (sectName = '本门', openingConfig?: OpeningCo
     return [
         { id: `sect_shop_${生成稳定哈希(`${sectName}|medicine`).toString(36)}`, 物品名称: '金疮药', 类型: '丹药', 兑换价格: 30, 库存: 6, 要求职位: '杂役弟子' },
         { id: `sect_shop_${生成稳定哈希(`${sectName}|guard`).toString(36)}`, 物品名称: '软皮护腕', 类型: '防具', 兑换价格: 80, 库存: 3, 要求职位: '杂役弟子' },
-        { id: `sect_shop_${生成稳定哈希(`${sectName}|manual`).toString(36)}`, 物品名称: `${提取门派典籍前缀(sectName)}入门手札`, 类型: '武学', 兑换价格: 150, 库存: 2, 要求职位: '外门弟子' }
+        { id: `sect_shop_${生成稳定哈希(`${sectName}|manual`).toString(36)}`, 物品名称: `${提取组织资料前缀(sectName)}入门手札`, 类型: '武学', 兑换价格: 150, 库存: 2, 要求职位: '外门弟子' }
     ];
 };
 
-const 规范化兑换列表 = (items: any[], fallbackName: string, openingConfig?: OpeningConfig): 详细门派结构['兑换列表'] => {
+const 规范化兑换列表 = (items: any[], fallbackName: string, openingConfig?: OpeningConfig): 玩家组织结构['兑换列表'] => {
     const normalized = (Array.isArray(items) ? items : [])
         .map((item: any, index: number) => ({
             id: 取文本(item?.id || item?.ID, `exchange_${生成稳定哈希(`${fallbackName}|${index}|${item?.物品名称 || item?.名称 || ''}`).toString(36)}`),
             物品名称: 取文本(item?.物品名称 || item?.名称 || item?.title),
             类型: 取文本(item?.类型 || item?.分类 || item?.category, '物品'),
-            兑换价格: Math.max(1, 取数字(item?.兑换价格 ?? item?.价格 ?? item?.消耗 ?? item?.奖励点, 30)),
+            兑换价格: Math.max(1, 取数字(item?.兑换价格 ?? item?.价格 ?? item?.消耗 ?? item?.兑换额度, 30)),
             库存: Math.max(0, 取数字(item?.库存 ?? item?.数量 ?? item?.stock, 1)),
             要求职位: 取文本(item?.要求职位 || item?.要求身份 || item?.门槛, 是无限流题材(openingConfig) ? '新人' : 是末日题材(openingConfig) ? '营地成员' : 是现代组织题材(openingConfig) || 是西幻题材(openingConfig) ? '成员' : '杂役弟子')
         }))
@@ -839,14 +833,14 @@ const 规范化兑换列表 = (items: any[], fallbackName: string, openingConfig
     return normalized.length > 0 ? normalized : 创建默认兑换列表(fallbackName, openingConfig);
 };
 
-const 提取门派典籍前缀 = (sectName: string): string => {
+const 提取组织资料前缀 = (sectName: string): string => {
     const compact = 取文本(sectName, '本门').replace(/(山庄|剑派|武馆|仙宗|剑宗|道院|灵门|玄府|真宫|宗|派|门|帮|堂|堡|庄|院|府)$/u, '');
     return compact || 取文本(sectName, '本门');
 };
 
-const 创建默认藏经阁列表 = (sectName = '本门', openingConfig?: OpeningConfig): NonNullable<详细门派结构['藏经阁列表']> => {
+const 创建默认资料库列表 = (sectName = '本门', openingConfig?: OpeningConfig): NonNullable<玩家组织结构['资料库列表']> => {
     const seed = 生成稳定哈希(`${sectName}|${openingConfig?.题材模式 || ''}|藏经阁`);
-    const prefix = 提取门派典籍前缀(sectName);
+    const prefix = 提取组织资料前缀(sectName);
     if (是末日题材(openingConfig)) {
         return [
             {
@@ -996,7 +990,7 @@ const 创建默认藏经阁列表 = (sectName = '本门', openingConfig?: Openin
 
 const 能力品质权重: Record<string, number> = { 凡品: 1, 良品: 2, 上品: 3, 极品: 4, 绝世: 5, 传说: 6 };
 
-const 从藏经阁条目创建能力 = (book: any, sectName: string, openingConfig?: OpeningConfig) => {
+const 从资料库条目创建能力 = (book: any, sectName: string, openingConfig?: OpeningConfig) => {
     const bookName = 取文本(book?.名称, '未命名典籍');
     const inferredType = bookName.includes('剑') ? '剑法' : 取文本(book?.类型, '能力');
     const isInfinite = 是无限流题材(openingConfig) || /主神|轮回|奖励点|精神力|念动力|基因锁|枪械|血统|模块/u.test(`${bookName} ${inferredType} ${sectName}`);
@@ -1022,7 +1016,7 @@ const 从藏经阁条目创建能力 = (book: any, sectName: string, openingConf
             最高重数: 8,
             当前熟练度: 0,
             升级经验: 100,
-            突破条件: '通过任务世界实战、奖励点投入或极限压力触发提升',
+            突破条件: '通过任务世界实战、兑换训练或极限压力触发提升',
             境界限制: 取文本(book?.要求职位, '新人可解锁'),
             大成方向: '在任务世界中形成稳定可控的高阶运用',
             圆满效果: `${bookName}满级后可显著提高剧情任务中的生存、侦查或战斗表现。`,
@@ -1158,7 +1152,7 @@ const 补齐开局仙侠字段 = (charData: 角色数据结构, openingConfig?: 
 
 const 无限流违和能力词 = /剑法|刀法|拳谱|残卷|吐纳|内力|真经|宗门|门派|藏经阁|灵石|修仙|炼气|筑基|江湖|武学/u;
 
-const 补齐开局角色能力 = (charData: 角色数据结构, sect: 详细门派结构, openingConfig?: OpeningConfig): 角色数据结构 => {
+const 补齐开局角色能力 = (charData: 角色数据结构, sect: 玩家组织结构, openingConfig?: OpeningConfig): 角色数据结构 => {
     const currentSkills = Array.isArray((charData as any)?.能力列表) ? 深拷贝((charData as any).能力列表) : [];
     const isInfinite = 是无限流题材(openingConfig) || 推导组织语义(sect) === '轮回小队';
     const cleanedSkills = isInfinite
@@ -1168,16 +1162,16 @@ const 补齐开局角色能力 = (charData: 角色数据结构, sect: 详细门�
     if (['营地', '组织', '轮回小队'].includes(推导组织语义(sect))) {
         if (!isInfinite) return { ...charData, 能力列表: cleanedSkills };
     }
-    if (!sect || 是否无门派标识(sect.ID) || !Array.isArray(sect.藏经阁列表) || sect.藏经阁列表.length === 0) {
+    if (!sect || 是否无组织标识(sect.ID) || !Array.isArray(sect.资料库列表) || sect.资料库列表.length === 0) {
         return { ...charData, 能力列表: cleanedSkills };
     }
     const contribution = Math.max(取数字(sect.累计贡献, 0), 取数字(sect.玩家贡献, 0));
-    const availableBook = sect.藏经阁列表.find((book: any) => 取数字(book?.要求累计贡献, 0) <= contribution) || sect.藏经阁列表[0];
+    const availableBook = sect.资料库列表.find((book: any) => 取数字(book?.要求累计贡献, 0) <= contribution) || sect.资料库列表[0];
     if (!availableBook) return { ...charData, 能力列表: cleanedSkills };
-    return { ...charData, 能力列表: [从藏经阁条目创建能力(availableBook, sect.名称, openingConfig)] };
+    return { ...charData, 能力列表: [从资料库条目创建能力(availableBook, sect.名称, openingConfig)] };
 };
 
-const 补齐门派重要成员 = (sourceMembers: unknown): 详细门派结构['重要成员'] => {
+const 补齐组织重要成员 = (sourceMembers: unknown): 玩家组织结构['重要成员'] => {
     if (!Array.isArray(sourceMembers)) return [];
     const usedIds = new Set<string>();
     const usedNames = new Set<string>();
@@ -1194,7 +1188,7 @@ const 补齐门派重要成员 = (sourceMembers: unknown): 详细门派结构['�
             if (nameKey) usedNames.add(nameKey);
             return true;
         });
-    return members as 详细门派结构['重要成员'];
+    return members as 玩家组织结构['重要成员'];
 };
 
 const 创建玩家组织成员简报 = (
@@ -1202,7 +1196,7 @@ const 创建玩家组织成员简报 = (
     sectName: string,
     playerRank: string,
     openingConfig?: OpeningConfig
-): 详细门派结构['重要成员'][number] | null => {
+): 玩家组织结构['重要成员'][number] | null => {
     const name = 取文本(charData?.姓名);
     if (!name) return null;
     const isApocalypse = 是末日题材(openingConfig);
@@ -1213,7 +1207,7 @@ const 创建玩家组织成员简报 = (
     const realm = 取文本((charData as any)?.境界, isInfinite ? '新人轮回者' : isApocalypse ? '幸存者' : isModern ? '普通成员' : '初境');
     const identity = 取文本(playerRank, isInfinite ? '新人' : isApocalypse ? '营地成员' : isModern ? '成员' : '外门弟子');
     return {
-        id: `sect_member_player_${生成稳定哈希(`${sectName}|${name}|player`).toString(36)}`,
+        id: `organization_member_player_${生成稳定哈希(`${sectName}|${name}|player`).toString(36)}`,
         姓名: name,
         性别: gender as any,
         年龄: age,
@@ -1231,9 +1225,9 @@ const 创建玩家组织成员简报 = (
 };
 
 const 合并玩家到重要成员 = (
-    members: 详细门派结构['重要成员'],
-    playerMember: 详细门派结构['重要成员'][number] | null
-): 详细门派结构['重要成员'] => {
+    members: 玩家组织结构['重要成员'],
+    playerMember: 玩家组织结构['重要成员'][number] | null
+): 玩家组织结构['重要成员'] => {
     if (!playerMember) return members;
     const playerNameKey = playerMember.姓名.trim();
     const existingIndex = members.findIndex((item: any) => (
@@ -1248,7 +1242,7 @@ const 合并玩家到重要成员 = (
     return [playerMember, ...members];
 };
 
-const 生成开局门派名称 = (charData: 角色数据结构, openingConfig?: OpeningConfig): string => {
+const 生成开局组织名称 = (charData: 角色数据结构, openingConfig?: OpeningConfig): string => {
     const seed = 生成稳定哈希([
         取文本(charData?.姓名),
         取文本((charData as any)?.出身背景?.名称),
@@ -1308,8 +1302,8 @@ const 按性别比例取性别 = (ratio: string | { 男: number; 女: number; �
     return index % 3 === 1 ? '女' : '男';
 };
 
-const 创建默认同门名录 = (sectName: string, openingConfig?: OpeningConfig, playerName?: string): 详细门派结构['重要成员'] => {
-    if (openingConfig?.开局生成同门 === false) return [];
+const 创建默认组织成员名录 = (sectName: string, openingConfig?: OpeningConfig, playerName?: string): 玩家组织结构['重要成员'] => {
+    if (openingConfig?.开局生成成员 === false) return [];
     const seed = 生成稳定哈希(`${sectName}|${openingConfig?.题材模式 || ''}|同门`);
     const surnames = ['沈', '顾', '林', '陆', '许', '程', '韩', '苏', '叶', '周', '秦', '赵'];
     const givenNames = ['照临', '清砚', '明棠', '砚舟', '若衡', '怀瑾', '听澜', '云笙', '承岳', '知微', '景行', '映雪'];
@@ -1339,12 +1333,12 @@ const 创建默认同门名录 = (sectName: string, openingConfig?: OpeningConfi
         const duty = isApocalypse
             ? 按种子取项(['物资清点', '外围巡逻', '伤员照护', '路线侦察', '设备维护', '夜间值守'], seed, index)
             : isInfinite
-                ? 按种子取项(['主神任务复盘', '奖励点规划', '支线线索记录', '恐怖片情报整理', '武器维护', '新人心理稳定'], seed, index)
+                ? 按种子取项(['主神任务复盘', '兑换规划', '支线线索记录', '恐怖片情报整理', '武器维护', '新人心理稳定'], seed, index)
             : isModern
                 ? 按种子取项(['客户沟通', '现场协调', '资料整理', '技术支持', '外勤跑动', '资源对接'], seed, index)
                 : isFantasy
                     ? 按种子取项(['委托登记', '营地补给', '遗迹调查', '魔物警戒', '药剂整理', '路线护送'], seed, index)
-                : 按种子取项(['外务传令', '照看新弟子', '巡守山门', '整理典籍', '采办物资', '维持门规'], seed, index);
+                : 按种子取项(['外务传令', '照看新弟子', '巡守山门', '整理典籍', '采办物资', '维持组织规则'], seed, index);
     const realmCfg = 获取当前境界配置();
     const 取境界种子项 = (种子偏移: number) => {
         const levels = realmCfg?.levelNames;
@@ -1355,7 +1349,7 @@ const 创建默认同门名录 = (sectName: string, openingConfig?: OpeningConfi
         return '初境';
     };
     return {
-        id: `sect_member_opening_${生成稳定哈希(`${sectName}|${name}|${index}`).toString(36)}`,
+        id: `organization_member_opening_${生成稳定哈希(`${sectName}|${name}|${index}`).toString(36)}`,
         姓名: name,
         性别: 按性别比例取性别(genderRatio, seed, index),
         年龄: identity.includes('执事') || identity.includes('掌事') ? 34 + (seed + index) % 18 : 16 + (seed + index) % 12,
@@ -1363,7 +1357,7 @@ const 创建默认同门名录 = (sectName: string, openingConfig?: OpeningConfi
         身份: identity,
             简介: `${sectName}${identity}，负责${duty}。`
         };
-    }).filter(Boolean) as 详细门派结构['重要成员'];
+    }).filter(Boolean) as 玩家组织结构['重要成员'];
 };
 
 const 题材资料库是否违和 = (items: any[], organizationKind: 组织题材): boolean => {
@@ -1396,11 +1390,11 @@ const 按人数平衡分布 = (total: number, entries: Array<[string, number]>):
     return result;
 };
 
-const 创建开局门派种子数据 = (
+const 创建开局组织种子数据 = (
     charData: 角色数据结构,
     openingConfig?: OpeningConfig
 ) => {
-    const sectName = 生成开局门派名称(charData, openingConfig);
+    const sectName = 生成开局组织名称(charData, openingConfig);
     const seed = 生成稳定哈希(`${sectName}|${取文本(charData?.姓名)}|${取文本((charData as any)?.出身背景?.名称)}`);
     const isXianxia = 是仙侠宗门题材(openingConfig);
     const isApocalypse = 是末日题材(openingConfig);
@@ -1414,7 +1408,7 @@ const 创建开局门派种子数据 = (
     const ideals = isApocalypse
         ? ['隔离优先，物资登记，结伴行动', '守住净水、药品与撤离路线', '不隐瞒伤情，不制造无谓噪音', '互保夜巡，遇险先救活人']
         : isInfinite
-            ? ['任务优先，情报共享，奖励点透明', '新人互保，支线谨慎，回归结算不隐瞒', '兑换先活命，团战先保队形', '恐惧可说谎，主神规则不可赌']
+            ? ['任务优先，情报共享，兑换透明', '新人互保，支线谨慎，回归结算不隐瞒', '兑换先活命，团战先保队形', '恐惧可说谎，主神规则不可赌']
         : isModern
             ? ['守约履责，信息透明，互相兜底', '按合同做事，按人情留余地', '问题不过夜，资源要留痕', '把事情办成，也把人照顾到']
             : isXianxia
@@ -1432,7 +1426,7 @@ const 创建开局门派种子数据 = (
         intro: isApocalypse
             ? `${sectName}${按种子取项(['占据旧商场侧翼', '守着一处净水点', '依托临时车队转移', '靠近封锁线边缘'], seed, 5)}，行动准则是${按种子取项(ideals, seed, 9)}。`
             : isInfinite
-                ? `${sectName}${按种子取项(['刚结束上一场恐怖片任务', '在主神空间队伍房间休整', '围绕第一次团战风险重整分工', '正在核对支线剧情和奖励点账目'], seed, 5)}，小队准则是${按种子取项(ideals, seed, 9)}。`
+                ? `${sectName}${按种子取项(['刚结束上一场恐怖片任务', '在主神空间队伍房间休整', '围绕第一次团战风险重整分工', '正在核对支线剧情和兑换账目'], seed, 5)}，小队准则是${按种子取项(ideals, seed, 9)}。`
             : isModern
                 ? `${sectName}${按种子取项(['扎根城市街区', '围绕一个长期项目运转', '由熟人和合作方维系', '近来事务压力上升'], seed, 5)}，行事准则是${按种子取项(ideals, seed, 9)}。`
                 : isFantasy
@@ -1441,7 +1435,7 @@ const 创建开局门派种子数据 = (
         rules: isApocalypse
             ? ['伤情与感染风险必须登记', 按种子取项(['外出搜刮必须结伴', '夜间噪音严格管控', '药品弹药统一记录'], seed, 13), '路线、哨位和物资点不得私自泄露']
             : isInfinite
-                ? ['主神任务情报必须共享', 按种子取项(['奖励点和支线剧情必须登记', '新人不得单独进入未知剧情点', '兑换强化必须说明风险'], seed, 13), '团战、污染和附身风险不得隐瞒']
+                ? ['主神任务情报必须共享', 按种子取项(['兑换权限和支线剧情必须登记', '新人不得单独进入未知剧情点', '兑换强化必须说明风险'], seed, 13), '团战、污染和附身风险不得隐瞒']
             : isModern
                 ? ['合作事项必须留痕', 按种子取项(['外勤风险要提前报备', '客户与邻里关系不得私自激化', '资金和资料流向必须清楚'], seed, 13), '成员隐私和关键资料不得外泄']
                 : isFantasy
@@ -1455,7 +1449,7 @@ const 创建开局门派种子数据 = (
     };
 };
 
-const 推导门派规模数据 = (source: any, displayName: string) => {
+const 推导组织规模数据 = (source: any, displayName: string) => {
     const organizationKind = 推导组织语义(source);
     const isApocalypse = organizationKind === '营地';
     const isInfinite = organizationKind === '轮回小队';
@@ -1468,17 +1462,17 @@ const 推导门派规模数据 = (source: any, displayName: string) => {
                 ? source.队员列表
                 : [];
     const resources = source?.资源 && typeof source.资源 === 'object' && !Array.isArray(source.资源) ? source.资源 : {};
-    const rawTotal = 取数字(source?.弟子总数 ?? source?.成员总数 ?? source?.门人总数 ?? source?.人数, 0);
+    const rawTotal = 取数字(source?.成员总数 ?? source?.成员总数 ?? source?.门人总数 ?? source?.人数, 0);
     const importantCount = sourceMembers.length;
     const total = isInfinite
         ? Math.max(1, importantCount || (rawTotal > 0 && rawTotal <= 12 ? rawTotal : 0))
         : Math.max(rawTotal, importantCount);
-    const funds = 取数字(source?.门派资金 ?? source?.资金 ?? resources?.奖励点 ?? resources?.资金, isInfinite ? 0 : 1200);
-    const material = 取数字(source?.门派物资 ?? source?.物资 ?? resources?.物资, 350);
+    const funds = 取数字(source?.组织资金 ?? source?.资金 ?? resources?.兑换额度 ?? resources?.资金, isInfinite ? 0 : 1200);
+    const material = 取数字(source?.组织物资 ?? source?.物资 ?? resources?.物资, 350);
     const build = 取数字(source?.建设度 ?? source?.建设 ?? resources?.建设, 180);
     const score = total * 2 + Math.floor(funds / 500) + Math.floor(material / 80) + Math.floor(build / 50);
-    const rawLevel = 含幕后生成占位文本(source?.门派等级) ? '' : 取文本(source?.门派等级);
-    const rawScale = 含幕后生成占位文本(source?.门派规模) ? '' : 取文本(source?.门派规模);
+    const rawLevel = 含幕后生成占位文本(source?.组织等级) ? '' : 取文本(source?.组织等级);
+    const rawScale = 含幕后生成占位文本(source?.组织规模) ? '' : 取文本(source?.组织规模);
     const rawWealth = 含幕后生成占位文本(source?.财富评级) ? '' : 取文本(source?.财富评级);
     const level = rawLevel
         || (isApocalypse
@@ -1500,46 +1494,46 @@ const 推导门派规模数据 = (source: any, displayName: string) => {
         || (isApocalypse
             ? (funds >= 30000 ? '补给充足' : funds >= 10000 ? '库存稳定' : funds >= 2500 ? '勉强周转' : '严重短缺')
             : isInfinite
-                ? (funds >= 30000 ? '奖励点充足' : funds >= 10000 ? '兑换储备稳定' : funds >= 2500 ? '点数紧张' : '资源见底')
+                ? (funds >= 30000 ? '额度充足' : funds >= 10000 ? '兑换储备稳定' : funds >= 2500 ? '额度紧张' : '资源见底')
             : isModern
                 ? (funds >= 30000 ? '现金流充足' : funds >= 10000 ? '运转稳定' : funds >= 2500 ? '预算有限' : '资金紧张')
                 : (funds >= 30000 ? '富甲一方' : funds >= 10000 ? '殷实' : funds >= 2500 ? '尚可' : '拮据'));
-    const rawDistribution = source?.战力分布 && typeof source.战力分布 === 'object' && !Array.isArray(source.战力分布)
-        ? source.战力分布
+    const rawDistribution = source?.能力分布 && typeof source.能力分布 === 'object' && !Array.isArray(source.能力分布)
+        ? source.能力分布
         : {};
-    const stipend = source?.月俸规则 && typeof source.月俸规则 === 'object' && !Array.isArray(source.月俸规则)
-        ? source.月俸规则
+    const stipend = source?.津贴规则 && typeof source.津贴规则 === 'object' && !Array.isArray(source.津贴规则)
+        ? source.津贴规则
         : {};
     return {
-        门派等级: level,
-        门派规模: scale,
-        弟子总数: total,
-        战力分布: rawDistribution,
+        组织等级: level,
+        组织规模: scale,
+        成员总数: total,
+        能力分布: rawDistribution,
         财富评级: wealth,
-        月俸规则: {
+        津贴规则: {
             基础俸禄: 取数字(stipend?.基础俸禄, level.includes('一流') ? 900 : level.includes('二流') ? 500 : level.includes('三流') ? 260 : 120),
             贡献系数: 取数字(stipend?.贡献系数, 0.08),
             规模系数: 取数字(stipend?.规模系数, total >= 500 ? 1.6 : total >= 120 ? 1.25 : total >= 30 ? 1 : 0.75),
             发放说明: 取文本(stipend?.发放说明, isApocalypse
                 ? `${displayName}按贡献、岗位、风险和库存情况分配口粮、药品、弹药、燃油或通行资源。`
                 : isInfinite
-                    ? `${displayName}按主神任务贡献、支线剧情、队伍分工和回归结算分配奖励点、兑换权限或补给额度。`
+                    ? `${displayName}按主神任务贡献、支线剧情、队伍分工和回归结算分配元、兑换权限或补给额度。`
                 : isModern
                     ? `${displayName}按岗位、贡献、项目预算和合作关系结算工资、补贴、分成或资源支持。`
-                    : `${displayName}按月根据职位、累计贡献、贡献等级、门派规模与财富状况发放俸禄。`)
+                    : `${displayName}按月根据职位、累计贡献、贡献等级、组织规模与财富状况发放俸禄。`)
         },
-        上次俸禄月份: 取文本(source?.上次俸禄月份)
+        上次津贴月份: 取文本(source?.上次津贴月份)
     };
 };
 
-export const 创建开局门派状态 = (
+export const 创建开局组织状态 = (
     charData: 角色数据结构,
     openingConfig?: OpeningConfig
-): 详细门派结构 => {
+): 玩家组织结构 => {
     const shouldCreateSect = 开局配置允许生成组织(openingConfig);
-    if (!shouldCreateSect) return 创建空门派状态();
+    if (!shouldCreateSect) return 创建空组织状态();
 
-    const seedData = 创建开局门派种子数据(charData, openingConfig);
+    const seedData = 创建开局组织种子数据(charData, openingConfig);
     const baseName = seedData.sectName;
     const contribution = 0;
     const isApocalypse = 是末日题材(openingConfig);
@@ -1553,29 +1547,29 @@ export const 创建开局门派状态 = (
             ? '成员'
             : '外门弟子';
     const playerMember = 创建玩家组织成员简报(charData, baseName, playerRank, openingConfig);
-    const normalized = 规范化门派状态({
+    const normalized = 规范化组织状态({
         ID: baseName,
         名称: baseName,
         玩家职位: playerRank,
         玩家贡献: contribution,
         累计贡献: contribution,
         简介: seedData.intro,
-        门规: seedData.rules,
-        门派资金: seedData.funds,
-        门派物资: seedData.material,
+        组织规则: seedData.rules,
+        组织资金: seedData.funds,
+        组织物资: seedData.material,
         建设度: seedData.build,
         组织语义: seedData.organizationKind,
-        弟子总数: seedData.total,
+        成员总数: seedData.total,
         兑换列表: 创建默认兑换列表(baseName, openingConfig),
-        藏经阁列表: 创建默认藏经阁列表(baseName, openingConfig),
+        资料库列表: 创建默认资料库列表(baseName, openingConfig),
         任务列表: [],
-        重要成员: 合并玩家到重要成员(创建默认同门名录(baseName, openingConfig, charData?.姓名), playerMember)
+        重要成员: 合并玩家到重要成员(创建默认组织成员名录(baseName, openingConfig, charData?.姓名), playerMember)
     });
     return normalized;
 };
 
-export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
-    const base = 创建空门派状态();
+export const 规范化组织状态 = (raw?: any): 玩家组织结构 => {
+    const base = 创建空组织状态();
     const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const organizationKind = 推导组织语义(source);
     const isApocalypseOrganization = organizationKind === '营地';
@@ -1587,12 +1581,12 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
     const id = 取文本(sourceId, base.ID);
     const name = 取文本(sourceName, base.名称);
     const playerRankSource = 取文本(sourcePlayerRank, base.玩家职位);
-    const idInactive = sourceId !== undefined && 是否无门派标识(id);
-    const nameInactive = sourceName !== undefined && 是否无门派标识(name);
-    const playerRankInactive = sourcePlayerRank !== undefined && 是否无门派标识(playerRankSource);
-    const hasActiveId = sourceId !== undefined && !是否无门派标识(id);
-    const hasActiveName = sourceName !== undefined && !是否无门派标识(name) && name !== base.名称;
-    const hasActiveRank = sourcePlayerRank !== undefined && !是否无门派标识(playerRankSource);
+    const idInactive = sourceId !== undefined && 是否无组织标识(id);
+    const nameInactive = sourceName !== undefined && 是否无组织标识(name);
+    const playerRankInactive = sourcePlayerRank !== undefined && 是否无组织标识(playerRankSource);
+    const hasActiveId = sourceId !== undefined && !是否无组织标识(id);
+    const hasActiveName = sourceName !== undefined && !是否无组织标识(name) && name !== base.名称;
+    const hasActiveRank = sourcePlayerRank !== undefined && !是否无组织标识(playerRankSource);
     const hasExplicitInactiveMarker = (
         idInactive
         || (nameInactive && !hasActiveId && !hasActiveRank)
@@ -1609,8 +1603,8 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
             : Array.isArray(source?.团队商城)
                 ? source.团队商城
                 : [];
-    const sourceLibrary = Array.isArray(source?.藏经阁列表)
-        ? source.藏经阁列表
+    const sourceLibrary = Array.isArray(source?.资料库列表)
+        ? source.资料库列表
         : Array.isArray(source?.能力库)
             ? source.能力库
             : Array.isArray(source?.技能库)
@@ -1623,13 +1617,13 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
             : Array.isArray(source?.队员列表)
                 ? source.队员列表
                 : [];
-    const playerContribution = 取数字(source?.玩家贡献 ?? source?.贡献 ?? source?.奖励点, base.玩家贡献);
+    const playerContribution = 取数字(source?.玩家贡献 ?? source?.贡献 ?? source?.兑换额度, base.玩家贡献);
     const totalContribution = Math.max(
         playerContribution,
         取数字(source?.累计贡献 ?? source?.历史贡献 ?? source?.累计生成贡献, playerContribution)
     );
     const playerRank = 补全传统组织职位(source, totalContribution, isActiveSect ? '杂役弟子' : base.玩家职位);
-    const scaleData = 推导门派规模数据(source, displayName);
+    const scaleData = 推导组织规模数据(source, displayName);
     const defaultLibraryConfig = isApocalypseOrganization
         ? ({ 题材模式: '末日丧尸' } as OpeningConfig)
         : isInfiniteOrganization
@@ -1647,12 +1641,12 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
         : isApocalypseOrganization
             ? `${displayName}在灾后维持一处可承接的幸存者关系网，围绕补给、巡逻、救援、隔离和路线选择运转。`
             : isInfiniteOrganization
-                ? `${displayName}在主神空间中维持一支轮回者小队，围绕任务情报、奖励点、支线剧情、兑换强化和回归结算运转。`
+                ? `${displayName}在主神空间中维持一支轮回者小队，围绕任务情报、支线剧情、兑换强化和回归结算运转。`
             : isModernOrganization
                 ? `${displayName}在现代城市中维持一组可承接的现实关系，围绕工作、合作、资源、人情和城市事务运转。`
                 : `${displayName}立足一方，门中事务围绕修行、贡献、同门互助与外务历练展开。`;
-    const safeRules = Array.isArray(source?.门规) && source.门规.length > 0
-        ? source.门规.map((item: any) => 取文本(item)).filter((item: string) => item && !含幕后生成占位文本(item))
+    const safeRules = Array.isArray(source?.组织规则) && source.组织规则.length > 0
+        ? source.组织规则.map((item: any) => 取文本(item)).filter((item: string) => item && !含幕后生成占位文本(item))
         : [];
     const safeTasks = Array.isArray(source?.任务列表)
         ? source.任务列表.filter((item: any) => !含幕后生成占位文本(item?.标题) && !含幕后生成占位文本(item?.描述))
@@ -1662,19 +1656,19 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
         名称: displayName,
         组织语义: organizationKind || undefined,
         简介: isActiveSect ? safeIntro : base.简介,
-        门规: safeRules.length > 0
+        组织规则: safeRules.length > 0
             ? safeRules
             : (isActiveSect
                 ? isApocalypseOrganization
                     ? ['伤情与感染风险必须登记', '外出搜刮必须结伴', '路线、哨位和物资点不得私自泄露']
                     : isInfiniteOrganization
-                        ? ['主神任务情报必须共享', '奖励点和支线剧情必须登记', '团战、污染和附身风险不得隐瞒']
+                        ? ['主神任务情报必须共享', '兑换权限和支线剧情必须登记', '团战、污染和附身风险不得隐瞒']
                     : isModernOrganization
                         ? ['合作事项必须留痕', '资金和资料流向必须清楚', '成员隐私和关键资料不得外泄']
                         : ['不可同门相残', '任务所得须如实登记', '藏经阁典籍不得私自外传']
                 : []),
-        门派资金: 取数字(source?.门派资金 ?? source?.资金 ?? source?.资源?.奖励点 ?? source?.资源?.资金, isActiveSect ? 1200 : base.门派资金),
-        门派物资: 取数字(source?.门派物资 ?? source?.物资 ?? source?.资源?.物资, isActiveSect ? 350 : base.门派物资),
+        组织资金: 取数字(source?.组织资金 ?? source?.资金 ?? source?.资源?.兑换额度 ?? source?.资源?.资金, isActiveSect ? 1200 : base.组织资金),
+        组织物资: 取数字(source?.组织物资 ?? source?.物资 ?? source?.资源?.物资, isActiveSect ? 350 : base.组织物资),
         建设度: 取数字(source?.建设度 ?? source?.建设 ?? source?.资源?.建设, isActiveSect ? 180 : base.建设度),
         ...scaleData,
         玩家职位: playerRank,
@@ -1682,23 +1676,23 @@ export const 规范化门派状态 = (raw?: any): 详细门派结构 => {
         累计贡献: totalContribution,
         任务列表: safeTasks,
         兑换列表: isActiveSect ? 规范化兑换列表(sourceExchange, displayName, defaultLibraryConfig) : [],
-        藏经阁列表: sourceLibrary.length > 0
-            ? (shouldReplaceLibrary ? 创建默认藏经阁列表(displayName, defaultLibraryConfig) : sourceLibrary)
-            : (isActiveSect ? 创建默认藏经阁列表(displayName, defaultLibraryConfig) : []),
-        重要成员: isActiveSect ? 补齐门派重要成员(sourceMembers) : []
+        资料库列表: sourceLibrary.length > 0
+            ? (shouldReplaceLibrary ? 创建默认资料库列表(displayName, defaultLibraryConfig) : sourceLibrary)
+            : (isActiveSect ? 创建默认资料库列表(displayName, defaultLibraryConfig) : []),
+        重要成员: isActiveSect ? 补齐组织重要成员(sourceMembers) : []
     };
 };
 
-export const 保护开局生成门派状态 = <T extends { 玩家组织?: any; 角色?: any }>(
+export const 保护开局生成组织状态 = <T extends { 玩家组织?: any; 角色?: any }>(
     nextState: T,
     baseState: { 玩家组织?: any; 角色?: any },
     openingConfig?: OpeningConfig
 ): T => {
-    const baseSect = 规范化门派状态(baseState?.玩家组织);
-    const nextSect = 规范化门派状态(nextState?.玩家组织);
+    const baseSect = 规范化组织状态(baseState?.玩家组织);
+    const nextSect = 规范化组织状态(nextState?.玩家组织);
     const shouldKeepGeneratedSect = 开局配置允许生成组织(openingConfig)
-        && !是否无门派标识(baseSect.ID)
-        && 是否无门派标识(nextSect.ID);
+        && !是否无组织标识(baseSect.ID)
+        && 是否无组织标识(nextSect.ID);
     if (!shouldKeepGeneratedSect) return nextState;
 
     const nextRole = nextState?.角色 && typeof nextState.角色 === 'object'
@@ -1718,8 +1712,6 @@ export const 创建开场空白环境 = (): 环境信息结构 => ({
     中地点: '',
     小地点: '',
     具体地点: '',
-    节日: null,
-    天气: { 天气: '', 结束日期: '1:01:01:00:00' },
     环境变量: []
 });
 
@@ -1883,65 +1875,6 @@ export const 规范化世界状态 = (raw?: any): 世界数据结构 => {
 
     // 不再调用补齐——旧坐标系统已废弃，新地图系统不需要空间坐标补全
     return normalizedWorld;
-};
-
-export const 创建开场空白战斗 = (): 战斗状态结构 => ({
-    是否战斗中: false,
-    敌方: []
-});
-
-const 读取敌方境界阶位 = (enemy: any): number => {
-    const text = [enemy?.境界, enemy?.简介, enemy?.名字].map((value) => 取文本(value)).join(' ');
-    return 获取境界层级(text, 获取当前境界配置());
-};
-
-const 规范化敌方基础属性 = (rawEnemy: any) => {
-    const rank = 读取敌方境界阶位(rawEnemy);
-    const text = [rawEnemy?.名字, rawEnemy?.境界, rawEnemy?.简介, ...(Array.isArray(rawEnemy?.技能) ? rawEnemy.技能 : [])].map((value) => 取文本(value)).join(' ');
-    const realmLevel = Math.max(1, Math.ceil(取数字(rawEnemy?.境界层级, rank)), rank);
-    const attrs = 归一化六维到境界预算(rawEnemy, {
-        境界层级: realmLevel,
-        偏向权重: {
-            力量: /刀|斧|锤|拳|猛|力/.test(text) ? 3 : 0,
-            敏捷: /剑|刺|影|弓|暗器|快/.test(text) ? 3 : 0,
-            体质: /盾|甲|体|横练|护/.test(text) ? 3 : 0,
-            根骨: /内功|道|术|气|长老/.test(text) ? 3 : 0,
-            悟性: /术|阵|符|谋|智|师/.test(text) ? 3 : 0
-        }
-    });
-    return {
-        ...attrs,
-        境界层级: realmLevel
-    };
-};
-
-const 规范化敌方条目 = (rawEnemy: any): 战斗状态结构['敌方'][number] => {
-    const attrs = 规范化敌方基础属性(rawEnemy);
-    return {
-        名字: 取文本(rawEnemy?.名字),
-        境界: 取文本(rawEnemy?.境界),
-        简介: 取文本(rawEnemy?.简介),
-        技能: 取字符串数组(rawEnemy?.技能),
-        ...attrs,
-        战斗力: 取数字(rawEnemy?.战斗力, Math.ceil(attrs.力量 * 1.5 + attrs.敏捷 * 0.8 + attrs.境界层级 * 4)),
-        防御力: 取数字(rawEnemy?.防御力, Math.ceil(attrs.体质 * 1.3 + attrs.根骨 * 0.9 + attrs.境界层级 * 3)),
-        当前血量: 取数字(rawEnemy?.当前血量, Math.ceil(72 + attrs.体质 * 4.2 + attrs.根骨 * 2.4 + attrs.力量 * 1.2 + attrs.境界层级 * 12)),
-        最大血量: 取数字(rawEnemy?.最大血量, Math.ceil(72 + attrs.体质 * 4.2 + attrs.根骨 * 2.4 + attrs.力量 * 1.2 + attrs.境界层级 * 12)),
-        当前精力: 取数字(rawEnemy?.当前精力, Math.ceil(36 + attrs.体质 * 3.2 + attrs.根骨 * 2.2 + attrs.境界层级 * 9)),
-        最大精力: 取数字(rawEnemy?.最大精力, Math.ceil(36 + attrs.体质 * 3.2 + attrs.根骨 * 2.2 + attrs.境界层级 * 9)),
-        当前内力: 取数字(rawEnemy?.当前内力, Math.ceil(18 + attrs.根骨 * 3.6 + attrs.悟性 * 3.2 + attrs.境界层级 * 10)),
-        最大内力: 取数字(rawEnemy?.最大内力, Math.ceil(18 + attrs.根骨 * 3.6 + attrs.悟性 * 3.2 + attrs.境界层级 * 10))
-    };
-};
-
-export const 规范化战斗状态 = (raw?: any): 战斗状态结构 => {
-    const battle = raw && typeof raw === 'object' ? raw : {};
-    return {
-        是否战斗中: battle?.是否战斗中 === true,
-        敌方: Array.isArray(battle?.敌方)
-            ? battle.敌方.map(规范化敌方条目).filter((item) => item.名字 || item.简介)
-            : []
-    };
 };
 
 export const 创建开场空白剧情 = (): 剧情系统结构 => ({
@@ -2180,17 +2113,13 @@ export const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划
 };
 
 export const 创建开场基础状态 = (charData: 角色数据结构, worldConfig: WorldGenConfig, openingConfig?: OpeningConfig) => {
-    const 玩家组织 = 创建开局门派状态(charData, openingConfig);
-    const 门派任务: 任务结构[] = [];
+    const 玩家组织 = 创建开局组织状态(charData, openingConfig);
+    const 组织任务: 任务结构[] = [];
     const 角色基态 = 补齐开局角色能力(深拷贝(charData), 玩家组织, openingConfig) as any;
     const 补齐后角色 = 补齐开局仙侠字段(角色基态, openingConfig);
     const 角色 = {
         ...补齐后角色,
-        金钱: 确保角色金钱BaseAmount(
-            (补齐后角色 as any).金钱,
-            openingConfig?.modeRuntimeProfile,
-            openingConfig?.modeRuntimeProfile?.economy?.currencyDisplayMode as any
-        )
+        金钱: 确保角色金钱BaseAmount((补齐后角色 as any).金钱)
     };
     const 社交 = 修复开局伙伴社交列表([], openingConfig, 角色);
     const 世界 = 创建开场空白世界();
@@ -2200,17 +2129,15 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
     if (地图草稿层级.length > 0) {
         世界.地图层级 = 地图草稿层级 as any;
     }
-    const 开局任务 = 去重开局任务列表(确保开局主线任务(门派任务, 玩家组织, openingConfig));
+    const 开局任务 = 去重开局任务列表(确保开局主线任务(组织任务, 玩家组织, openingConfig));
     return {
         角色,
         环境: 创建开场空白环境(),
         游戏初始时间: '',
         社交,
         世界,
-        战斗: 创建开场空白战斗(),
         玩家组织,
         任务列表: 开局任务,
-        约定列表: [],
         剧情: 创建开场空白剧情(),
         剧情规划: 创建空剧情规划(),
         女主剧情规划: undefined as 女主剧情规划结构 | undefined
@@ -2225,10 +2152,8 @@ export const 创建开场命令基态 = (openingBase?: Partial<ReturnType<typeof
     环境: openingBase?.环境 ? 深拷贝(openingBase.环境) : 创建开场空白环境(),
     社交: Array.isArray(openingBase?.社交) ? 深拷贝(openingBase.社交) : [],
     世界: openingBase?.世界 ? 深拷贝(openingBase.世界) : 创建开场空白世界(),
-    战斗: openingBase?.战斗 ? 深拷贝(openingBase.战斗) : 创建开场空白战斗(),
-    玩家组织: openingBase?.玩家组织 ? 规范化门派状态(openingBase.玩家组织) : 创建空门派状态(),
+    玩家组织: openingBase?.玩家组织 ? 规范化组织状态(openingBase.玩家组织) : 创建空组织状态(),
     任务列表: Array.isArray(openingBase?.任务列表) ? 深拷贝(openingBase.任务列表) : [],
-    约定列表: Array.isArray(openingBase?.约定列表) ? 深拷贝(openingBase.约定列表) : [],
     剧情: openingBase?.剧情 ? 规范化剧情状态(openingBase.剧情) : 创建开场空白剧情(),
     剧情规划: openingBase?.剧情规划 ? 规范化剧情规划状态(openingBase.剧情规划) : 创建空剧情规划(),
     女主剧情规划: openingBase?.女主剧情规划 ? 规范化女主剧情规划状态(openingBase.女主剧情规划) : undefined
@@ -2242,10 +2167,8 @@ export const 构建前端清空开场状态 = (
     环境: 创建开场空白环境(),
     社交: [],
     世界: 创建开场空白世界(),
-    战斗: 创建开场空白战斗(),
-    玩家组织: 创建空门派状态(),
+    玩家组织: 创建空组织状态(),
     任务列表: [],
-    约定列表: [],
     剧情: 创建开场空白剧情(),
     剧情规划: 创建空剧情规划(),
     女主剧情规划: undefined
@@ -2258,18 +2181,6 @@ export const 创建空记忆系统 = (): 记忆系统结构 => ({
     中期记忆: [],
     长期记忆: []
 });
-
-export const 战斗结束自动清空 = (battleLike: any): 战斗状态结构 => {
-    const battle = 规范化战斗状态(battleLike);
-    const 存活敌方 = battle.敌方.filter((enemy) => enemy.当前血量 > 0 || enemy.最大血量 <= 0);
-    if (battle.是否战斗中 !== true || 存活敌方.length <= 0) {
-        return 创建开场空白战斗();
-    }
-    return {
-        ...battle,
-        敌方: 存活敌方
-    };
-};
 
 export const 按回合窗口裁剪历史 = (sourceHistory: 聊天记录结构[], roundLimit: number): 聊天记录结构[] => {
     const history = Array.isArray(sourceHistory) ? sourceHistory : [];

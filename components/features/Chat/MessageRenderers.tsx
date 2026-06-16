@@ -7,7 +7,7 @@ import { 获取图片展示地址, 获取图片资源文本地址 } from '../../
 import { 根据差额校正判定结果 } from '../../../utils/judgmentFormat';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
-import { IconHeart, IconEye, IconBattery, IconShield, IconCompass, IconExplosion, IconDice, IconCoins } from '../../ui/Icons';
+import { IconHeart, IconEye, IconBattery, IconShield, IconExplosion, IconDice, IconCoins } from '../../ui/Icons';
 
 type JudgmentModifier = {
     key: string;
@@ -625,7 +625,7 @@ const 奖励标签样式 = (reward: string): string => {
     if (/贡献|信用|额度/.test(reward)) return 'border-amber-500/45 bg-amber-400/18 text-amber-950';
     if (/技艺|技能|熟练度/.test(reward)) return 'border-sky-500/35 bg-sky-500/12 text-sky-950';
     if (/属性点|境界/.test(reward)) return 'border-violet-500/35 bg-violet-500/12 text-violet-950';
-    if (/铜钱|银子|银两|元宝|金元宝/.test(reward)) return 'border-yellow-600/35 bg-yellow-400/16 text-yellow-950';
+    if (/人民币|电子支付|现金|元/.test(reward)) return 'border-yellow-600/35 bg-yellow-400/16 text-yellow-950';
     return 'border-stone-400/45 bg-stone-200/65 text-stone-950';
 };
 
@@ -822,7 +822,7 @@ export const CharacterRenderer: React.FC<{
                 </div>
             </div>
             <div className="relative flex-1 mt-0.5 sm:mt-1 min-w-0">
-                <div className="mobile-chat-dialogue-bubble relative bg-[#fcfaf7] px-3.5 sm:px-6 py-3 pr-12 sm:py-4 sm:pr-14 rounded-xl sm:rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.15)] border border-black/10 z-10 min-h-[52px] sm:min-h-[64px] flex items-center group-hover:border-wuxia-gold/40 transition-colors duration-500" data-mobile-chat-bubble="true">
+                <div className="compact-chat-dialogue-bubble relative bg-[#fcfaf7] px-3.5 sm:px-6 py-3 pr-12 sm:py-4 sm:pr-14 rounded-xl sm:rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.15)] border border-black/10 z-10 min-h-[52px] sm:min-h-[64px] flex items-center group-hover:border-wuxia-gold/40 transition-colors duration-500" data-compact-chat-bubble="true">
                     <RawResponseDebugButton onOpen={onOpenRawResponse} className="absolute right-2 top-2 z-20" />
                     <div className="absolute top-3.5 sm:top-4 -left-1.5 w-3 h-3 sm:w-4 sm:h-4 bg-[#fcfaf7] rotate-45 border-l border-b border-black/10 -z-10"></div>
                     <p className="font-medium relative z-10 tracking-wide whitespace-normal break-words leading-relaxed text-[#1a1a1a]" style={style}>
@@ -905,7 +905,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
         };
 
         const categoryKey = `${prefix || ''} ${displayCategory}`.trim();
-        if (categoryKey.includes('洞察') || categoryKey.includes('瞄准') || categoryKey.includes('识破')) return {
+        if (categoryKey.includes('洞察') || categoryKey.includes('识破')) return {
             border: 'border-amber-500/50',
             bg: 'bg-gradient-to-br from-[#1a1500]/95 to-black/95',
             accent: 'text-amber-400',
@@ -923,7 +923,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
             icon: <IconBattery size={22} />,
             glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]'
         };
-        if (categoryKey.includes('先机') || categoryKey.includes('防御') || categoryKey.includes('化解') || categoryKey.includes('闪避') || categoryKey.includes('对策')) return {
+        if (categoryKey.includes('防御') || categoryKey.includes('化解') || categoryKey.includes('闪避') || categoryKey.includes('对策')) return {
             border: 'border-cyan-500/50',
             bg: 'bg-gradient-to-br from-[#001a1a]/95 to-black/95',
             accent: 'text-cyan-400',
@@ -932,16 +932,7 @@ export const JudgmentRenderer: React.FC<{ text: string; thoughtBlock?: JudgmentT
             icon: <IconShield size={22} />,
             glow: 'shadow-[0_0_15px_rgba(6,182,212,0.3)]'
         };
-        if (categoryKey.includes('态势')) return {
-            border: 'border-violet-500/50',
-            bg: 'bg-gradient-to-br from-[#12001a]/95 to-black/95',
-            accent: 'text-violet-300',
-            successColor: isSuccess ? 'text-violet-200' : 'text-violet-500',
-            bar: 'bg-violet-500',
-            icon: <IconCompass size={22} />,
-            glow: 'shadow-[0_0_15px_rgba(139,92,246,0.28)]'
-        };
-        if (categoryKey.includes('接战') || categoryKey.includes('对撞') || categoryKey.includes('对抗') || categoryKey.includes('伤害') || categoryKey.includes('反击')) return {
+        if (categoryKey.includes('对撞') || categoryKey.includes('对抗') || categoryKey.includes('伤害') || categoryKey.includes('反击')) return {
             border: 'border-orange-500/50',
             bg: 'bg-gradient-to-br from-[#1a0f00]/95 to-black/95',
             accent: 'text-orange-400',

@@ -16,9 +16,6 @@ const 图片资源缓存最大条目数 = 80;
 const 图片资源缓存最大字符数 = 42 * 1024 * 1024;
 let 图片资源缓存字符数 = 0;
 const 受保护图片资源集合 = new Set<string>();
-const 远程图片兜底缓存键 = 'moranjianghu.remoteImageFallbacks.v1';
-const 远程图片兜底最大数量 = 600;
-let 远程图片兜底缓存: Record<string, string> | null = null;
 const 图片冗余响应字段 = new Set([
     '原始响应',
     'rawResponse',
@@ -27,7 +24,6 @@ const 图片冗余响应字段 = new Set([
     'fullResponse',
     'debugResponse',
     'base64',
-    'b64_json',
     'image_base64',
     'dataUrl',
     'dataURL',
@@ -213,71 +209,6 @@ export const 读取图片资源缓存 = (value: unknown): string => {
     return cached;
 };
 
-const 读取远程图片兜底缓存 = (): Record<string, string> => {
-    if (远程图片兜底缓存) return 远程图片兜底缓存;
-    if (typeof localStorage === 'undefined') {
-        远程图片兜底缓存 = {};
-        return 远程图片兜底缓存;
-    }
-    try {
-        const parsed = JSON.parse(localStorage.getItem(远程图片兜底缓存键) || '{}');
-        远程图片兜底缓存 = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-    } catch {
-        远程图片兜底缓存 = {};
-    }
-    return 远程图片兜底缓存;
-};
-
-const 写入远程图片兜底缓存 = (fallbacks: Record<string, string>): void => {
-    远程图片兜底缓存 = fallbacks;
-    if (typeof localStorage === 'undefined') return;
-    try {
-        localStorage.setItem(远程图片兜底缓存键, JSON.stringify(fallbacks));
-    } catch {
-        // 兜底映射不可写时，内存缓存仍然可用于本次页面会话。
-    }
-};
-
-export const 注册远程图片兜底引用 = (remoteUrl: unknown, assetIdOrRef: unknown): void => {
-    const remote = 读取文本(remoteUrl);
-    const assetId = 解析图片资源引用ID(assetIdOrRef) || 读取文本(assetIdOrRef);
-    if (!/^https?:\/\//i.test(remote) || !assetId) return;
-    const fallbacks = { ...读取远程图片兜底缓存(), [remote]: assetId };
-    const entries = Object.entries(fallbacks);
-    if (entries.length > 远程图片兜底最大数量) {
-        写入远程图片兜底缓存(Object.fromEntries(entries.slice(entries.length - 远程图片兜底最大数量)));
-        return;
-    }
-    写入远程图片兜底缓存(fallbacks);
-};
-
-export const 读取远程图片兜底映射 = (): Record<string, string> => ({
-    ...读取远程图片兜底缓存()
-});
-
-export const 读取远程图片兜底资源ID = (remoteUrl: unknown): string => {
-    const remote = 读取文本(remoteUrl);
-    if (!remote) return '';
-    return 读取文本(读取远程图片兜底缓存()[remote]);
-};
-
-export const 读取远程图片本地兜底地址 = (remoteUrl: unknown): string => {
-    const assetId = 读取远程图片兜底资源ID(remoteUrl);
-    if (!assetId) return '';
-    return 读取图片资源缓存(创建图片资源引用(assetId));
-};
-
-export const 读取图片资源远程兜底地址 = (assetIdOrRef: unknown): string => {
-    const assetId = 解析图片资源引用ID(assetIdOrRef) || 读取文本(assetIdOrRef);
-    if (!assetId) return '';
-    const entry = Object.entries(读取远程图片兜底缓存()).find(([, fallbackId]) => 读取文本(fallbackId) === assetId);
-    return entry?.[0] || '';
-};
-
-export const 读取远程图片兜底资源ID集合 = (): Set<string> => (
-    new Set(Object.values(读取远程图片兜底缓存()).map(读取文本).filter(Boolean))
-);
-
 export const 获取图片展示地址 = (asset?: 图片资源结构 | null): string => {
     const local = 读取文本(asset?.本地路径);
     if (local) {
@@ -301,14 +232,10 @@ export const 图片资源记录含可恢复地址 = (asset?: 图片资源结构 
 export const 获取图片资源文本地址 = (value: unknown): string => {
     const text = 读取文本(value);
     if (!text) return '';
-    if (/^https?:\/\//i.test(text)) {
-        const localFallback = 读取远程图片本地兜底地址(text);
-        if (localFallback) return localFallback;
-    }
     if (是否图片资源引用(text)) {
         const local = 读取图片资源缓存(text);
         if (local) return local;
-        return 读取图片资源远程兜底地址(text);
+        return '';
     }
     return text;
 };

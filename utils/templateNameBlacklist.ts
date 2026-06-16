@@ -32,7 +32,7 @@ const 全部模板姓名黑名单集合 = new Set<string>([
 export const 全部模板姓名黑名单 = Array.from(全部模板姓名黑名单集合);
 
 // 判断某个候选名是否"包含"黑名单中的某个完整姓名，或反过来被包含。
-// 用于过滤开局默认同门库等"名片段"池（如"砚舟"落在黑名单"林砚舟"中）。
+// 用于过滤开局默认成员库等"名片段"池（如"砚舟"落在黑名单"林砚舟"中）。
 export const 候选名命中模板黑名单 = (candidate: unknown): boolean => {
     const name = 规范化姓名键(candidate);
     if (!name) return false;

@@ -25,7 +25,7 @@ describe('接口模型自动选择', () => {
     it('过滤空值并避开图片、语音和嵌入类模型', () => {
         expect(选择最佳可用模型([
             '',
-            'gpt-image-2',
+            'image-render-model',
             'text-embedding-3-large',
             'gpt-5-mini',
             'gpt-5'

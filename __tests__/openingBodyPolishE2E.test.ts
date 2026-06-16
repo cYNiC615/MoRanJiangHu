@@ -70,7 +70,6 @@ describe('opening body polish e2e', () => {
                 },
                 剧情: {},
                 社交: [],
-                战斗: {},
                 角色: { 姓名: '林岚' },
                 文章优化已开启: true,
                 深拷贝: (value: any) => JSON.parse(JSON.stringify(value)),

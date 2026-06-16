@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { 创建手动NPC工作流 } from '../hooks/useGame/manualNpcWorkflow';
 
 describe('手动 NPC 工作流', () => {
-    it('删除门派同门 NPC 时同步移除玩家组织重要成员', () => {
+    it('删除组织成员 NPC 时同步移除玩家组织重要成员', () => {
         let social: any[] = [
             {
                 id: 'NPC002',

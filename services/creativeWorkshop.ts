@@ -81,7 +81,7 @@ const 升级旧版开局模块 = (entry: 创意工坊模块条目): 创意工坊
     const usagePrompt = entry.usagePrompt?.trim() || '该模块由旧版开局模块自动升级；当前版本会按题材规则模块读取并兼容旧内容。';
     const safetyNotes = entry.safetyNotes?.length
         ? entry.safetyNotes
-        : ['该模块由旧版开局模块自动迁移而来，建议在创意工坊中复核题材口径、开局规则与生成约束。'];
+        : ['该模块由旧版开局模块自动迁移而来，建议在本地模式包中复核题材口径、开局规则与生成约束。'];
     return {
         ...entry,
         type: 'topic',

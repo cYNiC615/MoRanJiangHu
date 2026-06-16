@@ -3,8 +3,7 @@ import {
     角色数据结构,
     环境信息结构,
     世界数据结构,
-    战斗状态结构,
-    详细门派结构,
+    玩家组织结构,
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构
@@ -82,10 +81,8 @@ export type 响应命令处理状态 = {
     环境: 环境信息结构;
     社交: any[];
     世界: 世界数据结构;
-    战斗: 战斗状态结构;
-    玩家组织: 详细门派结构;
+    玩家组织: 玩家组织结构;
     任务列表: any[];
-    约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -95,22 +92,18 @@ type 响应命令处理依赖 = {
     规范化环境信息: (envLike?: any) => 环境信息结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => 世界数据结构;
-    规范化战斗状态: (raw?: any) => 战斗状态结构;
-    规范化门派状态: (raw?: any) => 详细门派结构;
+    规范化组织状态: (raw?: any) => 玩家组织结构;
     规范化剧情状态: (raw?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化角色物品容器映射: (raw?: any, options?: { 当前时间?: unknown; 事件文本?: string; 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
     角色规范化选项?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown };
-    战斗结束自动清空: (battle: 战斗状态结构, story?: 剧情系统结构) => 战斗状态结构;
     设置角色?: (value: 角色数据结构) => void;
     设置环境?: (value: 环境信息结构) => void;
     设置社交?: (value: any[]) => void;
     设置世界?: (value: 世界数据结构) => void;
-    设置战斗?: (value: 战斗状态结构) => void;
-    设置玩家组织?: (value: 详细门派结构) => void;
+    设置玩家组织?: (value: 玩家组织结构) => void;
     设置任务列表?: (value: any[]) => void;
-    设置约定列表?: (value: any[]) => void;
     设置剧情?: (value: 剧情系统结构) => void;
     设置剧情规划?: (value: 剧情规划结构) => void;
     设置女主剧情规划?: (value: 女主剧情规划结构 | undefined) => void;
@@ -1203,14 +1196,14 @@ const 规范化命令姓名 = (value: unknown): string => (
 );
 
 const 社交新增保留栏目名 = new Set([
-    '队伍', '社交', '背包', '装备', '战斗', '世界', '地图', '门派', '任务', '约定', '剧情', '规划', '记忆',
+    '队伍', '社交', '背包', '装备', '世界', '地图', '门派', '任务', '剧情', '规划', '记忆',
     '玩家', '角色', '主角', '同伴', '队友', '同行', '随行者', '关系', '人物', 'NPC'
 ]);
 
 const 是否保留栏目式社交姓名 = (name: string): boolean => {
     if (!name) return false;
     if (社交新增保留栏目名.has(name)) return true;
-    return /^(?:队伍|社交|背包|装备|战斗|世界|地图|门派|任务|约定|剧情|规划|记忆)(?:数据|信息|列表|面板|状态|更新)?$/u.test(name);
+    return /^(?:队伍|社交|背包|装备|世界|地图|门派|任务|剧情|规划|记忆)(?:数据|信息|列表|面板|状态|更新)?$/u.test(name);
 };
 
 const 提取社交姓名命令索引 = (rawKey: unknown): number | null => {
@@ -1282,10 +1275,8 @@ export const 执行响应命令处理 = (
     let envBuffer = deps.规范化环境信息(baseState?.环境 || currentState.环境);
     let socialBuffer = Array.isArray(baseState?.社交) ? baseState.社交 : currentState.社交;
     let worldBuffer = deps.规范化世界状态(baseState?.世界 || currentState.世界);
-    let battleBuffer = deps.规范化战斗状态(baseState?.战斗 || currentState.战斗);
-    let sectBuffer = deps.规范化门派状态(baseState?.玩家组织 || currentState.玩家组织);
+    let sectBuffer = deps.规范化组织状态(baseState?.玩家组织 || currentState.玩家组织);
     let tasksBuffer = Array.isArray(baseState?.任务列表) ? baseState.任务列表 : currentState.任务列表;
-    let agreementsBuffer = Array.isArray(baseState?.约定列表) ? baseState.约定列表 : currentState.约定列表;
     let storyBuffer = deps.规范化剧情状态(baseState?.剧情 || currentState.剧情);
     let storyPlanBuffer = deps.规范化剧情规划状态(baseState?.剧情规划 || currentState.剧情规划);
     let heroinePlanBuffer = deps.规范化女主剧情规划状态(baseState?.女主剧情规划 ?? currentState.女主剧情规划);
@@ -1333,13 +1324,11 @@ export const 执行响应命令处理 = (
                 envBuffer,
                 socialBuffer,
                 worldBuffer,
-                battleBuffer,
                 storyBuffer,
                 storyPlanBuffer,
                 heroinePlanBuffer,
                 sectBuffer,
                 tasksBuffer,
-                agreementsBuffer,
                 safeCmd.key,
                 safeCmd.value,
                 safeCmd.action
@@ -1348,10 +1337,8 @@ export const 执行响应命令处理 = (
             envBuffer = result.env;
             socialBuffer = result.social;
             worldBuffer = result.world;
-            battleBuffer = result.battle;
             sectBuffer = result.sect;
             tasksBuffer = Array.isArray(result.tasks) ? result.tasks : [];
-            agreementsBuffer = Array.isArray(result.agreements) ? result.agreements : [];
             storyBuffer = result.story;
             storyPlanBuffer = result.storyPlan;
             heroinePlanBuffer = result.heroinePlan;
@@ -1360,11 +1347,10 @@ export const 执行响应命令处理 = (
         envBuffer = deps.规范化环境信息(envBuffer);
         socialBuffer = deps.规范化社交列表(socialBuffer, { 合并同名: false });
         worldBuffer = deps.规范化世界状态(worldBuffer);
-        sectBuffer = deps.规范化门派状态(sectBuffer);
+        sectBuffer = deps.规范化组织状态(sectBuffer);
         storyPlanBuffer = deps.规范化剧情规划状态(storyPlanBuffer);
         heroinePlanBuffer = deps.规范化女主剧情规划状态(heroinePlanBuffer);
 
-        battleBuffer = deps.战斗结束自动清空(battleBuffer, storyBuffer);
         charBuffer = deps.规范化角色物品容器映射(charBuffer, {
             当前时间: envBuffer,
             事件文本: responseFactText,
@@ -1430,10 +1416,8 @@ export const 执行响应命令处理 = (
             环境: deps.规范化环境信息(envBuffer),
             社交: socialBuffer,
             世界: deps.规范化世界状态(worldBuffer),
-            战斗: battleBuffer,
-            玩家组织: deps.规范化门派状态(sectBuffer),
+            玩家组织: deps.规范化组织状态(sectBuffer),
             任务列表: 规范化任务列表自动结算(Array.isArray(tasksBuffer) ? tasksBuffer : []),
-            约定列表: Array.isArray(agreementsBuffer) ? agreementsBuffer : [],
             剧情: storyBuffer,
             剧情规划: deps.规范化剧情规划状态(storyPlanBuffer),
             女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer)
@@ -1448,7 +1432,7 @@ export const 执行响应命令处理 = (
             finalState = {
                 ...finalState,
                 角色: rewardSettlement.state.角色,
-                玩家组织: deps.规范化门派状态(rewardSettlement.state.玩家组织),
+                玩家组织: deps.规范化组织状态(rewardSettlement.state.玩家组织),
                 任务列表: 规范化任务列表自动结算(rewardSettlement.state.任务列表)
             };
         }
@@ -1462,10 +1446,8 @@ export const 执行响应命令处理 = (
             deps.设置环境?.(finalState.环境);
             deps.设置社交?.(finalState.社交);
             deps.设置世界?.(finalState.世界);
-            deps.设置战斗?.(finalState.战斗);
             deps.设置玩家组织?.(finalState.玩家组织);
             deps.设置任务列表?.(finalState.任务列表);
-            deps.设置约定列表?.(finalState.约定列表);
             deps.设置剧情?.(finalState.剧情);
             deps.设置剧情规划?.(finalState.剧情规划);
             deps.设置女主剧情规划?.(finalState.女主剧情规划);
@@ -1533,10 +1515,8 @@ export const 执行响应命令处理 = (
         环境: normalizedEnv,
         社交: normalizedSocial,
         世界: deps.规范化世界状态(worldBuffer),
-        战斗: battleBuffer,
-        玩家组织: deps.规范化门派状态(sectBuffer),
+        玩家组织: deps.规范化组织状态(sectBuffer),
         任务列表: 规范化任务列表自动结算(Array.isArray(tasksBuffer) ? tasksBuffer : []),
-        约定列表: Array.isArray(agreementsBuffer) ? agreementsBuffer : [],
         剧情: deps.规范化剧情状态(storyBuffer),
         剧情规划: deps.规范化剧情规划状态(storyPlanBuffer),
         女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanBuffer)
@@ -1551,7 +1531,7 @@ export const 执行响应命令处理 = (
         finalState = {
             ...finalState,
             角色: rewardSettlement.state.角色,
-            玩家组织: deps.规范化门派状态(rewardSettlement.state.玩家组织),
+            玩家组织: deps.规范化组织状态(rewardSettlement.state.玩家组织),
             任务列表: 规范化任务列表自动结算(rewardSettlement.state.任务列表)
         };
     }
@@ -1564,10 +1544,8 @@ export const 执行响应命令处理 = (
         deps.设置环境?.(finalState.环境);
         deps.设置社交?.(finalState.社交);
         deps.设置世界?.(finalState.世界);
-        deps.设置战斗?.(finalState.战斗);
         deps.设置玩家组织?.(finalState.玩家组织);
         deps.设置任务列表?.(finalState.任务列表);
-        deps.设置约定列表?.(finalState.约定列表);
         deps.设置剧情?.(finalState.剧情);
         deps.设置剧情规划?.(finalState.剧情规划);
         deps.设置女主剧情规划?.(finalState.女主剧情规划);

@@ -22,7 +22,7 @@ describe('ComfyUI unavailable backend detection', () => {
             localStorage: createLocalStorageMock(),
             location: {
                 protocol: 'https:',
-                origin: 'https://msjh.bacon159.pp.ua',
+                origin: 'https://app.example.test',
             },
         });
         let submittedWorkflow: any = null;
@@ -114,7 +114,7 @@ describe('ComfyUI unavailable backend detection', () => {
             localStorage: createLocalStorageMock(),
             location: {
                 protocol: 'https:',
-                origin: 'https://msjh.bacon159.pp.ua',
+                origin: 'https://app.example.test',
             },
         });
         vi.stubGlobal('fetch', vi.fn(async () => new Response(
@@ -144,11 +144,11 @@ describe('ComfyUI unavailable backend detection', () => {
             localStorage: createLocalStorageMock(),
             location: {
                 protocol: 'https:',
-                origin: 'https://msjh.bacon159.pp.ua',
+                origin: 'https://app.example.test',
             },
         });
         vi.stubGlobal('fetch', vi.fn(async () => new Response(
-            '<!DOCTYPE html><html><head><title>Worker threw exception | msjh.bacon159.pp.ua | Cloudflare</title></head><body><span class="cf-error-code">1101</span></body></html>',
+            '<!DOCTYPE html><html><head><title>Worker threw exception | app.example.test | Cloudflare</title></head><body><span class="cf-error-code">1101</span></body></html>',
             { status: 500, headers: { 'content-type': 'text/html; charset=UTF-8' } }
         )));
 

@@ -99,10 +99,6 @@ const 获取图片后端显示名 = (apiConfig: 当前可用接口结构): strin
     switch (apiConfig.图片后端类型) {
         case 'comfyui':
             return 'ComfyUI';
-        case 'sd_webui':
-            return 'Stable Diffusion WebUI';
-        case 'novelai':
-        case 'openai':
         default:
             return (apiConfig.model || '').trim() || '图片模型';
     }
@@ -123,7 +119,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
     const imageApi = deps.获取文生图接口配置(deps.apiConfig);
     const imageFeature = deps.读取文生图功能配置();
     const backendType = imageApi?.图片后端类型;
-    const shouldUsePromptTransformer = backendType === 'novelai' || imageFeature.使用词组转化器 !== false;
+    const shouldUsePromptTransformer = imageFeature.使用词组转化器 !== false;
     const promptApi = shouldUsePromptTransformer ? deps.获取生图词组转化器接口配置(deps.apiConfig) : null;
     const modelName = imageApi ? 获取图片后端显示名(imageApi) : '';
     const 画风 = options?.画风;
@@ -172,9 +168,7 @@ export const 执行NPC香闺秘档部位生图工作流 = async (
             throw new Error('未配置可用的文生图接口，无法生成香闺秘档特写。');
         }
         if (shouldUsePromptTransformer && !deps.接口配置是否可用(promptApi)) {
-            throw new Error(backendType === 'novelai'
-                ? 'NovelAI 模式必须绑定可用的词组转化器接口，请先完成配置。'
-                : '词组转化器配置不可用，无法生成香闺秘档特写。');
+            throw new Error('词组转化器配置不可用，无法生成香闺秘档特写。');
         }
 
         baseData = deps.提取NPC香闺秘档部位生图数据(npc, part);

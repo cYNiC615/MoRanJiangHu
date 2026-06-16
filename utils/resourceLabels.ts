@@ -32,7 +32,6 @@ export interface 题材资源文案 {
 export interface 题材界面文案 {
     菜单: Record<
         | 'character'
-        | 'battle'
         | 'equipment'
         | 'inventory'
         | 'social'
@@ -43,11 +42,10 @@ export interface 题材界面文案 {
         | 'team'
         | 'sect'
         | 'task'
-        | 'agreement'
         | 'story'
         | 'plan'
         | 'memory'
-        | 'retiredMarket'
+        | 'market'
         | 'imageManager'
         | 'settings',
         string
@@ -221,11 +219,10 @@ export const 获取题材资源文案 = (
 
 const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文案 => {
     const profile = 获取题材模式配置(mode || undefined);
-    const retiredMarket = profile.auctionName || '拍卖行';
+    const market = profile.marketName || '市场';
     const base: 题材界面文案 = {
         菜单: {
             character: '角色',
-            battle: '战斗',
             equipment: '全身披挂',
             inventory: '江湖行囊',
             social: '江湖谱',
@@ -236,11 +233,10 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
             team: '同行',
             sect: '门派',
             task: '任务',
-            agreement: '约定',
             story: '剧情',
             plan: '规划',
             memory: '记忆',
-            retiredMarket,
+            market,
             imageManager: '图册',
             settings: '江湖设置'
         },
@@ -316,7 +312,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
             总览: '宗门大殿',
             商城: '聚宝阁',
             能力库: '藏经阁',
-            成员名录: '同门名录',
+            成员名录: '成员名录',
             晋升路径: '晋升之路',
             贡献: '贡献点',
             组织实力: '门派实力',
@@ -340,7 +336,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'xianxia':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '法宝装备', inventory: '乾坤袋', social: '道友录', skills: '百艺', team: '同道', sect: '宗门', retiredMarket },
+                菜单: { ...base.菜单, equipment: '法宝装备', inventory: '乾坤袋', social: '道友录', skills: '百艺', team: '同道', sect: '宗门', market },
                 标题: {
                     ...base.标题,
                     装备: '法宝装备',
@@ -405,7 +401,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'western_fantasy':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '冒险装备', inventory: '冒险行囊', social: '同伴名册', kungfu: '能力', skills: '专长', team: '队伍', sect: '公会', retiredMarket, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '冒险装备', inventory: '冒险行囊', social: '同伴名册', kungfu: '能力', skills: '专长', team: '队伍', sect: '公会', market, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '冒险装备',
@@ -489,7 +485,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'urban_xianxia':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '关系网', kungfu: '修行法', skills: '技能', team: '团队', sect: '组织', retiredMarket, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '关系网', kungfu: '修行法', skills: '技能', team: '团队', sect: '组织', market, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '随身装备',
@@ -573,7 +569,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'modern':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '联系人', kungfu: '能力', skills: '技能', team: '团队', sect: '组织', retiredMarket, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '随身装备', inventory: '随身物品', social: '联系人', kungfu: '能力', skills: '技能', team: '团队', sect: '组织', market, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '随身装备',
@@ -657,7 +653,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'apocalypse':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '求生装备', inventory: '物资背包', social: '幸存者档案', kungfu: '技能', skills: '生存技能', team: '小队', sect: '营地', retiredMarket, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '求生装备', inventory: '物资背包', social: '幸存者档案', kungfu: '技能', skills: '生存技能', team: '小队', sect: '营地', market, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '求生装备',
@@ -744,7 +740,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
         case 'infinite':
             return {
                 ...base,
-                菜单: { ...base.菜单, equipment: '强化装备', inventory: '储物清单', social: '轮回者档案', kungfu: '能力', skills: '专长', team: '小队', sect: '团队', retiredMarket, settings: '系统设置' },
+                菜单: { ...base.菜单, equipment: '强化装备', inventory: '储物清单', social: '轮回者档案', kungfu: '能力', skills: '专长', team: '小队', sect: '团队', market, settings: '系统设置' },
                 标题: {
                     ...base.标题,
                     装备: '强化装备',
@@ -793,7 +789,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
                     能力门槛: '解锁条件',
                     能力门槛兜底: '新人可解锁',
                     能力提升条件: '进阶条件',
-                    能力提升兜底: '通过任务世界实战、奖励点投入或基因锁刺激提升',
+                    能力提升兜底: '通过任务世界实战、兑换训练或基因锁刺激提升',
                     能力参数标题: '能力参数',
                     能力类别: '能力类别',
                     能力圆满: '能力满级',
@@ -820,7 +816,7 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
                     能力库: '能力库',
                     成员名录: '轮回者名录',
                     晋升路径: '轮回进阶',
-                    贡献: '奖励点',
+                    贡献: '队伍信用',
                     组织实力: '小队能力',
                     成员计量: '轮回者',
                     规则: '准则',
@@ -830,8 +826,8 @@ const 创建界面文案 = (mode?: 题材模式类型 | null): 题材界面文�
                     已领取补给: '本期已领取',
                     下次补给时间: '下次补给时间',
                     本期预计可领: '本期预计可领',
-                    兑换提示: '奖励点足够即可兑换强化、装备或能力。兑换消耗当前奖励点，不影响进阶所需的累计奖励点。',
-                    消耗提示: '进阶只看累计获得的奖励点，团队商城兑换只消耗当前可用奖励点。',
+                    兑换提示: '元和兑换权限足够即可兑换强化、装备或能力。兑换消耗当前额度，不影响进阶所需的累计贡献。',
+                    消耗提示: '进阶只看累计贡献，团队商城兑换只消耗当前可用额度。',
                     学习动作: '解锁',
                     已学习: '已解锁',
                     可学习: '可解锁'

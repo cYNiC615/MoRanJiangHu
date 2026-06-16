@@ -16,7 +16,7 @@ describe('新开局题材模式与手动境界优先级', () => {
         expect(source).toBe('manual');
     });
 
-    it('关闭开局配置时，题材模式仍然保留仙侠货币口径，但不注入开局关系约束', () => {
+    it('关闭开局配置时，题材模式仍然保留单一货币口径，但不注入开局关系约束', () => {
         const config = 规范化开局配置({
             配置约束启用: false,
             题材模式: '仙侠'
@@ -26,8 +26,8 @@ describe('新开局题材模式与手动境界优先级', () => {
         const openingPrompt = 构建开局配置提示词(config);
 
         expect(topicPrompt).toContain('题材模式：仙侠世界');
-        expect(topicPrompt).toContain('下品/中品/上品灵石');
-        expect(topicPrompt).not.toContain('金元宝/银子/铜钱');
+        expect(topicPrompt).toContain('现代单一货币');
+        expect(topicPrompt).toContain('角色.金钱.baseAmount');
         expect(openingPrompt).toBe('');
     });
 

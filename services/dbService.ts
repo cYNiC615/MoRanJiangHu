@@ -1,6 +1,6 @@
 
 import { 存档结构 } from '../types';
-import { 创建图片资源引用, 解析图片资源引用ID, 是否图片资源引用, 注册图片资源缓存, 批量注册图片资源缓存, 清空图片资源缓存, 注册远程图片兜底引用, 读取远程图片兜底映射, 读取远程图片兜底资源ID集合 } from '../utils/imageAssets';
+import { 创建图片资源引用, 解析图片资源引用ID, 是否图片资源引用, 注册图片资源缓存, 批量注册图片资源缓存, 清空图片资源缓存 } from '../utils/imageAssets';
 import { 获取设置项定义, 设置分类定义表, 设置键, type 设置分类类型 } from '../utils/settingsSchema';
 import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiConfig';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../utils/saveLoadTrace';
@@ -8,7 +8,6 @@ import { 修复本地存档谱系列表, 补全存档谱系元数据 } from '../
 import { 读取存档游玩回合数 } from '../utils/saveTurn';
 
 import { recordDiagnosticLog } from './diagnosticLog';
-import { buildImageHostProxyUrl, 上传DataUrl到图床 } from './imageHostService';
 
 const DB_NAME = 'WuxiaGameDB';
 const STORE_NAME = 'saves';
@@ -21,110 +20,15 @@ const 存档导出版本 = 1;
 const 存档保护设置键 = 设置键.存档保护;
 const 图片资源迁移版本键 = 设置键.图片资源迁移版本;
 const 设置记录版本 = 2;
-const 远程图片本地备份ID前缀 = 'remote_backup_';
 const 图片缓存预热最大条目数 = 24;
 const 图片缓存预热最大字符数 = 18 * 1024 * 1024;
-const 图床本地兜底最大图片字节数 = 4 * 1024 * 1024;
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const 文本编码器 = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
 const 图片资源签名缓存 = new Map<string, string>();
-let 正在自动迁移本地图片到图床 = false;
-
-/** 延迟上传队列：生成图片后先写入本地，返回主界面时批量上传到图床 */
-const 延迟上传队列: Array<{ dataUrl: string; id: string; signature?: string }> = [];
-let 延迟上传中 = false;
-const 延迟上传监听器 = new Set<(pending: number) => void>();
-
-export const 订阅延迟上传队列 = (listener: (pending: number) => void): (() => void) => {
-    延迟上传监听器.add(listener);
-    listener(延迟上传队列.length);
-    return () => { 延迟上传监听器.delete(listener); };
-};
-
-const 通知延迟上传监听器 = () => {
-    const count = 延迟上传队列.length;
-    延迟上传监听器.forEach((fn) => { try { fn(count); } catch { /* */ } });
-};
-
-export const 获取延迟上传队列数量 = (): number => 延迟上传队列.length;
-
-export const 执行延迟上传队列 = async (): Promise<void> => {
-    if (延迟上传中 || 延迟上传队列.length === 0) return;
-    延迟上传中 = true;
-    while (延迟上传队列.length > 0) {
-        const item = 延迟上传队列.shift()!;
-        通知延迟上传监听器();
-        try {
-            await 上传图片资源到图床并登记(item.dataUrl, item.id, item.signature);
-        } catch (error) {
-            console.warn('延迟图床上传失败，已跳过', item.id, error);
-        }
-    }
-    延迟上传中 = false;
-    通知延迟上传监听器();
-};
 const 是DataUrl图片 = (value: string): boolean => /^data:image\//i.test(value);
 const 是远程地址 = (value: string): boolean => /^https?:\/\//i.test(value);
-const 是图床图片地址 = (value: string): boolean => {
-    try {
-        const url = new URL(value);
-        return /^https?:$/i.test(url.protocol)
-            && (/(^|\.)(?:image1|image)\.bacon159\.pp\.ua$/i.test(url.hostname)
-                || /(^|\.)picui\.ogmua\.cn$/i.test(url.hostname)
-                || /^imgurloss\.xqd\.cn$/i.test(url.hostname))
-            && (/^\/file\//i.test(url.pathname) || /^\/api\/v1\/file\//i.test(url.pathname) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(url.pathname));
-    } catch {
-        return false;
-    }
-};
-const 本地图片图床迁移状态缓存键 = 'moranjianghu.legacyImageMigrationStatus';
 const 旧存档谱系迁移状态缓存键 = 'moranjianghu.saveLineageMigrationStatus.v1';
-const 图床备份下载失败跳过缓存键 = 'moranjianghu.imageHostBackupDownloadFailures.v1';
-const 图床备份下载失败跳过最大数量 = 600;
-const 图床备份下载失败跳过有效期毫秒 = 6 * 60 * 60 * 1000;
-const 图床上传失败跳过缓存键 = 'moranjianghu.imageHostUploadFailures.v1';
-const 图床上传失败跳过最大数量 = 600;
-const 图床上传失败跳过有效期毫秒 = 6 * 60 * 60 * 1000;
-const 图床备份下载代理路径 = '/api/image-host/download';
-
-export type 本地图片图床迁移阶段 = 'idle' | 'scanning' | 'running' | 'completed' | 'partial_failed' | 'failed';
-
-export interface 本地图片图床迁移状态 {
-    stage: 本地图片图床迁移阶段;
-    scannedAssets: number;
-    referencedAssets: number;
-    totalAssets: number;
-    processedAssets: number;
-    migratedAssets: number;
-    updatedSaves: number;
-    updatedSettings: number;
-    cleanedAssets: number;
-    failedAssets: number;
-    remoteImageAssets: number;
-    backupTotalAssets: number;
-    backupProcessedAssets: number;
-    backedUpAssets: number;
-    localBackupMissingAssets: number;
-    retryLater: boolean;
-    lastMessage: string;
-    lastError?: string;
-    startedAt?: string;
-    updatedAt?: string;
-    completedAt?: string;
-    assetDetails?: 本地图片图床迁移资源状态[];
-}
-
-export interface 本地图片图床迁移资源状态 {
-    key: string;
-    label: string;
-    remoteUrl?: string;
-    localAssetId?: string;
-    hasRemote: boolean;
-    hasLocal: boolean;
-    status: 'pending_upload' | 'uploaded' | 'pending_backup' | 'backed_up' | 'local_only' | 'remote_only' | 'complete' | 'failed';
-    error?: string;
-}
 
 export type 旧存档谱系迁移阶段 = 'idle' | 'scanning' | 'running' | 'completed' | 'failed';
 
@@ -204,84 +108,13 @@ export interface 本地图片资源统计 {
     referencedAssets: number;
     localImageAssets: number;
     localImageBytes: number;
-    remoteImageAssets: number;
-    migrationStatus: 本地图片图床迁移状态;
-}
-
-const 创建默认本地图片图床迁移状态 = (): 本地图片图床迁移状态 => ({
-    stage: 'idle',
-    scannedAssets: 0,
-    referencedAssets: 0,
-    totalAssets: 0,
-    processedAssets: 0,
-    migratedAssets: 0,
-    updatedSaves: 0,
-    updatedSettings: 0,
-    cleanedAssets: 0,
-    failedAssets: 0,
-    remoteImageAssets: 0,
-    backupTotalAssets: 0,
-    backupProcessedAssets: 0,
-    backedUpAssets: 0,
-    localBackupMissingAssets: 0,
-    retryLater: false,
-    lastMessage: '等待自动扫描旧存档图片',
-    assetDetails: []
-});
-
-const 读取本地图片图床迁移状态缓存 = (): 本地图片图床迁移状态 => {
-    const fallback = 创建默认本地图片图床迁移状态();
-    if (typeof localStorage === 'undefined') return fallback;
-    try {
-        const raw = localStorage.getItem(本地图片图床迁移状态缓存键);
-        if (!raw) return fallback;
-        const parsed = JSON.parse(raw) as Partial<本地图片图床迁移状态>;
-        if (!parsed || typeof parsed !== 'object') return fallback;
-        return { ...fallback, ...parsed };
-    } catch {
-        return fallback;
-    }
-};
-
-let 本地图片图床迁移状态缓存 = 读取本地图片图床迁移状态缓存();
-const 本地图片图床迁移状态监听器 = new Set<(status: 本地图片图床迁移状态) => void>();
-
-const 更新本地图片图床迁移状态 = (patch: Partial<本地图片图床迁移状态>): void => {
-    const updatedAt = new Date().toISOString();
-    本地图片图床迁移状态缓存 = { ...本地图片图床迁移状态缓存, ...patch, updatedAt };
-    if (typeof localStorage !== 'undefined') {
-        try {
-            localStorage.setItem(本地图片图床迁移状态缓存键, JSON.stringify(本地图片图床迁移状态缓存));
-        } catch {
-            // 本地缓存不可用时只保留内存状态。
-        }
-    }
-    本地图片图床迁移状态监听器.forEach((listener) => {
-        try {
-            listener(本地图片图床迁移状态缓存);
-        } catch (error) {
-            console.warn('旧存档图片迁移状态监听器执行失败:', error);
-        }
-    });
-};
-
-export const 获取本地图片图床迁移状态 = (): 本地图片图床迁移状态 => ({ ...本地图片图床迁移状态缓存 });
-
-export const 订阅本地图片图床迁移状态 = (listener: (status: 本地图片图床迁移状态) => void): (() => void) => {
-    本地图片图床迁移状态监听器.add(listener);
-    listener(获取本地图片图床迁移状态());
-    return () => {
-        本地图片图床迁移状态监听器.delete(listener);
-    };
 };
 
 const 创建空本地图片资源统计 = (): 本地图片资源统计 => ({
     totalAssets: 0,
     referencedAssets: 0,
     localImageAssets: 0,
-    localImageBytes: 0,
-    remoteImageAssets: 0,
-    migrationStatus: 获取本地图片图床迁移状态()
+    localImageBytes: 0
 });
 
 const safeNumber = (value: unknown, fallback: number): number => {
@@ -369,197 +202,6 @@ const 生成图片资源签名 = (dataUrl: string): string => {
 
 type 保存图片资源选项 = {
     preferredId?: string;
-    returnRemote?: boolean;
-};
-
-const 读取已登记图床地址 = (assetIdOrRef: string): string => {
-    const id = 解析图片资源引用ID(assetIdOrRef) || (typeof assetIdOrRef === 'string' ? assetIdOrRef.trim() : '');
-    if (!id) return '';
-    const entry = Object.entries(读取远程图片兜底映射()).find(([, fallbackId]) => fallbackId === id);
-    return entry?.[0] || '';
-};
-
-const 上传图片资源到图床并登记 = async (
-    dataUrl: string,
-    id: string,
-    signature?: string
-): Promise<string> => {
-    if (!是DataUrl图片(dataUrl)) return '';
-    if (signature && 是否跳过图床上传(signature)) return '';
-    try {
-        const uploaded = await 上传DataUrl到图床(dataUrl, { fileName: `${id}.png` });
-        if (uploaded?.url) {
-            注册远程图片兜底引用(uploaded.url, id);
-            return uploaded.url;
-        }
-    } catch (error: any) {
-        const message = error?.message || String(error);
-        if (signature) 标记图床上传失败跳过(signature, id, message);
-        recordDiagnosticLog('warn', '图片资源已保存本地，图床上传稍后重试', {
-            id,
-            error: message
-        });
-    }
-    return '';
-};
-
-const 生成远程图片备份ID = (remoteUrl: string): string => {
-    let hash = 2166136261;
-    for (let index = 0; index < remoteUrl.length; index += 1) {
-        hash ^= remoteUrl.charCodeAt(index);
-        hash = Math.imul(hash, 16777619);
-    }
-    return `remote_backup_${(hash >>> 0).toString(36)}_${remoteUrl.length.toString(36)}`;
-};
-
-const 是否远程图片本地备份ID = (value: unknown): boolean => (
-    typeof value === 'string' && value.trim().startsWith(远程图片本地备份ID前缀)
-);
-
-const 读取图床备份下载失败跳过映射 = (): Record<string, { message: string; failedAt: string }> => {
-    if (typeof localStorage === 'undefined') return {};
-    try {
-        const parsed = JSON.parse(localStorage.getItem(图床备份下载失败跳过缓存键) || '{}');
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        const now = Date.now();
-        let changed = false;
-        const freshEntries = Object.entries(parsed as Record<string, { message?: string; failedAt?: string }>)
-            .filter(([, item]) => {
-                const failedAtMs = item?.failedAt ? Date.parse(item.failedAt) : 0;
-                const fresh = Number.isFinite(failedAtMs) && now - failedAtMs < 图床备份下载失败跳过有效期毫秒;
-                if (!fresh) changed = true;
-                return fresh;
-            })
-            .map(([key, item]) => [key, { message: String(item?.message || ''), failedAt: String(item?.failedAt || '') }]);
-        const records = Object.fromEntries(freshEntries) as Record<string, { message: string; failedAt: string }>;
-        if (changed) 写入图床备份下载失败跳过映射(records);
-        return records;
-    } catch {
-        return {};
-    }
-};
-
-const 写入图床备份下载失败跳过映射 = (records: Record<string, { message: string; failedAt: string }>): void => {
-    if (typeof localStorage === 'undefined') return;
-    try {
-        const entries = Object.entries(records);
-        const trimmed = entries.length > 图床备份下载失败跳过最大数量
-            ? Object.fromEntries(entries.slice(entries.length - 图床备份下载失败跳过最大数量))
-            : records;
-        localStorage.setItem(图床备份下载失败跳过缓存键, JSON.stringify(trimmed));
-    } catch {
-        // 跳过记录只是为了避免重复请求；写入失败不影响存档主流程。
-    }
-};
-
-const 是否跳过图床备份下载 = (remoteUrl: string): boolean => {
-    const normalized = typeof remoteUrl === 'string' ? remoteUrl.trim() : '';
-    if (!normalized) return false;
-    return Boolean(读取图床备份下载失败跳过映射()[normalized]);
-};
-
-const 标记图床备份下载失败跳过 = (remoteUrl: string, message: string): void => {
-    const normalized = typeof remoteUrl === 'string' ? remoteUrl.trim() : '';
-    if (!normalized) return;
-    写入图床备份下载失败跳过映射({
-        ...读取图床备份下载失败跳过映射(),
-        [normalized]: {
-            message: message.slice(0, 300),
-            failedAt: new Date().toISOString()
-        }
-    });
-};
-
-const 读取图床上传失败跳过映射 = (): Record<string, { id: string; message: string; failedAt: string }> => {
-    if (typeof localStorage === 'undefined') return {};
-    try {
-        const parsed = JSON.parse(localStorage.getItem(图床上传失败跳过缓存键) || '{}');
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        const now = Date.now();
-        let changed = false;
-        const freshEntries = Object.entries(parsed as Record<string, { id?: string; message?: string; failedAt?: string }>)
-            .filter(([, item]) => {
-                const failedAtMs = item?.failedAt ? Date.parse(item.failedAt) : 0;
-                const fresh = Number.isFinite(failedAtMs) && now - failedAtMs < 图床上传失败跳过有效期毫秒;
-                if (!fresh) changed = true;
-                return fresh;
-            })
-            .map(([key, item]) => [key, {
-                id: String(item?.id || ''),
-                message: String(item?.message || ''),
-                failedAt: String(item?.failedAt || '')
-            }]);
-        const records = Object.fromEntries(freshEntries) as Record<string, { id: string; message: string; failedAt: string }>;
-        if (changed) 写入图床上传失败跳过映射(records);
-        return records;
-    } catch {
-        return {};
-    }
-};
-
-const 写入图床上传失败跳过映射 = (records: Record<string, { id: string; message: string; failedAt: string }>): void => {
-    if (typeof localStorage === 'undefined') return;
-    try {
-        const entries = Object.entries(records);
-        const trimmed = entries.length > 图床上传失败跳过最大数量
-            ? Object.fromEntries(entries.slice(entries.length - 图床上传失败跳过最大数量))
-            : records;
-        localStorage.setItem(图床上传失败跳过缓存键, JSON.stringify(trimmed));
-    } catch {
-        // 上传失败冷却只用于避免启动时反复重试；写入失败不影响正常迁移。
-    }
-};
-
-const 是否跳过图床上传 = (signature: string): boolean => {
-    const normalized = typeof signature === 'string' ? signature.trim() : '';
-    if (!normalized) return false;
-    return Boolean(读取图床上传失败跳过映射()[normalized]);
-};
-
-const 标记图床上传失败跳过 = (signature: string, id: string, message: string): void => {
-    const normalized = typeof signature === 'string' ? signature.trim() : '';
-    if (!normalized) return;
-    写入图床上传失败跳过映射({
-        ...读取图床上传失败跳过映射(),
-        [normalized]: {
-            id: id.slice(0, 160),
-            message: message.slice(0, 300),
-            failedAt: new Date().toISOString()
-        }
-    });
-};
-
-const blob转DataUrl = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.onerror = () => reject(reader.error || new Error('读取图片备份失败'));
-    reader.readAsDataURL(blob);
-});
-
-const 下载远程图片为DataUrl = async (remoteUrl: string): Promise<string> => {
-    const response = await fetch(`${buildImageHostProxyUrl(图床备份下载代理路径)}?url=${encodeURIComponent(remoteUrl)}`, {
-        method: 'GET',
-        cache: 'no-store'
-    });
-    if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(`下载图床图片失败：${response.status}${text ? ` - ${text.slice(0, 120)}` : ''}`);
-    }
-    const contentType = response.headers.get('Content-Type') || '';
-    if (!/^image\//i.test(contentType)) {
-        throw new Error(`下载图床图片失败：响应不是图片 (${contentType || 'unknown'})`);
-    }
-    const contentLength = Number(response.headers.get('Content-Length') || response.headers.get('content-length') || 0);
-    if (Number.isFinite(contentLength) && contentLength > 图床本地兜底最大图片字节数) {
-        throw new Error(`下载图床图片失败：图片过大 (${Math.round(contentLength / 1024)}KB)`);
-    }
-    const blob = await response.blob();
-    if (blob.size > 图床本地兜底最大图片字节数) {
-        throw new Error(`下载图床图片失败：图片过大 (${Math.round(blob.size / 1024)}KB)`);
-    }
-    const dataUrl = await blob转DataUrl(blob);
-    if (!是DataUrl图片(dataUrl)) throw new Error('下载图床图片失败：图片内容无效');
-    return dataUrl;
 };
 
 const 写入图片资源记录 = async (id: string, dataUrl: string): Promise<void> => {
@@ -625,8 +267,6 @@ const 稳定序列化 = (value: any): any => {
     Object.keys(value).sort().forEach((key) => {
         if (key === 'id') return;
         if (key === '存档哈希') return;
-        if (key.startsWith('对象存储')) return;
-        if (key.startsWith('WebDAV')) return;
         result[key] = 稳定序列化(value[key]);
     });
     return result;
@@ -732,7 +372,6 @@ const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
         社交: Array.isArray(raw.社交) ? 深拷贝(raw.社交) : undefined,
         世界: raw.世界 && typeof raw.世界 === 'object' ? 深拷贝(raw.世界) : undefined,
         任务列表: Array.isArray(raw.任务列表) ? 深拷贝(raw.任务列表) : undefined,
-        约定列表: Array.isArray(raw.约定列表) ? 深拷贝(raw.约定列表) : undefined,
         剧情: raw.剧情 && typeof raw.剧情 === 'object' ? 深拷贝(raw.剧情) : undefined,
         剧情规划: raw.剧情规划 && typeof raw.剧情规划 === 'object' ? 深拷贝(raw.剧情规划) : undefined,
         女主剧情规划: raw.女主剧情规划 && typeof raw.女主剧情规划 === 'object' ? 深拷贝(raw.女主剧情规划) : undefined,
@@ -791,19 +430,9 @@ export const 保存图片资源 = async (dataUrl: string, preferredIdOrOptions?:
     const options: 保存图片资源选项 = typeof preferredIdOrOptions === 'object' && preferredIdOrOptions !== null
         ? preferredIdOrOptions
         : { preferredId: typeof preferredIdOrOptions === 'string' ? preferredIdOrOptions : undefined };
-    const returnRemote = options.returnRemote === true;
     const signature = 生成图片资源签名(normalized);
     const cachedRef = signature ? 图片资源签名缓存.get(signature) : '';
     if (cachedRef) {
-        if (!returnRemote) return cachedRef;
-        const cachedRemote = 读取已登记图床地址(cachedRef);
-        if (cachedRemote) return cachedRemote;
-        const cachedDataUrl = await 读取图片资源(cachedRef);
-        if (是DataUrl图片(cachedDataUrl)) {
-            const cachedId = 解析图片资源引用ID(cachedRef);
-            const uploaded = await 上传图片资源到图床并登记(cachedDataUrl, cachedId || 生成图片资源ID(), signature);
-            if (uploaded) return uploaded;
-        }
         return cachedRef;
     }
     const id = (typeof options.preferredId === 'string' ? options.preferredId.trim() : '') || 生成图片资源ID();
@@ -813,19 +442,8 @@ export const 保存图片资源 = async (dataUrl: string, preferredIdOrOptions?:
     if (signature) {
         图片资源签名缓存.set(signature, ref);
     }
-    if (returnRemote) {
-        const uploaded = await 上传图片资源到图床并登记(normalized, id, signature);
-        if (uploaded) return uploaded;
-        return ref;
-    }
-    延迟上传队列.push({ dataUrl: normalized, id, signature });
-    通知延迟上传监听器();
     return ref;
 };
-
-export const 保存图片资源并返回同步地址 = async (dataUrl: string, preferredId?: string): Promise<string> => (
-    保存图片资源(dataUrl, { preferredId, returnRemote: true })
-);
 
 export const 读取图片资源 = async (refOrId: string): Promise<string> => {
     const id = 解析图片资源引用ID(refOrId) || (typeof refOrId === 'string' ? refOrId.trim() : '');
@@ -967,31 +585,7 @@ const 收集图片资源引用ID = (
     });
 };
 
-const 收集图床图片地址 = (
-    value: unknown,
-    urls: Set<string>,
-    seen: WeakSet<object> = new WeakSet()
-): void => {
-    if (typeof value === 'string') {
-        const text = value.trim();
-        if (是图床图片地址(text)) urls.add(text);
-        return;
-    }
-    if (!value || typeof value !== 'object') return;
-    if (seen.has(value as object)) return;
-    seen.add(value as object);
-
-    if (Array.isArray(value)) {
-        value.forEach((item) => 收集图床图片地址(item, urls, seen));
-        return;
-    }
-
-    Object.values(value as Record<string, unknown>).forEach((child) => {
-        收集图床图片地址(child, urls, seen);
-    });
-};
-
-const 读取存档设置图片引用快照 = async (): Promise<{ referencedIds: Set<string>; directReferencedIds: Set<string>; remoteUrls: Set<string> }> => {
+const 读取存档设置图片引用快照 = async (): Promise<{ referencedIds: Set<string>; directReferencedIds: Set<string> }> => {
     const db = await 初始化数据库();
     const [saves, settings] = await Promise.all([
         new Promise<any[]>((resolve, reject) => {
@@ -1015,18 +609,14 @@ const 读取存档设置图片引用快照 = async (): Promise<{ referencedIds: 
     ]);
 
     const referencedIds = new Set<string>();
-    const remoteUrls = new Set<string>();
     saves.forEach((save) => {
         收集图片资源引用ID(save, referencedIds);
-        收集图床图片地址(save, remoteUrls);
     });
     settings.forEach((item) => {
         收集图片资源引用ID(item?.value, referencedIds);
-        收集图床图片地址(item?.value, remoteUrls);
     });
     const directReferencedIds = new Set(referencedIds);
-    读取远程图片兜底资源ID集合().forEach((id) => referencedIds.add(id));
-    return { referencedIds, directReferencedIds, remoteUrls };
+    return { referencedIds, directReferencedIds };
 };
 
 const 读取全部图片资源记录 = async (): Promise<Array<{ id: string; dataUrl?: string }>> => {
@@ -1067,85 +657,6 @@ const 删除图片资源记录 = async (ids: Set<string>): Promise<number> => {
     });
 };
 
-const 构建图床兜底签名映射 = (
-    assetMap: Map<string, { id: string; dataUrl?: string }>,
-    fallbackMap: Record<string, string>
-): Map<string, string> => {
-    const result = new Map<string, string>();
-    Object.entries(fallbackMap).forEach(([remoteUrl, localAssetId]) => {
-        const signature = 构建图片资源签名(assetMap.get(localAssetId)?.dataUrl);
-        if (signature && !result.has(signature)) result.set(signature, remoteUrl);
-    });
-    return result;
-};
-
-const 构建待上传本地图片候选 = (
-    assetEntries: Array<{ id: string; dataUrl?: string }>,
-    directReferencedIds: Set<string>,
-    fallbackMap: Record<string, string>,
-    remoteUrlBySignature: Map<string, string>,
-    reusedRemoteUrls?: Map<string, string>
-): Array<{ id: string; dataUrl?: string }> => {
-    const fallbackIds = new Set(Object.values(fallbackMap).map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean));
-    return assetEntries.filter((item) => {
-        if (!directReferencedIds.has(item.id)) return false;
-        if (fallbackIds.has(item.id) || 是否远程图片本地备份ID(item.id)) return false;
-        if (typeof item.dataUrl !== 'string' || !是DataUrl图片(item.dataUrl)) return false;
-        const signature = 构建图片资源签名(item.dataUrl);
-        if (signature && 是否跳过图床上传(signature)) return false;
-        const reusedRemoteUrl = signature ? remoteUrlBySignature.get(signature) : '';
-        if (reusedRemoteUrl) {
-            reusedRemoteUrls?.set(item.id, reusedRemoteUrl);
-            return false;
-        }
-        return true;
-    });
-};
-
-const 查找重复本地图片资源 = (
-    assetEntries: Array<{ id: string; dataUrl?: string }>,
-    directReferencedIds: Set<string>,
-    fallbackMap: Record<string, string>
-): { replacements: Map<string, string>; remoteFallbackUpdates: Map<string, string>; cleanupIds: Set<string> } => {
-    const groups = new Map<string, Array<{ id: string; dataUrl?: string }>>();
-    assetEntries.forEach((item) => {
-        const signature = 构建图片资源签名(item.dataUrl);
-        if (!signature) return;
-        const list = groups.get(signature) || [];
-        list.push(item);
-        groups.set(signature, list);
-    });
-
-    const remoteByAssetId = new Map<string, string>();
-    Object.entries(fallbackMap).forEach(([remoteUrl, assetId]) => {
-        if (assetId) remoteByAssetId.set(assetId, remoteUrl);
-    });
-
-    const replacements = new Map<string, string>();
-    const remoteFallbackUpdates = new Map<string, string>();
-    const cleanupIds = new Set<string>();
-    groups.forEach((items) => {
-        if (items.length <= 1) return;
-        const keeper = items.find((item) => directReferencedIds.has(item.id) && !是否远程图片本地备份ID(item.id))
-            || items.find((item) => remoteByAssetId.has(item.id))
-            || items.find((item) => !是否远程图片本地备份ID(item.id))
-            || items[0];
-        if (!keeper?.id) return;
-        items.forEach((item) => {
-            if (item.id === keeper.id) return;
-            if (directReferencedIds.has(item.id)) {
-                replacements.set(创建图片资源引用(item.id), 创建图片资源引用(keeper.id));
-            }
-            const remoteUrl = remoteByAssetId.get(item.id);
-            if (remoteUrl) remoteFallbackUpdates.set(remoteUrl, keeper.id);
-            if (!directReferencedIds.has(item.id) || replacements.has(创建图片资源引用(item.id)) || remoteUrl) {
-                cleanupIds.add(item.id);
-            }
-        });
-    });
-    return { replacements, remoteFallbackUpdates, cleanupIds };
-};
-
 const 读取已引用图片资源ID集合 = async (): Promise<Set<string>> => {
     return (await 读取存档设置图片引用快照()).referencedIds;
 };
@@ -1153,22 +664,6 @@ const 读取已引用图片资源ID集合 = async (): Promise<Set<string>> => {
 export const 读取图片资源兜底地址 = async (assetIdOrRef: string): Promise<string> => {
     const dataUrl = await 读取图片资源(assetIdOrRef);
     return 是DataUrl图片(dataUrl) ? dataUrl : '';
-};
-
-export const 确保远程图片本地兜底 = async (remoteUrl: string): Promise<string> => {
-    const normalized = typeof remoteUrl === 'string' ? remoteUrl.trim() : '';
-    if (!是图床图片地址(normalized)) return '';
-    const fallbackMap = 读取远程图片兜底映射();
-    const existingId = fallbackMap[normalized] || '';
-    if (existingId) {
-        const existingDataUrl = await 读取图片资源(existingId);
-        if (是DataUrl图片(existingDataUrl)) return existingDataUrl;
-    }
-    const dataUrl = await 下载远程图片为DataUrl(normalized);
-    const backupId = existingId || 生成远程图片备份ID(normalized);
-    await 写入图片资源记录(backupId, dataUrl);
-    注册远程图片兜底引用(normalized, backupId);
-    return dataUrl;
 };
 
 export const 读取本地图片资源统计 = async (): Promise<本地图片资源统计> => {
@@ -1184,475 +679,11 @@ export const 读取本地图片资源统计 = async (): Promise<本地图片资�
             totalAssets: assetEntries.length,
             referencedAssets: referencedIds.size,
             localImageAssets: localEntries.length,
-            localImageBytes: localEntries.reduce((total, item) => total + 估算字符串字节数(item.dataUrl || ''), 0),
-            remoteImageAssets: referenceSnapshot.remoteUrls.size,
-            migrationStatus: 获取本地图片图床迁移状态()
+            localImageBytes: localEntries.reduce((total, item) => total + 估算字符串字节数(item.dataUrl || ''), 0)
         };
     } catch (error) {
         console.warn('读取本地图片资源统计失败:', error);
         return 创建空本地图片资源统计();
-    }
-};
-
-const 构建迁移资源状态列表 = (
-    localCandidates: Array<{ id: string; dataUrl?: string }>,
-    remoteUrls: Set<string>,
-    assetMap: Map<string, { id: string; dataUrl?: string }>,
-    fallbackMap: Record<string, string>,
-    failures: Map<string, string> = new Map(),
-    uploadedUrls: Map<string, string> = new Map()
-): 本地图片图床迁移资源状态[] => {
-    const details: 本地图片图床迁移资源状态[] = [];
-    localCandidates.forEach((item) => {
-        const remoteUrl = uploadedUrls.get(item.id) || '';
-        details.push({
-            key: item.id,
-            label: item.id,
-            remoteUrl: remoteUrl || undefined,
-            localAssetId: item.id,
-            hasRemote: Boolean(remoteUrl),
-            hasLocal: 是DataUrl图片(item.dataUrl || ''),
-            status: failures.has(item.id) ? 'failed' : remoteUrl ? 'complete' : 'pending_upload',
-            error: failures.get(item.id)
-        });
-    });
-    Array.from(remoteUrls).forEach((remoteUrl) => {
-        const localAssetId = fallbackMap[remoteUrl] || '';
-        const localAsset = localAssetId ? assetMap.get(localAssetId) : undefined;
-        const hasLocal = Boolean(localAsset && 是DataUrl图片(localAsset.dataUrl || ''));
-        const error = failures.get(remoteUrl);
-        details.push({
-            key: remoteUrl,
-            label: remoteUrl.split('/').pop()?.slice(0, 48) || remoteUrl,
-            remoteUrl,
-            localAssetId: localAssetId || undefined,
-            hasRemote: true,
-            hasLocal,
-            status: error ? 'failed' : hasLocal ? 'complete' : 'pending_backup',
-            error
-        });
-    });
-    return details.slice(0, 160);
-};
-
-export const 读取本地图片图床迁移资源状态列表 = async (): Promise<本地图片图床迁移资源状态[]> => {
-    const [referenceSnapshot, assetEntries] = await Promise.all([
-        读取存档设置图片引用快照(),
-        读取全部图片资源记录()
-    ]);
-    const assetMap = new Map(assetEntries.map((item) => [item.id, item]));
-    const fallbackMap = 读取远程图片兜底映射();
-    const remoteUrlBySignature = 构建图床兜底签名映射(assetMap, fallbackMap);
-    const localCandidates = 构建待上传本地图片候选(
-        assetEntries,
-        referenceSnapshot.directReferencedIds,
-        fallbackMap,
-        remoteUrlBySignature
-    );
-    return 构建迁移资源状态列表(localCandidates, referenceSnapshot.remoteUrls, assetMap, fallbackMap);
-};
-
-const 替换本地图片资源引用 = (value: unknown, replacements: Map<string, string>): { value: unknown; changed: boolean } => {
-    if (typeof value === 'string') {
-        const replacement = replacements.get(value);
-        return replacement ? { value: replacement, changed: true } : { value, changed: false };
-    }
-    if (!value || typeof value !== 'object') {
-        return { value, changed: false };
-    }
-    if (Array.isArray(value)) {
-        let changed = false;
-        const next = value.map((item) => {
-            const result = 替换本地图片资源引用(item, replacements);
-            if (result.changed) changed = true;
-            return result.value;
-        });
-        return changed ? { value: next, changed } : { value, changed: false };
-    }
-
-    let changed = false;
-    const next: Record<string, unknown> = {};
-    Object.entries(value as Record<string, unknown>).forEach(([key, child]) => {
-        const result = 替换本地图片资源引用(child, replacements);
-        if (result.changed) changed = true;
-        next[key] = result.value;
-    });
-    return changed ? { value: next, changed } : { value, changed: false };
-};
-
-export interface 本地图片图床自动迁移结果 {
-    scannedAssets: number;
-    migratedAssets: number;
-    updatedSaves: number;
-    updatedSettings: number;
-    cleanedAssets: number;
-    failedAssets: Array<{ id: string; message: string }>;
-    skipped: boolean;
-}
-
-export const 自动迁移本地图片到图床 = async (): Promise<本地图片图床自动迁移结果> => {
-    if (正在自动迁移本地图片到图床) {
-        更新本地图片图床迁移状态({
-            stage: 'running',
-            lastMessage: '旧存档图片正在后台自动迁移'
-        });
-        return {
-            scannedAssets: 0,
-            migratedAssets: 0,
-            updatedSaves: 0,
-            updatedSettings: 0,
-            cleanedAssets: 0,
-            failedAssets: [],
-            skipped: true
-        };
-    }
-
-    正在自动迁移本地图片到图床 = true;
-    const startedAt = new Date().toISOString();
-    更新本地图片图床迁移状态({
-        stage: 'scanning',
-        scannedAssets: 0,
-        referencedAssets: 0,
-        totalAssets: 0,
-        processedAssets: 0,
-        migratedAssets: 0,
-        updatedSaves: 0,
-        updatedSettings: 0,
-        cleanedAssets: 0,
-        failedAssets: 0,
-        remoteImageAssets: 0,
-        backupTotalAssets: 0,
-        backupProcessedAssets: 0,
-        backedUpAssets: 0,
-        localBackupMissingAssets: 0,
-        retryLater: false,
-        lastError: undefined,
-        startedAt,
-        completedAt: undefined,
-        assetDetails: [],
-        lastMessage: '正在扫描旧存档本地图片与图床备份'
-    });
-    try {
-        const [referenceSnapshot, assetEntries] = await Promise.all([
-            读取存档设置图片引用快照(),
-            读取全部图片资源记录()
-        ]);
-        const referencedIds = referenceSnapshot.referencedIds;
-        const remoteUrls = referenceSnapshot.remoteUrls;
-        const assetMap = new Map(assetEntries.map((item) => [item.id, item]));
-        const fallbackMap = 读取远程图片兜底映射();
-        const remoteUrlBySignature = 构建图床兜底签名映射(assetMap, fallbackMap);
-        const reusedRemoteUrls = new Map<string, string>();
-        const candidates = 构建待上传本地图片候选(
-            assetEntries,
-            referenceSnapshot.directReferencedIds,
-            fallbackMap,
-            remoteUrlBySignature,
-            reusedRemoteUrls
-        );
-        const duplicatePlan = 查找重复本地图片资源(assetEntries, referenceSnapshot.directReferencedIds, fallbackMap);
-        duplicatePlan.remoteFallbackUpdates.forEach((keeperId, remoteUrl) => {
-            注册远程图片兜底引用(remoteUrl, keeperId);
-            fallbackMap[remoteUrl] = keeperId;
-        });
-        const remoteBackupCandidates = Array.from(remoteUrls).filter((remoteUrl) => {
-            if (是否跳过图床备份下载(remoteUrl)) return false;
-            const localAssetId = fallbackMap[remoteUrl] || '';
-            const localAsset = localAssetId ? assetMap.get(localAssetId) : undefined;
-            return !localAsset || !是DataUrl图片(localAsset.dataUrl || '');
-        });
-        const initialDetails = 构建迁移资源状态列表(candidates, remoteUrls, assetMap, fallbackMap);
-        if (candidates.length <= 0 && remoteBackupCandidates.length <= 0 && reusedRemoteUrls.size <= 0 && duplicatePlan.replacements.size <= 0 && duplicatePlan.cleanupIds.size <= 0) {
-            更新本地图片图床迁移状态({
-                stage: 'completed',
-                scannedAssets: assetEntries.length,
-                referencedAssets: referencedIds.size,
-                remoteImageAssets: remoteUrls.size,
-                totalAssets: 0,
-                processedAssets: 0,
-                migratedAssets: 0,
-                backupTotalAssets: 0,
-                backupProcessedAssets: 0,
-                backedUpAssets: 0,
-                localBackupMissingAssets: 0,
-                updatedSaves: 0,
-                updatedSettings: 0,
-                cleanedAssets: 0,
-                failedAssets: 0,
-                retryLater: false,
-                completedAt: new Date().toISOString(),
-                assetDetails: initialDetails,
-                lastMessage: '扫描完成，图床链接均已有本地兜底'
-            });
-            if (assetEntries.length > 0 || referencedIds.size > 0) {
-                recordDiagnosticLog('debug', ['旧存档图片自动迁移扫描完成', {
-                    scannedAssets: assetEntries.length,
-                    referencedAssets: referencedIds.size,
-                    remoteImageAssets: remoteUrls.size,
-                    pendingImages: 0,
-                    pendingBackups: 0
-                }]);
-            }
-            return {
-                scannedAssets: assetEntries.length,
-                migratedAssets: 0,
-                updatedSaves: 0,
-                updatedSettings: 0,
-                cleanedAssets: 0,
-                failedAssets: [],
-                skipped: false
-            };
-        }
-
-        recordDiagnosticLog('info', ['旧存档图片自动迁移开始', {
-            scannedAssets: assetEntries.length,
-            referencedAssets: referencedIds.size,
-            remoteImageAssets: remoteUrls.size,
-            pendingImages: candidates.length,
-            pendingBackups: remoteBackupCandidates.length
-        }]);
-        更新本地图片图床迁移状态({
-            stage: 'running',
-            scannedAssets: assetEntries.length,
-            referencedAssets: referencedIds.size,
-            remoteImageAssets: remoteUrls.size,
-            totalAssets: candidates.length,
-            processedAssets: 0,
-            migratedAssets: 0,
-            backupTotalAssets: remoteBackupCandidates.length,
-            backupProcessedAssets: 0,
-            backedUpAssets: 0,
-            localBackupMissingAssets: remoteBackupCandidates.length,
-            updatedSaves: 0,
-            updatedSettings: 0,
-            cleanedAssets: 0,
-            failedAssets: 0,
-            retryLater: false,
-            lastError: undefined,
-            assetDetails: initialDetails,
-            lastMessage: `正在处理旧存档图片：待上传 ${candidates.length} 张，待补本地兜底 ${remoteBackupCandidates.length} 张`
-        });
-
-        const replacements = new Map<string, string>();
-        duplicatePlan.replacements.forEach((target, ref) => {
-            replacements.set(ref, target);
-        });
-        const uploadedUrls = new Map<string, string>();
-        reusedRemoteUrls.forEach((remoteUrl, assetId) => {
-            uploadedUrls.set(assetId, remoteUrl);
-        });
-        const failedAssets: Array<{ id: string; message: string }> = [];
-        const failedDetailMap = new Map<string, string>();
-        let processedAssets = 0;
-        for (const item of candidates) {
-            try {
-                const uploaded = await 上传DataUrl到图床(item.dataUrl || '', { fileName: `${item.id}.png` });
-                if (uploaded.url) {
-                    uploadedUrls.set(item.id, uploaded.url);
-                    注册远程图片兜底引用(uploaded.url, item.id);
-                    const signature = 生成图片资源签名(item.dataUrl || '');
-                    if (signature) 图片资源签名缓存.set(signature, 创建图片资源引用(item.id));
-                }
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                const signature = 构建图片资源签名(item.dataUrl);
-                if (signature) 标记图床上传失败跳过(signature, item.id, message);
-                failedAssets.push({ id: item.id, message });
-                failedDetailMap.set(item.id, message);
-                if (failedAssets.length >= 3) break;
-            } finally {
-                processedAssets += 1;
-                if (processedAssets === 1 || processedAssets === candidates.length || processedAssets % 5 === 0) {
-                    更新本地图片图床迁移状态({
-                        stage: 'running',
-                        totalAssets: candidates.length,
-                        processedAssets,
-                        migratedAssets: replacements.size,
-                        failedAssets: failedAssets.length,
-                        retryLater: failedAssets.length > 0,
-                        lastError: failedAssets[failedAssets.length - 1]?.message,
-                        assetDetails: 构建迁移资源状态列表(candidates, remoteUrls, assetMap, 读取远程图片兜底映射(), failedDetailMap, uploadedUrls),
-                        lastMessage: `旧存档图片迁移中：${processedAssets}/${candidates.length}`
-                    });
-                    recordDiagnosticLog('info', ['旧存档图片自动迁移进度', {
-                        processedAssets,
-                        totalAssets: candidates.length,
-                        migratedAssets: replacements.size,
-                        failedAssets: failedAssets.length
-                    }]);
-                }
-            }
-        }
-
-        let updatedSaves = 0;
-        let updatedSettings = 0;
-        if (replacements.size > 0) {
-            const db = await 初始化数据库();
-            const [saves, settings] = await Promise.all([
-                new Promise<any[]>((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], 'readonly');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
-                    request.onerror = () => reject(request.error);
-                }),
-                new Promise<Array<{ key: string; value: any; updatedAt?: number | null; category?: string }>>((resolve, reject) => {
-                    const transaction = db.transaction([SETTINGS_STORE], 'readonly');
-                    const store = transaction.objectStore(SETTINGS_STORE);
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
-                    request.onerror = () => reject(request.error);
-                })
-            ]);
-
-            for (const save of saves) {
-                const result = 替换本地图片资源引用(save, replacements);
-                if (!result.changed) continue;
-                await new Promise<void>((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], 'readwrite');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.put(result.value);
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
-                updatedSaves += 1;
-            }
-
-            for (const item of settings) {
-                const result = 替换本地图片资源引用(item?.value, replacements);
-                if (!result.changed || typeof item?.key !== 'string') continue;
-                await new Promise<void>((resolve, reject) => {
-                    const transaction = db.transaction([SETTINGS_STORE], 'readwrite');
-                    const store = transaction.objectStore(SETTINGS_STORE);
-                    const request = store.put({
-                        ...item,
-                        value: result.value,
-                        updatedAt: Date.now()
-                    });
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
-                updatedSettings += 1;
-            }
-        }
-
-        const cleanedAssets = await 删除图片资源记录(duplicatePlan.cleanupIds).catch((error) => {
-            console.warn('清理重复本地图片资源失败，已跳过本次清理:', error);
-            return 0;
-        });
-        if (cleanedAssets > 0) {
-            duplicatePlan.cleanupIds.forEach((id) => assetMap.delete(id));
-        }
-        if (replacements.size > 0) {
-            await 预热图片资源缓存({ clearExisting: false }).catch((error) => {
-                console.warn('本地图片自动迁移后预热缓存失败，已跳过缓存刷新:', error);
-            });
-        }
-        let backupProcessedAssets = 0;
-        let backedUpAssets = 0;
-        for (const remoteUrl of remoteBackupCandidates) {
-            try {
-                const dataUrl = await 下载远程图片为DataUrl(remoteUrl);
-                const backupId = fallbackMap[remoteUrl] || 生成远程图片备份ID(remoteUrl);
-                await 写入图片资源记录(backupId, dataUrl);
-                注册远程图片兜底引用(remoteUrl, backupId);
-                fallbackMap[remoteUrl] = backupId;
-                assetMap.set(backupId, { id: backupId, dataUrl });
-                backedUpAssets += 1;
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                标记图床备份下载失败跳过(remoteUrl, message);
-                failedAssets.push({ id: remoteUrl, message });
-                failedDetailMap.set(remoteUrl, message);
-            } finally {
-                backupProcessedAssets += 1;
-                if (backupProcessedAssets === 1 || backupProcessedAssets === remoteBackupCandidates.length || backupProcessedAssets % 5 === 0) {
-                    更新本地图片图床迁移状态({
-                        stage: 'running',
-                        backupTotalAssets: remoteBackupCandidates.length,
-                        backupProcessedAssets,
-                        backedUpAssets,
-                        localBackupMissingAssets: Math.max(0, remoteBackupCandidates.length - backedUpAssets),
-                        failedAssets: failedAssets.length,
-                        retryLater: failedAssets.length > 0,
-                        lastError: failedAssets[failedAssets.length - 1]?.message,
-                        assetDetails: 构建迁移资源状态列表(candidates, remoteUrls, assetMap, fallbackMap, failedDetailMap, uploadedUrls),
-                        lastMessage: `正在补齐图床图片本地兜底：${backupProcessedAssets}/${remoteBackupCandidates.length}`
-                    });
-                }
-            }
-        }
-        let remainingFailedAssets = failedAssets;
-        remainingFailedAssets = remainingFailedAssets.filter((item) => !是图床图片地址(item.id) || !是否跳过图床备份下载(item.id));
-        if (failedAssets.length > 0 && replacements.size > 0) {
-            const failedIds = new Set(failedAssets.map((item) => item.id));
-            const [remainingReferencedIds, remainingAssetEntries] = await Promise.all([
-                读取已引用图片资源ID集合(),
-                读取全部图片资源记录()
-            ]);
-            const remainingLocalImageIds = new Set(remainingAssetEntries
-                .filter((item) => failedIds.has(item.id) && remainingReferencedIds.has(item.id) && 是DataUrl图片(item.dataUrl || ''))
-                .map((item) => item.id));
-            remainingFailedAssets = failedAssets.filter((item) => remainingLocalImageIds.has(item.id));
-        }
-        更新本地图片图床迁移状态({
-            stage: remainingFailedAssets.length > 0 ? 'partial_failed' : 'completed',
-            scannedAssets: assetEntries.length,
-            referencedAssets: referencedIds.size,
-            remoteImageAssets: remoteUrls.size,
-            totalAssets: candidates.length,
-            processedAssets,
-            migratedAssets: replacements.size,
-            backupTotalAssets: remoteBackupCandidates.length,
-            backupProcessedAssets,
-            backedUpAssets,
-            localBackupMissingAssets: Math.max(0, remoteBackupCandidates.length - backedUpAssets),
-            updatedSaves,
-            updatedSettings,
-            cleanedAssets,
-            failedAssets: remainingFailedAssets.length,
-            retryLater: remainingFailedAssets.length > 0,
-            lastError: remainingFailedAssets[0]?.message,
-            completedAt: new Date().toISOString(),
-            assetDetails: 构建迁移资源状态列表(candidates, remoteUrls, assetMap, fallbackMap, failedDetailMap, uploadedUrls),
-            lastMessage: remainingFailedAssets.length > 0
-                ? `旧存档图片已迁移 ${replacements.size} 张、补齐本地兜底 ${backedUpAssets} 张，${remainingFailedAssets.length} 张稍后自动重试`
-                : `旧存档图片处理完成，已合并 ${replacements.size} 个重复本地引用，补齐本地兜底 ${backedUpAssets} 张`
-        });
-        recordDiagnosticLog(remainingFailedAssets.length > 0 ? 'warn' : 'info', ['旧存档图片自动迁移完成', {
-            scannedAssets: assetEntries.length,
-            processedAssets,
-            migratedAssets: replacements.size,
-            remoteImageAssets: remoteUrls.size,
-            backedUpAssets,
-            updatedSaves,
-            updatedSettings,
-            cleanedAssets,
-            failedAssets: remainingFailedAssets.length,
-            retryLater: remainingFailedAssets.length > 0
-        }]);
-        return {
-            scannedAssets: assetEntries.length,
-            migratedAssets: replacements.size,
-            updatedSaves,
-            updatedSettings,
-            cleanedAssets,
-            failedAssets: remainingFailedAssets,
-            skipped: false
-        };
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        更新本地图片图床迁移状态({
-            stage: 'failed',
-            failedAssets: Math.max(1, 本地图片图床迁移状态缓存.failedAssets || 0),
-            retryLater: true,
-            lastError: message,
-            completedAt: new Date().toISOString(),
-            lastMessage: '旧存档图片自动迁移失败，稍后会自动重试'
-        });
-        throw error;
-    } finally {
-        正在自动迁移本地图片到图床 = false;
     }
 };
 
@@ -2880,7 +1911,7 @@ export const 清除图片相关提示词与预设 = async (): Promise<void> => {
             词组转化器提示词: defaultFeature.词组转化器提示词,
             模型词组转化器预设列表: defaultFeature.模型词组转化器预设列表,
             词组转化器提示词预设列表: defaultFeature.词组转化器提示词预设列表,
-            当前NAI词组转化器提示词预设ID: defaultFeature.当前NAI词组转化器提示词预设ID,
+            当前Tag词组转化器提示词预设ID: defaultFeature.当前Tag词组转化器提示词预设ID,
             当前NPC词组转化器提示词预设ID: defaultFeature.当前NPC词组转化器提示词预设ID,
             当前场景词组转化器提示词预设ID: defaultFeature.当前场景词组转化器提示词预设ID,
             当前场景判定提示词预设ID: defaultFeature.当前场景判定提示词预设ID,
@@ -2888,8 +1919,7 @@ export const 清除图片相关提示词与预设 = async (): Promise<void> => {
             角色锚点列表: defaultFeature.角色锚点列表,
             当前角色锚点ID: defaultFeature.当前角色锚点ID,
             PNG画风预设列表: defaultFeature.PNG画风预设列表,
-            当前PNG画风预设ID: defaultFeature.当前PNG画风预设ID,
-            NovelAI负面提示词: defaultFeature.NovelAI负面提示词
+            当前PNG画风预设ID: defaultFeature.当前PNG画风预设ID
         }
     };
 

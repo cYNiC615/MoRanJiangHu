@@ -134,7 +134,7 @@ export const 获取题材化难度设定 = (
             ...base,
             shortLabel: base.id === 'normal' ? '标准轮回' : base.shortLabel,
             资源压力: base.id === 'normal'
-                ? '奖励点、支线剧情与道具消耗按主神任务压力结算'
+                ? '元、支线剧情凭证与道具消耗按主神任务压力结算'
                 : base.资源压力.replace(/江湖/g, '轮回任务'),
             失败代价: base.id === 'extreme'
                 ? '可能触发重伤、队友死亡、支线失败、抹杀风险或主线断裂'
@@ -161,7 +161,7 @@ export const 获取题材化难度设定 = (
 export const 初始关系模板选项: Array<{ value: 初始关系模板类型; label: string; hint: string }> = [
     { value: '独行少系', label: '独行少系', hint: '初始社交网收束为 1~2 人，更偏向孤身闯荡。' },
     { value: '家族牵引', label: '家族牵引', hint: '优先生成家人、族人、旧宅与家业压力。' },
-    { value: '师门牵引', label: '师门牵引', hint: '优先生成师父、同门、门规与门内承接。' },
+    { value: '师门牵引', label: '师门牵引', hint: '优先生成师父、同门、组织规则与门内承接。' },
     { value: '世家官门', label: '世家官门', hint: '偏向门第、人脉、礼法与现实资源网络。' },
     { value: '青梅旧识', label: '青梅旧识', hint: '优先生成旧交、故人和情感承接线。' },
     { value: '旧仇旧债', label: '旧仇旧债', hint: '开局社会关系带着旧账、旧怨与压力源。' }
@@ -352,10 +352,10 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
         intro: '题材模式已移到“世界观”。这里只决定初始关系侧重、第一幕切入方式和初始门派生成。',
         relationHelper: '会优先影响初始社交网的情绪结构。',
         organizationEnabled: true,
-        organizationTitle: '开局生成门派',
+        organizationTitle: '开局生成组织',
         organizationDescription: '开启后第0回合会直接拥有可用门派，而不是只靠旧存档兜底。',
-        memberTitle: '开局生成同门',
-        memberDescription: '开启后会生成多层次同门名录，少数主要角色加若干普通同门。',
+        memberTitle: '开局生成成员',
+        memberDescription: '开启后会生成多层次成员名录，少数主要角色加若干普通同门。',
         organizationOffHint: '',
         relationLabels: {},
         cutInLabels: {},
@@ -719,8 +719,8 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         初始关系模板,
         关系侧重: 关系侧重.length > 0 ? 关系侧重 : fallback.关系侧重,
         开局切入偏好,
-        开局生成门派: raw?.开局生成门派 !== false,
-        开局生成同门: raw?.开局生成同门 !== false,
+        开局生成组织: raw?.开局生成组织 !== false,
+        开局生成成员: raw?.开局生成成员 !== false,
         允许生成性别: 规范化开局生成性别列表(
             raw?.允许生成性别
             ?? raw?.modeRuntimeProfile?.opening?.allowedGeneratedGenders

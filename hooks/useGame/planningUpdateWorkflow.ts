@@ -27,10 +27,8 @@ type 规划更新工作流依赖 = {
     角色: any;
     环境: any;
     世界: any;
-    战斗: any;
     玩家组织: any;
     任务列表: any[];
-    约定列表: any[];
     历史记录: any[];
     规划分析进行中Ref?: { current: boolean };
     开局配置?: OpeningConfig;
@@ -39,8 +37,7 @@ type 规划更新工作流依赖 = {
     规范化环境信息: (envLike?: any) => 环境信息结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => 世界数据结构;
-    规范化战斗状态: (raw?: any) => any;
-    规范化门派状态: (raw?: any) => any;
+    规范化组织状态: (raw?: any) => any;
     规范化剧情状态: (raw?: any, envLike?: any) => 剧情系统结构;
     规范化剧情规划状态: (raw?: any) => 剧情规划结构;
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
@@ -227,10 +224,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         let envBuffer = deps.规范化环境信息(params.env);
         let socialBuffer = deps.深拷贝(params.social);
         let worldBuffer = deps.规范化世界状态(params.world ?? deps.世界);
-        let battleBuffer = deps.规范化战斗状态(deps.战斗);
-        let sectBuffer = deps.规范化门派状态(deps.玩家组织);
+        let sectBuffer = deps.规范化组织状态(deps.玩家组织);
         let tasksBuffer = deps.深拷贝(Array.isArray(deps.任务列表) ? deps.任务列表 : []);
-        let agreementsBuffer = deps.深拷贝(Array.isArray(deps.约定列表) ? deps.约定列表 : []);
         let storyBuffer = deps.规范化剧情状态(params.story, envBuffer);
         let storyPlanBuffer = deps.规范化剧情规划状态(params.storyPlan);
         let heroinePlanBuffer = deps.规范化女主剧情规划状态(params.heroinePlan);
@@ -241,13 +236,11 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 envBuffer,
                 socialBuffer,
                 worldBuffer,
-                battleBuffer,
                 storyBuffer,
                 storyPlanBuffer,
                 heroinePlanBuffer,
                 sectBuffer,
                 tasksBuffer,
-                agreementsBuffer,
                 cmd.key,
                 cmd.value,
                 cmd.action
@@ -256,10 +249,8 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             envBuffer = result.env;
             socialBuffer = result.social;
             worldBuffer = result.world;
-            battleBuffer = result.battle;
             sectBuffer = result.sect;
             tasksBuffer = Array.isArray(result.tasks) ? result.tasks : [];
-            agreementsBuffer = Array.isArray(result.agreements) ? result.agreements : [];
             storyBuffer = result.story;
             storyPlanBuffer = result.storyPlan;
             heroinePlanBuffer = result.heroinePlan;
@@ -268,8 +259,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         envBuffer = deps.规范化环境信息(envBuffer);
         socialBuffer = deps.规范化社交列表(socialBuffer, { 合并同名: false });
         worldBuffer = deps.规范化世界状态(worldBuffer);
-        battleBuffer = deps.规范化战斗状态(battleBuffer);
-        sectBuffer = deps.规范化门派状态(sectBuffer);
+        sectBuffer = deps.规范化组织状态(sectBuffer);
 
         return {
             story: deps.规范化剧情状态(storyBuffer, envBuffer),

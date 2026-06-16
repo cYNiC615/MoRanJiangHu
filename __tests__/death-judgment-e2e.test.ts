@@ -83,10 +83,8 @@ describe('死亡判定端到端测试', () => {
                 环境: 规范化环境信息({ 时间: '1:01:01:08:00', 大地点: '测试州', 具体地点: '前厅' }),
                 社交: socialList,
                 世界: { 地图层级: [] } as any,
-                战斗: {} as any,
                 玩家组织: {} as any,
                 任务列表: [],
-                约定列表: [],
                 剧情: {} as any,
                 剧情规划: {} as any
             },
@@ -94,13 +92,11 @@ describe('死亡判定端到端测试', () => {
                 规范化环境信息,
                 规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => 规范化社交列表(raw || [], options),
                 规范化世界状态: (raw?: any) => raw || { 地图层级: [] },
-                规范化战斗状态: (raw?: any) => raw || {},
-                规范化门派状态: (raw?: any) => raw || {},
+                规范化组织状态: (raw?: any) => raw || {},
                 规范化剧情状态: (raw?: any) => raw || {},
                 规范化剧情规划状态: (raw?: any) => raw || {},
                 规范化女主剧情规划状态: (raw?: any) => raw,
-                规范化角色物品容器映射,
-                战斗结束自动清空: (battle: any) => battle
+                规范化角色物品容器映射
             },
             undefined,
             { applyState: false }

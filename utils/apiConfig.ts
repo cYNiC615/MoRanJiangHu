@@ -14,7 +14,6 @@ import {
     角色锚点结构,
     角色锚点特征结构,
     图片词组序列化策略类型,
-    图片响应格式类型,
     发现图片后端记录结构
 } from '../models/system';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from '../data/defaultComfyWorkflow';
@@ -55,10 +54,10 @@ const 构建结构化词组输出格式提示词 = (
     scope: 'npc' | 'scene'
 ): string => {
     if (scope === 'npc') {
-        const serializerHint = strategy === 'nai_character_segments'
-            ? 'NovelAI 最终会直接使用这一条单角色 tags；如需要人数标签或权重分组，可直接写在同一个 <提示词> 中。'
-            : strategy === 'grok_structured'
-                ? 'Grok 最终会把这条单角色 tags 转成更电影化的描述式提示词。'
+        const serializerHint = strategy === 'tag_segments'
+            ? '分段 tags 最终会直接使用这一条单角色 tags；如需要人数标签或权重分组，可直接写在同一个 <提示词> 中。'
+            : strategy === 'cinematic_structured'
+                ? '电影感结构化策略会把这条单角色 tags 转成更电影化的描述式提示词。'
                 : strategy === 'gemini_structured'
                     ? 'Gemini 最终会把这条单角色 tags 转成清晰、可执行的英文短语。'
                     : '输出必须可被后续解析成单角色提示词。';
@@ -70,10 +69,10 @@ const 构建结构化词组输出格式提示词 = (
             '输出内容只保留这个结构本身。'
         ].join('\n');
     }
-    const serializerHint = strategy === 'nai_character_segments'
-        ? 'NovelAI 多角色会按基础段 + 角色段序列化，并使用 | 连接。<基础> 负责全局环境、镜头、天气、布局和光影；<角色> 内每条 [序号] 内容负责该角色当前镜头需要的最小必要 tags。'
-        : strategy === 'grok_structured'
-            ? 'Grok 最终会把这些段落转成更电影化的描述式提示词；<角色> 内每条 [序号] 仍只写对应角色的动作、姿态、视线和镜头关系。'
+    const serializerHint = strategy === 'tag_segments'
+        ? '分段 tags 多角色会按基础段 + 角色段序列化，并使用 | 连接。<基础> 负责全局环境、镜头、天气、布局和光影；<角色> 内每条 [序号] 内容负责该角色当前镜头需要的最小必要 tags。'
+        : strategy === 'cinematic_structured'
+            ? '电影感结构化策略会把这些段落转成更电影化的描述式提示词；<角色> 内每条 [序号] 仍只写对应角色的动作、姿态、视线和镜头关系。'
             : strategy === 'gemini_structured'
                 ? 'Gemini 最终会把这些段落转成清晰的描述式提示词；<角色> 内每条 [序号] 写成完整、可执行的英文短语。'
                 : '输出必须可被后续解析成基础段与 [序号] 角色段。';
@@ -95,13 +94,13 @@ const 构建结构化词组输出格式提示词 = (
 
 const 默认词组转化器提示词预设列表: 词组转化器提示词预设结构[] = [
     {
-        id: 'transformer_nai_npc',
-        名称: 'NAI · NPC角色生成',
+        id: 'transformer_tag_npc',
+        名称: '分段Tags · NPC角色生成',
         类型: 'npc',
         提示词: [
-            '你是 NovelAI V4/V4.5 角色提示词整理器。',
+            '你是 分段Tags 角色提示词整理器。',
             '你的任务是把 NPC 资料整理成可直接用于角色生图的英文 tags，并保持稳定、统一、可复用。',
-            '请按 NovelAI 更易执行的单角色提示词思路组织内容：在同一条 tags 里先放稳定身份、外观、服饰，再补镜头、光影与动作。',
+            '请按 分段 tags 更易执行的单角色提示词思路组织内容：在同一条 tags 里先放稳定身份、外观、服饰，再补镜头、光影与动作。',
             '若输入没有明确指定画风介质，不要擅自锁定二次元、写实、国风或摄影风格；只整理并强化输入中已经存在的风格信息。',
             '建议信息顺序：主体身份与年龄感 > 外貌与面部辨识 > 身材体态 > 常驻服饰 > 手持物或身份道具 > 姿态表情 > 镜头构图 > 光影环境。',
             '质量串、画风串、主体身份可以使用权重分组；动作、景别、环境关系和临时状态更适合自然 tags。',
@@ -125,7 +124,7 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
             '当资料只给出身份、境界、年龄、性别等少量字段时，也要据此补全最稳妥的外观、体态、衣着层次、配饰、武器或身份道具。'
         ].join('\n'),
         输出格式提示词: [
-            构建结构化词组输出格式提示词('nai_character_segments', 'npc'),
+            构建结构化词组输出格式提示词('tag_segments', 'npc'),
             '单角色图直接输出 <提示词>，不要再拆 <基础>/<角色>。',
             '请先写稳定主体，再补镜头、动作、光影和少量环境。',
             '有锚点时，只补动态动作、姿态、表情、临时服装变化和道具。'
@@ -134,13 +133,13 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
         updatedAt: 1
     },
     {
-        id: 'transformer_nai_scene',
-        名称: 'NAI · 场景生成',
+        id: 'transformer_tag_scene',
+        名称: '分段Tags · 场景生成',
         类型: 'scene',
         提示词: [
-            '你是 NovelAI V4/V4.5 场景提示词整理器。',
+            '你是 分段Tags 场景提示词整理器。',
             '你的任务是把场景描述整理成可直接用于场景生图的英文 tags，并保持空间清晰、层次稳定、单帧可执行。',
-            '请按 NovelAI 更易执行的场景结构组织内容：基础段负责地点、时间、天气、空间结构、镜头、光影与整体氛围；角色信息统一写进 <角色> 块并用 [序号] 区分。',
+            '请按 分段 tags 更易执行的场景结构组织内容：基础段负责地点、时间、天气、空间结构、镜头、光影与整体氛围；角色信息统一写进 <角色> 块并用 [序号] 区分。',
             '若输入没有明确指定画风介质，不要擅自锁定二次元、写实、国风或摄影风格；只整理输入里已有的风格线索。',
             '提示词顺序建议为：大地点 > 具体地点 > 空间结构 > 时间天气 > 环境材质与细节 > 人物站位与互动 > 镜头构图 > 氛围特效。',
             '纯场景时让环境作为第一主体；故事快照时也必须保留地点、前中后景、地面关系和空间尺度。',
@@ -160,17 +159,17 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
             '不要把场景图写成多个完整角色立绘的拼贴。'
         ].join('\n'),
         输出格式提示词: [
-            构建结构化词组输出格式提示词('nai_character_segments', 'scene'),
+            构建结构化词组输出格式提示词('tag_segments', 'scene'),
             '纯场景时可以只输出 <基础>；故事快照或多人画面时，主要角色必须写进 <角色> 块。',
-            'NovelAI 最终会用 | 连接基础段和角色段；<角色> 内每条 [序号] 内容开头优先写 1girl、1boy、1woman 或 1man。',
+            '分段 tags 最终会用 | 连接基础段和角色段；<角色> 内每条 [序号] 内容开头优先写 1girl、1boy、1woman 或 1man。',
             '基础段负责地点、空间、天气、镜头、光影与整体特效；<角色> 内每条 [序号] 只写该角色自身的外观锚点补充、动作、姿态、视线、手部状态和与环境或他人的关系。'
         ].join('\n'),
         createdAt: 2,
         updatedAt: 2
     },
     {
-        id: 'transformer_nai_scene_judge',
-        名称: 'NAI · 场景判定',
+        id: 'transformer_tag_scene_judge',
+        名称: '分段Tags · 场景判定',
         类型: 'scene_judge',
         提示词: [
             '你负责判断当前文本更适合生成“风景场景”还是“故事快照”。',
@@ -193,7 +192,7 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
         提示词: [
             '你是 Gemini Banana 角色提示词整理器。',
             '你的任务是把 NPC 资料整理成清晰、可执行、偏描述式的英文角色图提示词。',
-            '请优先输出短英文短语或短句，不要写 NovelAI 权重语法，不要堆砌过碎的 Danbooru 风格碎标签。',
+            '请优先输出短英文短语或短句，不要写 私有权重语法，不要堆砌过碎的 Danbooru 风格碎标签。',
             '若输入没有明确指定画风介质，不要擅自锁定二次元、写实、国风或摄影风格；只整理输入中已有的风格线索。',
             '提示词顺序：角色身份与主体 > 稳定外观 > 身材体态 > 常驻服装 > 道具 > 动作表情 > 镜头构图 > 光影环境。',
             '请把性格转换成表情、姿态、镜头和光线，把身份与境界转换成服装细节、气场和主体姿态。',
@@ -226,7 +225,7 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
         提示词: [
             '你是 Gemini Banana 场景提示词整理器。',
             '你的任务是把场景信息整理成适合 Gemini Banana 的英文场景提示词。',
-            '请优先输出清晰、可执行的英文短语，不要使用 NovelAI 权重语法，也不要堆砌过度碎片化标签。',
+            '请优先输出清晰、可执行的英文短语，不要使用 私有权重语法，也不要堆砌过度碎片化标签。',
             '先建立地点、空间、时间、天气和主要材质，再写人物位置与互动，最后写镜头和氛围。',
             '请保持一个清晰焦点、一个主要镜头、一个稳定时刻，避免把多段剧情折叠进同一张图。',
             '古风、江湖、仙侠场景里主动写清建筑风格、山水层次、树影灯火、雾气风向、天气、地面材质与环境粒子。'
@@ -265,12 +264,12 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
         updatedAt: 6
     },
     {
-        id: 'transformer_grok_npc',
-        名称: 'Grok · NPC角色生成',
+        id: 'transformer_cinematic_npc',
+        名称: 'Cinematic · NPC角色生成',
         类型: 'npc',
         提示词: [
-            '你是 Grok 2D cinematic 角色提示词整理器。',
-            '你的任务是把 NPC 资料整理成适合 Grok 的英文角色提示词。',
+            '你是 cinematic 角色提示词整理器。',
+            '你的任务是把 NPC 资料整理成偏电影感的英文角色提示词。',
             '可使用更具电影感的描述式短语，但仍需保持可执行、可画、单帧稳定。',
             '若输入没有明确指定画风介质，不要擅自锁定二次元、写实、国风或摄影风格；只整理输入里已有的风格倾向。',
             '推荐顺序：角色主体 > 稳定外观 > 身材体态 > 服装与身份标志 > 道具 > 姿态动作 > 镜头景别 > 光影氛围 > 背景补充。',
@@ -291,20 +290,20 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
             '当资料只给出身份、境界、年龄、性别时，也要据此补出最稳妥的年龄感、轮廓、体态、衣着层次、配饰与身份道具。'
         ].join('\n'),
         输出格式提示词: [
-            构建结构化词组输出格式提示词('grok_structured', 'npc'),
-            'Grok 角色段应强化镜头、姿态、光源方向和情绪张力，但仍保持单一清晰动作。',
+            构建结构化词组输出格式提示词('cinematic_structured', 'npc'),
+            '角色段应强化镜头、姿态、光源方向和情绪张力，但仍保持单一清晰动作。',
             '基础段负责整体镜头与环境倾向，角色段负责单体身份、外观、动作和与环境的关系。'
         ].join('\n'),
         createdAt: 7,
         updatedAt: 7
     },
     {
-        id: 'transformer_grok_scene',
-        名称: 'Grok · 场景生成',
+        id: 'transformer_cinematic_scene',
+        名称: 'Cinematic · 场景生成',
         类型: 'scene',
         提示词: [
-            '你是 Grok 2D cinematic 场景提示词整理器。',
-            '你的任务是把场景信息整理成适合 Grok 的英文场景提示词。',
+            '你是 cinematic 场景提示词整理器。',
+            '你的任务是把场景信息整理成偏电影感的英文场景提示词。',
             '目标是生成带有电影叙事感、但仍然单帧稳定、可执行的场景图或故事快照。',
             '优先构建世界层级、景深、动作焦点和光源结构，让地点本身具有叙事性。',
             '人物服务于场景事件，环境层级与事件调度一起推进画面叙事。',
@@ -323,16 +322,16 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
             '请避免把场景图整理成多个人物海报元素的拼贴。'
         ].join('\n'),
         输出格式提示词: [
-            构建结构化词组输出格式提示词('grok_structured', 'scene'),
-            'Grok 场景图的基础段负责世界层级、景深和整体调度，角色段负责单个角色的电影化动作关系。',
+            构建结构化词组输出格式提示词('cinematic_structured', 'scene'),
+            '场景图的基础段负责世界层级、景深和整体调度，角色段负责单个角色的电影化动作关系。',
             '角色段只写当前镜头需要的最小必要外观识别、站位和动作。'
         ].join('\n'),
         createdAt: 8,
         updatedAt: 8
     },
     {
-        id: 'transformer_grok_scene_judge',
-        名称: 'Grok · 场景判定',
+        id: 'transformer_cinematic_scene_judge',
+        名称: 'Cinematic · 场景判定',
         类型: 'scene_judge',
         提示词: [
             '判断当前文本更适合生成风景场景还是故事快照。',
@@ -393,7 +392,7 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
             '你是 ComfyUI 场景提示词整理器。请把正文场景整理成可直接进入常见 SDXL、Pony、Illustrious、写实系 ComfyUI 工作流的英文提示词。',
             '先清理冲突信息，再补足可画细节，最后保持提示词短而稳定；优先建立地点、空间层级、时间、天气、主体事件、人物站位、镜头景别、光影与环境材质。',
             '纯场景时让环境作为第一主体，避免写入人物；故事快照时只保留当前镜头需要的人物动作、站位和少量外观识别。',
-            '不要使用 NovelAI 私有权重语法；优先输出清晰英文短语和必要 tags，避免解释、Markdown、中文翻译和长段散文。',
+            '不要使用 私有权重语法；优先输出清晰英文短语和必要 tags，避免解释、Markdown、中文翻译和长段散文。',
             '武侠/仙侠场景可加入 courtyard, mountain path, mist, lantern light, robe fabric, sword glint, dust, wind, rim light 等可见元素，但不得堆砌互相冲突的镜头。',
             '若文本偏对话、心理、设定说明或多段连续动作，就回退到风景场景；若能锁定单一地点与单一时刻，则保留故事快照。',
             '对场景主体来说，地点、光影、景别、材质和氛围优先于人物堆砌；人物只服务于当前镜头。'
@@ -434,12 +433,12 @@ const 默认词组转化器提示词预设列表: 词组转化器提示词预设
 
 const 默认模型词组转化器预设列表: 模型词组转化器预设结构[] = [
     {
-        id: 'transformer_model_bundle_nai',
-        名称: 'NAI',
+        id: 'transformer_model_bundle_tags',
+        名称: '分段Tags',
         是否启用: true,
         模型专属提示词: [
-            '目标模型为 NovelAI V4/V4.5。',
-            '输出采用 NovelAI 常用的英文 tags 习惯。',
+            '目标模型为 分段Tags。',
+            '输出采用 分段 tags的英文 tags 习惯。',
             '若任务要求单角色图，则直接输出单个角色最终 tags；若任务要求场景图，则按基础段 + [序号]角色段组织。',
             '质量串、画风串、主体身份可以使用权重分组；动作、镜头、环境和临时状态保持自然标签表达，让画面更稳。',
             '若输入没有明确要求，不要擅自锁定二次元、写实、国风或摄影风格；只整理并强化已有风格线索。',
@@ -448,14 +447,14 @@ const 默认模型词组转化器预设列表: 模型词组转化器预设结构
             '若 NPC 资料较少，可以根据身份、境界、年龄、性别做保守补全，但补全内容必须长期稳定、低冲突、易复用。'
         ].join('\n'),
         锚定模式模型提示词: [
-            '目标模型为 NovelAI V4/V4.5。',
+            '目标模型为 分段Tags。',
             '请沿用锚点中的稳定外观，把输出重点放在镜头、动作、姿态、构图、光影、环境和临时状态补充。',
             '不要把锚点已经固定的稳定外观重复展开成冗长角色段。'
         ].join('\n'),
-        词组序列化策略: 'nai_character_segments',
-        NPC词组转化器提示词预设ID: 'transformer_nai_npc',
-        场景词组转化器提示词预设ID: 'transformer_nai_scene',
-        场景判定提示词预设ID: 'transformer_nai_scene_judge',
+        词组序列化策略: 'tag_segments',
+        NPC词组转化器提示词预设ID: 'transformer_tag_npc',
+        场景词组转化器提示词预设ID: 'transformer_tag_scene',
+        场景判定提示词预设ID: 'transformer_tag_scene_judge',
         createdAt: 10,
         updatedAt: 10
     },
@@ -466,7 +465,7 @@ const 默认模型词组转化器预设列表: 模型词组转化器预设结构
         模型专属提示词: [
             '目标模型为 Gemini Banana。',
             '输出更适合清晰、具体、可执行的英文描述式提示词，而不是纯 Danbooru 标签堆叠。',
-            '请优先使用短英文短语或短句，不要使用 NovelAI 权重语法，不要堆砌过碎标签。',
+            '请优先使用短英文短语或短句，不要使用 私有权重语法，不要堆砌过碎标签。',
             '若输入没有明确要求，不要擅自锁定二次元、写实、国风或摄影风格；只整理已有风格线索。',
             '描述要明确主体、服装、动作、镜头和环境，保持具体、可执行。',
             '基础段负责整体场景和镜头，角色段负责每个角色的完整可执行短语，并保持单镜头、单主动作、单主光源。',
@@ -485,11 +484,11 @@ const 默认模型词组转化器预设列表: 模型词组转化器预设结构
         updatedAt: 11
     },
     {
-        id: 'transformer_model_bundle_grok',
-        名称: 'Grok',
+        id: 'transformer_model_bundle_cinematic',
+        名称: 'Cinematic',
         是否启用: false,
         模型专属提示词: [
-            '目标模型为 Grok 的 2D cinematic 风格图像模型。',
+            '目标模型为偏 2D cinematic 风格的图像模型。',
             '允许更强的电影镜头感，但成图仍需保持单帧稳定、可执行、主体清晰。',
             '提示词需要兼顾叙事张力与可执行性，保持 cinematic illustration 的组织方式，而不是杂乱堆叠。',
             '若输入没有明确要求，不要擅自锁定二次元、写实、国风或摄影风格；只整理已有风格线索。',
@@ -499,14 +498,14 @@ const 默认模型词组转化器预设列表: 模型词组转化器预设结构
             '若 NPC 资料较少，可以根据身份、境界、年龄、性别做保守补全，但补全内容必须长期稳定、低冲突、易复用。'
         ].join('\n'),
         锚定模式模型提示词: [
-            '目标模型为 Grok 的 2D cinematic 风格图像模型。',
+            '目标模型为偏 2D cinematic 风格的图像模型。',
             '请沿用锚点中的稳定外观，把输出重点放在电影镜头、动作调度、姿态、光影和环境叙事。',
             '不要重复扩写锚点已经固定的核心外观。'
         ].join('\n'),
-        词组序列化策略: 'grok_structured',
-        NPC词组转化器提示词预设ID: 'transformer_grok_npc',
-        场景词组转化器提示词预设ID: 'transformer_grok_scene',
-        场景判定提示词预设ID: 'transformer_grok_scene_judge',
+        词组序列化策略: 'cinematic_structured',
+        NPC词组转化器提示词预设ID: 'transformer_cinematic_npc',
+        场景词组转化器提示词预设ID: 'transformer_cinematic_scene',
+        场景判定提示词预设ID: 'transformer_cinematic_scene_judge',
         createdAt: 12,
         updatedAt: 12
     },
@@ -621,7 +620,7 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     使用默认ComfyUI工作流: true,
     ComfyUI工作流JSON: '',
     场景生图独立接口启用: false,
-    场景生图后端类型: 'openai',
+    场景生图后端类型: 'comfyui',
     场景生图模型使用模型: '',
     场景生图模型API地址: '',
     场景生图模型API密钥: '',
@@ -636,11 +635,7 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     当前NSFW图片后端发现ID: '',
     使用默认NSFWComfyUI工作流: true,
     NSFWComfyUI工作流JSON: '',
-    文生图接口路径模式: 'preset',
-    文生图预设接口路径: 'comfyui_prompt',
-    文生图接口路径: '',
     文生图响应格式: 'url',
-    文生图OpenAI自定义格式: false,
     画师串预设列表: [],
     当前NPC画师串预设ID: '',
     当前场景画师串预设ID: '',
@@ -654,11 +649,6 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     自动场景生图构图要求: '纯场景',
         自动场景生图横竖屏: '横屏',
         自动场景生图分辨率: '1024x576',
-    NovelAI启用自定义参数: false,
-    NovelAI采样器: 'k_euler_ancestral',
-    NovelAI噪点表: 'karras',
-    NovelAI步数: 28,
-    NovelAI负面提示词: 'lowres, bad anatomy, bad hands, text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, logo, artist name, web address, url, copyright, subtitle, subtitles, title, poster text, comic text, manga text, dialogue text, speech bubble, dialogue box, word balloon, UI overlay, date stamp, QR code, barcode, blurry',
     NPC生图使用词组转化器: true,
     词组转化兼容模式: false,
     香闺秘档特写强制裸体语义: false,
@@ -669,7 +659,7 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     词组转化器提示词: '',
     模型词组转化器预设列表: 默认模型词组转化器预设列表,
     词组转化器提示词预设列表: 默认词组转化器提示词预设列表,
-    当前NAI词组转化器提示词预设ID: 'transformer_nai_npc',
+    当前Tag词组转化器提示词预设ID: 'transformer_tag_npc',
     当前NPC词组转化器提示词预设ID: 'transformer_banana_npc',
     当前场景词组转化器提示词预设ID: 'transformer_banana_scene',
     当前场景判定提示词预设ID: 'transformer_banana_scene_judge',
@@ -802,7 +792,7 @@ const 标准化画师串预设适用范围 = (value: unknown): 画师串预设�
 };
 
 const 标准化词组转化器提示词预设类型 = (value: unknown): 词组转化器提示词预设类型 => {
-    if (value === 'nai' || value === 'npc' || value === 'scene' || value === 'scene_judge') return value;
+    if (value === 'tag' || value === 'npc' || value === 'scene' || value === 'scene_judge') return value;
     return 'npc';
 };
 
@@ -869,7 +859,7 @@ const 标准化PNG画风预设列表 = (raw: unknown): PNG画风预设结构[] =
             return {
                 id,
                 名称,
-                来源: source?.来源 === 'novelai' || source?.来源 === 'sd_webui' ? source.来源 : 'unknown',
+                来源: 'unknown',
                 原始正面提示词,
                 剥离后正面提示词,
                 AI提炼正面提示词,
@@ -1171,16 +1161,16 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         if (rawId) return rawId;
         return 读取字符串(raw?.当前PNG画风预设ID ?? raw?.currentPngPresetId).trim();
     })();
-    const 当前NAI词组转化器提示词预设ID = (() => {
-        if (!Object.prototype.hasOwnProperty.call(raw || {}, '当前NAI词组转化器提示词预设ID')) {
-            return 'transformer_nai_npc';
+    const 当前Tag词组转化器提示词预设ID = (() => {
+        if (!Object.prototype.hasOwnProperty.call(raw || {}, '当前Tag词组转化器提示词预设ID')) {
+            return 'transformer_tag_npc';
         }
-        const rawId = 读取字符串(raw?.当前NAI词组转化器提示词预设ID).trim();
+        const rawId = 读取字符串(raw?.当前Tag词组转化器提示词预设ID).trim();
         if (rawId === '') return '';
         return 选取有效预设ID(
-            词组转化器提示词预设列表.filter((item) => item.类型 === 'nai' || item.类型 === 'npc'),
+            词组转化器提示词预设列表.filter((item) => item.类型 === 'tag' || item.类型 === 'npc'),
             rawId
-        ) || 'transformer_nai_npc';
+        ) || 'transformer_tag_npc';
     })();
     const 当前NPC词组转化器提示词预设ID = (() => {
         if (!Object.prototype.hasOwnProperty.call(raw || {}, '当前NPC词组转化器提示词预设ID')) {
@@ -1215,22 +1205,6 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
             rawId
         ) || 'transformer_banana_scene_judge';
     })();
-    const hasImageBackendConfig = Boolean(
-        读取字符串(raw?.文生图模型使用模型)
-        || 读取字符串(raw?.文生图模型API地址)
-        || 读取字符串(raw?.文生图模型API密钥)
-        || 读取字符串(raw?.ComfyUI工作流JSON)
-        || raw?.文生图后端类型 === 'novelai'
-        || raw?.文生图后端类型 === 'sd_webui'
-        || raw?.文生图后端类型 === 'comfyui'
-    );
-    const resolvedImageBackend = raw?.文生图后端类型 === 'novelai'
-        || raw?.文生图后端类型 === 'sd_webui'
-        || raw?.文生图后端类型 === 'comfyui'
-        ? raw.文生图后端类型
-        : raw?.文生图后端类型 === 'openai' && hasImageBackendConfig
-            ? 'openai'
-            : 'comfyui';
     return {
         主剧情使用模型: 读取字符串(raw?.主剧情使用模型),
         DeepSeek稳定模型救场开关: raw?.DeepSeek稳定模型救场开关 === true
@@ -1300,7 +1274,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         文章优化API密钥: 读取字符串(raw?.文章优化API密钥),
         文章优化提示词: polishPromptCandidate.trim().length > 0 ? polishPromptCandidate : 默认文章优化提示词,
         文生图功能启用: Boolean(raw?.文生图功能启用),
-        文生图后端类型: resolvedImageBackend,
+        文生图后端类型: 'comfyui',
         文生图模型使用模型: 读取字符串(raw?.文生图模型使用模型),
         文生图模型API地址: 读取字符串(raw?.文生图模型API地址),
         文生图模型API密钥: 读取字符串(raw?.文生图模型API密钥),
@@ -1310,9 +1284,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         使用默认ComfyUI工作流,
         ComfyUI工作流JSON: 使用默认ComfyUI工作流 ? '' : 规范化普通ComfyUI工作流JSON(raw?.ComfyUI工作流JSON),
         场景生图独立接口启用: Boolean(raw?.场景生图独立接口启用),
-        场景生图后端类型: raw?.场景生图后端类型 === 'novelai' || raw?.场景生图后端类型 === 'sd_webui' || raw?.场景生图后端类型 === 'comfyui'
-            ? raw.场景生图后端类型
-            : 'openai',
+        场景生图后端类型: 'comfyui',
         场景生图模型使用模型: 读取字符串(raw?.场景生图模型使用模型),
         场景生图模型API地址: 读取字符串(raw?.场景生图模型API地址),
         场景生图模型API密钥: 读取字符串(raw?.场景生图模型API密钥),
@@ -1320,25 +1292,14 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         使用默认场景ComfyUI工作流,
         场景ComfyUI工作流JSON: 使用默认场景ComfyUI工作流 ? '' : 规范化场景ComfyUI工作流JSON(raw?.场景ComfyUI工作流JSON),
         NSFW生图独立接口启用: Boolean(raw?.NSFW生图独立接口启用),
-        NSFW生图后端类型: raw?.NSFW生图后端类型 === 'openai' || raw?.NSFW生图后端类型 === 'novelai' || raw?.NSFW生图后端类型 === 'sd_webui' || raw?.NSFW生图后端类型 === 'comfyui'
-            ? raw.NSFW生图后端类型
-            : 'comfyui',
+        NSFW生图后端类型: 'comfyui',
         NSFW生图模型使用模型: 读取字符串(raw?.NSFW生图模型使用模型),
         NSFW生图模型API地址: 读取字符串(raw?.NSFW生图模型API地址),
         NSFW生图模型API密钥: 读取字符串(raw?.NSFW生图模型API密钥),
         当前NSFW图片后端发现ID: 读取字符串(raw?.当前NSFW图片后端发现ID),
         使用默认NSFWComfyUI工作流,
         NSFWComfyUI工作流JSON: 使用默认NSFWComfyUI工作流 ? '' : 规范化NSFWComfyUI工作流JSON(raw?.NSFWComfyUI工作流JSON),
-        文生图接口路径模式: raw?.文生图接口路径模式 === 'custom' ? 'custom' : 'preset',
-        文生图预设接口路径: raw?.文生图预设接口路径 === 'openai_chat'
-            || raw?.文生图预设接口路径 === 'novelai_generate'
-            || raw?.文生图预设接口路径 === 'sd_txt2img'
-            || raw?.文生图预设接口路径 === 'comfyui_prompt'
-            ? raw.文生图预设接口路径
-            : 'openai_images',
-        文生图接口路径: 读取字符串(raw?.文生图接口路径),
-        文生图响应格式: raw?.文生图响应格式 === 'b64_json' || raw?.文生图响应格式 === 'base64' ? raw.文生图响应格式 : 'url',
-        文生图OpenAI自定义格式: Boolean(raw?.文生图OpenAI自定义格式),
+        文生图响应格式: 'url',
         画师串预设列表,
         当前NPC画师串预设ID,
         当前场景画师串预设ID,
@@ -1364,24 +1325,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
             ? raw.自动场景生图横竖屏
             : '横屏',
         自动场景生图分辨率: 读取字符串(raw?.自动场景生图分辨率).trim() || '1024x576',
-        NovelAI启用自定义参数: Boolean(raw?.NovelAI启用自定义参数),
-        NovelAI采样器: raw?.NovelAI采样器 === 'k_euler'
-            || raw?.NovelAI采样器 === 'k_euler_ancestral'
-            || raw?.NovelAI采样器 === 'k_dpmpp_2m'
-            || raw?.NovelAI采样器 === 'k_dpmpp_2s_ancestral'
-            || raw?.NovelAI采样器 === 'k_dpmpp_sde'
-            || raw?.NovelAI采样器 === 'k_dpmpp_2m_sde'
-            ? raw.NovelAI采样器
-            : 'k_euler_ancestral',
-        NovelAI噪点表: raw?.NovelAI噪点表 === 'native'
-            || raw?.NovelAI噪点表 === 'karras'
-            || raw?.NovelAI噪点表 === 'exponential'
-            || raw?.NovelAI噪点表 === 'polyexponential'
-            ? raw.NovelAI噪点表
-            : 'karras',
-        NovelAI步数: Math.max(1, Math.min(50, Number(raw?.NovelAI步数) || 28)),
-        NovelAI负面提示词: 读取字符串(raw?.NovelAI负面提示词),
-        NPC生图使用词组转化器: raw?.文生图后端类型 === 'novelai' ? true : raw?.NPC生图使用词组转化器 !== false,
+        NPC生图使用词组转化器: raw?.NPC生图使用词组转化器 !== false,
         词组转化兼容模式: raw?.词组转化兼容模式 === true,
         香闺秘档特写强制裸体语义: raw?.香闺秘档特写强制裸体语义 === true,
         词组转化器启用独立模型: Boolean(raw?.词组转化器启用独立模型),
@@ -1391,7 +1335,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         词组转化器提示词: '',
         模型词组转化器预设列表,
         词组转化器提示词预设列表,
-        当前NAI词组转化器提示词预设ID,
+        当前Tag词组转化器提示词预设ID,
         当前NPC词组转化器提示词预设ID,
         当前场景词组转化器提示词预设ID,
         当前场景判定提示词预设ID,
@@ -1517,18 +1461,10 @@ export const 写入接口设置本地镜像 = (settings: 接口设置结构): vo
 export type 当前可用接口结构 = Pick<单接口配置结构, 'id' | '名称' | '供应商' | '协议覆盖' | 'baseUrl' | 'apiKey' | 'model' | 'maxTokens' | 'temperature'> & {
     图片后端类型?: 功能模型占位配置结构['文生图后端类型'];
     图片接口路径?: string;
-    图片接口路径模式?: 功能模型占位配置结构['文生图接口路径模式'];
-    图片预设接口路径?: 功能模型占位配置结构['文生图预设接口路径'];
-    图片响应格式?: 图片响应格式类型;
-    图片走OpenAI自定义格式?: boolean;
+    图片响应格式?: 'url';
     画师串预设列表?: 画师串预设结构[];
     当前NPC画师串预设ID?: string;
     当前场景画师串预设ID?: string;
-    NovelAI启用自定义参数?: boolean;
-    NovelAI采样器?: 功能模型占位配置结构['NovelAI采样器'];
-    NovelAI噪点表?: 功能模型占位配置结构['NovelAI噪点表'];
-    NovelAI步数?: number;
-    NovelAI负面提示词?: string;
     NPC生图使用词组转化器?: boolean;
     词组转化兼容模式?: boolean;
     词组转化器AI角色提示词?: string;
@@ -1537,7 +1473,7 @@ export type 当前可用接口结构 = Pick<单接口配置结构, 'id' | '名�
     词组转化输出策略?: 图片词组序列化策略类型;
     模型词组转化器预设列表?: 模型词组转化器预设结构[];
     词组转化器提示词预设列表?: 词组转化器提示词预设结构[];
-    当前NAI词组转化器提示词预设ID?: string;
+    当前Tag词组转化器提示词预设ID?: string;
     当前NPC词组转化器提示词预设ID?: string;
     当前场景词组转化器提示词预设ID?: string;
     当前场景判定提示词预设ID?: string;
@@ -1545,48 +1481,6 @@ export type 当前可用接口结构 = Pick<单接口配置结构, 'id' | '名�
     画风?: '通用' | '二次元' | '写实' | '国风';
     香闺秘档特写强制裸体语义?: boolean;
     自动切换提示?: string;
-};
-
-type 图片后端类型 = NonNullable<功能模型占位配置结构['文生图后端类型']>;
-type 图片预设接口路径类型 = NonNullable<功能模型占位配置结构['文生图预设接口路径']>;
-
-const 图片后端默认预设接口路径: Record<图片后端类型, 图片预设接口路径类型> = {
-    openai: 'openai_images',
-    novelai: 'novelai_generate',
-    sd_webui: 'sd_txt2img',
-    comfyui: 'comfyui_prompt'
-};
-
-const 图片预设接口路径所属后端: Record<图片预设接口路径类型, 图片后端类型> = {
-    openai_images: 'openai',
-    openai_chat: 'openai',
-    novelai_generate: 'novelai',
-    sd_txt2img: 'sd_webui',
-    comfyui_prompt: 'comfyui'
-};
-
-const 图片预设接口路径映射: Record<图片预设接口路径类型, string> = {
-    openai_images: '/v1/images/generations',
-    openai_chat: '/v1/chat/completions',
-    novelai_generate: '/ai/generate-image',
-    sd_txt2img: '/sdapi/v1/txt2img',
-    comfyui_prompt: '/prompt'
-};
-
-const 规范化图片预设接口路径 = (rawPreset: unknown, backend: 图片后端类型): 图片预设接口路径类型 => {
-    const preset = 读取字符串(rawPreset) as 图片预设接口路径类型;
-    return 图片预设接口路径所属后端[preset] === backend
-        ? preset
-        : 图片后端默认预设接口路径[backend];
-};
-
-const 规范化图片接口路径 = (rawPath: unknown, backend: 图片后端类型, fallbackPath: string): string => {
-    const path = 读取字符串(rawPath).trim();
-    if (!path) return fallbackPath;
-    if (backend === 'comfyui' && /\/(?:v1\/images|v1\/chat|chat\/completions|ai\/generate-image|sdapi\/v1\/txt2img)(?:$|[/?#])/i.test(path)) {
-        return fallbackPath;
-    }
-    return path;
 };
 
 export type 词组转化器预设上下文结构 = {
@@ -1620,19 +1514,7 @@ const 获取后端自动模型词组转化器预设ID = (
     settings: 接口设置结构,
     scope?: 词组转化器提示词预设类型
 ): string => {
-    const feature = settings?.功能模型占位;
-    const backend = scope === 'scene' || scope === 'scene_judge'
-        ? (feature?.场景生图后端类型 || feature?.文生图后端类型)
-        : feature?.文生图后端类型;
-    switch (backend) {
-        case 'novelai':
-            return 'transformer_model_bundle_nai';
-        case 'comfyui':
-        case 'sd_webui':
-            return 'transformer_model_bundle_comfyui';
-        default:
-            return '';
-    }
+    return 'transformer_model_bundle_comfyui';
 };
 export const 获取命中模型词组转化器预设 = (
     settings: 接口设置结构,
@@ -1667,13 +1549,13 @@ export const 获取词组转化器预设上下文 = (
                 读取字符串(matchedModelPreset?.场景判定提示词预设ID).trim()
                 || 读取字符串(feature?.当前场景判定提示词预设ID).trim()
             )
-            : scope === 'nai'
-                ? 读取字符串(feature?.当前NAI词组转化器提示词预设ID).trim()
+            : scope === 'tag'
+                ? 读取字符串(feature?.当前Tag词组转化器提示词预设ID).trim()
                 : (
                     读取字符串(matchedModelPreset?.NPC词组转化器提示词预设ID).trim()
                     || 读取字符串(feature?.当前NPC词组转化器提示词预设ID).trim()
                 );
-    const matched = list.find((item) => item.id === targetId && (item?.类型 === scope || (scope === 'nai' && item?.类型 === 'npc')));
+    const matched = list.find((item) => item.id === targetId && (item?.类型 === scope || (scope === 'tag' && item?.类型 === 'npc')));
     const AI角色定制提示词 = [
         mode === 'anchor'
             ? 读取字符串(matchedModelPreset?.锚定模式模型提示词 ?? matchedModelPreset?.模型专属提示词).trim()
@@ -1693,7 +1575,7 @@ export const 获取词组转化器预设上下文 = (
         options?.包含输出格式提示词 === false ? '' : 读取字符串(matched?.输出格式提示词).trim()
     ].filter(Boolean).join('\n\n');
     const 词组序列化策略 = matchedModelPreset?.词组序列化策略
-        || (scope === 'nai' ? 'nai_character_segments' : 'flat');
+        || (scope === 'tag' ? 'tag_segments' : 'flat');
     return {
         AI角色定制提示词,
         相关提示词,
@@ -1987,77 +1869,37 @@ export const 获取文生图接口配置 = (
         || feature?.自动场景生图启用
     );
     const enabled = Boolean(feature?.文生图功能启用 || 自动生图任务已开启) || Boolean(options?.忽略文生图总开关);
-    const 图片后端类型 = feature?.文生图后端类型 === 'novelai' || feature?.文生图后端类型 === 'sd_webui' || feature?.文生图后端类型 === 'comfyui'
-        ? feature.文生图后端类型
-        : 'openai';
     if (!enabled) return null;
-    const imageModel = 读取字符串(feature?.文生图模型使用模型).trim();
-    const 图片后端需要模型 = 图片后端类型 === 'openai' || 图片后端类型 === 'novelai';
-    if (图片后端需要模型 && !imageModel) return null;
+
     const imageBaseUrl = 读取字符串(feature?.文生图模型API地址).trim();
     const imageApiKey = 读取字符串(feature?.文生图模型API密钥).trim();
-    const 图片后端可复用主接口地址 = 图片后端类型 === 'openai' || 图片后端类型 === 'novelai';
-    // ComfyUI 后端：已选发现后端 ID 表示用户要跟随 CNB/注册表最新地址，优先于旧的持久化 URL。
-    const discoveredImageBaseUrl = 图片后端类型 === 'comfyui'
-        ? 获取已选发现ComfyUI后端URL(feature?.当前图片后端发现ID)
-        : '';
-    let resolvedImageBaseUrl = 图片后端类型 === 'comfyui'
-        ? 解析ComfyUI后端基础地址(imageBaseUrl, discoveredImageBaseUrl)
-        : (imageBaseUrl || (图片后端可复用主接口地址 ? current.baseUrl : ''));
-    if (!resolvedImageBaseUrl && 图片后端类型 === 'comfyui') {
+    const discoveredImageBaseUrl = 获取已选发现ComfyUI后端URL(feature?.当前图片后端发现ID);
+    let resolvedImageBaseUrl = 解析ComfyUI后端基础地址(imageBaseUrl, discoveredImageBaseUrl);
+    if (!resolvedImageBaseUrl) {
         const candidates = 获取已发现ComfyUI后端内部();
         if (candidates.length > 0 && candidates[0].url) {
             resolvedImageBaseUrl = 规范化已发现ComfyUI后端URL(candidates[0].url);
         }
     }
     const supplier = resolvedImageBaseUrl ? 推断供应商(resolvedImageBaseUrl) : current.供应商;
-    const 图片后端需要鉴权 = 图片后端类型 === 'openai' || 图片后端类型 === 'novelai';
-    const 图片接口路径模式 = feature?.文生图接口路径模式 === 'custom' ? 'custom' : 'preset';
-    const 图片预设接口路径 = 规范化图片预设接口路径(feature?.文生图预设接口路径, 图片后端类型);
-    const 自定义图片路径 = 读取字符串(feature?.文生图接口路径).trim();
-    const 默认图片接口路径 = 图片预设接口路径映射[图片预设接口路径];
-    const 图片接口路径 = 图片接口路径模式 === 'custom'
-        ? 规范化图片接口路径(自定义图片路径, 图片后端类型, 默认图片接口路径)
-        : 默认图片接口路径;
-
     const result: 当前可用接口结构 = {
         ...current,
         供应商: supplier,
         协议覆盖: (imageBaseUrl || discoveredImageBaseUrl) ? 'auto' : current.协议覆盖,
         baseUrl: resolvedImageBaseUrl,
-        apiKey: 图片后端需要鉴权 ? (imageApiKey || current.apiKey) : imageApiKey,
-        model: imageModel,
-        图片后端类型,
-        图片接口路径模式,
-        图片预设接口路径,
-        图片接口路径,
-        图片响应格式: feature?.文生图响应格式 === 'b64_json' || feature?.文生图响应格式 === 'base64' ? feature.文生图响应格式 : 'url',
-        图片走OpenAI自定义格式: Boolean(feature?.文生图OpenAI自定义格式),
+        apiKey: imageApiKey,
+        model: '',
+        图片后端类型: 'comfyui',
+        图片接口路径: '/prompt',
+        图片响应格式: 'url',
         画师串预设列表: Array.isArray(feature?.画师串预设列表) ? feature.画师串预设列表 : [],
         当前NPC画师串预设ID: 读取字符串(feature?.当前NPC画师串预设ID).trim(),
         当前场景画师串预设ID: 读取字符串(feature?.当前场景画师串预设ID).trim(),
-        NovelAI启用自定义参数: Boolean(feature?.NovelAI启用自定义参数),
-        NovelAI采样器: feature?.NovelAI采样器 === 'k_euler'
-            || feature?.NovelAI采样器 === 'k_euler_ancestral'
-            || feature?.NovelAI采样器 === 'k_dpmpp_2m'
-            || feature?.NovelAI采样器 === 'k_dpmpp_2s_ancestral'
-            || feature?.NovelAI采样器 === 'k_dpmpp_sde'
-            || feature?.NovelAI采样器 === 'k_dpmpp_2m_sde'
-            ? feature.NovelAI采样器
-            : 'k_euler_ancestral',
-        NovelAI噪点表: feature?.NovelAI噪点表 === 'native'
-            || feature?.NovelAI噪点表 === 'karras'
-            || feature?.NovelAI噪点表 === 'exponential'
-            || feature?.NovelAI噪点表 === 'polyexponential'
-            ? feature.NovelAI噪点表
-            : 'karras',
-        NovelAI步数: Math.max(1, Math.min(50, Number(feature?.NovelAI步数) || 28)),
-        NovelAI负面提示词: 读取字符串(feature?.NovelAI负面提示词).trim(),
-        NPC生图使用词组转化器: 图片后端类型 === 'novelai' ? true : feature?.NPC生图使用词组转化器 !== false,
+        NPC生图使用词组转化器: feature?.NPC生图使用词组转化器 !== false,
         香闺秘档特写强制裸体语义: feature?.香闺秘档特写强制裸体语义 === true,
         模型词组转化器预设列表: Array.isArray(feature?.模型词组转化器预设列表) ? feature.模型词组转化器预设列表 : [],
         词组转化器提示词预设列表: Array.isArray(feature?.词组转化器提示词预设列表) ? feature.词组转化器提示词预设列表 : [],
-        当前NAI词组转化器提示词预设ID: 读取字符串(feature?.当前NAI词组转化器提示词预设ID).trim(),
+        当前Tag词组转化器提示词预设ID: 读取字符串(feature?.当前Tag词组转化器提示词预设ID).trim(),
         当前NPC词组转化器提示词预设ID: 读取字符串(feature?.当前NPC词组转化器提示词预设ID).trim(),
         当前场景词组转化器提示词预设ID: 读取字符串(feature?.当前场景词组转化器提示词预设ID).trim(),
         当前场景判定提示词预设ID: 读取字符串(feature?.当前场景判定提示词预设ID).trim(),
@@ -2065,7 +1907,7 @@ export const 获取文生图接口配置 = (
             ? 默认ComfyUI工作流JSON
             : 规范化普通ComfyUI工作流JSON(feature?.ComfyUI工作流JSON)
     };
-    if (图片后端类型 === 'comfyui' && !result.baseUrl?.trim()) {
+    if (!result.baseUrl?.trim()) {
         const fallback = 获取已发现ComfyUI后端候选()
             .map((backend) => 用已发现ComfyUI后端替换地址(result, backend, '当前 ComfyUI 后端未配置或不可用'))
             .find((item): item is 当前可用接口结构 => Boolean(item));
@@ -2082,117 +1924,38 @@ export const 获取场景文生图接口配置 = (settings: 接口设置结构):
     const independent = Boolean(feature?.场景生图独立接口启用);
     if (!independent) return sharedConfig;
 
-    const sceneBackend: NonNullable<当前可用接口结构['图片后端类型']> = feature?.场景生图后端类型 === 'novelai' || feature?.场景生图后端类型 === 'sd_webui' || feature?.场景生图后端类型 === 'comfyui'
-        ? feature.场景生图后端类型
-        : 'openai';
-    const sharedBackend: NonNullable<当前可用接口结构['图片后端类型']> = sharedConfig.图片后端类型 === 'novelai' || sharedConfig.图片后端类型 === 'sd_webui' || sharedConfig.图片后端类型 === 'comfyui'
-        ? sharedConfig.图片后端类型
-        : 'openai';
-    const sceneModel = 读取字符串(feature?.场景生图模型使用模型).trim();
-    const 场景后端需要模型 = sceneBackend === 'openai' || sceneBackend === 'novelai';
-    if (场景后端需要模型 && !sceneModel) return null;
     const sceneBaseUrl = 读取字符串(feature?.场景生图模型API地址).trim();
     const sceneApiKey = 读取字符串(feature?.场景生图模型API密钥).trim();
     const sceneWorkflow = feature?.使用默认场景ComfyUI工作流 !== false
         ? 默认ComfyUI工作流JSON
         : 规范化场景ComfyUI工作流JSON(feature?.场景ComfyUI工作流JSON);
-    const canReuseSharedConnection = sceneBackend === sharedBackend;
-    const discoveredSceneBaseUrl = sceneBackend === 'comfyui'
-        ? 获取已选发现ComfyUI后端URL(feature?.当前场景图片后端发现ID)
-        : '';
-    const resolvedBaseUrl = sceneBackend === 'comfyui'
-        ? 解析ComfyUI后端基础地址(sceneBaseUrl, discoveredSceneBaseUrl, canReuseSharedConnection ? sharedConfig.baseUrl : '')
-        : (sceneBaseUrl || (canReuseSharedConnection ? sharedConfig.baseUrl : ''));
-    const 场景后端需要鉴权 = sceneBackend === 'openai' || sceneBackend === 'novelai';
-    const resolvedApiKey = 场景后端需要鉴权
-        ? (sceneApiKey || (canReuseSharedConnection ? sharedConfig.apiKey : ''))
-        : sceneApiKey;
-    const resolvedWorkflow = sceneBackend === 'comfyui'
-        ? (sceneWorkflow || (canReuseSharedConnection ? sharedConfig.ComfyUI工作流JSON || '' : ''))
-        : '';
+    const discoveredSceneBaseUrl = 获取已选发现ComfyUI后端URL(feature?.当前场景图片后端发现ID);
+    const resolvedBaseUrl = 解析ComfyUI后端基础地址(sceneBaseUrl, discoveredSceneBaseUrl, sharedConfig.baseUrl);
     const supplier = resolvedBaseUrl ? 推断供应商(resolvedBaseUrl) : sharedConfig.供应商;
-    const presetPathValue = 图片后端默认预设接口路径[sceneBackend];
-    const 图片接口路径模式 = canReuseSharedConnection
-        ? sharedConfig.图片接口路径模式
-        : 'preset';
-    const 图片预设接口路径: NonNullable<当前可用接口结构['图片预设接口路径']> = canReuseSharedConnection
-        ? (sharedConfig.图片接口路径模式 === 'preset'
-            ? 规范化图片预设接口路径(sharedConfig.图片预设接口路径, sceneBackend)
-            : presetPathValue)
-        : presetPathValue;
-    const 图片接口路径 = 图片接口路径模式 === 'custom'
-        ? 规范化图片接口路径(sharedConfig.图片接口路径, sceneBackend, 图片预设接口路径映射[图片预设接口路径])
-        : 图片预设接口路径映射[图片预设接口路径];
-
     return {
         ...sharedConfig,
         供应商: supplier,
-        协议覆盖: (sceneBaseUrl || discoveredSceneBaseUrl) ? 'auto' : (canReuseSharedConnection ? sharedConfig.协议覆盖 : 'auto'),
+        协议覆盖: (sceneBaseUrl || discoveredSceneBaseUrl) ? 'auto' : sharedConfig.协议覆盖,
         baseUrl: resolvedBaseUrl,
-        apiKey: resolvedApiKey,
-        model: sceneModel,
-        图片后端类型: sceneBackend,
-        图片接口路径模式,
-        图片预设接口路径,
-        图片接口路径,
-        图片响应格式: sceneBackend === 'openai' ? sharedConfig.图片响应格式 : 'url',
-        图片走OpenAI自定义格式: sceneBackend === 'openai' ? Boolean(sharedConfig.图片走OpenAI自定义格式) : false,
-        NPC生图使用词组转化器: sceneBackend === 'novelai' ? true : sharedConfig.NPC生图使用词组转化器,
-        ComfyUI工作流JSON: resolvedWorkflow
+        apiKey: sceneApiKey,
+        model: '',
+        图片后端类型: 'comfyui',
+        图片接口路径: '/prompt',
+        图片响应格式: 'url',
+        NPC生图使用词组转化器: sharedConfig.NPC生图使用词组转化器,
+        ComfyUI工作流JSON: sceneWorkflow || sharedConfig.ComfyUI工作流JSON || ''
     };
 };
 
-const 不支持NSFW生图模型片段 = ['gpt', 'openai', 'gemini', 'banana', 'nano'];
-
 export const 生图接口支持NSFW = (config: 当前可用接口结构 | null): config is 当前可用接口结构 => {
     if (!config) return false;
-    const backend = config.图片后端类型 || 'openai';
-    if (backend === 'openai') {
-        const endpointText = [config.model, config.baseUrl, config.供应商]
-            .map((value) => 读取字符串(value).toLowerCase())
-            .join(' ');
-        return /grok|x\.ai|xai/u.test(endpointText)
-            && !/api\.openai\.com|dall-?e|gpt-image|gpt\b/u.test(endpointText);
-    }
-    // 仅检查模型名和 URL，不检查供应商字段；openai_compatible 是协议描述（ComfyUI/SD WebUI 也用），
-    // 不代表后端不支持 NSFW。
-    // ComfyUI / SD WebUI 不依赖模型字段，旧存档可能残留 gpt-image 等主接口模型名，不能因此误判。
-    const valuesToCheck = backend === 'novelai'
-        ? [config.model, config.baseUrl]
-        : [config.baseUrl];
-    const modelText = valuesToCheck
-        .map((value) => 读取字符串(value).toLowerCase())
-        .join(' ');
-    return !不支持NSFW生图模型片段.some((keyword) => modelText.includes(keyword));
+    return config.图片后端类型 === 'comfyui'
+        && Boolean(config.baseUrl?.trim())
+        && Boolean(config.ComfyUI工作流JSON?.trim());
 };
 
 const 构建NSFW兜底配置 = (settings: 接口设置结构, sharedConfig: 当前可用接口结构): 当前可用接口结构 | null => {
-    // 尝试方案 1：从主后端 URL/供应商推断可用的 NSFW 后端
-    const baseUrl = (sharedConfig.baseUrl || '').trim();
-    const fallbackBackends: Array<{ backend: NonNullable<当前可用接口结构['图片后端类型']>; preset: NonNullable<当前可用接口结构['图片预设接口路径']>; path: string; matcher: RegExp }> = [
-        { backend: 'comfyui', preset: 'comfyui_prompt', path: '/prompt', matcher: /comfyui|8188/i },
-        { backend: 'sd_webui', preset: 'sd_txt2img', path: '/sdapi/v1/txt2img', matcher: /stable.?diffusion|webui|7860|txt2img/i },
-        { backend: 'novelai', preset: 'novelai_generate', path: '/ai/generate-image', matcher: /novelai|naid/i }
-    ];
-    if (baseUrl) {
-        for (const { backend, preset, path, matcher } of fallbackBackends) {
-            if (!matcher.test(baseUrl) && !matcher.test(sharedConfig.供应商 || '')) continue;
-            const fallbackConfig: 当前可用接口结构 = {
-                ...sharedConfig,
-                图片后端类型: backend,
-                图片接口路径模式: 'preset',
-                图片预设接口路径: preset,
-                图片接口路径: path,
-                图片响应格式: 'url',
-                图片走OpenAI自定义格式: false,
-                NPC生图使用词组转化器: backend === 'novelai' ? true : sharedConfig.NPC生图使用词组转化器,
-                model: backend === 'novelai' ? (sharedConfig.model || '') : sharedConfig.model,
-                ComfyUI工作流JSON: backend === 'comfyui' ? (sharedConfig.ComfyUI工作流JSON || '') : ''
-            };
-            if (生图接口支持NSFW(fallbackConfig)) return fallbackConfig;
-        }
-    }
-    // 尝试方案 2：使用场景生图接口作为兜底（场景后端可能是 ComfyUI/SD WebUI 等支持 NSFW 的类型）
+    if (生图接口支持NSFW(sharedConfig)) return sharedConfig;
     const sceneConfig = 获取场景文生图接口配置(settings);
     if (sceneConfig && 生图接口支持NSFW(sceneConfig)) return sceneConfig;
     return null;
@@ -2262,11 +2025,8 @@ export const 用已发现ComfyUI后端替换地址 = (
         协议覆盖: 'auto',
         baseUrl: url,
         图片后端类型: 'comfyui',
-        图片接口路径模式: 'preset',
-        图片预设接口路径: 'comfyui_prompt',
         图片接口路径: '/prompt',
         图片响应格式: 'url',
-        图片走OpenAI自定义格式: false,
         自动切换提示: `${reason}，已自动切换到在线 ComfyUI 后端：${url}`
     };
 };
@@ -2286,12 +2046,10 @@ const 从已发现后端构建NSFW配置 = (backends?: Array<{ url: string }> | 
             maxTokens: 0,
             temperature: 0,
             图片后端类型: 'comfyui',
-            图片接口路径模式: 'preset',
-            图片预设接口路径: 'comfyui_prompt',
             图片接口路径: '/prompt',
             图片响应格式: 'url',
-            图片走OpenAI自定义格式: false,
-            NPC生图使用词组转化器: true
+            NPC生图使用词组转化器: true,
+            ComfyUI工作流JSON: 默认NSFWComfyUI工作流JSON
         }, backend, '当前 NSFW 生图后端不可用');
         if (生图接口支持NSFW(config)) return config;
     }
@@ -2310,61 +2068,26 @@ export const 获取NSFW文生图接口配置 = (settings: 接口设置结构, di
         ? (sharedNsfwConfig || 构建NSFW兜底配置(settings, sharedConfig) || 从已发现后端构建NSFW配置(discoveredComfyuiBackends))
         : 从已发现后端构建NSFW配置(discoveredComfyuiBackends);
 
-    const nsfwBackend: NonNullable<当前可用接口结构['图片后端类型']> = feature?.NSFW生图后端类型 === 'openai' || feature?.NSFW生图后端类型 === 'novelai' || feature?.NSFW生图后端类型 === 'sd_webui' || feature?.NSFW生图后端类型 === 'comfyui'
-        ? feature.NSFW生图后端类型
-        : 'openai';
-    const sharedBackend: NonNullable<当前可用接口结构['图片后端类型']> = sharedConfig?.图片后端类型 === 'openai' || sharedConfig?.图片后端类型 === 'novelai' || sharedConfig?.图片后端类型 === 'sd_webui' || sharedConfig?.图片后端类型 === 'comfyui'
-        ? sharedConfig.图片后端类型
-        : 'openai';
-    const nsfwModel = 读取字符串(feature?.NSFW生图模型使用模型).trim();
-    const nsfwBackendNeedsModel = nsfwBackend === 'openai' || nsfwBackend === 'novelai';
-    if (nsfwBackendNeedsModel && !nsfwModel) return sharedNsfwConfig;
     const nsfwBaseUrl = 读取字符串(feature?.NSFW生图模型API地址).trim();
     const nsfwApiKey = 读取字符串(feature?.NSFW生图模型API密钥).trim();
     const nsfwWorkflow = feature?.使用默认NSFWComfyUI工作流 !== false
         ? 默认NSFWComfyUI工作流JSON
         : 规范化NSFWComfyUI工作流JSON(feature?.NSFWComfyUI工作流JSON);
-    const canReuseSharedConnection = Boolean(sharedConfig) && nsfwBackend === sharedBackend;
-    const discoveredNsfwBaseUrl = nsfwBackend === 'comfyui'
-        ? 获取已选发现ComfyUI后端URL(feature?.当前NSFW图片后端发现ID)
-        : '';
-    const resolvedBaseUrl = nsfwBackend === 'comfyui'
-        ? 解析ComfyUI后端基础地址(nsfwBaseUrl, discoveredNsfwBaseUrl, canReuseSharedConnection ? (sharedConfig?.baseUrl || '') : '')
-        : (nsfwBaseUrl || (canReuseSharedConnection ? (sharedConfig?.baseUrl || '') : ''));
-    const nsfwBackendNeedsAuth = nsfwBackend === 'openai' || nsfwBackend === 'novelai';
-    const resolvedApiKey = nsfwBackendNeedsAuth
-        ? (nsfwApiKey || (canReuseSharedConnection ? (sharedConfig?.apiKey || '') : ''))
-        : nsfwApiKey;
-    const resolvedWorkflow = nsfwBackend === 'comfyui'
-        ? (nsfwWorkflow || (canReuseSharedConnection ? sharedConfig?.ComfyUI工作流JSON || '' : ''))
-        : '';
+    const discoveredNsfwBaseUrl = 获取已选发现ComfyUI后端URL(feature?.当前NSFW图片后端发现ID);
+    const resolvedBaseUrl = 解析ComfyUI后端基础地址(nsfwBaseUrl, discoveredNsfwBaseUrl, sharedConfig?.baseUrl || '');
     const supplier = resolvedBaseUrl ? 推断供应商(resolvedBaseUrl) : baseConfig.供应商;
-    const presetPathValue = 图片后端默认预设接口路径[nsfwBackend];
-    const 图片接口路径模式 = canReuseSharedConnection ? sharedConfig?.图片接口路径模式 : 'preset';
-    const 图片预设接口路径: NonNullable<当前可用接口结构['图片预设接口路径']> = canReuseSharedConnection
-        ? (sharedConfig?.图片接口路径模式 === 'preset'
-            ? 规范化图片预设接口路径(sharedConfig.图片预设接口路径, nsfwBackend)
-            : presetPathValue)
-        : presetPathValue;
-    const 图片接口路径 = 图片接口路径模式 === 'custom'
-        ? 规范化图片接口路径(sharedConfig?.图片接口路径, nsfwBackend, 图片预设接口路径映射[图片预设接口路径])
-        : 图片预设接口路径映射[图片预设接口路径];
-
     const result: 当前可用接口结构 = {
         ...baseConfig,
         供应商: supplier,
-        协议覆盖: (nsfwBaseUrl || discoveredNsfwBaseUrl) ? 'auto' : (canReuseSharedConnection ? (sharedConfig?.协议覆盖 || 'auto') : 'auto'),
+        协议覆盖: (nsfwBaseUrl || discoveredNsfwBaseUrl) ? 'auto' : (sharedConfig?.协议覆盖 || 'auto'),
         baseUrl: resolvedBaseUrl,
-        apiKey: resolvedApiKey,
-        model: nsfwBackendNeedsModel ? nsfwModel : '',
-        图片后端类型: nsfwBackend,
-        图片接口路径模式,
-        图片预设接口路径,
-        图片接口路径,
-        图片响应格式: nsfwBackend === 'openai' ? sharedConfig?.图片响应格式 : 'url',
-        图片走OpenAI自定义格式: nsfwBackend === 'openai' ? Boolean(sharedConfig?.图片走OpenAI自定义格式) : false,
-        NPC生图使用词组转化器: nsfwBackend === 'novelai' ? true : sharedConfig?.NPC生图使用词组转化器,
-        ComfyUI工作流JSON: resolvedWorkflow
+        apiKey: nsfwApiKey,
+        model: '',
+        图片后端类型: 'comfyui',
+        图片接口路径: '/prompt',
+        图片响应格式: 'url',
+        NPC生图使用词组转化器: sharedConfig?.NPC生图使用词组转化器,
+        ComfyUI工作流JSON: nsfwWorkflow || sharedConfig?.ComfyUI工作流JSON || ''
     };
 
     return 生图接口支持NSFW(result) ? result : (sharedConfig
@@ -2384,7 +2107,7 @@ export const 获取生图词组转化器接口配置 = (settings: 接口设置�
         词组转化器提示词: 读取字符串(feature?.词组转化器提示词).trim(),
         模型词组转化器预设列表: Array.isArray(feature?.模型词组转化器预设列表) ? feature.模型词组转化器预设列表 : [],
         词组转化器提示词预设列表: Array.isArray(feature?.词组转化器提示词预设列表) ? feature.词组转化器提示词预设列表 : [],
-        当前NAI词组转化器提示词预设ID: 读取字符串(feature?.当前NAI词组转化器提示词预设ID).trim(),
+        当前Tag词组转化器提示词预设ID: 读取字符串(feature?.当前Tag词组转化器提示词预设ID).trim(),
         当前NPC词组转化器提示词预设ID: 读取字符串(feature?.当前NPC词组转化器提示词预设ID).trim(),
         当前场景词组转化器提示词预设ID: 读取字符串(feature?.当前场景词组转化器提示词预设ID).trim(),
         当前场景判定提示词预设ID: 读取字符串(feature?.当前场景判定提示词预设ID).trim()
@@ -2407,7 +2130,7 @@ export const 获取生图词组转化器接口配置 = (settings: 接口设置�
         词组转化器提示词: 读取字符串(feature?.词组转化器提示词).trim(),
         模型词组转化器预设列表: Array.isArray(feature?.模型词组转化器预设列表) ? feature.模型词组转化器预设列表 : [],
         词组转化器提示词预设列表: Array.isArray(feature?.词组转化器提示词预设列表) ? feature.词组转化器提示词预设列表 : [],
-        当前NAI词组转化器提示词预设ID: 读取字符串(feature?.当前NAI词组转化器提示词预设ID).trim(),
+        当前Tag词组转化器提示词预设ID: 读取字符串(feature?.当前Tag词组转化器提示词预设ID).trim(),
         当前NPC词组转化器提示词预设ID: 读取字符串(feature?.当前NPC词组转化器提示词预设ID).trim(),
         当前场景词组转化器提示词预设ID: 读取字符串(feature?.当前场景词组转化器提示词预设ID).trim(),
         当前场景判定提示词预设ID: 读取字符串(feature?.当前场景判定提示词预设ID).trim()
@@ -2419,15 +2142,9 @@ export const 获取生图词组转化器接口配置 = (settings: 接口设置�
 export const 接口配置是否可用 = (config: 当前可用接口结构 | null): config is 当前可用接口结构 => {
     if (!config) return false;
     if (config.图片后端类型) {
-        const backend = config.图片后端类型;
         const hasBaseUrl = Boolean(config.baseUrl?.trim());
-        const needsApiKey = backend === 'openai' || backend === 'novelai';
-        const needsModel = backend === 'openai' || backend === 'novelai';
-        const needsWorkflow = backend === 'comfyui';
-        const hasApiKey = Boolean(config.apiKey?.trim());
-        const hasModel = Boolean(config.model?.trim());
         const hasWorkflow = Boolean(config.ComfyUI工作流JSON?.trim());
-        return hasBaseUrl && (!needsApiKey || hasApiKey) && (!needsModel || hasModel) && (!needsWorkflow || hasWorkflow);
+        return config.图片后端类型 === 'comfyui' && hasBaseUrl && hasWorkflow;
     }
     const hasRequiredConnection = Boolean(config.baseUrl?.trim() && config.apiKey?.trim());
     const hasModel = Boolean(config.model?.trim());

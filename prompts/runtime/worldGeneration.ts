@@ -153,11 +153,7 @@ export const 获取世界观生成系统提示词 = (
     );
 };
 
-const 构建主角建档自然语言摘要 = (
-    charData: any,
-    options?: { cultivationSystemEnabled?: boolean }
-): string => {
-    const 启用成长体系 = options?.cultivationSystemEnabled === true;
+const 构建主角建档自然语言摘要 = (charData: any): string => {
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -182,7 +178,6 @@ const 构建主角建档自然语言摘要 = (
         `- 出生日期：${纯文本(charData?.出生日期)}`,
         `- 外貌：${纯文本(charData?.外貌)}`,
         `- 性格：${纯文本(charData?.性格)}`,
-        ...(启用成长体系 ? [`- 初始境界：${纯文本(charData?.境界)}`] : []),
         `- 六维：力量 ${数值文本(charData?.力量)} / 敏捷 ${数值文本(charData?.敏捷)} / 体质 ${数值文本(charData?.体质)} / 根骨 ${数值文本(charData?.根骨)} / 悟性 ${数值文本(charData?.悟性)} / 福源 ${数值文本(charData?.福源)}`,
         `- 天赋：${天赋列表 || '无'}`,
         `- 出身背景：${背景名称}`,
@@ -219,9 +214,7 @@ ${worldContext}
 ${是否仙侠开局模式(openingConfig) ? '- 当前题材模式具备修真体系：世界观必须明确灵气生态、修行圈层、境界稀缺度、法宝/术法/秘境资源流通、天劫/心魔/因果代价与普通社会的关系。' : `- 当前题材模式不是修真主轴：世界观必须保持${题材配置.label}口径，不常态仙侠化。`}
 ${构建成长体系附加块('- 生成结果必须能支撑后续修炼系统与境界体系长期一致运行。')}
 
-${构建主角建档自然语言摘要(charData, {
-    cultivationSystemEnabled: false
-})}
+${构建主角建档自然语言摘要(charData)}
 - 仅用于边界约束与避冲突，不可直接把这些内容当成已完成初始化的变量数据。
 - 输出中不出现玩家信息，世界描述围绕母本结构展开。
 - 建档输入只用于避冲突，不把世界观改写成“为该角色服务”的专属母本。

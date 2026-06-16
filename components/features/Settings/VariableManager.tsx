@@ -3,7 +3,7 @@ import type { OpeningConfig, TavernCommand } from '../../../types';
 import { 构建变量管理动态钱包视图, 构建角色金钱显示快照 } from '../../../utils/currencyDisplay';
 import { 构建变量路径登记表, 校验变量命令是否登记 } from '../../../utils/variableRegistry';
 
-type 变量根键 = '角色' | '环境' | '社交' | '世界' | '地图系统' | '剧情' | '女主剧情规划' | '任务列表' | '约定列表' | '记忆系统';
+type 变量根键 = '角色' | '环境' | '社交' | '世界' | '地图系统' | '剧情' | '女主剧情规划' | '任务列表' | '记忆系统';
 
 const 地图系统字段 = new Set(['地图', '建筑', '地图层级', '地图建筑', '地图道路', '地图人物']);
 
@@ -47,7 +47,6 @@ const 分区列表: Array<{ key: 变量根键; label: string; description: strin
     { key: '剧情', label: '剧情', description: '章节、剧情规划、关键剧情变量组。' },
     { key: '女主剧情规划', label: '女主剧情规划', description: '女主排期与推进指引。' },
     { key: '任务列表', label: '任务列表', description: '全部任务条目。' },
-    { key: '约定列表', label: '约定列表', description: '全部约定条目。' },
     { key: '记忆系统', label: '记忆系统', description: '回忆档案、即时/短期/中期/长期记忆。' }
 ];
 
@@ -370,11 +369,11 @@ const VariableManager: React.FC<Props> = ({ runtimeState, openingConfig, onRepla
                         </div>
                         {动态钱包视图 ? (
                             <div className="mb-3 rounded-xl border border-wuxia-gold/25 bg-wuxia-gold/10 p-3">
-                                <div className="text-xs font-bold tracking-[0.16em] text-wuxia-gold">新版货币余额</div>
+                                <div className="text-xs font-bold tracking-[0.16em] text-wuxia-gold">钱包余额</div>
                                 <div className="mt-2 grid gap-2 text-sm text-gray-200 md:grid-cols-2">
                                     <div>
                                         <span className="text-gray-500">当前启用：</span>
-                                        新版动态货币系统
+                                        现代单一货币
                                     </div>
                                     <div>
                                         <span className="text-gray-500">货币体系：</span>
@@ -390,7 +389,7 @@ const VariableManager: React.FC<Props> = ({ runtimeState, openingConfig, onRepla
                                     </div>
                                 </div>
                                 <label className="mt-3 block space-y-2">
-                                    <div className="text-xs text-gray-400">新版余额 baseAmount</div>
+                                    <div className="text-xs text-gray-400">余额 baseAmount</div>
                                     <input
                                         type="number"
                                         min={0}
@@ -401,15 +400,15 @@ const VariableManager: React.FC<Props> = ({ runtimeState, openingConfig, onRepla
                                     />
                                 </label>
                                 <div className="mt-2 text-xs leading-5 text-gray-400">
-                                    基础单位：{动态钱包视图.baseUnitLabel}。下方原始 JSON 中的现金、存款、上层货币、中层货币、底层货币、金元宝、银子、铜钱等字段为旧版兼容字段。启用新版动态货币系统时，界面显示与结算优先使用 baseAmount。
+                                    基础单位：{动态钱包视图.baseUnitLabel}。钱包只保留 baseAmount，界面显示与结算都使用这个字段。
                                 </div>
                             </div>
                         ) : 角色金钱显示快照 && (
                             <div className="mb-3 rounded-xl border border-wuxia-gold/25 bg-wuxia-gold/10 p-3">
-                                <div className="text-xs font-bold tracking-[0.16em] text-wuxia-gold">世界观货币显示</div>
+                                <div className="text-xs font-bold tracking-[0.16em] text-wuxia-gold">货币显示</div>
                                 <div className="mt-1 text-sm text-paper-white">{角色金钱显示快照.显示}</div>
                                 <pre className="mt-2 max-h-40 overflow-auto rounded-lg border border-white/10 bg-black/25 p-2 text-[11px] leading-5 text-gray-300">{格式化JSON(角色金钱显示快照)}</pre>
-                                <div className="mt-1 text-[11px] leading-5 text-gray-500">下方原始 JSON 仍保留真实兼容字段，可继续编辑保存。</div>
+                                <div className="mt-1 text-[11px] leading-5 text-gray-500">下方原始 JSON 会直接保存 baseAmount。</div>
                             </div>
                         )}
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">

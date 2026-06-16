@@ -51,7 +51,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [visibleSaveCount, setVisibleSaveCount] = useState(pageSize);
     const [hasMoreSaves, setHasMoreSaves] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
+    const [transferring, setTransferring] = useState(false);
     const [saveProtectionEnabled, setSaveProtectionEnabled] = useState(false);
     const [transferMessage, setTransferMessage] = useState('');
     const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => new Set());
@@ -80,7 +80,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     }, []);
 
     useEffect(() => {
-        if (hydrateRunningRef.current || syncing) return;
+        if (hydrateRunningRef.current || transferring) return;
         const hydrateLimit = 40;
         const hydrateCandidates = saves.slice(0, hydrateLimit);
         const nextTarget = hydrateCandidates.find((save) => (
@@ -126,7 +126,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [saves, pageSize, syncing, transferMessage]);
+    }, [saves, pageSize, transferring, transferMessage]);
 
     useEffect(() => {
         setVisibleSaveCount(pageSize);
@@ -329,7 +329,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             })
             : true;
         if (!ok) return;
-        setSyncing(true);
+        setTransferring(true);
         setTransferMessage(`正在删除时间树：${ids.length} 个节点...`);
         try {
             const deleted = await dbService.批量删除存档(ids);
@@ -341,7 +341,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             setTransferMessage(`删除失败：${error?.message || '未知错误'}`);
             alert(`删除失败：${error?.message || '未知错误'}`);
         } finally {
-            setSyncing(false);
+            setTransferring(false);
         }
     };
 
@@ -361,7 +361,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             })
             : true;
         if (!ok) return;
-        setSyncing(true);
+        setTransferring(true);
         setTransferMessage('正在删除存档树并重建...');
         try {
             await dbService.删除存档树并重新保存全量存档(id);
@@ -372,7 +372,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             setTransferMessage(`操作失败：${error?.message || '未知错误'}`);
             alert(`操作失败：${error?.message || '未知错误'}`);
         } finally {
-            setSyncing(false);
+            setTransferring(false);
         }
     };
 
@@ -423,7 +423,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         recordSaveLoadTrace('modal.loadClick.confirm', { id, ok });
         if (!ok) return;
         try {
-            setSyncing(true);
+            setTransferring(true);
             setTransferMessage(`正在读取：${构建存档标题(save)}`);
             const fullSave = await 读取完整存档(save);
             recordSaveLoadTrace('modal.loadClick.beforeOnLoad', {
@@ -448,14 +448,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                 id,
                 elapsedMs: Date.now() - startAt
             });
-            setSyncing(false);
+            setTransferring(false);
             setTransferMessage('');
         }
     };
 
     const handleSave = async () => {
-        if (!onSaveGame || syncing) return;
-        setSyncing(true);
+        if (!onSaveGame || transferring) return;
+        setTransferring(true);
         setTransferMessage('');
         try {
             await Promise.resolve(onSaveGame());
@@ -464,12 +464,12 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             console.error(error);
             alert(`保存失败：${error?.message || '未知错误'}`);
         } finally {
-            setSyncing(false);
+            setTransferring(false);
         }
     };
 
     const handleHydrateVisibleSummaries = async () => {
-        if (hydratingVisibleSummaries || syncing) return;
+        if (hydratingVisibleSummaries || transferring) return;
         const targets = visibleSaves
             .filter((save) => 是旧版缺摘要存档(save))
             .map((save) => save.id)
@@ -528,8 +528,8 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     };
 
     const handleExportAll = async () => {
-        if (syncing) return;
-        setSyncing(true);
+        if (transferring) return;
+        setTransferring(true);
         setTransferMessage('正在整理全部存档包...');
         try {
             const blob = await 导出ZIP存档文件();
@@ -541,14 +541,14 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
             alert(`导出失败：${error?.message || '未知错误'}`);
         } finally {
-            setSyncing(false);
+            setTransferring(false);
         }
     };
 
     const handleExportOne = async (save: 存档列表项, event: React.MouseEvent) => {
         event.stopPropagation();
-        if (syncing) return;
-        setSyncing(true);
+        if (transferring) return;
+        setTransferring(true);
         const title = 构建存档标题(save);
         setTransferMessage(`正在整理单个存档：${title}`);
         try {
@@ -565,12 +565,12 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             setTransferMessage(`导出失败：${error?.message || '未知错误'}`);
             alert(`导出失败：${error?.message || '未知错误'}`);
         } finally {
-            setSyncing(false);
+            setTransferring(false);
         }
     };
 
     const handleTriggerImport = () => {
-        if (syncing) return;
+        if (transferring) return;
         setTransferMessage('请选择要导入的 ZIP 或 JSON 存档文件。');
         fileInputRef.current?.click();
     };
@@ -592,7 +592,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             return;
         }
 
-        setSyncing(true);
+        setTransferring(true);
         setTransferMessage(`正在导入：${file.name}`);
         try {
             let payload: unknown;
@@ -619,7 +619,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
             setTransferMessage(`导入失败：${error?.message || '未知错误'}`);
             alert(`导入失败：${error?.message || '未知错误'}`);
         } finally {
-            setSyncing(false);
+            setTransferring(false);
         }
     };
 
@@ -631,7 +631,7 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const 展平本地时间树 = (nodes: 本地时间树节点[]): 本地时间树节点[] => nodes.flatMap((node) => [node, ...展平本地时间树(node.children)]);
     const visibleSaves = visibleSaveTrees.flatMap((series) => 展平本地时间树(series.roots));
     const hasMoreRenderedSaves = visibleSaveCount < saveTrees.length;
-    const busy = loading || syncing;
+    const busy = loading || transferring;
     const lineageTotal = Math.max(0, Number(lineageMigrationStatus.legacySaves) || 0);
     const lineageDone = Math.min(lineageTotal, Math.max(0, Number(lineageMigrationStatus.convertedSaves || 0) + Number(lineageMigrationStatus.failedSaves || 0)));
     const lineagePercent = lineageTotal > 0 ? Math.round((lineageDone / lineageTotal) * 100) : (lineageMigrationStatus.stage === 'completed' ? 100 : 0);

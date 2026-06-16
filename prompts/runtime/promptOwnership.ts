@@ -5,7 +5,6 @@ export const 变量命令提示词ID列表 = [
     'core_rules',
     'stat_body',
     'stat_char',
-    'stat_combat',
     'stat_drop',
     'stat_exp',
     'stat_item',

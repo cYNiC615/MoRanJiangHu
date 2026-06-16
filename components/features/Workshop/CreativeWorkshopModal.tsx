@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 从模式世界书提取提示词, 创意工坊模块分区, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
 import type { ModeRuntimeProfile, 世界书结构 } from '../../../types';
-import type { CurrencySystem, 题材模式类型 } from '../../../models/system';
+import type { 题材模式类型 } from '../../../models/system';
 import { 题材模式配置表, 题材模式顺序 } from '../../../utils/topicModeProfiles';
-import { 构建货币系统模板, 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容, 规范化显式货币系统 } from '../../../utils/modeRuntimeProfile';
+import { 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容 } from '../../../utils/modeRuntimeProfile';
 import { 开局生成性别选项 } from '../../../utils/openingConfig';
 import {
     导入本地创意工坊模块,
     列出创意工坊模块
 } from '../../../services/creativeWorkshop';
-import CurrencySystemEditor from './CurrencySystemEditor';
 
 interface Props {
     open: boolean;
@@ -17,12 +16,11 @@ interface Props {
 }
 
 type 来源筛选 = 'all' | 'builtin' | 'local';
-type 货币系统编辑模式 = 'dynamic' | 'legacy' | 'json';
 const 可展示工坊类型: 创意工坊模块类型[] = ['topic', 'comfy_workflow'];
 const 可展示工坊类型集合 = new Set<创意工坊模块类型>(可展示工坊类型);
 const 可展示工坊分区 = 创意工坊模块分区.filter((section) => 可展示工坊类型集合.has(section.id));
 const 默认生成性别占位 = `${开局生成性别选项.map((item) => item.value).join('、')}；留空默认全选`;
-type 运行时配置字段类型 = 'text' | 'textarea' | 'list' | 'record' | 'bool' | 'boolGroup' | 'baseMode' | 'currencyMode' | 'timeFormatMode' | 'realmConfig' | 'currencySystemModeSelector' | 'economyGroupTitle' | 'currencySystemEditor' | 'currencySystemJson';
+type 运行时配置字段类型 = 'text' | 'textarea' | 'list' | 'record' | 'bool' | 'boolGroup' | 'baseMode' | 'timeFormatMode' | 'realmConfig' | 'economyGroupTitle';
 type 运行时配置字段 = { label: string; path: string[]; type?: 运行时配置字段类型; placeholder?: string; boolGroup?: { label: string; key: string }[] };
 type 运行时配置分区 = { title: string; fields: 运行时配置字段[] };
 
@@ -42,22 +40,10 @@ const 运行时配置分区列表: 运行时配置分区[] = [
     {
         title: '经济系统',
         fields: [
-            { label: '货币系统模式', path: ['economy', '__currencySystemMode'], type: 'currencySystemModeSelector' },
-            { label: '新版动态货币系统（推荐）', path: ['economy', '__dynamicCurrency'], type: 'economyGroupTitle', placeholder: '支持单一货币、多层货币、自定义单位。推荐新模板使用。' },
-            { label: '可视化 currencySystem 编辑器', path: ['economy', 'currencySystem'], type: 'currencySystemEditor' },
-            { label: '旧版三层货币系统（兼容）', path: ['economy', '__legacyCurrency'], type: 'economyGroupTitle', placeholder: '用于旧模板兼容。当未启用新版动态货币系统时生效。' },
-            { label: '货币显示', path: ['economy', 'currencyDisplayMode'], type: 'currencyMode' },
-            { label: '上层货币名称', path: ['economy', 'currencyTiers', 'upperName'] },
-            { label: '中层货币名称', path: ['economy', 'currencyTiers', 'middleName'] },
-            { label: '底层货币名称', path: ['economy', 'currencyTiers', 'lowerName'] },
-            { label: '上转中汇率', path: ['economy', 'currencyTiers', 'upperToMiddleRate'] },
-            { label: '中转底汇率', path: ['economy', 'currencyTiers', 'middleToLowerRate'] },
-            { label: '高级配置', path: ['economy', '__advancedCurrency'], type: 'economyGroupTitle', placeholder: '普通用户建议使用上方可视化编辑器；熟悉 JSON 的用户可在这里精修。' },
-            { label: '高级 currencySystem JSON', path: ['economy', 'currencySystem'], type: 'currencySystemJson' },
-            { label: '经济说明与市场口径', path: ['economy', '__marketCurrency'], type: 'economyGroupTitle', placeholder: '下方内容不决定新版/旧版货币模式，只用于约束题材描述、市场名称、物品类型和禁用关键词。' },
+            { label: '经济说明与市场口径', path: ['economy', '__marketCurrency'], type: 'economyGroupTitle', placeholder: '货币固定为现代单一货币“元”，这里仅约束市场名称、物品类型和禁用关键词。' },
             { label: '题材货币说明', path: ['economy', 'primaryCurrency'], type: 'textarea' },
-            { label: '底层记账单位', path: ['economy', 'accountingUnit'] },
-            { label: '旧兼容换算说明', path: ['economy', 'exchangeRules'], type: 'textarea' },
+            { label: '记账单位', path: ['economy', 'accountingUnit'] },
+            { label: '结算说明', path: ['economy', 'exchangeRules'], type: 'textarea' },
             { label: '市场名称', path: ['economy', 'marketName'] },
             { label: '市场动词', path: ['economy', 'marketVerb'] },
             { label: '允许物品类型', path: ['economy', 'allowedItemTypes'], type: 'list' },
@@ -115,8 +101,7 @@ const 运行时配置分区列表: 运行时配置分区[] = [
                 { label: '弹药', key: 'ammo' },
                 { label: '药品', key: 'medicine' },
                 { label: '燃料', key: 'fuel' },
-                { label: '电池', key: 'batteries' },
-                { label: '灵石', key: 'spiritStones' }
+                { label: '电池', key: 'batteries' }
             ] }
         ]
     },
@@ -171,8 +156,7 @@ const 运行时配置分区列表: 运行时配置分区[] = [
             { label: '初始任务模板', path: ['opening', 'initialQuestTemplates'], type: 'list' },
             { label: '默认生成性别', path: ['opening', 'allowedGeneratedGenders'], type: 'list', placeholder: 默认生成性别占位 },
             { label: '锁定生成性别', path: ['opening', 'lockGeneratedGenders'], type: 'bool' },
-            { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' },
-            { label: '默认金钱模板', path: ['opening', 'defaultCurrency'], type: 'record', placeholder: '每行一个，格式：货币名=初始量，例如：底层货币=1000' }
+            { label: '默认装备模板', path: ['opening', 'defaultEquipment'], type: 'record', placeholder: '每行一个，格式：槽位=物品名，例如：武器=青锋剑' }
         ]
     },
     {
@@ -191,8 +175,7 @@ type 贡献草稿 = {
     description: string;
     type: 创意工坊模块类型;
     mode: 题材模式类型;
-    currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse' | 'infinite';
-    auctionName: string;
+    marketName: string;
     marketVerb: string;
     mapPrompt: string;
     skillNames: string;
@@ -216,11 +199,10 @@ type 贡献草稿 = {
     versionNote: string;
 };
 
-const 创建默认模式元数据草稿 = (mode: 题材模式类型): Pick<贡献草稿, 'currencyDisplayMode' | 'auctionName' | 'marketVerb' | 'mapPrompt' | 'skillNames' | 'presetItemKeywords' | 'backgroundSuggestions' | 'talentSuggestions' | 'modeRuntimeProfile'> => {
+const 创建默认模式元数据草稿 = (mode: 题材模式类型): Pick<贡献草稿, 'marketName' | 'marketVerb' | 'mapPrompt' | 'skillNames' | 'presetItemKeywords' | 'backgroundSuggestions' | 'talentSuggestions' | 'modeRuntimeProfile'> => {
     const profile = 题材模式配置表[mode];
     return {
-        currencyDisplayMode: profile?.currencyDisplayMode || 'wuxia',
-        auctionName: profile?.auctionName || '',
+        marketName: profile?.marketName || '',
         marketVerb: profile?.marketVerb || '',
         mapPrompt: profile?.mapPrompt || '',
         skillNames: profile?.skillNames?.join('、') || '',
@@ -300,7 +282,6 @@ const 读取运行时路径值 = (profile: ModeRuntimeProfile, path: string[]): 
 const 格式化运行时字段值 = (profile: ModeRuntimeProfile, field: 运行时配置字段): string => {
     const value = 读取运行时路径值(profile, field.path);
     if (typeof value === 'undefined' || value === null) return '';
-    if (field.type === 'currencySystemJson') return JSON.stringify(value, null, 2);
     if (field.type === 'record') {
         if (typeof value === 'object' && !Array.isArray(value)) {
             return Object.entries(value).map(([k, v]) => `${k}=${v}`).join('\n');
@@ -309,11 +290,6 @@ const 格式化运行时字段值 = (profile: ModeRuntimeProfile, field: 运行�
     }
     if (Array.isArray(value)) return value.join('、');
     return typeof value === 'string' ? value : String(value ?? '');
-};
-
-const 格式化货币系统Json = (profile: ModeRuntimeProfile): string => {
-    const value = profile.economy.currencySystem;
-    return value ? JSON.stringify(value, null, 2) : '';
 };
 
 const 写入运行时路径值 = (profile: ModeRuntimeProfile, path: string[], value: any): ModeRuntimeProfile => {
@@ -352,8 +328,7 @@ const 提取模块模式元数据 = (entry: 创意工坊模块条目): Record<st
     const runtimeProfile = 提取模块运行时配置(entry);
     return {
         mode: metadata.mode || payload?.mode || runtimeProfile?.identity.baseMode || '',
-        currencyDisplayMode: metadata.currencyDisplayMode || runtimeProfile?.economy.currencyDisplayMode || '',
-        auctionName: metadata.auctionName || runtimeProfile?.economy.marketName || '',
+        marketName: metadata.marketName || runtimeProfile?.economy.marketName || '',
         marketVerb: metadata.marketVerb || runtimeProfile?.economy.marketVerb || '',
         mapPrompt: metadata.mapPrompt || runtimeProfile?.map.mapPrompt || '',
         timeDisplayFormat: metadata.timeDisplayFormat || runtimeProfile?.time.displayFormat || '',
@@ -390,8 +365,7 @@ const 构建预览页说明 = (entry: 创意工坊模块条目): string => {
 
 const 构建模式元数据 = (draft: 贡献草稿) => ({
     mode: draft.mode,
-    currencyDisplayMode: draft.currencyDisplayMode,
-    auctionName: draft.auctionName.trim(),
+    marketName: draft.marketName.trim(),
     marketVerb: draft.marketVerb.trim(),
     mapPrompt: draft.mapPrompt.trim(),
     skillNames: 分割短语(draft.skillNames),
@@ -432,8 +406,7 @@ const 渲染模式元数据世界书内容 = (draft: 贡献草稿): string => {
     const worldDetailGeneration = 构建世界细节生成配置(draft);
     return [
         `题材模式：${metadata.mode}`,
-        `货币显示：${metadata.currencyDisplayMode}`,
-        `市场名称：${metadata.auctionName}`,
+        `市场名称：${metadata.marketName}`,
         `市场行为口径：${metadata.marketVerb}`,
         `地图口径：${metadata.mapPrompt}`,
         `时间口径：${draft.modeRuntimeProfile.time.narrativeStyle}`,
@@ -639,8 +612,7 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
         },
         economy: {
             ...draft.modeRuntimeProfile.economy,
-            currencyDisplayMode: modeMetadata.currencyDisplayMode,
-            marketName: modeMetadata.auctionName,
+            marketName: modeMetadata.marketName,
             marketVerb: modeMetadata.marketVerb
         },
         ability: {
@@ -737,7 +709,7 @@ const 构建模式包模块 = (draft: 贡献草稿, contributor: string, existin
             `完整模式包：${suiteTitle}`,
             `模式世界书：${modeWorldbooks[0]?.条目.length || 0} 条`,
             `适用题材：${modeRuntimeProfile.identity.baseMode}`,
-            `市场名称：${modeMetadata.auctionName || '未填写'}`,
+            `市场名称：${modeMetadata.marketName || '未填写'}`,
             `时间口径：${modeRuntimeProfile.time.displayFormat} / ${modeRuntimeProfile.time.narrativeStyle.slice(0, 80)}`,
             `世界细节：${worldDetailGeneration.aiGenerate ? 'AI 默认生成' : '本地自定义'}`,
             `地图口径：${modeMetadata.mapPrompt.slice(0, 120) || '未填写'}`,
@@ -765,11 +737,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
     const [contributor, setContributor] = useState('');
     const [previewEntry, setPreviewEntry] = useState<创意工坊模块条目 | null>(null);
     const [contributionDraft, setContributionDraft] = useState<贡献草稿>(() => 空贡献草稿());
-    const [currencySystemJsonDraft, setCurrencySystemJsonDraft] = useState(() => 格式化货币系统Json(空贡献草稿().modeRuntimeProfile));
-    const [currencySystemJsonError, setCurrencySystemJsonError] = useState('');
-    const [currencySystemEditMode, setCurrencySystemEditMode] = useState<货币系统编辑模式>(() => (
-        空贡献草稿().modeRuntimeProfile.economy.currencySystem ? 'dynamic' : 'legacy'
-    ));
     const [showContributionForm, setShowContributionForm] = useState(false);
     const jsonImportInputRef = useRef<HTMLInputElement | null>(null);
     const contributionModule = useMemo(() => 构建贡献模块(contributionDraft, contributor, entries), [contributionDraft, contributor, entries]);
@@ -785,7 +752,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
             : contributionDraft.topicBody.trim().length > 0
                 && contributionDraft.worldRulesBody.trim().length > 0
                 && contributionDraft.abilityBody.trim().length > 0
-                && contributionDraft.auctionName.trim().length > 0
+                && contributionDraft.marketName.trim().length > 0
                 && contributionDraft.marketVerb.trim().length > 0
                 && contributionDraft.mapPrompt.trim().length > 0
                 && 分割短语(contributionDraft.skillNames).length > 0
@@ -794,61 +761,9 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                 && 分割短语(contributionDraft.talentSuggestions).length > 0
                 && worldDetailsReady
     );
-    useEffect(() => {
-        if (currencySystemJsonError) return;
-        setCurrencySystemJsonDraft(格式化货币系统Json(contributionDraft.modeRuntimeProfile));
-    }, [contributionDraft.modeRuntimeProfile.economy.currencySystem, currencySystemJsonError]);
-    useEffect(() => {
-        setCurrencySystemEditMode((prev) => (
-            prev === 'json'
-                ? prev
-                : contributionDraft.modeRuntimeProfile.economy.currencySystem ? 'dynamic' : 'legacy'
-        ));
-    }, [contributionDraft.modeRuntimeProfile.economy.currencySystem]);
-
     const 重置贡献草稿 = () => {
         const nextDraft = 空贡献草稿();
         setContributionDraft(nextDraft);
-        setCurrencySystemJsonDraft(格式化货币系统Json(nextDraft.modeRuntimeProfile));
-        setCurrencySystemJsonError('');
-        setCurrencySystemEditMode(nextDraft.modeRuntimeProfile.economy.currencySystem ? 'dynamic' : 'legacy');
-
-    };
-
-    const 更新货币系统Json = (value: string) => {
-        setCurrencySystemJsonDraft(value);
-        const trimmed = value.trim();
-        if (!trimmed) {
-            setCurrencySystemJsonError('');
-            setContributionDraft((prev) => {
-                const nextProfile = 写入运行时路径值(prev.modeRuntimeProfile, ['economy', 'currencySystem'], undefined);
-                return {
-                    ...prev,
-                    modeRuntimeProfile: 规范化模式运行时配置(nextProfile, prev.mode)
-                };
-            });
-            return;
-        }
-        let parsed: unknown;
-        try {
-            parsed = JSON.parse(trimmed);
-        } catch (error) {
-            setCurrencySystemJsonError(error instanceof Error ? `JSON 解析失败：${error.message}` : 'JSON 解析失败');
-            return;
-        }
-        const currencySystem = 规范化显式货币系统(parsed);
-        if (!currencySystem) {
-            setCurrencySystemJsonError('currencySystem 结构非法：请检查 id/name/baseUnitId、units、baseRate、order、aliases 和 baseUnit。');
-            return;
-        }
-        setCurrencySystemJsonError('');
-        setContributionDraft((prev) => {
-            const nextProfile = 写入运行时路径值(prev.modeRuntimeProfile, ['economy', 'currencySystem'], currencySystem);
-            return {
-                ...prev,
-                modeRuntimeProfile: 规范化模式运行时配置(nextProfile, prev.mode)
-            };
-        });
     };
 
     const 更新运行时配置字段 = (field: 运行时配置字段, value: any) => {
@@ -880,40 +795,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
         });
     };
 
-    const 应用可视化货币系统 = (currencySystem: CurrencySystem) => {
-        setCurrencySystemJsonError('');
-        setCurrencySystemJsonDraft(JSON.stringify(currencySystem, null, 2));
-        setContributionDraft((prev) => {
-            const nextProfile = 写入运行时路径值(prev.modeRuntimeProfile, ['economy', 'currencySystem'], currencySystem);
-            return {
-                ...prev,
-                modeRuntimeProfile: 规范化模式运行时配置(nextProfile, prev.mode)
-            };
-        });
-    };
-
-    const 清除可视化货币系统 = () => {
-        setCurrencySystemJsonError('');
-        setCurrencySystemJsonDraft('');
-        setContributionDraft((prev) => {
-            const nextProfile = 写入运行时路径值(prev.modeRuntimeProfile, ['economy', 'currencySystem'], undefined);
-            return {
-                ...prev,
-                modeRuntimeProfile: 规范化模式运行时配置(nextProfile, prev.mode)
-            };
-        });
-    };
-
-    const 切换货币系统编辑模式 = (mode: 货币系统编辑模式) => {
-        setCurrencySystemEditMode(mode);
-        if (mode === 'dynamic' && !contributionDraft.modeRuntimeProfile.economy.currencySystem) {
-            应用可视化货币系统(构建货币系统模板('topic-default', contributionDraft.modeRuntimeProfile));
-            return;
-        }
-        if (mode === 'legacy') {
-            清除可视化货币系统();
-        }
-    };
 
     const activeEntries = useMemo(
         () => entries.filter((entry) => 可展示工坊类型集合.has(entry.type) && entry.type === activeType && (sourceFilter === 'all' || entry.source === sourceFilter)),
@@ -966,7 +847,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                 setActiveType('topic');
             }
         } catch (error: any) {
-            setStatus(`读取创意工坊失败：${error?.message || '未知错误'}`);
+            setStatus(`读取本地模式包失败：${error?.message || '未知错误'}`);
         } finally {
             setLoading(false);
         }
@@ -1022,7 +903,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                 const payload = JSON.parse(text);
                 const modules = 从JSON载荷提取创意工坊模块(payload);
                 if (modules.length === 0) {
-                    throw new Error(`${file.name} 不是可识别的创意工坊 JSON`);
+                    throw new Error(`${file.name} 不是可识别的本地模式包 JSON`);
                 }
                 modules.forEach((module) => imported.push(导入本地创意工坊模块(module)));
             }
@@ -1047,20 +928,9 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
         const key = `preview-${section.title}-${field.path.join('.')}`;
         if (
             field.path.some((part) => part.startsWith('__'))
-            || fieldType === 'currencySystemModeSelector'
             || fieldType === 'economyGroupTitle'
-            || fieldType === 'currencySystemEditor'
         ) {
             return null;
-        }
-        if (fieldType === 'currencySystemJson') {
-            const displayValue = rawValue ? JSON.stringify(rawValue, null, 2) : '';
-            return (
-                <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
-                    {field.label}
-                    <textarea value={displayValue} readOnly className="mt-1 min-h-20 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none font-mono" />
-                </label>
-            );
         }
         if (fieldType === 'bool') {
             return (
@@ -1076,22 +946,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                     {field.label}
                     <select value={String(rawValue || profile.identity.baseMode)} disabled className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 opacity-100 outline-none">
                         {题材模式顺序.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
-                    </select>
-                </label>
-            );
-        }
-        if (fieldType === 'currencyMode') {
-            return (
-                <label key={key} className="block text-xs text-gray-300">
-                    {field.label}
-                    <select value={String(rawValue || profile.economy.currencyDisplayMode)} disabled className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 opacity-100 outline-none">
-                        <option value="wuxia">武侠货币</option>
-                        <option value="xianxia">仙侠货币</option>
-                        <option value="fantasy">西方奇幻</option>
-                        <option value="urban">都市/灵气复苏</option>
-                        <option value="modern">现代现实</option>
-                        <option value="apocalypse">末世物资</option>
-                        <option value="infinite">主神奖励</option>
                     </select>
                 </label>
             );
@@ -1159,8 +1013,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
         const worldDetailGeneration = 提取模块世界细节生成配置(entry);
         const metadataFields = [
             ['题材模式', String(modeMetadata.mode || '')],
-            ['货币显示', String(modeMetadata.currencyDisplayMode || '')],
-            ['市场名称', String(modeMetadata.auctionName || '')],
+            ['市场名称', String(modeMetadata.marketName || '')],
             ['市场行为口径', String(modeMetadata.marketVerb || '')],
             ['地图口径', String(modeMetadata.mapPrompt || '')],
             ['时间显示基调', String(modeMetadata.timeDisplayFormat || '')],
@@ -1322,7 +1175,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                 <div className="flex items-start justify-between gap-4 border-b border-wuxia-gold/10 px-5 py-4">
                     {previewEntry ? (
                         <div className="min-w-0">
-                            <button type="button" onClick={() => setPreviewEntry(null)} className="mb-3 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-200 hover:border-white/25">返回工坊</button>
+                            <button type="button" onClick={() => setPreviewEntry(null)} className="mb-3 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-200 hover:border-white/25">返回模式包</button>
                             <div className="text-xs font-mono tracking-[0.28em] text-wuxia-gold">INJECTION PREVIEW</div>
                             <h2 className="mt-2 truncate text-lg font-serif font-bold tracking-[0.18em] text-wuxia-gold">{previewEntry.title}</h2>
                             <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-50/75">
@@ -1331,14 +1184,14 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                         </div>
                     ) : (
                         <div>
-                            <div className="text-xs font-mono tracking-[0.28em] text-wuxia-gold">CREATIVE WORKSHOP</div>
-                            <h2 className="mt-2 text-lg font-serif font-bold tracking-[0.18em] text-wuxia-gold">创意工坊</h2>
+                            <div className="text-xs font-mono tracking-[0.28em] text-wuxia-gold">LOCAL MODE PACKS</div>
+                            <h2 className="mt-2 text-lg font-serif font-bold tracking-[0.18em] text-wuxia-gold">本地模式包</h2>
                             <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-50/75">
                                 本地模式包与图片工作流的管理入口。这里保留本地导入、JSON 保存和开局可用的模式包整理。
                             </p>
                         </div>
                     )}
-                    <button type="button" onClick={onClose} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-black/30 text-xl text-amber-100 transition-colors hover:border-amber-300/50 hover:text-white" aria-label="关闭创意工坊" title="关闭">×</button>
+                    <button type="button" onClick={onClose} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-black/30 text-xl text-amber-100 transition-colors hover:border-amber-300/50 hover:text-white" aria-label="关闭本地模式包" title="关闭">×</button>
                 </div>
 
                 <div className="max-h-[calc(92vh-118px)] overflow-y-auto p-5">
@@ -1454,7 +1307,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                             <div className="flex flex-wrap items-center justify-between gap-2">
                                                 <div>
                                                     <div className="text-xs font-bold tracking-[0.14em] text-wuxia-gold">模式元数据</div>
-                                                    <div className="mt-1 text-[11px] leading-5 text-gray-500">用于开局界面、货币显示、市场入口、地图生成、技能/物品/背景/天赋建议。</div>
+                                                    <div className="mt-1 text-[11px] leading-5 text-gray-500">用于开局界面、市场入口、地图生成、技能/物品/背景/天赋建议。</div>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -1466,20 +1319,8 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                             </div>
                                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                                 <label className="block text-xs text-gray-300">
-                                                    货币显示
-                                                    <select value={contributionDraft.currencyDisplayMode} onChange={(event) => setContributionDraft((prev) => ({ ...prev, currencyDisplayMode: event.target.value as 贡献草稿['currencyDisplayMode'] }))} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45">
-                                                        <option value="wuxia">武侠货币</option>
-                                                        <option value="xianxia">仙侠货币</option>
-                                                        <option value="fantasy">西方奇幻</option>
-                                                        <option value="urban">都市/灵气复苏</option>
-                                                        <option value="modern">现代现实</option>
-                                                        <option value="apocalypse">末世物资</option>
-                                                        <option value="infinite">主神奖励</option>
-                                                    </select>
-                                                </label>
-                                                <label className="block text-xs text-gray-300">
                                                     市场名称
-                                                    <input value={contributionDraft.auctionName} onChange={(event) => setContributionDraft((prev) => ({ ...prev, auctionName: event.target.value }))} placeholder="例如：市场、联盟商店、营地交易所" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                                    <input value={contributionDraft.marketName} onChange={(event) => setContributionDraft((prev) => ({ ...prev, marketName: event.target.value }))} placeholder="例如：市场、联盟商店、营地交易所" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                                 </label>
                                                 <label className="block text-xs text-gray-300 sm:col-span-2">
                                                     市场行为口径
@@ -1573,61 +1414,11 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                                                 const fieldType = field.type || 'text';
                                                                 const rawValue = 读取运行时路径值(contributionDraft.modeRuntimeProfile, field.path);
                                                                 const key = `${section.title}-${field.path.join('.')}`;
-                                                                const fieldPath = field.path.join('.');
-                                                                if (section.title === '经济系统') {
-                                                                    const isDynamicField = fieldType === 'currencySystemEditor' || fieldPath === 'economy.__dynamicCurrency';
-                                                                    const isLegacyField = fieldType === 'currencyMode' || fieldPath.startsWith('economy.currencyTiers') || fieldPath === 'economy.__legacyCurrency';
-                                                                    const isJsonField = fieldType === 'currencySystemJson' || fieldPath === 'economy.__advancedCurrency';
-                                                                    if (isDynamicField && currencySystemEditMode !== 'dynamic') return null;
-                                                                    if (isLegacyField && currencySystemEditMode !== 'legacy') return null;
-                                                                    if (isJsonField && currencySystemEditMode !== 'json') return null;
-                                                                }
-                                                                if (fieldType === 'currencySystemModeSelector') {
-                                                                    const modeText = currencySystemEditMode === 'dynamic'
-                                                                        ? '当前使用新版动态货币系统，支持单一货币、多层货币和自定义单位。'
-                                                                        : currencySystemEditMode === 'legacy'
-                                                                            ? '当前使用旧版三层货币系统，仅适合兼容旧模板。'
-                                                                            : '高级模式直接编辑 economy.currencySystem，普通用户建议使用新版动态货币系统。';
-                                                                    const options: Array<{ value: 货币系统编辑模式; label: string }> = [
-                                                                        { value: 'dynamic', label: '新版动态货币系统（推荐）' },
-                                                                        { value: 'legacy', label: '旧版三层货币系统（兼容）' },
-                                                                        { value: 'json', label: '高级 JSON 配置' }
-                                                                    ];
-                                                                    return (
-                                                                        <div key={key} className="sm:col-span-2 rounded-lg border border-wuxia-gold/25 bg-wuxia-gold/[0.06] px-3 py-3">
-                                                                            <div className="text-xs font-bold text-wuxia-gold">{field.label}</div>
-                                                                            <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                                                                                {options.map((option) => (
-                                                                                    <button
-                                                                                        key={option.value}
-                                                                                        type="button"
-                                                                                        onClick={() => 切换货币系统编辑模式(option.value)}
-                                                                                        className={`rounded-lg border px-3 py-2 text-xs transition-colors ${
-                                                                                            currencySystemEditMode === option.value
-                                                                                                ? 'border-wuxia-gold bg-wuxia-gold/15 text-wuxia-gold'
-                                                                                                : 'border-white/10 bg-black/25 text-gray-300 hover:border-wuxia-gold/35 hover:text-wuxia-gold'
-                                                                                        }`}
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                            <div className="mt-2 text-[11px] leading-5 text-gray-300">{modeText}</div>
-                                                                            <div className="mt-1 text-[11px] leading-5 text-gray-500">
-                                                                                模式不会额外写入持久化字段；游戏实际根据 economy.currencySystem 是否存在决定优先使用新版动态货币或旧版 currencyTiers fallback。
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                }
                                                                 if (fieldType === 'economyGroupTitle') {
-                                                                    const dynamicEnabled = Boolean(contributionDraft.modeRuntimeProfile.economy.currencySystem);
-                                                                    const legacyNote = field.path.join('.') === 'economy.__legacyCurrency' && dynamicEnabled
-                                                                        ? '当前新版动态货币已启用，以下三层配置仅作为兼容保留。'
-                                                                        : field.placeholder;
                                                                     return (
                                                                         <div key={key} className="sm:col-span-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
                                                                             <div className="text-xs font-bold text-wuxia-gold">{field.label}</div>
-                                                                            {legacyNote && <div className="mt-1 text-[11px] leading-5 text-gray-400">{legacyNote}</div>}
+                                                                            {field.placeholder && <div className="mt-1 text-[11px] leading-5 text-gray-400">{field.placeholder}</div>}
                                                                         </div>
                                                                     );
                                                                 }
@@ -1654,26 +1445,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                                                                 className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45"
                                                                             >
                                                                                 {题材模式顺序.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
-                                                                            </select>
-                                                                        </label>
-                                                                    );
-                                                                }
-                                                                if (fieldType === 'currencyMode') {
-                                                                    return (
-                                                                        <label key={key} className="block text-xs text-gray-300">
-                                                                            {field.label}
-                                                                            <select
-                                                                                value={String(rawValue || contributionDraft.currencyDisplayMode)}
-                                                                                onChange={(event) => 更新运行时配置字段(field, event.target.value)}
-                                                                                className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-gray-100 outline-none focus:border-wuxia-gold/45"
-                                                                            >
-                                                                                <option value="wuxia">武侠货币</option>
-                                                                                <option value="xianxia">仙侠货币</option>
-                                                                                <option value="fantasy">西方奇幻</option>
-                                                                                <option value="urban">都市/灵气复苏</option>
-                                                                                <option value="modern">现代现实</option>
-                                                                                <option value="apocalypse">末世物资</option>
-                                                                                <option value="infinite">主神奖励</option>
                                                                             </select>
                                                                         </label>
                                                                     );
@@ -1747,33 +1518,6 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                                                                 }}
                                                                                 placeholder='{"levelNames":[],"parseRules":[]}'
                                                                                 className="mt-1 min-h-28 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45 font-mono" />
-                                                                        </label>
-                                                                    );
-                                                                }
-                                                                if (fieldType === 'currencySystemEditor') {
-                                                                    return (
-                                                                        <CurrencySystemEditor
-                                                                            key={key}
-                                                                            profile={contributionDraft.modeRuntimeProfile}
-                                                                            onApply={应用可视化货币系统}
-                                                                            onClear={清除可视化货币系统}
-                                                                        />
-                                                                    );
-                                                                }
-                                                                if (fieldType === 'currencySystemJson') {
-                                                                    return (
-                                                                        <label key={key} className="block text-xs text-gray-300 sm:col-span-2">
-                                                                            {field.label}
-                                                                            <textarea value={currencySystemJsonDraft}
-                                                                                onChange={(event) => 更新货币系统Json(event.target.value)}
-                                                                                placeholder='{"id":"modern-credit","name":"现代信用点","baseUnitId":"credit","formatStyle":"single","units":[{"id":"credit","name":"信用点","symbol":"点","baseRate":1,"order":1,"aliases":["信用","点数"]}]}'
-                                                                                className={`mt-1 min-h-36 w-full resize-y rounded-lg border ${currencySystemJsonError ? 'border-red-400/60' : 'border-white/10'} bg-black/30 px-3 py-2 font-mono text-sm leading-5 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45`} />
-                                                                            <div className="mt-1 text-[11px] leading-5 text-gray-400">
-                                                                                留空会清除显式 currencySystem，旧三层 currencyTiers 仍作为兼容 fallback。合法 JSON 会写入 economy.currencySystem。
-                                                                            </div>
-                                                                            {currencySystemJsonError && (
-                                                                                <div className="mt-1 text-[11px] leading-5 text-red-300">{currencySystemJsonError}</div>
-                                                                            )}
                                                                         </label>
                                                                     );
                                                                 }

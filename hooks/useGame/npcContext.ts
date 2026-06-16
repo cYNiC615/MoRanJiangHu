@@ -3,14 +3,7 @@ import { 规范化记忆配置 } from './memoryUtils';
 import { 构建NPC记忆展示结果 } from './npcMemorySummary';
 import { normalizeCanonicalGameTime, 结构化时间转标准串 } from './timeUtils';
 
-const 解析境界映射值 = () => 0;
-
-type 生图基础数据选项 = {
-    cultivationSystemEnabled?: boolean;
-};
-
-export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数据选项) => {
-    const 启用成长体系 = options?.cultivationSystemEnabled === true;
+export const 提取NPC生图基础数据 = (npc: any) => {
     const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
         return Object.fromEntries(
             Object.entries(obj).filter(([, value]) => {
@@ -69,7 +62,6 @@ export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数�
         性别: typeof npc?.性别 === 'string' ? npc.性别.trim() : undefined,
         年龄: typeof npc?.年龄 === 'number' ? npc.年龄 : undefined,
         身份: 读取首个文本字段(npc, ['身份']) || undefined,
-        境界: 启用成长体系 ? (读取首个文本字段(npc, ['境界']) || undefined) : undefined,
         简介: 读取首个文本字段(npc, ['简介']) || undefined,
         核心性格特征: 核心性格特征 || undefined,
         性格: 核心性格特征 || undefined,
@@ -80,8 +72,7 @@ export const 提取NPC生图基础数据 = (npc: any, options?: 生图基础数�
     });
 };
 
-export const 提取主角生图基础数据 = (character: any, options?: 生图基础数据选项) => {
-    const 启用成长体系 = options?.cultivationSystemEnabled === true;
+export const 提取主角生图基础数据 = (character: any) => {
     const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
         return Object.fromEntries(
             Object.entries(obj).filter(([, value]) => {
@@ -103,7 +94,6 @@ export const 提取主角生图基础数据 = (character: any, options?: 生图�
         性别: 取文本(character?.性别) || undefined,
         年龄: typeof character?.年龄 === 'number' ? character.年龄 : undefined,
         身份: [取文本(character?.称号), 取文本(character?.出身背景?.名称)].filter(Boolean).join(' / ') || undefined,
-        境界: 启用成长体系 ? (取文本(character?.境界) || undefined) : undefined,
         简介: 取文本(character?.出身背景?.描述) || undefined,
         核心性格特征: 取文本(character?.性格) || undefined,
         性格: 取文本(character?.性格) || undefined,
@@ -151,14 +141,12 @@ export const 构建NPC上下文 = (
         worldPrompt?: string;
         realmPrompt?: string;
         openingConfig?: OpeningConfig | null;
-        cultivationSystemEnabled?: boolean;
     }
 ): {
     在场数据块: string;
     离场数据块: string;
 } => {
     const npcList = Array.isArray(socialData) ? socialData : [];
-    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 普通关键记忆条数N = 5;
     const 重要角色关键记忆条数N = 规范化记忆配置(memoryConfig).重要角色关键记忆条数N;
 
@@ -492,14 +480,6 @@ export const 构建NPC上下文 = (
             id: typeof npc?.id === 'string' ? npc.id : `npc_${index}`,
             姓名: typeof npc?.姓名 === 'string' ? npc.姓名 : `角色${index}`,
             性别: typeof npc?.性别 === 'string' ? npc.性别 : '未知',
-            ...(启用成长体系 ? {
-                境界: typeof npc?.境界 === 'string' ? npc.境界 : '未知境界',
-                境界映射值: 解析境界映射值(npc?.境界, {
-                    worldPrompt: options?.worldPrompt,
-                    realmPrompt: options?.realmPrompt,
-                    openingConfig: options?.openingConfig
-                })
-            } : {}),
             身份: typeof npc?.身份 === 'string' ? npc.身份 : '未知身份',
             是否队友,
             关系状态: typeof npc?.关系状态 === 'string' ? npc.关系状态 : '未知',
@@ -540,7 +520,7 @@ export const 构建NPC上下文 = (
         });
     };
 
-    const 提取队伍战斗附加 = (npc: any, 是否在场: boolean, 是否队友: boolean) => {
+    const 提取队友状态附加 = (npc: any, 是否在场: boolean, 是否队友: boolean) => {
         if (!是否在场 || !是否队友) return undefined;
         const 附加 = 清理空字段({
             攻击力: typeof npc?.攻击力 === 'number' ? npc.攻击力 : undefined,
@@ -552,10 +532,6 @@ export const 构建NPC上下文 = (
             最大血量: typeof npc?.最大血量 === 'number' ? npc.最大血量 : undefined,
             当前精力: typeof npc?.当前精力 === 'number' ? npc.当前精力 : undefined,
             最大精力: typeof npc?.最大精力 === 'number' ? npc.最大精力 : undefined,
-            ...(启用成长体系 ? {
-                当前内力: typeof npc?.当前内力 === 'number' ? npc.当前内力 : undefined,
-                最大内力: typeof npc?.最大内力 === 'number' ? npc.最大内力 : undefined
-            } : {}),
             当前装备: typeof npc?.当前装备 === 'object' && npc.当前装备 ? npc.当前装备 : undefined,
             背包: Array.isArray(npc?.背包)
                 ? npc.背包
@@ -610,7 +586,7 @@ export const 构建NPC上下文 = (
         const 记忆展示 = 构建NPC记忆展示结果(npc?.总结记忆, npc?.记忆);
         const 基础数据 = 提取基础数据(npc, index, 是否队友);
         const 完整基础数据 = 提取完整基础数据(npc, index, 是否队友);
-        const 队伍战斗附加 = 提取队伍战斗附加(npc, 是否在场, 是否队友);
+        const 队友状态附加 = 提取队友状态附加(npc, 是否在场, 是否队友);
         const 最后互动 = 提取最后互动(npc);
         const 离场刷新锚点 = 提取离场刷新锚点(npc, 最后互动);
         return {
@@ -618,8 +594,6 @@ export const 构建NPC上下文 = (
             id: 基础数据.id,
             姓名: 基础数据.姓名,
             性别: 基础数据.性别,
-            境界: 基础数据.境界,
-            境界映射值: 基础数据.境界映射值,
             年龄: typeof npc?.年龄 === 'number' ? npc.年龄 : undefined,
             简介: 基础数据.简介,
             是否在场,
@@ -627,7 +601,7 @@ export const 构建NPC上下文 = (
             是否主要角色,
             基础数据,
             完整基础数据,
-            队伍战斗附加,
+            队友状态附加,
             最后互动,
             离场刷新锚点,
             总结记忆: 记忆展示.总结记忆,
@@ -662,7 +636,7 @@ export const 构建NPC上下文 = (
                         }])
                     )
                 } : {}),
-                ...(n.队伍战斗附加 ? { 战斗状态: n.队伍战斗附加 } : {})
+                ...(n.队友状态附加 ? { 队友状态: n.队友状态附加 } : {})
             });
         });
 

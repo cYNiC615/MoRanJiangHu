@@ -37,7 +37,6 @@ describe('默认 ComfyUI 生图配置', () => {
         const nsfwConfig = 获取NSFW文生图接口配置(settings);
 
         expect(默认功能模型占位.文生图后端类型).toBe('comfyui');
-        expect(默认功能模型占位.文生图预设接口路径).toBe('comfyui_prompt');
         expect(默认功能模型占位.使用默认ComfyUI工作流).toBe(true);
         expect(默认功能模型占位.使用默认场景ComfyUI工作流).toBe(true);
         expect(默认功能模型占位.使用默认NSFWComfyUI工作流).toBe(true);
@@ -110,24 +109,9 @@ describe('默认 ComfyUI 生图配置', () => {
         expect(prompt.最终正向提示词).toContain('characters and environment both clearly visible');
     });
 
-    it('forces ComfyUI image requests to the native /prompt route when old settings keep OpenAI image paths', () => {
+    it('keeps ComfyUI image requests on the native /prompt route', () => {
         const settings = 构建ComfyUI测试设置({
-            文生图后端类型: 'comfyui',
-            文生图预设接口路径: 'openai_images',
-            文生图接口路径模式: 'preset'
-        });
-        const config = 获取文生图接口配置(settings);
-
-        expect(config?.图片后端类型).toBe('comfyui');
-        expect(config?.图片预设接口路径).toBe('comfyui_prompt');
-        expect(config?.图片接口路径).toBe('/prompt');
-    });
-
-    it('sanitizes stale custom OpenAI paths when the selected image backend is ComfyUI', () => {
-        const settings = 构建ComfyUI测试设置({
-            文生图后端类型: 'comfyui',
-            文生图接口路径模式: 'custom',
-            文生图接口路径: '/v1/images/generations'
+            文生图后端类型: 'comfyui'
         });
         const config = 获取文生图接口配置(settings);
 
@@ -140,18 +124,12 @@ describe('默认 ComfyUI 生图配置', () => {
             图片后端类型: 'comfyui',
             词组转化输出策略: 'plain'
         } as any;
-        const openAIConfig = {
-            图片后端类型: 'openai',
-            词组转化输出策略: 'plain'
-        } as any;
 
         const normalComfy = 构建最终图片提示词('幽冥冰莲', comfyConfig, { 构图: '场景' });
-        const normalOpenAI = 构建最终图片提示词('幽冥冰莲', openAIConfig, { 构图: '场景' });
         const nsfwCloseup = 构建最终图片提示词('私密部位特写', comfyConfig, { 构图: '部位特写' });
 
         expect(normalComfy.最终正向提示词).toContain('Z-Image-Turbo narrative prompt');
         expect(normalComfy.最终正向提示词).not.toContain('露骨性器、体液、性行为细节');
-        expect(normalOpenAI.最终正向提示词).not.toContain('Z-Image-Turbo narrative prompt');
         expect(nsfwCloseup.最终正向提示词).not.toContain('Z-Image-Turbo narrative prompt');
         expect(nsfwCloseup.最终正向提示词).not.toContain('露骨性器、体液、性行为细节');
         expect(nsfwCloseup.最终正向提示词).toContain('macro anatomical close-up');

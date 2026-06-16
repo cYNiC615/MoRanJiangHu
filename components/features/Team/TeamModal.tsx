@@ -123,11 +123,7 @@ const TeamModal: React.FC<Props> = ({ character, teammates, openingConfig, onClo
         const candidates: unknown[] = [
             npc.上次更新时间,
             (npc as any)?.最后更新时间,
-            (npc as any)?.更新时间,
-            (npc as any)?.队伍战斗状态?.上次更新时间,
-            (npc as any)?.队伍战斗状态?.最后更新时间,
-            (npc as any)?.战斗状态?.上次更新时间,
-            (npc as any)?.战斗状态?.最后更新时间
+            (npc as any)?.更新时间
         ];
         for (const candidate of candidates) {
             const parsed = 解析更新时间文本(candidate);

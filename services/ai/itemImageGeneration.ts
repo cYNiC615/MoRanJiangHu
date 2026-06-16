@@ -5,10 +5,10 @@ import { 获取文生图接口配置, 接口配置是否可用 } from '../../uti
 import { 合并物品图片档案 } from '../../utils/itemImage';
 import { 默认NSFWComfyUI工作流JSON } from '../../data/defaultComfyWorkflow';
 import { 查找结构化物品 } from '../../data/structuredItemLibrary';
-import { generateImageByPrompt, persistImageAssetLocally, 全局无文字正向提示词 } from './image';
+import { generateImageByPrompt, persistImageAssetLocally, 全局无文字正向提示词, 全局无文字负面提示词 } from './image';
 import { recordDiagnosticLog } from '../diagnosticLog';
 
-type 物品生图来源位置 = '背包' | '拍卖行';
+type 物品生图来源位置 = '背包' | '市场';
 
 export interface 物品图标生成选项 {
     source?: 'auto' | 'manual' | 'retry';
@@ -337,7 +337,7 @@ const 物品是否武器 = (item: any): boolean => {
 };
 
 // 这里只服务于生图时的外形纠偏，用来约束主视觉轮廓，避免模型被名称里的用途词或题材先验带偏。
-// 它不是正式的物品系统分类，不参与背包/装备栏/拍卖行等游戏语义判断。
+// 它不是正式的物品系统分类，不参与背包/装备栏/市场等游戏语义判断。
 type 物品外形纠偏类别 = '无' | '科幻能量武器' | '现代枪械' | '弩' | '装箭容器' | '箭矢弹药' | '弓' | '长柄锐器' | '锐器' | '钝器';
 
 const 获取物品外形纠偏类别 = (item: any): 物品外形纠偏类别 => {
@@ -566,11 +566,11 @@ const 物品名称转英文描述 = (name: string): string => {
         '信物': 'keepsake token', '印章': 'seal stamp',
         '钥匙': 'ornate key', '锦囊': 'silk pouch',
         '卷轴': 'scroll', '书信': 'letter scroll',
-        '地图': 'map scroll', '银票': 'silver banknote',
+        '地图': 'map scroll', '现金': 'cash bills',
         '食盒': 'wooden food box', '酒壶': 'wine gourd',
         '灯笼': 'paper lantern', '火折子': 'fire starter flint',
         '绳索': 'hemp rope', '包袱': 'cloth bundle',
-        '银两': 'silver ingots', '铜钱': 'copper coins',
+        '银行卡': 'bank card', '储值卡': 'stored-value card',
         '凝血散': 'ancient hemostatic medicinal powder in a small folded paper packet or ceramic medicine vial, herbal powder for stopping bleeding',
         '金疮药': 'ancient wound medicine powder in a small ceramic medicine bottle or folded paper packet',
         '止血散': 'ancient hemostatic powder in a folded paper packet, herbal medicinal powder',
@@ -712,6 +712,7 @@ export const 构建物品负面提示词 = (item: any): string => {
     const isModernMedicine = !isCigarette && !isAncientMedicine && 物品是否现代药剂(item);
     const isBotanicalHerb = !isWeapon && !isAncientMedicine && 物品是否草药植物(item);
     return [
+        全局无文字负面提示词,
         isLivingMount ? 'rider, saddle covering the body, harness covering the body, cart, carriage, vehicle, boat' : isLivingAnimal ? 'person, human handler, leash held by person, cage, carrier bag, framed portrait, stuffed display, taxidermy scene' : 'person, human, face, hand, foot, feet, body part, skin, portrait, headshot, framed portrait, photo frame, picture frame',
         isLivingMount ? 'toy horse, plastic horse, resin figurine, statue, sculpture, ceramic, porcelain, model horse, miniature, collectible figurine, carousel horse, rocking horse, fake animal, mannequin, doll, glossy plastic, product prop, studio toy photography' : isLivingAnimal ? 'plush toy, stuffed animal, toy fox, toy cat, toy dog, plush doll, resin figurine, statue, sculpture, ceramic animal, porcelain animal, taxidermy mount, fake animal, mannequin, glossy plastic pet toy, chibi animal illustration' : '',
         isLivingMount || isLivingAnimal ? '' : 'toy, plastic figurine, resin model, statue, sculpture, mannequin',
@@ -956,13 +957,7 @@ export const 生成物品图标 = async (
         最终正向提示词: localResult.最终正向提示词,
         最终负向提示词: localResult.最终负向提示词,
         原始描述: JSON.stringify(enrichedItem, null, 2),
-        使用模型: ((): string => {
-            switch (imageApi.图片后端类型) {
-                case 'comfyui': return 'ComfyUI';
-                case 'sd_webui': return 'Stable Diffusion WebUI';
-                case 'novelai': case 'openai': default: return (imageApi.model || '').trim() || '图片模型';
-            }
-        })(),
+        使用模型: 'ComfyUI',
         生成时间: Date.now(),
         构图: '物品图标',
         画风: style as 物品生图结果['画风'],

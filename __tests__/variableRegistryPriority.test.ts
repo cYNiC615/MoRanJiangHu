@@ -9,15 +9,12 @@ describe('variable registry priority', () => {
             环境: { 大地点: '主神空间', 小地点: '金属房间' },
             社交: [{ 姓名: '俞月荷', 是否主要角色: true, 是否队友: true, ...manyFields }],
             世界: { 地图层级: [] },
-            战斗: { 是否战斗中: false, 敌方: [] },
             玩家组织: { 名称: '零号临时同盟', 兑换列表: [] },
-            任务列表: [],
-            约定列表: []
+            任务列表: []
         });
 
         expect(prompt).not.toContain('- 战斗');
         expect(prompt).not.toContain('- 玩家组织');
         expect(prompt).toContain('- 任务列表');
-        expect(prompt).toContain('- 约定列表');
     });
 });

@@ -15,8 +15,7 @@ import type {
     环境信息结构,
     角色数据结构,
     世界数据结构,
-    战斗状态结构,
-    详细门派结构,
+    玩家组织结构,
     内置提示词条目结构,
     世界书结构
 } from '../../types';
@@ -64,7 +63,7 @@ import { 构建世界演变上下文文本, 规范化世界演变命令列表, �
 import { 按功能开关过滤提示词内容, 裁剪成长体系上下文数据 } from '../../utils/promptFeatureToggles';
 import { 执行变量模型校准工作流 } from './variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './variableCalibrationMerge';
-import { 保护开局生成门派状态 } from './storyState';
+import { 保护开局生成组织状态 } from './storyState';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 import { 同步在场NPC当前位置 } from './responseCommandProcessor';
 import { 生成地图更新 } from './mapUpdateWorkflow';
@@ -80,10 +79,8 @@ type 开场命令基态 = {
     环境: 环境信息结构;
     社交: any[];
     世界: 世界数据结构;
-    战斗: 战斗状态结构;
-    玩家组织: 详细门派结构;
+    玩家组织: 玩家组织结构;
     任务列表: any[];
-    约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -142,10 +139,8 @@ type 自动存档快照结构 = {
     env?: 环境信息结构;
     social?: any[];
     world?: 世界数据结构;
-    battle?: 战斗状态结构;
-    sect?: 详细门派结构;
+    sect?: 玩家组织结构;
     tasks?: any[];
-    agreements?: any[];
     story?: 剧情系统结构;
     storyPlan?: 剧情规划结构;
     heroinePlan?: 女主剧情规划结构;
@@ -159,10 +154,8 @@ type 开场剧情生成依赖 = {
     环境: 环境信息结构;
     角色: 角色数据结构;
     世界: 世界数据结构;
-    战斗: 战斗状态结构;
-    玩家组织: 详细门派结构;
+    玩家组织: 玩家组织结构;
     任务列表: any[];
-    约定列表: any[];
     剧情: 剧情系统结构;
     剧情规划: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;
@@ -177,13 +170,11 @@ type 开场剧情生成依赖 = {
     设置环境: (value: 环境信息结构) => void;
     设置社交: (value: any[]) => void;
     设置世界: (value: 世界数据结构) => void;
-    设置战斗: (value: 战斗状态结构) => void;
     设置剧情: (value: 剧情系统结构) => void;
     设置剧情规划: (value: 剧情规划结构) => void;
     设置女主剧情规划: (value: 女主剧情规划结构) => void;
-    设置玩家组织: (value: 详细门派结构) => void;
+    设置玩家组织: (value: 玩家组织结构) => void;
     设置任务列表: (value: any[]) => void;
-    设置约定列表: (value: any[]) => void;
     设置开局文章优化进度: (value: any) => void;
     设置开局主剧情进度: (value: any) => void;
     设置开局变量生成进度: (value: any) => void;
@@ -221,8 +212,7 @@ type 开场剧情生成依赖 = {
     规范化角色物品容器映射: (raw?: any, options?: { 启用饱腹口渴系统?: boolean; 题材模式?: unknown }) => 角色数据结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
     规范化世界状态: (raw?: any) => 世界数据结构;
-    规范化战斗状态: (raw?: any) => 战斗状态结构;
-    规范化门派状态: (raw?: any) => 详细门派结构;
+    规范化组织状态: (raw?: any) => 玩家组织结构;
     游戏设置启用自动重试: (config: any) => boolean;
     执行带自动重试的生成请求: <T>(params: {
         enabled: boolean;
@@ -256,11 +246,7 @@ type 开场剧情生成依赖 = {
     提取新增NPC列表: (beforeList: any[], afterList: any[]) => any[];
 };
 
-const 构建开局角色建档摘要 = (
-    roleData: any,
-    options?: { cultivationSystemEnabled?: boolean }
-): string => {
-    const 启用成长体系 = options?.cultivationSystemEnabled === true;
+const 构建开局角色建档摘要 = (roleData: any): string => {
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -292,7 +278,6 @@ const 构建开局角色建档摘要 = (
         `- 外貌：${纯文本(roleData?.外貌)}`,
         `- 性格：${纯文本(roleData?.性格)}`,
         `- 称号：${纯文本(roleData?.称号)}`,
-        ...(启用成长体系 ? [`- 初始境界：${纯文本(roleData?.境界)}`] : []),
         `- 六维：力量 ${数值文本(roleData?.力量)} / 敏捷 ${数值文本(roleData?.敏捷)} / 体质 ${数值文本(roleData?.体质)} / 根骨 ${数值文本(roleData?.根骨)} / 悟性 ${数值文本(roleData?.悟性)} / 福源 ${数值文本(roleData?.福源)}`,
         `- 天赋数量：${Array.isArray(roleData?.天赋列表) ? roleData.天赋列表.length : 0}`,
         天赋列表 ? `- 天赋详情：\n${天赋列表}` : '- 天赋详情：无',
@@ -304,16 +289,12 @@ const 构建开局角色建档摘要 = (
     ].join('\n');
 };
 
-const 构建开局伙伴建档摘要 = (
-    openingConfig?: OpeningConfig,
-    options?: { cultivationSystemEnabled?: boolean }
-): string => {
+const 构建开局伙伴建档摘要 = (openingConfig?: OpeningConfig): string => {
     const partners = (Array.isArray(openingConfig?.初始伙伴列表) && openingConfig.初始伙伴列表.length > 0
         ? openingConfig.初始伙伴列表
         : (openingConfig?.初始伙伴 ? [openingConfig.初始伙伴] : [])
     ).filter((partner) => partner && partner.enabled !== false && typeof partner.姓名 === 'string' && partner.姓名.trim());
     if (partners.length <= 0) return '';
-    const 启用成长体系 = options?.cultivationSystemEnabled === true;
     const 纯文本 = (value: unknown, fallback = '未提供'): string => {
         if (typeof value !== 'string') return fallback;
         const trimmed = value.trim();
@@ -344,7 +325,6 @@ const 构建开局伙伴建档摘要 = (
             `- 与主角关系：${纯文本(partner.关系)}`,
             `- 外貌：${纯文本(partner.外貌)}`,
             `- 性格：${纯文本(partner.性格)}`,
-            ...(启用成长体系 ? ['- 初始境界：按同一难度和世界观合理推导，不得强行高于主角一个大阶。'] : []),
             `- 六维：力量 ${数值文本(partner.属性?.力量)} / 敏捷 ${数值文本(partner.属性?.敏捷)} / 体质 ${数值文本(partner.属性?.体质)} / 根骨 ${数值文本(partner.属性?.根骨)} / 悟性 ${数值文本(partner.属性?.悟性)} / 福源 ${数值文本(partner.属性?.福源)}`,
             `- 出身背景名称：${纯文本(partner.背景名称)}`,
             `- 出身背景描述：${纯文本(partner.背景描述)}`,
@@ -613,10 +593,8 @@ export const 执行开场剧情生成工作流 = async (
             角色: contextData.角色 || deps.角色,
             环境: openingEnv,
             世界: contextData.世界 || deps.世界,
-            战斗: contextData.战斗 || deps.战斗,
             玩家组织: contextData.玩家组织 || deps.玩家组织,
             任务列表: contextData.任务列表 || deps.任务列表,
-            约定列表: contextData.约定列表 || deps.约定列表,
             剧情: deps.规范化剧情状态(contextData.剧情 || deps.剧情, openingEnv),
             剧情规划: deps.规范化剧情规划状态((contextData as any).剧情规划 ?? deps.剧情规划),
             女主剧情规划: deps.规范化女主剧情规划状态(contextData.女主剧情规划 ?? deps.女主剧情规划),
@@ -679,7 +657,6 @@ export const 执行开场剧情生成工作流 = async (
                 }
             }
         };
-        const 启用成长体系 = false;
         let openingPromptSnapshot = promptSnapshot.map(p => {
             if (p.id === 'core_cot') {
                 return {
@@ -819,12 +796,8 @@ export const 执行开场剧情生成工作流 = async (
             .filter(Boolean)
             .join('\n\n')
             .trim();
-        const openingRoleSetupText = 构建开局角色建档摘要(openingStatePayload?.角色 || deps.角色, {
-            cultivationSystemEnabled: 启用成长体系
-        });
-        const openingPartnerSetupText = 构建开局伙伴建档摘要(options?.开局配置, {
-            cultivationSystemEnabled: 启用成长体系
-        });
+        const openingRoleSetupText = 构建开局角色建档摘要(openingStatePayload?.角色 || deps.角色);
+        const openingPartnerSetupText = 构建开局伙伴建档摘要(options?.开局配置);
         const openingConfigText = 构建开局配置提示词(options?.开局配置, options?.开局额外要求);
         const openingLatestUserInputRole: 'assistant' | 'user' = (
             openingTavernPresetModeEnabled
@@ -1040,15 +1013,13 @@ export const 执行开场剧情生成工作流 = async (
             环境: contextData.环境 || deps.环境,
             社交: contextData.社交 || [],
             世界: contextData.世界 || deps.世界,
-            战斗: contextData.战斗 || deps.战斗,
             玩家组织: contextData.玩家组织 || deps.玩家组织,
             任务列表: Array.isArray(contextData.任务列表) ? contextData.任务列表 : deps.任务列表,
-            约定列表: Array.isArray(contextData.约定列表) ? contextData.约定列表 : deps.约定列表,
             剧情: deps.规范化剧情状态(contextData.剧情 || deps.剧情, contextData.环境 || deps.环境),
             剧情规划: deps.规范化剧情规划状态((contextData as any).剧情规划 ?? deps.剧情规划),
             女主剧情规划: deps.规范化女主剧情规划状态(contextData.女主剧情规划 ?? deps.女主剧情规划)
         };
-        const 保护开局门派 = <T extends 开场命令基态>(state: T): T => 保护开局生成门派状态(
+        const 保护开局门派 = <T extends 开场命令基态>(state: T): T => 保护开局生成组织状态(
             state,
             commandBaseState,
             options?.开局配置
@@ -1321,10 +1292,8 @@ export const 执行开场剧情生成工作流 = async (
                                 环境: commandBaseState.环境,
                                 世界: commandBaseState.世界,
                                 社交: commandBaseState.社交,
-                                战斗: commandBaseState.战斗,
                                 玩家组织: commandBaseState.玩家组织,
-                                任务列表: commandBaseState.任务列表,
-                                约定列表: commandBaseState.约定列表
+                                任务列表: commandBaseState.任务列表
                             },
                             promptPool: openingPromptSnapshot,
                             worldEvolutionEnabled: false,
@@ -1895,22 +1864,17 @@ export const 执行开场剧情生成工作流 = async (
             }));
             deps.设置环境(deps.规范化环境信息(openingStateAfterCommands.环境));
             deps.设置世界(deps.规范化世界状态(openingStateAfterCommands.世界));
-            deps.设置战斗(deps.规范化战斗状态(openingStateAfterCommands.战斗));
             deps.设置剧情(deps.规范化剧情状态(openingStateAfterCommands.剧情, openingStateAfterCommands.环境));
             deps.设置剧情规划(deps.规范化剧情规划状态(openingStateAfterCommands.剧情规划));
             deps.设置女主剧情规划(deps.规范化女主剧情规划状态(openingStateAfterCommands.女主剧情规划));
         }
         deps.设置社交(deps.规范化社交列表(openingStateAfterCommands.社交));
-        const opening命令后门派 = deps.规范化门派状态(openingStateAfterCommands.玩家组织);
+        const opening命令后门派 = deps.规范化组织状态(openingStateAfterCommands.玩家组织);
         const opening命令后任务 = Array.isArray(openingStateAfterCommands.任务列表)
             ? openingStateAfterCommands.任务列表
             : [];
-        const opening命令后约定 = Array.isArray(openingStateAfterCommands.约定列表)
-            ? openingStateAfterCommands.约定列表
-            : [];
         deps.设置玩家组织(opening命令后门派);
         deps.设置任务列表(opening命令后任务);
-        deps.设置约定列表(opening命令后约定);
         deps.setWorldEvents(openingWorldInitUpdates.slice(0, 30));
 
         const openingCanonicalTime = 环境时间转标准串(openingStateAfterCommands?.环境);
@@ -1996,12 +1960,9 @@ export const 执行开场剧情生成工作流 = async (
             });
         }
 
-        const opening玩家组织 = deps.规范化门派状态(openingStateAfterCommands.玩家组织);
+        const opening玩家组织 = deps.规范化组织状态(openingStateAfterCommands.玩家组织);
         const opening任务列表 = Array.isArray(openingStateAfterCommands.任务列表)
             ? openingStateAfterCommands.任务列表
-            : [];
-        const opening约定列表 = Array.isArray(openingStateAfterCommands.约定列表)
-            ? openingStateAfterCommands.约定列表
             : [];
         void deps.performAutoSave({
             history: [...initialHistory, newAiMsg],
@@ -2009,10 +1970,8 @@ export const 执行开场剧情生成工作流 = async (
             env: openingStateAfterCommands.环境,
             social: openingStateAfterCommands.社交,
             world: openingStateAfterCommands.世界,
-            battle: openingStateAfterCommands.战斗,
             sect: opening玩家组织,
             tasks: opening任务列表,
-            agreements: opening约定列表,
             story: openingStoryAfterCommands,
             storyPlan: openingStateAfterCommands.剧情规划,
             heroinePlan: openingStateAfterCommands.女主剧情规划,

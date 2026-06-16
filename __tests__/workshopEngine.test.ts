@@ -13,7 +13,7 @@ import {
 import { 题材模式配置表 } from '../data/workshopThemes/topicModeThemeData';
 import type { 题材模式类型 } from '../models/system';
 
-describe('创意工坊主题引擎', () => {
+describe('本地模式包主题引擎', () => {
     it('从默认主题生成旧版兼容的新建存档流程', () => {
         const steps = 获取创意工坊新开局步骤列表();
 

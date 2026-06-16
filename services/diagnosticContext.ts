@@ -234,7 +234,6 @@ const sanitizeSave = (save: 存档结构) => ({
     social: sanitizeValue(save.社交, '社交'),
     world: sanitizeValue(save.世界, '世界'),
     tasks: sanitizeValue(save.任务列表, '任务列表'),
-    agreements: sanitizeValue(save.约定列表, '约定列表'),
     story: sanitizeValue(save.剧情, '剧情'),
     storyPlan: sanitizeValue(save.剧情规划, '剧情规划'),
     heroinePlan: sanitizeValue(save.女主剧情规划, '女主剧情规划'),

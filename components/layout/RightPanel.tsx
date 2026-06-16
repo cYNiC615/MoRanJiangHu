@@ -11,7 +11,6 @@ interface Props {
     onOpenWorld: () => void;
     onOpenMap: () => void;
     onOpenTask: () => void;
-    onOpenAgreement: () => void;
     onOpenStory: () => void;
     onOpenHeroinePlan: () => void;
     onOpenMemory: () => void;
@@ -39,7 +38,6 @@ const RightPanel: React.FC<Props> = ({
     onOpenWorld,
     onOpenMap,
     onOpenTask,
-    onOpenAgreement,
     onOpenStory,
     onOpenHeroinePlan,
     onOpenMemory,
@@ -97,7 +95,6 @@ const RightPanel: React.FC<Props> = ({
         { label: menuLabel?.team || '队伍', action: onOpenTeam, color: 'primary' as const, changeKeys: ['队伍'] },
         { label: menuLabel?.map || '地图', action: onOpenMap, color: 'primary' as const, changeKeys: ['地图'] },
         { label: menuLabel?.task || '任务', action: onOpenTask, color: 'primary' as const, changeKeys: ['任务列表'] },
-        { label: menuLabel?.agreement || '约定', action: onOpenAgreement, color: 'primary' as const, changeKeys: ['约定列表'] },
         { label: menuLabel?.story || '剧情', action: onOpenStory, color: 'primary' as const, changeKeys: ['剧情'] },
         ...(enablePlanningPanel && enableHeroinePlan ? [{ label: menuLabel?.plan || '规划', action: onOpenHeroinePlan, color: 'primary' as const, changeKeys: ['剧情规划'] }] : []),
         { label: menuLabel?.memory || '记忆', action: onOpenMemory, color: 'primary' as const, changeKeys: ['记忆系统'] },

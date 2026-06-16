@@ -103,20 +103,6 @@
       });
     })();
   </script>
-  <script>
-    (function () {
-      try {
-        var params = new URLSearchParams(window.location.search);
-        var state = (params.get('state') || '').trim();
-        var hasOAuthResult = Boolean((params.get('code') || params.get('error')) && state);
-        if (hasOAuthResult && state.indexOf('native:') === 0) {
-          window.location.replace('com.moranjianghu.game://oauth/github/callback' + window.location.search);
-        }
-      } catch (error) {
-        // Best-effort OAuth bridge; the app can continue normal startup.
-      }
-    })();
-  </script>
   <script type="importmap">
 {
   "imports": {

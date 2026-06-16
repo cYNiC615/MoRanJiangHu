@@ -61,7 +61,7 @@ describe('creativeWorkshopModules', () => {
     });
 
     it('迁入的玩家题材按完整模式包提供单个整合模块', () => {
-        for (const suiteId of ['community-rideress-suite', 'community-pokemon-suite']) {
+        for (const suiteId of ['local-rideress-suite', 'local-pokemon-suite']) {
             const entries = 创意工坊模块列表.filter((entry) => entry.payload?.suiteId === suiteId);
             expect(entries.length, suiteId).toBe(1);
             expect(entries[0].type, suiteId).toBe('topic');
@@ -76,7 +76,7 @@ describe('creativeWorkshopModules', () => {
     });
 
     it('女骑模式包继承西方奇幻基础模式', () => {
-        for (const suiteId of ['community-rideress-suite']) {
+        for (const suiteId of ['local-rideress-suite']) {
             const entry = 创意工坊模块列表.find((item) => item.payload?.suiteId === suiteId);
             expect(entry?.modeRuntimeProfile?.identity.baseMode, suiteId).toBe('西方奇幻');
             expect(entry?.preset?.openingConfig?.题材模式, suiteId).toBe('西方奇幻');
@@ -89,7 +89,7 @@ describe('creativeWorkshopModules', () => {
         const zombiePackage = 创意工坊模块列表.find((entry) => entry.id === 'mode-package-末日丧尸');
         expect(zombiePackage?.title).toBe('末日模式包');
         expect(zombiePackage?.payload?.worldExtraRequirement).toContain('感染');
-        expect(zombiePackage?.payload?.worldExtraRequirement).toContain('营地');
+        expect(zombiePackage?.payload?.worldExtraRequirement).toContain('baseAmount');
     });
 
     it('每个模块都提供注入预览', () => {
@@ -115,7 +115,7 @@ describe('creativeWorkshopModules', () => {
         const normalized = 标准化开局预设方案({
             id: 'runtime_snapshot_case',
             名称: '运行时恢复测试',
-            简介: '测试创意工坊运行时快照是否被保留',
+            简介: '测试模式包运行时快照是否被保留',
             worldConfig: {
                 worldName: '测试世界',
                 worldSize: '九州宏大',
@@ -144,8 +144,8 @@ describe('creativeWorkshopModules', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: false,
+                开局生成组织: true,
+                开局生成成员: false,
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraRequirement: '恢复这个额外要求',
@@ -244,8 +244,8 @@ describe('creativeWorkshopModules', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: false,
+                开局生成组织: true,
+                开局生成成员: false,
                 runtimeSnapshot: {
                     modeBackgrounds: [
                         { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
@@ -304,8 +304,8 @@ describe('creativeWorkshopModules', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: false,
+                开局生成组织: true,
+                开局生成成员: false,
                 runtimeSnapshot: {
                     modeTalents: [
                         { 名称: '纯阳体质', 描述: '体内阳气充沛。', 效果: '长期提升阳属性修行、恢复与抗寒表现。' }
@@ -363,8 +363,8 @@ describe('creativeWorkshopModules', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: false,
+                开局生成组织: true,
+                开局生成成员: false,
                 runtimeSnapshot: {
                     modeWorldbooks: [{
                         id: 'topic-book',
@@ -438,8 +438,8 @@ describe('creativeWorkshopModules', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: false,
+                开局生成组织: true,
+                开局生成成员: false,
                 runtimeSnapshot: {
                     workshopSelection: {
                         selectedMode: '武侠',
@@ -503,8 +503,8 @@ describe('creativeWorkshopModules', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: false,
+                开局生成组织: true,
+                开局生成成员: false,
                 modeRuntimeProfile: {
                     ...(wuxiaTopic!.modeRuntimeProfile as any),
                     identity: {
@@ -556,7 +556,7 @@ describe('creativeWorkshopModules', () => {
         expect(restored.modeRuntimeProfile?.identity.displayName).toBe(wuxiaTopic!.modeRuntimeProfile?.identity.displayName);
     });
 
-    it('开局配置保留在新建存档流程，不作为创意工坊分区模块', () => {
+    it('开局配置保留在新建存档流程，不作为模式包分区模块', () => {
         expect(创意工坊模块分区.some((section) => section.id === 'opening')).toBe(false);
         expect(创意工坊模块列表.some((entry) => entry.type === 'opening')).toBe(false);
     });

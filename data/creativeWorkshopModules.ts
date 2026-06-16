@@ -175,8 +175,8 @@ const 构建题材预设 = (
             初始关系模板: mode === '末日丧尸' ? '独行少系' : mode === '现代都市' ? '世家官门' : '师门牵引',
             关系侧重: mode === '末日丧尸' ? ['友情', '利益'] : ['师门', '友情'],
             开局切入偏好: mode === '末日丧尸' ? '风波前夜' : mode === '现代都市' ? '日常低压' : '门派起手',
-            开局生成门派: true,
-            开局生成同门: true,
+            开局生成组织: true,
+            开局生成成员: true,
             允许生成性别: ['男', '女', '男娘', '扶她'],
             生成性别锁定: false,
             初始伙伴: {
@@ -229,7 +229,7 @@ const 构建题材模块 = (mode: keyof typeof 题材模式配置表): 创意工
         title: `${profile.shortLabel}题材模板`,
         subtitle: `${profile.worldSizeLabel}、${profile.dynastyLabel}、${profile.tianjiaoLabel}`,
         description: `把新开局切换到${profile.label}口径，注入货币、地图空间、势力关系和基础叙事边界。`,
-        tags: [profile.shortLabel, profile.currencyDisplayMode, profile.group],
+        tags: [profile.shortLabel, profile.group],
         payload: {
             ...profile,
             backgrounds,
@@ -245,7 +245,7 @@ const 构建题材模块 = (mode: keyof typeof 题材模式配置表): 创意工
         ],
         source: 'builtin',
         contributor: '官方',
-        preset: 构建题材预设(`workshop_topic_${profile.value}`, `工坊·${profile.shortLabel}`, `${profile.label}开局模板。`, mode, 构建角色(actor.姓名, actor.背景, actor.天赋), actor.开局补充)
+        preset: 构建题材预设(`workshop_topic_${profile.value}`, `模式包·${profile.shortLabel}`, `${profile.label}开局模板。`, mode, 构建角色(actor.姓名, actor.背景, actor.天赋), actor.开局补充)
     };
 };
 
@@ -261,7 +261,7 @@ const 构建世界规则模块 = (mode: keyof typeof 题材模式配置表): 创
         id: `world-rules-${profile.value}`,
         type: 'world_rules',
         title: isZombie ? '末日丧尸世界规则' : `${profile.shortLabel}世界规则`,
-        subtitle: `${profile.auctionName}、${profile.marketVerb}`,
+        subtitle: `${profile.marketName}、${profile.marketVerb}`,
         description: isZombie
             ? '补齐末日丧尸的感染路径、防护隔离、噪音仇恨、营地信用、补给折价和地图组织规则。'
             : `为${profile.label}补齐世界边界、交易折价、地图组织和资源规则。`,
@@ -288,7 +288,7 @@ const 构建世界规则模块 = (mode: keyof typeof 题材模式配置表): 创
         contributor: '官方',
         preset: 构建题材预设(
             `workshop_world_rules_${profile.value}`,
-            `工坊·${profile.shortLabel}世界规则`,
+            `模式包·${profile.shortLabel}世界规则`,
             `${profile.label}世界规则包。`,
             mode,
             构建角色(题材默认角色[mode].姓名, 题材默认角色[mode].背景, 题材默认角色[mode].天赋),
@@ -303,7 +303,7 @@ const 构建能力模块 = (mode: keyof typeof 题材模式配置表): 创意工
     const profile = 题材模式配置表[mode];
     const manualRealmPrompt = profile.manualRealmPrompt;
     const actor = 题材默认角色[mode];
-    const preset = 构建题材预设(`workshop_ability_${profile.value}`, `工坊·${profile.shortLabel}能力体系`, `${profile.label}能力边界包。`, mode, 构建角色(actor.姓名, actor.背景, actor.天赋));
+    const preset = 构建题材预设(`workshop_ability_${profile.value}`, `模式包·${profile.shortLabel}能力体系`, `${profile.label}能力边界包。`, mode, 构建角色(actor.姓名, actor.背景, actor.天赋));
     return {
         id: `ability-${profile.value}`,
         type: 'ability',
@@ -402,7 +402,7 @@ const 统一为标准模块格式 = (entry: 创意工坊模块条目): 创意工
         {
             id: `${entry.id}-main`,
             title: blockTitle,
-            purpose: entry.description || '作为创意工坊标准模块的主要注入内容。',
+            purpose: entry.description || '作为本地模式包标准模块的主要注入内容。',
             injectionTarget,
             content
         }
@@ -449,7 +449,7 @@ const 构建标准内容模块 = (params: {
     const talents = 获取题材预设天赋(params.mode);
     const preset = 构建题材预设(
         `workshop_${params.id}`,
-        `工坊·${params.title}`,
+        `模式包·${params.title}`,
         params.description,
         params.mode,
         构建角色(actor.姓名, actor.背景, actor.天赋),
@@ -504,11 +504,11 @@ const 构建标准内容模块 = (params: {
 };
 
 const 玩家贡献者 = 'disfuckc0rd';
-const 女骑套装ID = 'community-rideress-suite';
-const 宝可梦套装ID = 'community-pokemon-suite';
+const 女骑套装ID = 'local-rideress-suite';
+const 宝可梦套装ID = 'local-pokemon-suite';
 
 const 女骑题材模块 = 构建标准内容模块({
-    id: 'community-rideress-topic-template',
+    id: 'local-rideress-topic-template',
     type: 'topic',
     title: '女骑题材模板',
     subtitle: '成人奇幻、双人战斗、光暗阵营',
@@ -539,7 +539,7 @@ const 女骑题材模块 = 构建标准内容模块({
 });
 
 const 女骑世界规则模块 = 构建标准内容模块({
-    id: 'community-rideress-world-rules',
+    id: 'local-rideress-world-rules',
     type: 'world_rules',
     title: '女骑世界规则包',
     subtitle: '成人向奇幻、骑女/骑士组合、光暗阵营',
@@ -577,7 +577,7 @@ const 女骑世界规则模块 = 构建标准内容模块({
 });
 
 const 女骑能力模块 = 构建标准内容模块({
-    id: 'community-rideress-ability-system',
+    id: 'local-rideress-ability-system',
     type: 'ability',
     title: '女骑境界表',
     subtitle: '驮马/军马/战马到神骑士',
@@ -608,7 +608,7 @@ const 女骑能力模块 = 构建标准内容模块({
 });
 
 const 宝可梦题材模块 = 构建标准内容模块({
-    id: 'community-pokemon-topic-template',
+    id: 'local-pokemon-topic-template',
     type: 'topic',
     title: '宝可梦题材模板',
     subtitle: '训练家旅行、道馆徽章、属性克制',
@@ -633,13 +633,13 @@ const 宝可梦题材模块 = 构建标准内容模块({
             title: '货币与交易',
             purpose: '替换默认现代/修炼经济。',
             injectionTarget: 'manualWorldPrompt',
-            content: '三层货币的底层货币可命名为 P币/宝可梦币；核心交易物为精灵球、伤药、解毒药、树果、技能学习器、露营用品、训练器材和旅行补给。不要使用银子、灵石、丹药或现代商业合同作为默认成长资源。'
+            content: '交易统一折算为元并写入角色.金钱.baseAmount；核心交易物为精灵球、伤药、解毒药、树果、技能学习器、露营用品、训练器材和旅行补给。不要把特殊点数做成额外钱包字段。'
         }
     ]
 });
 
 const 宝可梦世界规则模块 = 构建标准内容模块({
-    id: 'community-pokemon-world-rules',
+    id: 'local-pokemon-world-rules',
     type: 'world_rules',
     title: '宝可梦世界规则包',
     subtitle: '生态遭遇、联盟秩序、中心与商店',
@@ -677,7 +677,7 @@ const 宝可梦世界规则模块 = 构建标准内容模块({
 });
 
 const 宝可梦能力模块 = 构建标准内容模块({
-    id: 'community-pokemon-ability-system',
+    id: 'local-pokemon-ability-system',
     type: 'ability',
     title: '宝可梦能力体系',
     subtitle: '训练家段位、徽章权限、宝可梦成长',
@@ -839,9 +839,8 @@ const 构建整合模式包 = (topic: 创意工坊模块条目, worldRules?: 创
                 label: profile.label,
                 shortLabel: profile.shortLabel,
                 group: profile.group,
-                auctionName: profile.auctionName,
+                marketName: profile.marketName,
                 marketVerb: profile.marketVerb,
-                currencyDisplayMode: profile.currencyDisplayMode,
                 skillNames: profile.skillNames,
                 presetItemKeywords: profile.presetItemKeywords
             } : undefined,

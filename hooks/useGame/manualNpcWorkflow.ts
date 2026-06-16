@@ -1,5 +1,5 @@
 import type { NPC结构, 图片记录来源类型, 香闺秘档部位类型 } from '../../types';
-import type { 详细门派结构 } from '../../models/organization';
+import type { 玩家组织结构 } from '../../models/organization';
 import { 生成NPC生图记录ID } from './npcImageStateWorkflow';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 
@@ -8,9 +8,9 @@ type 手动NPC工作流依赖 = {
     环境时间转标准串: (env: any) => string;
     规范化社交列表: (list: any[], options?: { 合并同名?: boolean }) => any[];
     设置社交: (updater: any) => void;
-    获取玩家组织?: () => 详细门派结构 | undefined;
+    获取玩家组织?: () => 玩家组织结构 | undefined;
     设置玩家组织?: (updater: any) => void;
-    执行社交自动存档: (socialSnapshot: NPC结构[], sectSnapshot?: 详细门派结构) => void;
+    执行社交自动存档: (socialSnapshot: NPC结构[], sectSnapshot?: 玩家组织结构) => void;
     执行NPC变量本地备份?: (socialSnapshot: NPC结构[], options?: { 标签?: string }) => void | Promise<void>;
     保存图片资源: (dataUrl: string) => Promise<string>;
 };
@@ -34,24 +34,24 @@ const 取NPC匹配键集合 = (npc: any): Set<string> => new Set(
         .filter(Boolean)
 );
 
-const 门派成员匹配NPC = (member: any, npc: any, memberIndex: number, sectId?: string): boolean => {
+const 组织成员匹配NPC = (member: any, npc: any, memberIndex: number, sectId?: string): boolean => {
     if (!member || !npc) return false;
     const npcKeys = 取NPC匹配键集合(npc);
-    const syntheticId = `sect_member_${sectId || 'unknown'}_${memberIndex}`;
+    const syntheticId = `organization_member_${sectId || 'unknown'}_${memberIndex}`;
     return [member?.id, member?.ID, member?.姓名, member?.名称, syntheticId]
         .map(规范化匹配键)
         .filter(Boolean)
         .some((key) => npcKeys.has(key));
 };
 
-const 移除NPC关联门派成员 = (
-    sect: 详细门派结构 | undefined,
+const 移除NPC关联组织成员 = (
+    sect: 玩家组织结构 | undefined,
     npc: any
-): 详细门派结构 | null => {
+): 玩家组织结构 | null => {
     if (!sect || !Array.isArray(sect.重要成员) || sect.重要成员.length === 0 || !npc) return null;
     if (npc?.来源 !== '玩家组织.重要成员' && !取NPC匹配键集合(npc).size) return null;
     const nextMembers = sect.重要成员.filter((member: any, index: number) => (
-        !门派成员匹配NPC(member, npc, index, sect.ID)
+        !组织成员匹配NPC(member, npc, index, sect.ID)
     ));
     if (nextMembers.length === sect.重要成员.length) return null;
     return { ...sect, 重要成员: nextMembers };
@@ -210,7 +210,7 @@ export const 创建手动NPC工作流 = (deps: 手动NPC工作流依赖) => {
     const 删除NPC并清理关联门派成员 = (npcId: string) => {
         if (!npcId) return;
         let removedNpc: NPC结构 | null = null;
-        let sectSnapshot: 详细门派结构 | null = null;
+        let sectSnapshot: 玩家组织结构 | null = null;
         let beforeDeleteSnapshot: NPC结构[] = [];
         const socialSnapshot = 更新社交并执行即时自动存档((prev) => {
             beforeDeleteSnapshot = deps.规范化社交列表(prev, { 合并同名: false });
@@ -229,7 +229,7 @@ export const 创建手动NPC工作流 = (deps: 手动NPC工作流依赖) => {
             });
         }
         if (removedNpc && deps.获取玩家组织 && deps.设置玩家组织) {
-            const nextSect = 移除NPC关联门派成员(deps.获取玩家组织(), removedNpc);
+            const nextSect = 移除NPC关联组织成员(deps.获取玩家组织(), removedNpc);
             if (nextSect) {
                 sectSnapshot = nextSect;
                 deps.设置玩家组织(nextSect);

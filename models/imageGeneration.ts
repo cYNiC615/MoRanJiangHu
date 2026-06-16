@@ -193,7 +193,7 @@ export interface 物品生图任务记录 {
     进度阶段?: 'queued' | 'prompting' | 'generating' | 'saving' | 'success' | 'failed';
     进度文本?: string;
     额外要求?: string;
-    来源位置?: '背包' | '拍卖行';
+    来源位置?: '背包' | '市场';
     调试链路?: 生图调试事件[];
 }
 

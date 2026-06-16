@@ -606,7 +606,7 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
                 .flatMap(item => item.sender === '旁白' ? 拆分旁白行中引号对白(item) : [item]);
         }
         if (sender === '奖励') return [附加原始片段({ sender, text }, rawSource)];
-        if (/^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender)) {
+        if (/^(【)?(?:判定|NSFW判定|对撞|对抗|防御|化解|伤害|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender)) {
             return [附加原始片段({ sender, text }, rawSource)];
         }
         if (是完整引号对白(text)) {

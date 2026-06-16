@@ -174,7 +174,7 @@ const LandingPage: React.FC<Props> = ({
                         </GameButton>
 
                         <GameButton onClick={() => setWorkshopOpen(true)} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-95 shadow-lg hover:opacity-100">
-                            创意工坊
+                            本地模式包
                         </GameButton>
 
                         <GameButton onClick={onImageManager} variant="secondary" className="border-opacity-50 py-4 text-lg opacity-90 shadow-lg hover:opacity-100">

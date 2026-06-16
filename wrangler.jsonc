@@ -11,22 +11,8 @@
       "/api/*"
     ]
   },
-  "routes": [
-    {
-      "pattern": "msjh.bacon159.pp.ua/*",
-      "zone_name": "bacon159.pp.ua"
-    },
-    {
-      "pattern": "msjh.bacon.de5.net/*",
-      "zone_name": "bacon.de5.net"
-    }
-  ],
   "vars": {
-    "CNB_SYNC_R2_KEY": "moranjianghu/cnb-sync-registry.json",
-    "ONLINE_SESSIONS_R2_PREFIX": "moranjianghu/online",
-    "FANDOM_PRESET_REPO_OWNER": "ypq123456789",
-    "FANDOM_PRESET_REPO_NAME": "MoRanJiangHu",
-    "FANDOM_PRESET_BASE_BRANCH": "main"
+    "CNB_SYNC_R2_KEY": "moranjianghu/cnb-sync-registry.json"
   },
   "r2_buckets": [
     {

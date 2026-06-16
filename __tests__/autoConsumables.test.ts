@@ -9,7 +9,7 @@ const 创建角色 = (override: Record<string, any> = {}) => ({
     年龄: 16,
     境界: '开脉境',
     境界层级: 1,
-    金钱: { 金元宝: 0, 银子: 0, 铜钱: 0 },
+    金钱: { baseAmount: 0 },
     当前精力: 4,
     最大精力: 100,
     当前内力: 25,
@@ -108,18 +108,15 @@ describe('本地自动补给禁用', () => {
             环境: { 时间: '0001:01:01:00:00' } as any,
             社交: [],
             世界: {} as any,
-            战斗: {} as any,
             玩家组织: { ID: 'sect', 名称: '测试门派', 玩家职位: '外门弟子', 玩家贡献: 0 } as any,
             任务列表: [],
-            约定列表: [],
             剧情: {} as any,
             剧情规划: {} as any
         }, {
             规范化环境信息: (envLike?: any) => envLike,
             规范化社交列表: (raw?: any[]) => raw || [],
             规范化世界状态: (raw?: any) => raw || {},
-            规范化战斗状态: (raw?: any) => raw || {},
-            规范化门派状态: (raw?: any) => raw || {},
+            规范化组织状态: (raw?: any) => raw || {},
             规范化剧情状态: (raw?: any) => raw || {},
             规范化剧情规划状态: (raw?: any) => raw || {},
             规范化女主剧情规划状态: () => undefined,
@@ -131,35 +128,7 @@ describe('本地自动补给禁用', () => {
         expect(result.state.角色.境界层级).toBe(1);
     });
 
-    it('背景代理资金会按当前货币层级展开成真实货币物品，并同步统计金钱', () => {
-        设置默认技艺运行时配置('武侠', {
-            economy: {
-                currencyTiers: {
-                    upperName: '金票',
-                    middleName: '官银',
-                    lowerName: '制钱',
-                    upperToMiddleRate: 100,
-                    middleToLowerRate: 100
-                }
-            }
-        } as any);
-        const normalized = 规范化角色物品容器映射(创建角色({
-            出身背景: {
-                名称: '名门之后',
-                描述: '测试背景',
-                效果: '测试效果',
-                初始物品: [{ 名称: '盘缠', 描述: '出门携带的路费', 数量: 1 }]
-            },
-            物品列表: []
-        }), { 题材模式: '武侠' });
-
-        expect(normalized.物品列表.some((item: any) => item.名称 === '官银')).toBe(true);
-        expect(normalized.物品列表.some((item: any) => item.名称 === '盘缠')).toBe(false);
-        expect(normalized.金钱.中层货币).toBeGreaterThan(0);
-        expect(normalized.金钱.银子).toBe(normalized.金钱.中层货币);
-    });
-
-    it('背景货币物品只在首次归一时展开一次，不会重复注入', () => {
+    it('背景代理资金会展开成现金物品，并同步统计 baseAmount', () => {
         设置默认技艺运行时配置('武侠', undefined);
         const first = 规范化角色物品容器映射(创建角色({
             出身背景: {
@@ -172,84 +141,11 @@ describe('本地自动补给禁用', () => {
         }), { 题材模式: '武侠' });
 
         const second = 规范化角色物品容器映射(first as any, { 题材模式: '武侠' });
-        const firstSilver = first.物品列表.filter((item: any) => item.名称 === '银子').reduce((sum: number, item: any) => sum + Number(item.堆叠数量 || 0), 0);
-        const secondSilver = second.物品列表.filter((item: any) => item.名称 === '银子').reduce((sum: number, item: any) => sum + Number(item.堆叠数量 || 0), 0);
 
-        expect(secondSilver).toBe(firstSilver);
-        expect(second.金钱.银子).toBe(first.金钱.银子);
-    });
-
-    it('背景初始物品可通过 `类型: 货币:*` 显式声明为货币并按当前层级展开', () => {
-        设置默认技艺运行时配置('仙侠', {
-            economy: {
-                currencyTiers: {
-                    upperName: '上品灵石',
-                    middleName: '中品灵石',
-                    lowerName: '下品灵石',
-                    upperToMiddleRate: 100,
-                    middleToLowerRate: 1000
-                }
-            }
-        } as any);
-        const normalized = 规范化角色物品容器映射(创建角色({
-            出身背景: {
-                名称: '散修',
-                描述: '测试背景',
-                效果: '测试效果',
-                初始物品: [{ 名称: '宗门路费', 类型: '货币:中层货币', 描述: '表面发放的灵石路费', 数量: 3 }]
-            },
-            物品列表: []
-        }), { 题材模式: '仙侠' });
-
-        expect(normalized.物品列表.some((item: any) => item.名称 === '中品灵石')).toBe(true);
-        expect(normalized.物品列表.some((item: any) => item.名称 === '宗门路费')).toBe(false);
-        expect(normalized.金钱.中层货币).toBe(3);
-        expect(normalized.金钱.银子).toBe(3);
-    });
-
-    it('背景必投资产接管开局时不继承题材默认货币', () => {
-        设置默认技艺运行时配置('仙侠', {
-            opening: {
-                defaultCurrency: { 灵石: 10, 铜钱: 500 }
-            }
-        } as any);
-        const normalized = 规范化角色物品容器映射(创建角色({
-            金钱: {},
-            出身背景: {
-                名称: '凡人纨绔',
-                描述: '未入修行门槛。',
-                效果: '只持有凡间随身物。',
-                初始物品: [{ 名称: '折扇', 描述: '随身折扇', 数量: 1 }]
-            },
-            物品列表: []
-        }), { 题材模式: '仙侠' });
-
-        expect(normalized.物品列表.map((item: any) => item.名称)).toEqual(['折扇']);
-        expect(normalized.金钱.灵石).toBe(0);
-        expect(normalized.金钱.铜钱).toBe(0);
-    });
-
-    it('背景开局货币由代码派发并覆盖默认货币', () => {
-        设置默认技艺运行时配置('仙侠', {
-            opening: {
-                defaultCurrency: { 灵石: 10, 铜钱: 500 }
-            }
-        } as any);
-        const normalized = 规范化角色物品容器映射(创建角色({
-            金钱: {},
-            出身背景: {
-                名称: '凡间富户',
-                描述: '只拿凡间现钱出门。',
-                效果: '无修行资源。',
-                初始物品: [{ 名称: '折扇', 描述: '随身折扇', 数量: 1 }],
-                开局货币: [{ 名称: '铜钱', 数量: 120, 描述: '可支配的凡间零钱。' }]
-            },
-            物品列表: []
-        }), { 题材模式: '仙侠' });
-
-        expect(normalized.物品列表.some((item: any) => item.名称 === '铜钱')).toBe(true);
-        expect(normalized.金钱.铜钱).toBe(120);
-        expect(normalized.金钱.灵石).toBe(0);
+        expect(first.物品列表.some((item: any) => item.名称 === '现金')).toBe(true);
+        expect(first.物品列表.some((item: any) => item.名称 === '盘缠')).toBe(false);
+        expect(first.金钱).toEqual({ baseAmount: 10 });
+        expect(second.金钱).toEqual(first.金钱);
     });
 
     it('背景开局货币支持稳定范围数量且重复归一不会变化', () => {
@@ -260,15 +156,15 @@ describe('本地自动补给禁用', () => {
                 名称: '行商之子',
                 描述: '出门会带少量盘缠。',
                 效果: '具备基础经商经验。',
-                开局货币: [{ 名称: '银子', 最小数量: 3, 最大数量: 8, 描述: '家中给的出行银两。' }]
+                开局货币: [{ 名称: '现金', 最小数量: 3, 最大数量: 8, 描述: '家中给的出行资金。', 类型: '货币:现金' }]
             },
             物品列表: []
         }), { 题材模式: '武侠' });
         const second = 规范化角色物品容器映射(first as any, { 题材模式: '武侠' });
 
-        expect(first.金钱.银子).toBeGreaterThanOrEqual(3);
-        expect(first.金钱.银子).toBeLessThanOrEqual(8);
-        expect(second.金钱.银子).toBe(first.金钱.银子);
+        expect(first.金钱.baseAmount).toBeGreaterThanOrEqual(3);
+        expect(first.金钱.baseAmount).toBeLessThanOrEqual(8);
+        expect(second.金钱.baseAmount).toBe(first.金钱.baseAmount);
     });
 
     it('可选初始物品只作为提示字段保留，不由代码自动投放', () => {
@@ -286,76 +182,30 @@ describe('本地自动补给禁用', () => {
         expect(normalized.物品列表.some((item: any) => item.名称 === '旧书')).toBe(false);
     });
 
-    it('已有实体货币物品会回填到角色金钱统计', () => {
-        设置默认技艺运行时配置('武侠', {
-            economy: {
-                currencyTiers: {
-                    upperName: '金票',
-                    middleName: '官银',
-                    lowerName: '制钱',
-                    upperToMiddleRate: 100,
-                    middleToLowerRate: 100
-                }
-            }
-        } as any);
+    it('已有现金物品会回填到单一总账且重复归一不叠加', () => {
         const normalized = 规范化角色物品容器映射(创建角色({
-            金钱: { 金元宝: 0, 银子: 0, 铜钱: 0, 上层货币: 0, 中层货币: 0, 底层货币: 0 },
+            金钱: { baseAmount: 5 },
             物品列表: [
-                { ID: 'money_silver', 名称: '官银', 类型: '杂物', 描述: '散银。', 重量: 0.02, 堆叠数量: 7, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 100, 品质: '凡品', 词条列表: [] },
-                { ID: 'money_copper', 名称: '制钱', 类型: '杂物', 描述: '零钱。', 重量: 0.005, 堆叠数量: 30, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 1, 品质: '凡品', 词条列表: [] }
+                { ID: 'money_cash', 名称: '现金', 类型: '货币:现金', 描述: '零钱。', 重量: 0, 堆叠数量: 30, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 1, 品质: '凡品', 词条列表: [] }
             ]
         }), { 题材模式: '武侠' });
+        const second = 规范化角色物品容器映射(normalized as any, { 题材模式: '武侠' });
 
-        expect(normalized.金钱.银子).toBe(7);
-        expect(normalized.金钱.中层货币).toBe(7);
-        expect(normalized.金钱.铜钱).toBe(30);
-        expect(normalized.金钱.底层货币).toBe(30);
+        expect(normalized.金钱).toEqual({ baseAmount: 30 });
+        expect(second.金钱).toEqual(normalized.金钱);
     });
 
-    it('物品栏中的 `类型: 货币:*` 可直接参与货币汇总，不依赖名称写死匹配', () => {
-        设置默认技艺运行时配置('仙侠', {
-            economy: {
-                currencyTiers: {
-                    upperName: '上品灵石',
-                    middleName: '中品灵石',
-                    lowerName: '下品灵石',
-                    upperToMiddleRate: 100,
-                    middleToLowerRate: 1000
-                }
-            }
-        } as any);
+    it('物品栏中的 `类型: 货币:*` 可直接参与 baseAmount 汇总', () => {
         const normalized = 规范化角色物品容器映射(创建角色({
-            金钱: { 金元宝: 0, 银子: 0, 铜钱: 0, 上层货币: 0, 中层货币: 0, 底层货币: 0 },
+            金钱: { baseAmount: 0 },
             物品列表: [
-                { ID: 'money_incense', 名称: '香火钱', 类型: '货币:上层货币', 描述: '庙里供奉流转用的香火票。', 重量: 0, 堆叠数量: 2, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 10000, 品质: '凡品', 词条列表: [] },
-                { ID: 'money_essence', 名称: '灵液票', 类型: '货币:底层货币', 描述: '尚未固化的流通凭证。', 重量: 0, 堆叠数量: 9, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 1, 品质: '凡品', 词条列表: [] }
+                { ID: 'money_card', 名称: '储值卡', 类型: '货币:储值卡', 描述: '可消费余额。', 重量: 0, 堆叠数量: 2, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 100, 品质: '凡品', 词条列表: [] },
+                { ID: 'money_cash', 名称: '现金', 类型: '货币:现金', 描述: '现金。', 重量: 0, 堆叠数量: 9, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 1, 品质: '凡品', 词条列表: [] }
             ]
         }), { 题材模式: '仙侠' });
 
-        expect(normalized.金钱.上层货币).toBe(2);
-        expect(normalized.金钱.金元宝).toBe(2);
-        expect(normalized.金钱.底层货币).toBe(9);
-        expect(normalized.金钱.铜钱).toBe(9);
-    });
-
-    it('自由货币分类会被视为货币类可堆叠物品，但不会被强行塞进三层统计', () => {
-        const normalized = 规范化角色物品容器映射(创建角色({
-            金钱: { 金元宝: 0, 银子: 0, 铜钱: 0, 上层货币: 0, 中层货币: 0, 底层货币: 0 },
-            物品列表: [
-                { ID: 'money_fan', 名称: '碎银', 类型: '货币:凡间', 描述: '和凡人交易时更方便使用。', 重量: 0.02, 堆叠数量: 12, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 1, 品质: '凡品', 词条列表: [] },
-                { ID: 'money_incense', 名称: '香火钱', 类型: '货币:香火', 描述: '庙宇体系内部使用。', 重量: 0, 堆叠数量: 5, 是否可堆叠: true, 当前耐久: 1, 最大耐久: 1, 价值: 1, 品质: '凡品', 词条列表: [] }
-            ]
-        }));
-        const fanMoney = normalized.物品列表.find((item: any) => item.ID === 'money_fan');
-        const incenseMoney = normalized.物品列表.find((item: any) => item.ID === 'money_incense');
-
-        expect(fanMoney?.堆叠数量).toBe(12);
-        expect(fanMoney?.是否可堆叠).toBe(true);
-        expect(incenseMoney?.堆叠数量).toBe(5);
-        expect(incenseMoney?.是否可堆叠).toBe(true);
-        expect(normalized.金钱.上层货币).toBe(0);
-        expect(normalized.金钱.中层货币).toBe(0);
-        expect(normalized.金钱.底层货币).toBe(0);
+        expect(normalized.金钱).toEqual({ baseAmount: 11 });
+        expect(normalized.物品列表.every((item: any) => item.是否可堆叠)).toBe(true);
     });
 });
 

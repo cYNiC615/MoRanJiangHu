@@ -1,7 +1,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import type { 存档结构 } from '../types';
 import * as dbService from './dbService';
-import { 是否图片资源引用, 读取图片资源远程兜底地址 } from '../utils/imageAssets';
+import { 是否图片资源引用 } from '../utils/imageAssets';
 
 const ZIP存档版本 = 1;
 const 图片目录名 = '图片';
@@ -124,26 +124,6 @@ const 下载图片二进制 = async (source: string): Promise<图片二进制结
     };
 };
 
-const 读取图片同步链接 = async (source: string): Promise<string> => {
-    const normalizedSource = 读取文本(source);
-    if (!normalizedSource) return '';
-    if (是远程图片地址(normalizedSource)) return normalizedSource;
-    const registeredRemote = 读取图片资源远程兜底地址(normalizedSource);
-    if (registeredRemote) return registeredRemote;
-    if (是否图片资源引用(normalizedSource)) {
-        const assetId = normalizedSource.match(/^wuxia-asset:\/\/(.+)$/i)?.[1] || '';
-        const dataUrl = await dbService.读取图片资源(normalizedSource).catch(() => '');
-        if (dataUrl) {
-            return await dbService.保存图片资源并返回同步地址(dataUrl, assetId || undefined);
-        }
-        return normalizedSource;
-    }
-    if (是DataUrl图片(normalizedSource)) {
-        return await dbService.保存图片资源(normalizedSource);
-    }
-    return normalizedSource;
-};
-
 const 处理导出对象图片 = async (
     value: unknown,
     saveKey: string,
@@ -168,7 +148,7 @@ const 处理导出对象图片 = async (
         const normalizedSource = 读取文本(source);
         if (!normalizedSource || !是可导出图片地址(normalizedSource)) return normalizedSource;
         if (!includeImages) {
-            return await 读取图片同步链接(normalizedSource);
+            return normalizedSource;
         }
         const cachedPath = sourceToPath.get(normalizedSource);
         if (cachedPath) return cachedPath;

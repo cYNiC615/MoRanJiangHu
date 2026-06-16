@@ -6,12 +6,12 @@ import { 环境信息结构 } from './environment';
 import { 生图目标类型, 生图筛选性别类型, 生图筛选重要性类型, 场景图片档案 } from './imageGeneration';
 import { NPC结构 } from './social';
 import { 世界数据结构 } from './world';
-import { 任务结构, 约定结构 } from './task';
+import { 任务结构 } from './task';
 import { 剧情系统结构 } from './story';
 import { 剧情规划结构 } from './storyPlan';
 import { 女主剧情规划结构 } from './heroinePlan';
 import { 世界书结构 } from './worldbook';
-import type { 详细门派结构 } from './organization';
+import type { 玩家组织结构 } from './organization';
 
 type 背景初始物品快照 = {
     名称: string;
@@ -44,17 +44,13 @@ export interface DeepSeek策略结构 {
     开局Thinking: boolean;
 }
 
-export type 图片响应格式类型 = 'url' | 'b64_json' | 'base64';
-export type 文生图后端类型 = 'openai' | 'novelai' | 'sd_webui' | 'comfyui';
-export type 文生图接口路径模式类型 = 'preset' | 'custom';
-export type 文生图预设接口路径类型 = 'openai_images' | 'openai_chat' | 'novelai_generate' | 'sd_txt2img' | 'comfyui_prompt';
+export type 图片响应格式类型 = 'url';
+export type 文生图后端类型 = 'comfyui';
 export type 生图画风类型 = '通用' | '二次元' | '写实' | '国风';
-export type NovelAI采样器类型 = 'k_euler' | 'k_euler_ancestral' | 'k_dpmpp_2m' | 'k_dpmpp_2s_ancestral' | 'k_dpmpp_sde' | 'k_dpmpp_2m_sde';
-export type NovelAI噪点表类型 = 'native' | 'karras' | 'exponential' | 'polyexponential';
 export type 画师串预设适用范围类型 = 'npc' | 'scene' | 'all';
-export type 词组转化器提示词预设类型 = 'nai' | 'npc' | 'scene' | 'scene_judge';
+export type 词组转化器提示词预设类型 = 'tag' | 'npc' | 'scene' | 'scene_judge';
 export type 角色锚点来源类型 = 'ai_extract' | 'manual' | 'imported';
-export type 图片词组序列化策略类型 = 'flat' | 'nai_character_segments' | 'gemini_structured' | 'grok_structured';
+export type 图片词组序列化策略类型 = 'flat' | 'tag_segments' | 'gemini_structured' | 'cinematic_structured';
 
 export interface 画师串预设结构 {
     id: string;
@@ -110,7 +106,7 @@ export interface 角色锚点结构 {
     updatedAt: number;
 }
 
-export type PNG画风预设来源类型 = 'novelai' | 'sd_webui' | 'unknown';
+export type PNG画风预设来源类型 = 'unknown';
 
 export interface PNG解析参数结构 {
     采样器?: string;
@@ -220,7 +216,7 @@ export interface 发现图片后端记录结构 {
     id: string;
     customerId?: string;
     label: string;
-    backendType: 文生图后端类型 | 'comfyui';
+    backendType: 文生图后端类型;
     port: number;
     url: string;
     healthUrl?: string;
@@ -328,11 +324,7 @@ export interface 功能模型占位配置结构 {
     当前NSFW图片后端发现ID: string;
     使用默认NSFWComfyUI工作流: boolean;
     NSFWComfyUI工作流JSON: string;
-    文生图接口路径模式: 文生图接口路径模式类型;
-    文生图预设接口路径: 文生图预设接口路径类型;
-    文生图接口路径: string;
     文生图响应格式: 图片响应格式类型;
-    文生图OpenAI自定义格式: boolean;
     画师串预设列表: 画师串预设结构[];
     当前NPC画师串预设ID: string;
     当前场景画师串预设ID: string;
@@ -346,11 +338,6 @@ export interface 功能模型占位配置结构 {
     自动场景生图构图要求?: '纯场景' | '故事快照' | '剧照';
     自动场景生图横竖屏?: '横屏' | '竖屏';
     自动场景生图分辨率?: string;
-    NovelAI启用自定义参数: boolean;
-    NovelAI采样器: NovelAI采样器类型;
-    NovelAI噪点表: NovelAI噪点表类型;
-    NovelAI步数: number;
-    NovelAI负面提示词: string;
     NPC生图使用词组转化器: boolean;
     词组转化兼容模式: boolean;
     香闺秘档特写强制裸体语义: boolean;
@@ -361,7 +348,7 @@ export interface 功能模型占位配置结构 {
     词组转化器提示词: string;
     模型词组转化器预设列表: 模型词组转化器预设结构[];
     词组转化器提示词预设列表: 词组转化器提示词预设结构[];
-    当前NAI词组转化器提示词预设ID: string;
+    当前Tag词组转化器提示词预设ID: string;
     当前NPC词组转化器提示词预设ID: string;
     当前场景词组转化器提示词预设ID: string;
     当前场景判定提示词预设ID: string;
@@ -512,23 +499,6 @@ export interface 性别比例配置 {
 
 export type 开局生成性别类型 = '男' | '女' | '男娘' | '扶她';
 
-export interface CurrencyUnit {
-    id: string;
-    name: string;
-    symbol?: string;
-    baseRate: number;
-    order: number;
-    aliases?: string[];
-}
-
-export interface CurrencySystem {
-    id: string;
-    name: string;
-    baseUnitId: string;
-    units: CurrencyUnit[];
-    formatStyle?: 'single' | 'compound';
-}
-
 export interface MoneyAmount {
     baseAmount: number;
 }
@@ -544,18 +514,9 @@ export interface ModeRuntimeProfile {
         isSurvival: boolean;
     };
     economy: {
-        currencyDisplayMode: 'wuxia' | 'xianxia' | 'fantasy' | 'urban' | 'modern' | 'apocalypse' | 'infinite';
         primaryCurrency: string;
         accountingUnit: string;
         exchangeRules: string;
-        currencyTiers: {
-            upperName: string;
-            middleName: string;
-            lowerName: string;
-            upperToMiddleRate: number;
-            middleToLowerRate: number;
-        };
-        currencySystem?: CurrencySystem;
         marketName: string;
         marketVerb: string;
         allowedItemTypes: string[];
@@ -603,7 +564,6 @@ export interface ModeRuntimeProfile {
             medicine: boolean;
             fuel: boolean;
             batteries: boolean;
-            spiritStones: boolean;
         };
         /** 可扩展的活跃资源计数器列表（替代 resourceToggles），仅含高度同质化资源 */
         activeResources: string[];
@@ -647,7 +607,6 @@ export interface ModeRuntimeProfile {
         allowedGeneratedGenders: 开局生成性别类型[];
         lockGeneratedGenders: boolean;
         defaultEquipment?: Record<string, string>;
-        defaultCurrency?: Record<string, number>;
     };
     validation: {
         bannedWords: string[];
@@ -665,9 +624,9 @@ export interface OpeningConfig {
     关系侧重: 关系侧重类型[];
     开局切入偏好: 开局切入偏好类型;
     /** 历史名称，当前语义为开局生成初始组织/归属结构，不等同于旧门派系统。 */
-    开局生成门派?: boolean;
+    开局生成组织?: boolean;
     /** 历史名称，当前语义为开局生成同行者/同伴名录。 */
-    开局生成同门?: boolean;
+    开局生成成员?: boolean;
     允许生成性别: 开局生成性别类型[];
     生成性别锁定?: boolean;
     初始伙伴列表?: 初始伙伴配置结构[];
@@ -969,9 +928,6 @@ export interface 存档元数据结构 {
     现实保存时间戳?: number;
     现实保存时间ISO?: string;
     存档哈希?: string;
-    对象存储哈希?: string;
-    对象存储存档ID?: string;
-    对象存储同步时间?: string;
     存档系列ID?: string;
     存档父节点哈希?: string;
     存档根节点哈希?: string;
@@ -994,12 +950,9 @@ export interface 存档结构 {
     // Extended fields
     社交?: NPC结构[];
     世界?: 世界数据结构;
-    /** Phase 1.5 residue: shallow compatibility shell only; old Battle feature package is removed. */
-    战斗?: any;
     /** Phase 1.5 residue: legacy schema name currently carries generic initial organization state. */
-    玩家组织?: 详细门派结构;
+    玩家组织?: 玩家组织结构;
     任务列表?: 任务结构[];
-    约定列表?: 约定结构[];
     剧情?: 剧情系统结构;
     剧情规划?: 剧情规划结构;
     女主剧情规划?: 女主剧情规划结构;

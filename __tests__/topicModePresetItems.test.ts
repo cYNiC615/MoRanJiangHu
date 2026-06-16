@@ -52,10 +52,10 @@ describe('题材模式预设物品清单', () => {
         expect(unassigned).toEqual([]);
     });
 
-    it('结构化物品库全部有图床预置图，避免运行时重复生图', () => {
+    it('结构化物品库全部有预置图，避免运行时重复生图', () => {
         const imageNames = new Set(
             预置物品图片列表
-                .filter((item) => /^https?:\/\//.test(item.图片URL))
+                .filter((item) => typeof item.图片URL === 'string' && item.图片URL.trim())
                 .map((item) => item.名称)
         );
         const missingImages = 结构化物品库

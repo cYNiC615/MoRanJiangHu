@@ -17,7 +17,7 @@
 - 进行中：
   - 角色锚点管理 UI。
 - 未开始：
-  - 桌面端与移动端角色锚点管理界面。
+  - 角色锚点管理界面。
 
 ## 目标
 - 为 NPC 新增“角色锚点”，通过 API 从角色文本资料中提取稳定外观提示词。
@@ -225,10 +225,8 @@
 - `hooks/useGame/sceneImageWorkflow.ts`
 - `services/ai/imageTasks.ts`
 - `components/features/Social/ImageManagerModal.tsx`
-- `components/features/Social/mobile/MobileImageManagerModal.tsx`
 - 可能补充：
   - `components/features/Social/SocialModal.tsx`
-  - `components/features/Social/mobile/MobileSocial.tsx`
 
 ### 改造方向
 - `types.ts`
@@ -247,8 +245,8 @@
   - 为参与场景的锚点角色追加稳定提示词。
 - `ImageManagerModal.tsx`
   - 新增角色锚点管理界面。
-- `MobileImageManagerModal.tsx`
-  - 新增移动端角色锚点管理界面。
+- 响应式社交/图片界面
+  - 复用同一套角色锚点管理界面，必要时只补窄屏布局。
 
 ## 风险与难点
 - 多角色场景中锚点 prompt 过长，可能影响生成质量。
@@ -290,7 +288,7 @@
 
 ### 阶段 6：管理 UI
 - 目标：
-  - 桌面端和移动端锚点管理。
+  - 响应式锚点管理。
   - 启用、编辑、删除、重新提取。
 - 状态：未开始
 
@@ -308,7 +306,7 @@
   - 开启锚点后重复生成同一角色的不同镜头，确认外观稳定。
   - 关闭锚点后确认回退到原有流程。
   - 场景生图中确认已锚定角色使用提示词注入，而非自然语言重述。
-  - 移动端与桌面端均可管理锚点。
+  - 同一套响应式界面可管理锚点。
 
 ## 里程碑
 - M1：角色锚点数据结构和存储打通

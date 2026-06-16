@@ -24,21 +24,18 @@ import ToggleSwitch from '../../ui/ToggleSwitch';
 import { 获取命中模型词组转化器预设, 规范化接口设置 } from '../../../utils/apiConfig';
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../utils/imageSizeOptions';
 import { IconScroll } from '../../ui/Icons';
-import { 获取本地图片图床迁移状态, 订阅本地图片图床迁移状态 } from '../../../services/dbService';
-import ImageMigrationStatusPanel from './ImageMigrationStatusPanel';
 
 type 物品历史展示记录 = 物品生图结果 & {
     id: string;
     物品名称: string;
     物品类型?: string;
     物品品质?: string;
-    来源位置?: '背包' | '拍卖行';
+    来源位置?: '背包' | '市场';
 };
 
 interface Props {
     socialList: NPC结构[];
     playerCharacter?: 角色数据结构 | null;
-    cultivationSystemEnabled?: boolean;
     femboyNsfwEnabled?: boolean;
     itemImageSequence?: 物品历史展示记录[];
     queue: NPC生图任务记录[];
@@ -92,7 +89,7 @@ interface Props {
 }
 
 type 手动流程阶段 = 'idle' | 'confirm' | 'submitting';
-type 页面标签类型 = 'manual' | 'library' | 'scene' | 'queue' | 'history' | 'presets' | 'rules' | 'migration';
+type 页面标签类型 = 'manual' | 'library' | 'scene' | 'queue' | 'history' | 'presets' | 'rules';
 
 type NPC图库分组 = {
     npc: NPC结构;
@@ -273,17 +270,12 @@ const 从任务标识提取NPCID = (taskNpcKey: string | undefined): string => {
     return key;
 };
 
-const 读取NPC展示摘要 = (
-    npc?: NPC结构 | null,
-    options?: { cultivationSystemEnabled?: boolean }
-): string => {
+const 读取NPC展示摘要 = (npc?: NPC结构 | null): string => {
     if (!npc) return '';
-    const 显示境界 = options?.cultivationSystemEnabled === true;
     const fragments = [
         npc.姓名 ? `姓名：${npc.姓名}` : '',
         npc.性别 ? `性别：${npc.性别}` : '',
         Number.isFinite(npc.年龄) ? `年龄：${npc.年龄}` : '',
-        显示境界 && npc.境界 ? `境界：${npc.境界}` : '',
         npc.身份 ? `身份：${npc.身份}` : '',
         npc.外貌描写 ? `外貌：${npc.外貌描写}` : '',
         npc.身材描写 ? `身材：${npc.身材描写}` : '',
@@ -376,7 +368,6 @@ const 空状态: React.FC<{ title: string; desc?: string }> = ({ title, desc }) 
 const ImageManagerModal: React.FC<Props> = ({
     socialList,
     playerCharacter,
-    cultivationSystemEnabled = false,
     femboyNsfwEnabled = true,
     itemImageSequence = [],
     queue,
@@ -429,14 +420,12 @@ const ImageManagerModal: React.FC<Props> = ({
     onClose
 }) => {
     use图片资源回源预取(socialList, playerCharacter, sceneArchive, currentPersistentWallpaper, apiConfig);
-    const 显示境界 = cultivationSystemEnabled === true;
     const [filters, setFilters] = React.useState<图片管理筛选条件>({
         目标类型: '全部',
         角色姓名: '',
         状态: '全部'
     });
     const [activeTab, setActiveTab] = React.useState<页面标签类型>('manual');
-    const [legacyImageMigrationStatus, setLegacyImageMigrationStatus] = React.useState(() => 获取本地图片图床迁移状态());
     const [modelRulePanelOpen, setModelRulePanelOpen] = React.useState(false);
     const [activeRuleSection, setActiveRuleSection] = React.useState<'npc' | 'scene' | 'scene_judge'>('npc');
     const [selectedNpcId, setSelectedNpcId] = React.useState<string>('');
@@ -495,10 +484,6 @@ const ImageManagerModal: React.FC<Props> = ({
         if (secretSizePreset === 'custom' || secretSizePreset === 'none') return null;
         return 获取手动尺寸预设(secretSizePreset, secretSizeScale);
     }, [获取手动尺寸预设, secretSizePreset, secretSizeScale]);
-
-    React.useEffect(() => 订阅本地图片图床迁移状态((status) => {
-        setLegacyImageMigrationStatus(status);
-    }), []);
 
     React.useEffect(() => {
         if (manualSizePreset === 'custom' || manualSizePreset === 'none') return;
@@ -695,8 +680,8 @@ const ImageManagerModal: React.FC<Props> = ({
 
     const presetFeature = presetConfig?.功能模型占位;
     const selectedNpcSummary = React.useMemo(
-        () => 读取NPC展示摘要(selectedNpc, { cultivationSystemEnabled }),
-        [cultivationSystemEnabled, selectedNpc]
+        () => 读取NPC展示摘要(selectedNpc),
+        [selectedNpc]
     );
     const selectedNpcSecretPartRecords = React.useMemo(() => {
         const archive = selectedNpc?.图片档案?.香闺秘档部位档案;
@@ -2763,12 +2748,6 @@ const ImageManagerModal: React.FC<Props> = ({
                                 <div className={小标题样式}>姓名</div>
                                 <div className="text-sm text-gray-200 mt-1 font-serif">{selectedNpc?.姓名 || '未知'}</div>
                             </div>
-                            {显示境界 && (
-                                <div>
-                                    <div className={小标题样式}>境界</div>
-                                    <div className="text-sm text-gray-200 mt-1 font-serif">{selectedNpc?.境界 || '凡人'}</div>
-                                </div>
-                            )}
                             <div>
                                 <div className={小标题样式}>身份</div>
                                 <div className="text-sm text-gray-200 mt-1 font-serif">{selectedNpc?.身份 || '散修'}</div>
@@ -3512,7 +3491,7 @@ const ImageManagerModal: React.FC<Props> = ({
                                     className="w-full rounded border border-wuxia-gold/20 bg-black/60 px-3 py-2 text-xs text-gray-200 outline-none focus:border-wuxia-gold/60 focus:bg-wuxia-gold/5 transition-all"
                                 />
                                 <div className="text-[10px] text-gray-500">当前分辨率：{sceneResolution || '未选择'}</div>
-                                <div className="text-[10px] text-amber-400/80">提示：NAI 等后端可能只支持固定分辨率，填写不支持的尺寸会导致生成失败。</div>
+                                <div className="text-[10px] text-amber-400/80">提示：部分后端可能只支持固定分辨率，填写不支持的尺寸会导致生成失败。</div>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -5157,10 +5136,6 @@ const ImageManagerModal: React.FC<Props> = ({
         );
     };
 
-    const renderMigrationTab = () => (
-        <ImageMigrationStatusPanel status={legacyImageMigrationStatus} />
-    );
-
     return (
         <div className="fixed inset-0 z-[230] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 animate-fadeIn overflow-hidden">
             <div
@@ -5208,10 +5183,6 @@ const ImageManagerModal: React.FC<Props> = ({
                             <span className="md:hidden text-lg w-full text-center">规</span>
                             <span className="hidden md:inline">规则中心</span>
                         </button>
-                        <button type="button" onClick={() => setActiveTab('migration')} className={标签按钮样式(activeTab === 'migration')}>
-                            <span className="md:hidden text-lg w-full text-center">迁</span>
-                            <span className="hidden md:inline">迁移状态</span>
-                        </button>
                     </div>
                 </div>
 
@@ -5229,7 +5200,7 @@ const ImageManagerModal: React.FC<Props> = ({
                     </button>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                        {activeTab !== 'manual' && activeTab !== 'scene' && activeTab !== 'presets' && activeTab !== 'rules' && activeTab !== 'migration' && (
+                        {activeTab !== 'manual' && activeTab !== 'scene' && activeTab !== 'presets' && activeTab !== 'rules' && (
                             <div className="shrink-0 px-6 py-6 border-b border-wuxia-gold/10 bg-black/30 space-y-5">
                                 <div className="pr-12">
                                     <div className="text-wuxia-gold/90 font-serif text-lg tracking-wider">图片筛选</div>
@@ -5296,7 +5267,6 @@ const ImageManagerModal: React.FC<Props> = ({
                             {activeTab === 'queue' && <>{renderQueueTab()}<div className="mt-6">{renderHistoryTab()}</div></>}
                             {activeTab === 'presets' && renderPresetsTab()}
                             {activeTab === 'rules' && renderRulesTab()}
-                            {activeTab === 'migration' && renderMigrationTab()}
                         </div>
                     </div>
                 </div>

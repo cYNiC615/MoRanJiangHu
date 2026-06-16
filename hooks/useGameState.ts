@@ -10,7 +10,6 @@ import {
     NPC结构,
     世界数据结构,
     任务结构,
-    约定结构,
     剧情系统结构,
     剧情规划结构,
     游戏设置结构,
@@ -19,8 +18,7 @@ import {
     女主剧情规划结构,
     图片管理设置结构,
     OpeningConfig,
-    战斗状态结构,
-    详细门派结构,
+    玩家组织结构,
 } from '../types';
 import { 默认中期转长期提示词, 默认短期转中期提示词, 默认NPC记忆总结提示词 } from '../prompts/runtime/defaults';
 import * as dbService from '../services/dbService';
@@ -34,10 +32,9 @@ import { 构建默认技艺 } from '../utils/skillDefaults';
 import { 确保角色金钱BaseAmount } from '../utils/currencyDisplay';
 import {
     创建开场空白世界,
-    创建开场空白战斗,
     创建开场空白剧情,
     创建空剧情规划,
-    创建空门派状态
+    创建空组织状态
 } from './useGame/storyState';
 
 const 加载默认提示词 = async (): Promise<提示词结构[]> => {
@@ -57,7 +54,7 @@ export const useGameState = () => {
         称号: '',
         天赋列表: [],
         出身背景: { 名称: '', 描述: '', 效果: '' },
-        金钱: 确保角色金钱BaseAmount({ 金元宝: 0, 银子: 0, 铜钱: 0 }),
+        金钱: 确保角色金钱BaseAmount({ baseAmount: 0 }),
         当前精力: 0,
         最大精力: 0,
         当前饱腹: 0,
@@ -115,10 +112,8 @@ export const useGameState = () => {
     const [环境, 设置环境] = useState<环境信息结构>(() => 创建空环境());
     const [社交, 设置社交] = useState<NPC结构[]>([]);
     const [世界, 设置世界] = useState<世界数据结构>(() => 创建空世界()); 
-    const [战斗, 设置战斗] = useState<战斗状态结构>(() => 创建开场空白战斗());
-    const [玩家组织, 设置玩家组织] = useState<详细门派结构>(() => 创建空门派状态());
+    const [玩家组织, 设置玩家组织] = useState<玩家组织结构>(() => 创建空组织状态());
     const [任务列表, 设置任务列表] = useState<任务结构[]>([]);
-    const [约定列表, 设置约定列表] = useState<约定结构[]>([]);
     const [剧情, 设置剧情] = useState<剧情系统结构>(() => 创建空剧情()); 
     const [剧情规划, 设置剧情规划] = useState<剧情规划结构>(() => 创建空剧情规划状态());
     const [女主剧情规划, 设置女主剧情规划] = useState<女主剧情规划结构 | undefined>(() => 创建空女主剧情规划状态());
@@ -143,13 +138,11 @@ export const useGameState = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showInventory, setShowInventory] = useState(false);
     const [showEquipment, setShowEquipment] = useState(false); 
-    const [showBattle, setShowBattle] = useState(false);
     const [showSocial, setShowSocial] = useState(false);
     const [showTeam, setShowTeam] = useState(false); 
     const [showWorld, setShowWorld] = useState(false); 
     const [showMap, setShowMap] = useState(false);
     const [showTask, setShowTask] = useState(false);
-    const [showAgreement, setShowAgreement] = useState(false);
     const [showStory, setShowStory] = useState(false);
     const [showHeroinePlan, setShowHeroinePlan] = useState(false);
     const [showMemory, setShowMemory] = useState(false);
@@ -344,10 +337,8 @@ export const useGameState = () => {
         环境, 设置环境,
         社交, 设置社交,
         世界, 设置世界,
-        战斗, 设置战斗,
         玩家组织, 设置玩家组织,
         任务列表, 设置任务列表,
-        约定列表, 设置约定列表,
         剧情, 设置剧情,
         剧情规划, 设置剧情规划,
         女主剧情规划, 设置女主剧情规划,
@@ -360,13 +351,11 @@ export const useGameState = () => {
         showSettings, setShowSettings,
         showInventory, setShowInventory,
         showEquipment, setShowEquipment,
-        showBattle, setShowBattle,
         showSocial, setShowSocial,
         showTeam, setShowTeam,
         showWorld, setShowWorld,
         showMap, setShowMap,
         showTask, setShowTask,
-        showAgreement, setShowAgreement,
         showStory, setShowStory,
         showHeroinePlan, setShowHeroinePlan,
         showMemory, setShowMemory,

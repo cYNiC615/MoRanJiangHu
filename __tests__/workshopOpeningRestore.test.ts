@@ -10,8 +10,8 @@ describe('workshop opening restore helpers', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: true,
+                开局生成组织: true,
+                开局生成成员: true,
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraPrompt: '来自快照的额外提示',
@@ -62,8 +62,8 @@ describe('workshop opening restore helpers', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: true,
+                开局生成组织: true,
+                开局生成成员: true,
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraRequirement: '来自快照的额外要求',
@@ -116,8 +116,8 @@ describe('workshop opening restore helpers', () => {
             初始关系模板: '随机邂逅' as const,
             关系侧重: ['友情'] as const,
             开局切入偏好: '市井起手' as const,
-            开局生成门派: true,
-            开局生成同门: true,
+            开局生成组织: true,
+            开局生成成员: true,
             modeRuntimeProfile: {
                 ...(wuxiaTopic!.modeRuntimeProfile as any),
                 identity: {
@@ -244,8 +244,8 @@ describe('workshop opening restore helpers', () => {
                     初始关系模板: '随机邂逅',
                     关系侧重: ['友情'],
                     开局切入偏好: '市井起手',
-                    开局生成门派: true,
-                    开局生成同门: true,
+                    开局生成组织: true,
+                    开局生成成员: true,
                 },
                 openingStreaming: true,
                 openingExtraRequirement: '预设开局额外要求'
@@ -299,8 +299,8 @@ describe('workshop opening restore helpers', () => {
                 初始关系模板: '随机邂逅',
                 关系侧重: ['友情'],
                 开局切入偏好: '市井起手',
-                开局生成门派: true,
-                开局生成同门: true,
+                开局生成组织: true,
+                开局生成成员: true,
             },
             openingStreaming: true,
             openingExtraRequirement: ''

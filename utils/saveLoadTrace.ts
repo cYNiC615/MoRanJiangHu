@@ -300,7 +300,6 @@ export const buildSaveDebugSummary = (save: any): Record<string, unknown> => {
         history: buildHistoryDebugSummary(save.历史记录),
         socialCount: Array.isArray(save.社交) ? save.社交.length : 0,
         taskCount: Array.isArray(save.任务列表) ? save.任务列表.length : 0,
-        agreementCount: Array.isArray(save.约定列表) ? save.约定列表.length : 0,
         worldLayers,
         sceneHistory,
         characterAnchors: Array.isArray(save.角色锚点列表) ? save.角色锚点列表.length : 0,

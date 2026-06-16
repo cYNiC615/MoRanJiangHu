@@ -1,10 +1,9 @@
 import type {
     GameResponse,
     女主剧情规划结构,
-    详细门派结构,
+    玩家组织结构,
     世界数据结构,
     剧情系统结构,
-    战斗状态结构,
     环境信息结构,
     聊天记录结构,
     角色数据结构,
@@ -19,10 +18,8 @@ type 回合快照结构 = {
         环境: 环境信息结构;
         社交: any[];
         世界: 世界数据结构;
-        战斗: 战斗状态结构;
-        玩家组织: 详细门派结构;
+        玩家组织: 玩家组织结构;
         任务列表: any[];
-        约定列表: any[];
         剧情: 剧情系统结构;
         女主剧情规划?: 女主剧情规划结构;
         记忆系统: 记忆系统结构;
@@ -81,9 +78,8 @@ type 历史回合工作流依赖 = {
     performAutoSave: (snapshot?: any) => Promise<void>;
     设置剧情: (value: 剧情系统结构) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
-    设置玩家组织: (value: 详细门派结构) => void;
+    设置玩家组织: (value: 玩家组织结构) => void;
     设置任务列表: (value: any[]) => void;
-    设置约定列表: (value: any[]) => void;
     设置社交: (value: any[]) => void;
     记录变量生成上下文: (params: { playerInput: string; response: any }) => void;
     set聊天区自动滚动抑制令牌: (value: number) => void;
@@ -184,10 +180,8 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             环境: deps.深拷贝(snapshot.回档前状态.环境),
             社交: deps.深拷贝(snapshot.回档前状态.社交),
             世界: deps.深拷贝(snapshot.回档前状态.世界),
-            战斗: deps.深拷贝(snapshot.回档前状态.战斗),
             玩家组织: deps.深拷贝(snapshot.回档前状态.玩家组织),
             任务列表: deps.深拷贝(snapshot.回档前状态.任务列表),
-            约定列表: deps.深拷贝(snapshot.回档前状态.约定列表),
             剧情: deps.深拷贝(snapshot.回档前状态.剧情),
             女主剧情规划: deps.深拷贝(snapshot.回档前状态.女主剧情规划)
         };
@@ -236,7 +230,6 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
         deps.设置剧情(deps.深拷贝(patchedState.剧情));
         deps.设置玩家组织(deps.深拷贝(patchedState.玩家组织));
         deps.设置任务列表(deps.深拷贝(patchedState.任务列表));
-        deps.设置约定列表(deps.深拷贝(patchedState.约定列表));
         deps.设置社交(deps.规范化社交列表(deps.深拷贝(patchedState.社交), { 合并同名: false }));
 
         const recoveredAiTimestamp = Date.now();
@@ -303,10 +296,8 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             env: patchedState.环境,
             social: patchedState.社交,
             world: patchedState.世界,
-            battle: patchedState.战斗,
             sect: patchedState.玩家组织,
             tasks: patchedState.任务列表,
-            agreements: patchedState.约定列表,
             story: patchedState.剧情,
             storyPlan: patchedState.剧情规划,
             heroinePlan: patchedState.女主剧情规划,

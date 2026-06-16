@@ -252,49 +252,9 @@ const hasFullscreenElement = () => {
     );
 };
 
-const MobileInfoCard: React.FC<{
-    label: string;
-    value: string;
-    visualConfig?: 视觉设置结构;
-    highlight?: boolean;
-    isExpanded?: boolean;
-    onClick?: () => void;
-}> = ({ label, value, visualConfig, highlight = false, isExpanded = false, onClick }) => {
-    const areaStyle = 构建区域文字样式(visualConfig, '顶部栏');
-    const labelColor = 颜色转透明度(areaStyle.color as string | undefined, 0.62, 'rgba(230, 200, 110, 0.62)');
-    const baseFontSize = Number(areaStyle.fontSize) || 14;
-    const labelFontSize = `${Math.max(8, Math.round(baseFontSize * 0.56))}px`;
-    const valueFontSize = `${Math.max(10, Math.round(baseFontSize * 0.72))}px`;
-
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`relative flex min-h-[42px] flex-col justify-center overflow-hidden rounded-lg border px-2 py-1.5 text-left transition-all duration-300 ${
-                isExpanded
-                    ? 'border-wuxia-gold/70 bg-wuxia-gold/12 shadow-[0_0_18px_rgba(230,200,110,0.18)]'
-                    : 'border-wuxia-gold/18 bg-white/[0.03] hover:border-wuxia-gold/40 hover:bg-white/[0.05]'
-            }`}
-        >
-            <span
-                className="truncate tracking-[0.14em]"
-                style={{ ...areaStyle, color: labelColor, fontSize: labelFontSize, lineHeight: 1.05 }}
-            >
-                {label}
-            </span>
-            <span
-                className={`mt-1 truncate drop-shadow-md ${highlight ? 'text-wuxia-gold font-bold' : ''}`}
-                style={{ ...areaStyle, fontSize: valueFontSize, lineHeight: 1.1, fontWeight: highlight || isExpanded ? 700 : 500 }}
-            >
-                {value}
-            </span>
-        </button>
-    );
-};
-
 type ExpandedType = 'environment' | 'time' | 'location' | 'journey' | null;
 
-const MobileInfoButton: React.FC<{
+const CompactInfoButton: React.FC<{
     label: string;
     active?: boolean;
     highlight?: boolean;
@@ -320,8 +280,8 @@ const MobileInfoButton: React.FC<{
 const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visualConfig }) => {
     const [expandedType, setExpandedType] = useState<ExpandedType>(null);
     const [fullscreenDetailType, setFullscreenDetailType] = useState<Exclude<ExpandedType, null> | null>(null);
-    const [mobileCollapsed, setMobileCollapsed] = useState(false);
-    const lastMobileDismissAtRef = useRef(0);
+    const [compactCollapsed, setCompactCollapsed] = useState(false);
+    const lastCompactDismissAtRef = useRef(0);
 
     const parsedTime = parseEnvTime(环境);
     const derivedDayCount = useMemo(() => {
@@ -342,10 +302,10 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
     const fullDateStr = parsedTime
         ? `${parsedTime.year}年${parsedTime.month.toString().padStart(2, '0')}月${parsedTime.day.toString().padStart(2, '0')}日 ${displayTime}`
         : displayTime;
-    const mobileDateStr = parsedTime
+    const compactDateStr = parsedTime
         ? `${parsedTime.year}年${parsedTime.month.toString().padStart(2, '0')}月${parsedTime.day.toString().padStart(2, '0')}日`
         : '未知日期';
-    const mobileClockStr = displayTime;
+    const compactClockStr = displayTime;
 
     const dateBadge = 构建日期短文本(parsedTime);
     const environmentDisplay = useMemo(() => {
@@ -379,7 +339,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
         const uniqueSegments = segments.filter((part, idx) => segments.indexOf(part) === idx);
         return uniqueSegments.length > 0 ? uniqueSegments.join(' - ') : '未知地点';
     }, [环境?.大地点, 环境?.中地点, 环境?.小地点, 环境?.具体地点]);
-    const mobileLocationBadge = useMemo(() => {
+    const compactLocationBadge = useMemo(() => {
         const rawSmall = typeof 环境?.小地点 === 'string' ? 环境.小地点.trim() : '';
         const rawSpecific = typeof 环境?.具体地点 === 'string' ? 环境.具体地点.trim() : '';
         let normalizedSpecific = rawSpecific;
@@ -411,7 +371,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
     };
 
     const closeExpandedPanel = () => {
-        lastMobileDismissAtRef.current = Date.now();
+        lastCompactDismissAtRef.current = Date.now();
         setExpandedType(null);
     };
 
@@ -425,7 +385,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
             closeExpandedPanel();
             return;
         }
-        if (Date.now() - lastMobileDismissAtRef.current < 300) {
+        if (Date.now() - lastCompactDismissAtRef.current < 300) {
             return;
         }
         setExpandedType(type);
@@ -458,7 +418,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
                 <div className="space-y-2">
                     <p><span className="text-wuxia-gold/60">完整时间：</span>{fullDateStr}</p>
                     <p><span className="text-wuxia-gold/60">{timeFormat === '数字' ? '传统时刻：' : '数字时刻：'}</span>{alternateTime}</p>
-                    <p><span className="text-wuxia-gold/60">当前日期：</span>{mobileDateStr}</p>
+                    <p><span className="text-wuxia-gold/60">当前日期：</span>{compactDateStr}</p>
                 </div>
             ),
         },
@@ -485,10 +445,10 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
         },
     };
 
-    const mobileItems = [
+    const compactItems = [
         { type: 'environment' as const, label: '环境', shortLabel: '境', value: environmentDisplay, highlight: false },
-        { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge} ${mobileClockStr} / 第${derivedDayCount}天`, highlight: false },
-        { type: 'location' as const, label: '地点', shortLabel: '地', value: mobileLocationBadge, highlight: false },
+        { type: 'time' as const, label: '时程', shortLabel: '时', value: `${dateBadge} ${compactClockStr} / 第${derivedDayCount}天`, highlight: false },
+        { type: 'location' as const, label: '地点', shortLabel: '地', value: compactLocationBadge, highlight: false },
     ];
 
     return (
@@ -501,23 +461,23 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
                         <button
                             type="button"
                             onClick={() => {
-                                if (!mobileCollapsed) closeExpandedPanel();
-                                setMobileCollapsed(prev => !prev);
+                                if (!compactCollapsed) closeExpandedPanel();
+                                setCompactCollapsed(prev => !prev);
                             }}
                             className="flex h-10 w-10 items-center justify-center rounded-[20px] border border-wuxia-gold/24 bg-black/30 text-wuxia-gold shadow-[0_8px_22px_rgba(0,0,0,0.3)] backdrop-blur-md transition-colors hover:border-wuxia-gold/40 hover:bg-black/42"
                             style={{ touchAction: 'manipulation' }}
-                            aria-label={mobileCollapsed ? '展开顶部信息栏' : '收起顶部信息栏'}
-                            title={mobileCollapsed ? '展开顶部信息栏' : '收起顶部信息栏'}
+                            aria-label={compactCollapsed ? '展开顶部信息栏' : '收起顶部信息栏'}
+                            title={compactCollapsed ? '展开顶部信息栏' : '收起顶部信息栏'}
                         >
-                            <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 transition-transform ${mobileCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+                            <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 transition-transform ${compactCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="1.8">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 6 9 12l6 6" />
                             </svg>
                         </button>
 
-                        {!mobileCollapsed && (
+                        {!compactCollapsed && (
                             <div className="flex max-h-[min(46vh,380px)] flex-col gap-1.5 overflow-y-auto rounded-[22px] border border-wuxia-gold/14 bg-black/18 p-1.5 shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-md no-scrollbar">
-                                {mobileItems.map((item) => (
-                                    <MobileInfoButton
+                                {compactItems.map((item) => (
+                                    <CompactInfoButton
                                         key={item.type}
                                         label={item.label}
                                         active={expandedType === item.type}
@@ -530,7 +490,7 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
                         )}
                     </div>
 
-                    {!mobileCollapsed && expandedType && (
+                    {!compactCollapsed && expandedType && (
                         <DetailCard
                             title={detailConfigs[expandedType].title}
                             content={detailConfigs[expandedType].content}
@@ -584,8 +544,8 @@ const TopBar: React.FC<Props> = ({ 环境, 游戏初始时间, timeFormat, visua
                             {fullDateStr}
                         </div>
                         <div className="md:hidden text-shadow text-center leading-tight scale-[0.8]" style={{ color: topBarStyle.color }}>
-                            <div style={{ ...topBarStyle, fontSize: 顶栏字号(0.78, 10), lineHeight: 1.05 }}>{mobileDateStr}</div>
-                            <div style={{ ...topBarStyle, fontSize: 顶栏字号(0.94, 13), fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.05 }}>{mobileClockStr}</div>
+                            <div style={{ ...topBarStyle, fontSize: 顶栏字号(0.78, 10), lineHeight: 1.05 }}>{compactDateStr}</div>
+                            <div style={{ ...topBarStyle, fontSize: 顶栏字号(0.94, 13), fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1.05 }}>{compactClockStr}</div>
                         </div>
                         <div
                             className="absolute -bottom-2 hidden md:flex bg-wuxia-red px-2 md:px-3 py-[1px] rounded border border-wuxia-gold/30 shadow-md items-center gap-1 z-30 font-bold tracking-widest max-w-[220px] md:max-w-[460px]"

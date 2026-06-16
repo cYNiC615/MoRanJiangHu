@@ -14,10 +14,8 @@ describe('variable model dialogue NPC audit', () => {
             环境: {},
             世界: {},
             社交: [],
-            战斗: {},
             玩家组织: {},
-            任务列表: [],
-            约定列表: []
+            任务列表: []
         });
 
         expect(prompt).toContain('本回合正文对白人物审计');
@@ -46,10 +44,8 @@ describe('variable model dialogue NPC audit', () => {
                     境界: '未知'
                 }
             ],
-            战斗: {},
             玩家组织: {},
-            任务列表: [],
-            约定列表: []
+            任务列表: []
         });
 
         expect(prompt).toContain('社交[0]');

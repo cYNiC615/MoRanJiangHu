@@ -1,16 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { 执行响应命令处理, 响应命令处理状态 } from '../hooks/useGame/responseCommandProcessor';
-import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
+import { 规范化环境信息, 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 
 const 构建基础状态 = (): 响应命令处理状态 => ({
     角色: { 姓名: '杨培强' } as any,
     环境: {} as any,
     社交: [],
     世界: {} as any,
-    战斗: {} as any,
     玩家组织: {} as any,
     任务列表: [],
-    约定列表: [],
     剧情: {} as any,
     剧情规划: {} as any
 });
@@ -19,13 +17,11 @@ const deps = {
     规范化环境信息: (value?: any) => value || {},
     规范化社交列表,
     规范化世界状态: (value?: any) => value || {},
-    规范化战斗状态: (value?: any) => value || {},
-    规范化门派状态: (value?: any) => value || {},
+    规范化组织状态: (value?: any) => value || {},
     规范化剧情状态: (value?: any) => value || {},
     规范化剧情规划状态: (value?: any) => value || {},
     规范化女主剧情规划状态: (value?: any) => value,
-    规范化角色物品容器映射: (value?: any) => value || {},
-    战斗结束自动清空: (value?: any) => value || {}
+    规范化角色物品容器映射: (value?: any) => value || {}
 };
 
 describe('responseCommandProcessor retired environment systems', () => {
@@ -46,10 +42,10 @@ describe('responseCommandProcessor retired environment systems', () => {
                 { action: 'set', key: '天气', value: { 天气: '暴雨' } },
                 { action: 'set', key: '节日.名称', value: '雨祭' }
             ]
-        } as any, state, deps, undefined, { applyState: false });
+        } as any, state, { ...deps, 规范化环境信息 }, undefined, { applyState: false });
 
-        expect((result.环境 as any).天气).toEqual({ 天气: '晴', 结束日期: '1:01:01:12:00' });
-        expect((result.环境 as any).节日).toEqual({ 名称: '旧节日', 简介: '旧描述', 效果: '旧效果' });
+        expect((result.环境 as any).天气).toBeUndefined();
+        expect((result.环境 as any).节日).toBeUndefined();
         expect((result as any).天气).toBeUndefined();
         expect((result as any).节日).toBeUndefined();
     });

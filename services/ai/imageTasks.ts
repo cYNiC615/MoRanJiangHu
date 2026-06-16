@@ -1,4 +1,4 @@
-import { decompressSync, inflateSync, unzlibSync, unzipSync } from 'fflate';
+import { unzlibSync } from 'fflate';
 import {
     获取已发现ComfyUI后端候选,
     标记ComfyUI后端近期不可用,
@@ -6,7 +6,7 @@ import {
     type 当前可用接口结构
 } from '../../utils/apiConfig';
 import type { 生图构图类型, 生图调试事件, 香闺秘档部位类型 } from '../../models/imageGeneration';
-import type { PNG解析参数结构, PNG画风预设来源类型, 角色锚点结构, 图片词组序列化策略类型, 图片响应格式类型 } from '../../models/system';
+import type { PNG解析参数结构, PNG画风预设来源类型, 角色锚点结构, 图片词组序列化策略类型 } from '../../models/system';
 import { 角色图片分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerCharacterCot';
 import { 场景图片分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerSceneCot';
 import { 部位特写分词COT伪装历史消息提示词 } from '../../prompts/runtime/imageTokenizerSecretPartCot';
@@ -15,7 +15,6 @@ import { 角色锚点提取COT伪装历史消息提示词 } from '../../prompts/
 import { 本地拆分画师标签 } from './artistTagExtractor';
 import {
     从Markdown图片中提取DataUrl,
-    提取OpenAI完整文本,
     type 通用消息,
     规范化文本补全消息链,
     读取失败详情文本,
@@ -27,27 +26,11 @@ import {
 import * as dbService from '../dbService';
 import { 压缩图片资源字段, 是否图片资源引用 } from '../../utils/imageAssets';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
-import { 获取本地站点基址 } from '../../utils/localAppInfo';
 import {
     判断疑似网络或跨域错误,
     构建ComfyUI精确连接失败提示,
-    构建ComfyUI运行时代理端点,
-    构建OpenAI图片生成端点,
-    构建通用生图连接失败提示,
-    规范化OpenAI图片基础地址,
-    规范化OpenAI图片模型名称
+    构建ComfyUI运行时代理端点
 } from './imageGenerationDiagnostics';
-
-const NOVELAI_TRIAL_RECAPTCHA_PATTERN = /recaptcha token is required for trial generation/i;
-const NOVELAI_ACCESS_DENIED_PATTERN = /access_denied|ip .*not .*allow|ip .*not .*allowed|ip.*白名单|ip.*允许访问|不在令牌允许访问的列表/i;
-
-const 构建NovelAI试用验证码错误提示 = (status: number): string => {
-    return `图片生成请求失败: ${status} - NovelAI 没有识别到可用的 Persistent API Token，当前请求被当作试用生图并要求 Recaptcha。请在文生图设置里重新填写以 pst- 开头的 Persistent API Token，保存后点击连接测试；如果仍失败，说明这枚 Token 可能已失效或账号订阅权限不可用。`;
-};
-
-const 构建NovelAI访问受限错误提示 = (status: number): string => {
-    return `图片生成请求失败: ${status} - NovelAI 拒绝访问：当前 IP 不在这枚 Token 允许访问的列表中。请在 NovelAI 后台调整 Token 的 IP 白名单，或更换允许当前网络出口 IP 的 Persistent API Token；连接测试和真实生图都需要通过同一项权限检查。`;
-};
 
 export interface 图片生成结果 {
     图片URL?: string;
@@ -119,7 +102,6 @@ const 部位特写单图正向提示词 = 'single image, one frame, one subject 
 const ZImageTurbo叙事构图增强提示词 = 'Z-Image-Turbo narrative prompt, translate the story beat into one clear visual moment, preserve fixed character features across images, use absolute screen positions such as left side, right side, foreground, middle ground and background, describe concrete action, expression, material, lighting, color palette and atmosphere, one complete image only';
 const NSFW部位特写画质增强提示词 = 'adult character only, target anatomy only, macro anatomical close-up, ultra tight crop, wet skin texture, glistening moisture, natural skin folds, soft rim light, specular highlights, subsurface scattering, single private anatomy focus, no minors';
 const 部位特写反拼贴负面提示词 = 'multiple views, split screen, panel layout, comic panel, comic page, manga panel, story panels, collage, contact sheet, reference sheet, character sheet, turnaround, comparison sheet, montage, triptych, diptych, quadriptych, grid layout, tiled composition, thumbnails, bottom strip, inset image, duplicate anatomy, mirrored anatomy, repeated organ, multiple organs, multiple nipples, extra nipples, multiple genitals, extra genitals';
-const 默认NovelAI负面提示词 = 'photorealistic, realistic, 3d, rendering, unreal engine, octane render, real life, photography, bokeh, lowres, bad anatomy, bad hands, text, typography, letters, words, numbers, caption, label, plaque, sign, inscription, Chinese characters, English letters, calligraphy, seal, stamp, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, logo, blurry, artist name, border, out of frame, subtitles, title, poster text, speech bubble, dialogue box, word balloon, UI overlay, date stamp, QR code, barcode';
 const 默认分词器AI角色提示词 = [
     '你是分词器大师。',
     '你的职责是把输入资料整理成稳定、可执行、可直接投喂图像模型的高质量提示词。',
@@ -155,70 +137,7 @@ const blob转DataUrl = async (blob: Blob): Promise<string> => {
 
 const 清理末尾斜杠 = (baseUrl: string): string => baseUrl.replace(/\/+$/, '');
 
-const 规范化NovelAI基础地址 = (baseUrlRaw: string): string => {
-    const trimmed = 清理末尾斜杠(baseUrlRaw || '');
-    if (!trimmed) return trimmed;
-    return trimmed.replace(/^https:\/\/novelai\.net(?=\/|$)/i, 'https://image.novelai.net');
-};
-
-const 获取NovelAI代理基础地址 = (baseUrlRaw: string): string => {
-    if (typeof window === 'undefined') return '';
-
-    const location = window.location;
-    const websiteUrl = 清理末尾斜杠(获取本地站点基址());
-    const isHttpLike = location.protocol === 'http:' || location.protocol === 'https:';
-    const isLocalHttpDev = isHttpLike && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-    if (isLocalHttpDev || location.hostname === 'msjh.bacon.de5.net' || /\.workers\.dev$/i.test(location.hostname)) {
-        return '';
-    }
-
-    return websiteUrl;
-};
-
-
-const 构建图片端点 = (baseUrlRaw: string, customPathRaw?: string): string => {
-    const normalizedBaseRaw = 规范化OpenAI图片基础地址(规范化NovelAI基础地址(baseUrlRaw || ''));
-    const base = 清理末尾斜杠(normalizedBaseRaw || '');
-    const customPath = (customPathRaw || '').trim();
-    const novelAiProxyBase = 获取NovelAI代理基础地址(base);
-    const isNovelAiBase = /https:\/\/image\.novelai\.net/i.test(base);
-    const isNovelAiPath = /^\/?ai\/generate-image(?:[?#].*)?$/i.test(customPath) || /https:\/\/image\.novelai\.net\/ai\/generate-image/i.test(customPath);
-    if (isNovelAiBase || isNovelAiPath) {
-        const targetPath = customPath
-            ? (/^https?:\/\//i.test(customPath) ? new URL(customPath).pathname : (customPath.startsWith('/') ? customPath : `/${customPath}`))
-            : '/ai/generate-image';
-        return `${novelAiProxyBase}/api/novelai${targetPath}`;
-    }
-    return 构建OpenAI图片生成端点(base, customPath, { useRuntimeProxy: true });
-};
-
-export const __测试__构建图片端点 = 构建图片端点;
-
-const 推断图片Mime类型 = (fileName: string): string => {
-    const lower = (fileName || '').toLowerCase();
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.gif')) return 'image/gif';
-    return 'image/png';
-};
-
-const uint8数组转DataUrl = (bytes: Uint8Array, mimeType: string): string => {
-    let binary = '';
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        binary += String.fromCharCode(...chunk);
-    }
-    return `data:${mimeType};base64,${btoa(binary)}`;
-};
-
 const PNG签名 = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-const JPEG签名 = new Uint8Array([0xff, 0xd8, 0xff]);
-const GIF87签名 = new Uint8Array([71, 73, 70, 56, 55, 97]);
-const GIF89签名 = new Uint8Array([71, 73, 70, 56, 57, 97]);
-const RIFF签名 = new Uint8Array([82, 73, 70, 70]);
-const WEBP签名 = new Uint8Array([87, 69, 66, 80]);
-const PNG_IEND块签名 = new Uint8Array([73, 69, 78, 68]);
 const UTF8解码器 = new TextDecoder('utf-8');
 const Latin1解码器 = new TextDecoder('iso-8859-1');
 
@@ -530,139 +449,6 @@ const 提取平衡JSON对象 = (text: string, startIndex: number): string => {
     return '';
 };
 
-const NovelAI隐写PNG魔术字符串 = 'stealth_pngcomp';
-const NovelAI隐写PNG最大像素数 = 4096 * 4096;
-
-const 从PNG隐写Alpha提取NovelAI文本 = async (blob: Blob): Promise<string> => {
-    if (typeof document === 'undefined' || typeof URL === 'undefined') return '';
-    let objectUrl = '';
-    try {
-        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error('加载 PNG 图像失败'));
-            objectUrl = URL.createObjectURL(blob);
-            img.src = objectUrl;
-        });
-
-        if (!image.width || !image.height) return '';
-        if (image.width * image.height > NovelAI隐写PNG最大像素数) return '';
-
-        const canvas = document.createElement('canvas');
-        canvas.width = image.width;
-        canvas.height = image.height;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return '';
-        ctx.drawImage(image, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, image.width, image.height);
-        const alphaLsb = new Uint8Array(image.width * image.height);
-        for (let pixelIndex = 0; pixelIndex < alphaLsb.length; pixelIndex += 1) {
-            alphaLsb[pixelIndex] = imageData.data[pixelIndex * 4 + 3] & 1;
-        }
-
-        let bitOffset = 0;
-        const nextByte = (): number | null => {
-            if (bitOffset + 8 > alphaLsb.length) return null;
-            let byte = 0;
-            for (let i = 0; i < 8; i += 1) {
-                const convertedOffset = (bitOffset % image.height) * image.width + Math.floor(bitOffset / image.height);
-                if (convertedOffset >= alphaLsb.length) return null;
-                byte |= alphaLsb[convertedOffset] << (7 - i);
-                bitOffset += 1;
-            }
-            return byte;
-        };
-
-        const magicBytes = new Uint8Array(NovelAI隐写PNG魔术字符串.length);
-        for (let i = 0; i < magicBytes.length; i += 1) {
-            const value = nextByte();
-            if (value === null) return '';
-            magicBytes[i] = value;
-        }
-        if (解码Latin1(magicBytes) !== NovelAI隐写PNG魔术字符串) return '';
-
-        const sizeBytes = new Uint8Array(4);
-        for (let i = 0; i < 4; i += 1) {
-            const value = nextByte();
-            if (value === null) return '';
-            sizeBytes[i] = value;
-        }
-        const compressedBitSize = new DataView(sizeBytes.buffer).getUint32(0, false);
-        if (!Number.isFinite(compressedBitSize) || compressedBitSize <= 0 || compressedBitSize % 8 !== 0) return '';
-        const compressedByteSize = compressedBitSize / 8;
-        const compressedBytes = new Uint8Array(compressedByteSize);
-        for (let i = 0; i < compressedByteSize; i += 1) {
-            const value = nextByte();
-            if (value === null) return '';
-            compressedBytes[i] = value;
-        }
-
-        const decompressed = decompressSync(compressedBytes);
-        return 解码UTF8(decompressed).trim();
-    } catch {
-        return '';
-    } finally {
-        if (objectUrl) {
-            URL.revokeObjectURL(objectUrl);
-        }
-    }
-};
-
-const 从PNG原始字节搜索NovelAI元数据 = (pngBytes: Uint8Array): {
-    正面提示词: string;
-    负面提示词: string;
-    参数?: PNG解析参数结构;
-    原始元数据: string;
-} | null => {
-    const rawText = 解码Latin1(pngBytes);
-    if (!rawText) return null;
-    const markerCandidates = [
-        '"request_type":"PromptGenerateRequest"',
-        '"request_type": "PromptGenerateRequest"',
-        '"signed_hash"',
-        '"v4_negative_prompt"',
-        '"extra_passthrough_testing"'
-    ];
-    for (const marker of markerCandidates) {
-        const markerIndex = rawText.indexOf(marker);
-        if (markerIndex < 0) continue;
-        let braceIndex = rawText.lastIndexOf('{', markerIndex);
-        let attempts = 0;
-        while (braceIndex >= 0 && attempts < 12) {
-            const candidate = 提取平衡JSON对象(rawText, braceIndex);
-            if (candidate) {
-                const parsed = 解析NovelAI注释JSON(candidate);
-                if (parsed?.正面提示词) {
-                    return {
-                        正面提示词: parsed.正面提示词,
-                        负面提示词: parsed.负面提示词,
-                        参数: parsed.参数,
-                        原始元数据: candidate
-                    };
-                }
-            }
-            braceIndex = rawText.lastIndexOf('{', braceIndex - 1);
-            attempts += 1;
-        }
-    }
-    return null;
-};
-
-const 尝试解析NovelAI注释文本 = (rawText: string): {
-    正面提示词: string;
-    负面提示词: string;
-    参数?: PNG解析参数结构;
-} | null => {
-    const direct = 解析NovelAI注释JSON(rawText);
-    if (direct) return direct;
-    if (!rawText) return null;
-    const firstBrace = rawText.indexOf('{');
-    if (firstBrace < 0) return null;
-    const candidate = 提取平衡JSON对象(rawText, firstBrace);
-    return candidate ? 解析NovelAI注释JSON(candidate) : null;
-};
-
 const 提取LoRA列表 = (text: string): PNG解析参数结构['LoRA列表'] => {
     const matches = Array.from((text || '').matchAll(/<lora:([^:>]+)(?::([\d.]+))?>/gi));
     if (!matches.length) return undefined;
@@ -680,331 +466,6 @@ const 提取LoRA列表 = (text: string): PNG解析参数结构['LoRA列表'] => 
     return items.length ? items : undefined;
 };
 
-const 读取有限数字 = (value: unknown): number | undefined => {
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    if (typeof value === 'string' && value.trim()) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-    }
-    return undefined;
-};
-
-const 读取布尔值 = (value: unknown): boolean | undefined => {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase();
-        if (normalized === 'true') return true;
-        if (normalized === 'false') return false;
-    }
-    return undefined;
-};
-
-const 读取字符串值 = (value: unknown): string => typeof value === 'string' ? value.trim() : '';
-
-const 读取V4提示结构 = (value: unknown): PNG解析参数结构['V4正向提示'] | undefined => {
-    if (!value || typeof value !== 'object') return undefined;
-    const source = value as Record<string, unknown>;
-    const caption = source.caption && typeof source.caption === 'object' ? source.caption as Record<string, unknown> : null;
-    const characterCaptions = Array.isArray(caption?.char_captions)
-        ? caption?.char_captions.filter((item): item is string | Record<string, unknown> => (
-            (typeof item === 'string' && item.trim().length > 0)
-            || Boolean(item) && typeof item === 'object'
-        ))
-        : [];
-    const result = {
-        useCoords: 读取布尔值(source.use_coords),
-        useOrder: 读取布尔值(source.use_order),
-        legacyUc: 读取布尔值(source.legacy_uc),
-        characterCaptions: characterCaptions.length ? characterCaptions : undefined
-    };
-    return Object.values(result).some((item) => item !== undefined) ? result : undefined;
-};
-
-const 归一化NAI角色Caption首项 = (text: string): string => {
-    const cleaned = 清理生图词组输出(text);
-    if (!cleaned) return '';
-    const tokens = 去重提示词片段(按逗号拆分提示词(cleaned));
-    if (tokens.length <= 0) return '';
-    const [first, ...rest] = tokens;
-    const normalizedFirst = (() => {
-        const source = (first || '').trim().toLowerCase();
-        if (source === '1girl') return 'girl';
-        if (source === '1boy') return 'boy';
-        if (source === '1woman') return 'woman';
-        if (source === '1man') return 'man';
-        return first;
-    })();
-    return 去重提示词片段([normalizedFirst, ...rest]).join(', ');
-};
-
-const 是NAIV4角色起始Token = (token: string): boolean => {
-    const normalized = (token || '').trim().toLowerCase();
-    return /^(?:1girl|1boy|1woman|1man|girl|boy|woman|man)$/i.test(normalized);
-};
-
-const 看起来像NAIV4角色段 = (text: string): boolean => {
-    const source = 清理生图词组输出(text).toLowerCase();
-    if (!source) return false;
-    return (
-        /\b(?:1girl|1boy|1woman|1man|girl|boy|woman|man)\b/.test(source)
-        && (
-            /\(\s*placement\s*:/.test(source)
-            || /\bsolo\b/.test(source)
-            || /\b(?:sitting|standing|leaning|holding|looking|whispering|smirk|expression|posture)\b/.test(source)
-        )
-    );
-};
-
-const 拆分NAIV4基础与首角色 = (text: string): { baseCaption: string; firstCharacterCaption: string } => {
-    const cleaned = 清理生图词组输出(text);
-    if (!cleaned) {
-        return {
-            baseCaption: '',
-            firstCharacterCaption: ''
-        };
-    }
-    const tokens = 去重提示词片段(按逗号拆分提示词(cleaned));
-    if (tokens.length <= 0) {
-        return {
-            baseCaption: '',
-            firstCharacterCaption: ''
-        };
-    }
-    const roleStartIndex = tokens.findIndex((token) => 是NAIV4角色起始Token(token));
-    if (roleStartIndex <= 0) {
-        return {
-            baseCaption: cleaned,
-            firstCharacterCaption: ''
-        };
-    }
-    const baseCaption = tokens.slice(0, roleStartIndex).join(', ').trim();
-    const firstCharacterCaption = tokens.slice(roleStartIndex).join(', ').trim();
-    return {
-        baseCaption,
-        firstCharacterCaption
-    };
-};
-
-const 拆分NAIV4提示结构 = (prompt: string): {
-    inputPrompt: string;
-    baseCaption: string;
-    characterCaptions: string[];
-} => {
-    const source = (prompt || '').trim();
-    if (!source || !/\|/.test(source)) {
-        return {
-            inputPrompt: source,
-            baseCaption: source,
-            characterCaptions: []
-        };
-    }
-    const segments = source
-        .split('|')
-        .map((item) => item.trim())
-        .filter(Boolean);
-    if (segments.length <= 1) {
-        return {
-            inputPrompt: source,
-            baseCaption: source,
-            characterCaptions: []
-        };
-    }
-    const [baseCaptionRaw, ...characterSegmentRaws] = segments;
-    const shouldPromoteFirstSegmentToCharacter = characterSegmentRaws.length > 0 && 看起来像NAIV4角色段(baseCaptionRaw);
-    const splitFirstSegment = shouldPromoteFirstSegmentToCharacter ? 拆分NAIV4基础与首角色(baseCaptionRaw) : null;
-    const normalizedBaseCaption = 清理生图词组输出(splitFirstSegment?.baseCaption || baseCaptionRaw);
-    const rawCharacterCaptions = [
-        splitFirstSegment?.firstCharacterCaption || '',
-        ...characterSegmentRaws
-    ].filter(Boolean);
-    const characterCaptions = rawCharacterCaptions
-        .map((item) => 归一化NAI角色Caption首项(item))
-        .filter(Boolean);
-    const baseCaption = normalizedBaseCaption || (
-        shouldPromoteFirstSegmentToCharacter
-            ? 构建NAI基础人数标签(characterCaptions).join(', ')
-            : ''
-    );
-    return {
-        inputPrompt: baseCaption || source,
-        baseCaption: baseCaption || source,
-        characterCaptions
-    };
-};
-
-const 规范化NAIV4角色Caption对象列表 = (
-    source: Array<string | Record<string, unknown>> | undefined
-): Array<Record<string, unknown>> => {
-    const result = Array.isArray(source)
-        ? source
-            .map((item) => {
-                if (typeof item === 'string') {
-                    const charCaption = item.trim();
-                    return charCaption ? { char_caption: charCaption } : null;
-                }
-                if (!item || typeof item !== 'object') return null;
-                const normalized = { ...(item as Record<string, unknown>) };
-                const rawCaption = typeof normalized.char_caption === 'string'
-                    ? normalized.char_caption
-                    : (typeof normalized.caption === 'string' ? normalized.caption : '');
-                if (rawCaption && typeof normalized.char_caption !== 'string') {
-                    normalized.char_caption = rawCaption;
-                }
-                return normalized;
-            })
-            .filter((item): item is Record<string, unknown> => Boolean(item))
-        : [];
-    if (result.length > 0) return result;
-    return [];
-};
-
-const 解析SD参数文本 = (rawText: string): {
-    正面提示词: string;
-    负面提示词: string;
-    参数?: PNG解析参数结构;
-} => {
-    const lines = (rawText || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const metaLineIndex = lines.findIndex((line) => /Steps\s*:\s*\d+/i.test(line) || /Sampler\s*:/i.test(line));
-    const metaLine = metaLineIndex >= 0 ? lines[metaLineIndex] : '';
-    const textLines = metaLineIndex >= 0 ? lines.slice(0, metaLineIndex) : lines;
-    const negativeIndex = textLines.findIndex((line) => /^negative prompt\s*:/i.test(line));
-    const 正面提示词 = negativeIndex >= 0
-        ? textLines.slice(0, negativeIndex).join('\n').trim()
-        : textLines.join('\n').trim();
-    const 负面提示词 = negativeIndex >= 0
-        ? textLines.slice(negativeIndex).join('\n').replace(/^negative prompt\s*:/i, '').trim()
-        : '';
-
-    const metaPairs: Record<string, string> = {};
-    if (metaLine) {
-        metaLine.replace(/([^:]+):\s*([^,]+)(?:,|$)/g, (_, key, value) => {
-            const normalizedKey = String(key || '').trim();
-            if (normalizedKey) {
-                metaPairs[normalizedKey] = String(value || '').trim();
-            }
-            return '';
-        });
-    }
-
-    const readMeta = (patterns: RegExp[]): string => {
-        const entry = Object.entries(metaPairs).find(([key]) => patterns.some((pattern) => pattern.test(key)));
-        return entry?.[1]?.trim() || '';
-    };
-
-    const 解析参数: PNG解析参数结构 = {
-        采样器: readMeta([/^Sampler$/i, /^Sampler name$/i, /^Sampler_name$/i]) || undefined,
-        步数: (() => {
-            const steps = Number(readMeta([/^Steps$/i]));
-            return Number.isFinite(steps) ? Math.floor(steps) : undefined;
-        })(),
-        CFG强度: (() => {
-            const cfg = Number(readMeta([/^CFG scale$/i, /^CFG$/i]));
-            return Number.isFinite(cfg) ? cfg : undefined;
-        })(),
-        ClipSkip: (() => {
-            const clip = Number(readMeta([/^Clip skip$/i, /^ClipSkip$/i]));
-            return Number.isFinite(clip) ? Math.floor(clip) : undefined;
-        })(),
-        模型: readMeta([/^Model$/i, /^Model name$/i]) || undefined,
-        LoRA列表: 提取LoRA列表(正面提示词)
-    };
-
-    const hiresScale = Number(readMeta([/^Hires upscale$/i]));
-    const hiresSteps = Number(readMeta([/^Hires steps$/i]));
-    const hiresDenoise = Number(readMeta([/^Denoising strength$/i]));
-    const hiresUpscaler = readMeta([/^Hires upscaler$/i]);
-    if (Number.isFinite(hiresScale) || Number.isFinite(hiresSteps) || Number.isFinite(hiresDenoise) || hiresUpscaler) {
-        解析参数.Hires修复 = {
-            放大倍数: Number.isFinite(hiresScale) ? hiresScale : undefined,
-            步数: Number.isFinite(hiresSteps) ? Math.floor(hiresSteps) : undefined,
-            放大器: hiresUpscaler || undefined,
-            去噪强度: Number.isFinite(hiresDenoise) ? hiresDenoise : undefined
-        };
-    }
-
-    const adetailerModel = readMeta([/^ADetailer model/i, /^ADetailer\s*model/i]);
-    const adetailerPrompt = readMeta([/^ADetailer prompt/i, /^ADetailer\s*prompt/i]);
-    const adetailerNegPrompt = readMeta([/^ADetailer negative prompt/i, /^ADetailer\s*negative prompt/i]);
-    if (adetailerModel || adetailerPrompt || adetailerNegPrompt) {
-        解析参数.ADetailer = {
-            模型: adetailerModel || undefined,
-            正向提示词: adetailerPrompt || undefined,
-            负向提示词: adetailerNegPrompt || undefined
-        };
-    }
-
-    return {
-        正面提示词,
-        负面提示词,
-        参数: 解析参数
-    };
-};
-
-const 解析NovelAI注释JSON = (rawText: string): {
-    正面提示词: string;
-    负面提示词: string;
-    参数?: PNG解析参数结构;
-} | null => {
-    if (!rawText) return null;
-    let parsed: any = null;
-    try {
-        parsed = JSON.parse(rawText);
-    } catch {
-        return null;
-    }
-    if (!parsed || typeof parsed !== 'object') return null;
-    const 正面提示词 = typeof parsed.prompt === 'string' ? parsed.prompt.trim() : '';
-    const 负面提示词 = typeof parsed.uc === 'string' ? parsed.uc.trim() : (typeof parsed.negative_prompt === 'string' ? parsed.negative_prompt.trim() : '');
-    if (!正面提示词 && !负面提示词) return null;
-    const sampler = typeof parsed.sampler === 'string' ? parsed.sampler.trim() : '';
-    const steps = Number(parsed.steps);
-    const cfg = Number(parsed.scale ?? parsed.cfg_scale ?? parsed.cfg);
-    const clip = Number(parsed.clip_skip ?? parsed.clipSkip);
-    const model = typeof parsed.model === 'string' ? parsed.model.trim() : '';
-    const params: PNG解析参数结构 = {
-        采样器: sampler || undefined,
-        噪声计划: 读取字符串值(parsed.noise_schedule) || undefined,
-        步数: Number.isFinite(steps) ? Math.floor(steps) : undefined,
-        CFG强度: Number.isFinite(cfg) ? cfg : undefined,
-        CFG重缩放: 读取有限数字(parsed.cfg_rescale ?? parsed.prompt_guidance_rescale),
-        反向提示引导强度: 读取有限数字(parsed.uncond_scale),
-        ClipSkip: Number.isFinite(clip) ? Math.floor(clip) : undefined,
-        宽度: (() => {
-            const width = 读取有限数字(parsed.width);
-            return typeof width === 'number' && Number.isFinite(width) ? Math.floor(width) : undefined;
-        })(),
-        高度: (() => {
-            const height = 读取有限数字(parsed.height);
-            return typeof height === 'number' && Number.isFinite(height) ? Math.floor(height) : undefined;
-        })(),
-        随机种子: (() => {
-            const seed = 读取有限数字(parsed.seed);
-            return typeof seed === 'number' && Number.isFinite(seed) ? Math.floor(seed) : undefined;
-        })(),
-        SMEA: 读取布尔值(parsed.sm),
-        SMEA动态: 读取布尔值(parsed.sm_dyn),
-        动态阈值: 读取布尔值(parsed.dynamic_thresholding),
-        动态阈值百分位: 读取有限数字(parsed.dynamic_thresholding_percentile),
-        动态阈值模拟CFG: 读取有限数字(parsed.dynamic_thresholding_mimic_scale),
-        高Sigma跳过CFG: 读取有限数字(parsed.skip_cfg_above_sigma),
-        低Sigma跳过CFG: 读取有限数字(parsed.skip_cfg_below_sigma),
-        偏好布朗噪声: 读取布尔值(parsed.prefer_brownian),
-        Euler祖先采样Bug兼容: 读取布尔值(parsed.deliberate_euler_ancestral_bug),
-        精细细节增强: 读取布尔值(parsed.explike_fine_detail),
-        最小化Sigma无穷: 读取布尔值(parsed.minimize_sigma_inf),
-        模型: model || undefined,
-        V4正向提示: 读取V4提示结构(parsed.v4_prompt),
-        V4负向提示: 读取V4提示结构(parsed.v4_negative_prompt),
-        原始参数: JSON.parse(JSON.stringify(parsed)) as Record<string, unknown>,
-        LoRA列表: 提取LoRA列表(正面提示词)
-    };
-    return {
-        正面提示词,
-        负面提示词,
-        参数: params
-    };
-};
-
 export type PNG元数据解析结果 = {
     来源: PNG画风预设来源类型;
     正面提示词: string;
@@ -1014,7 +475,7 @@ export type PNG元数据解析结果 = {
     元数据标签?: Record<string, string>;
 };
 
-export const 解析PNG字节元数据 = (pngBytes: Uint8Array, 额外NovelAI注释文本 = ''): PNG元数据解析结果 => {
+export const 解析PNG字节元数据 = (pngBytes: Uint8Array): PNG元数据解析结果 => {
     const 标签映射 = {
         ...解析PNGExif元数据(pngBytes),
         ...解析PNG文本元数据(pngBytes)
@@ -1022,46 +483,7 @@ export const 解析PNG字节元数据 = (pngBytes: Uint8Array, 额外NovelAI注�
     const parametersText = 读取元数据字段(标签映射, ['parameters', 'Parameters']);
     const commentText = 读取元数据字段(标签映射, ['comment', 'Comment', 'UserComment', 'XPComment']);
     const descriptionText = 读取元数据字段(标签映射, ['description', 'Description', 'ImageDescription']);
-
-    const novelAiCandidates = [commentText, 额外NovelAI注释文本].filter((item): item is string => Boolean(item && item.trim()));
-    for (const candidate of novelAiCandidates) {
-        const novelAiParsed = 尝试解析NovelAI注释文本(candidate);
-        if (!novelAiParsed) continue;
-        return {
-            来源: 'novelai',
-            正面提示词: novelAiParsed.正面提示词 || descriptionText || '',
-            负面提示词: novelAiParsed.负面提示词 || '',
-            参数: novelAiParsed.参数,
-            原始元数据: candidate || descriptionText || JSON.stringify(标签映射, null, 2),
-            元数据标签: Object.keys(标签映射).length > 0 ? 标签映射 : undefined
-        };
-    }
-
-    const rawNovelAiParsed = 从PNG原始字节搜索NovelAI元数据(pngBytes);
-    if (rawNovelAiParsed) {
-        return {
-            来源: 'novelai',
-            正面提示词: rawNovelAiParsed.正面提示词 || descriptionText || '',
-            负面提示词: rawNovelAiParsed.负面提示词 || '',
-            参数: rawNovelAiParsed.参数,
-            原始元数据: rawNovelAiParsed.原始元数据 || commentText || descriptionText || JSON.stringify(标签映射, null, 2),
-            元数据标签: Object.keys(标签映射).length > 0 ? 标签映射 : undefined
-        };
-    }
-
-    if (parametersText) {
-        const parsed = 解析SD参数文本(parametersText);
-        return {
-            来源: 'sd_webui',
-            正面提示词: parsed.正面提示词,
-            负面提示词: parsed.负面提示词,
-            参数: parsed.参数,
-            原始元数据: parametersText,
-            元数据标签: Object.keys(标签映射).length > 0 ? 标签映射 : undefined
-        };
-    }
-
-    const fallbackPrompt = descriptionText || commentText || '';
+    const fallbackPrompt = parametersText || descriptionText || commentText || '';
     return {
         来源: 'unknown',
         正面提示词: fallbackPrompt,
@@ -1075,8 +497,7 @@ export const 解析PNG字节元数据 = (pngBytes: Uint8Array, 额外NovelAI注�
 export const 解析PNG文件元数据 = async (file: File): Promise<PNG元数据解析结果> => {
     const buffer = await file.arrayBuffer();
     const pngBytes = new Uint8Array(buffer);
-    const stealthNovelAiText = await 从PNG隐写Alpha提取NovelAI文本(file);
-    return 解析PNG字节元数据(pngBytes, stealthNovelAiText);
+    return 解析PNG字节元数据(pngBytes);
 };
 
 export type PNG画风提炼结果 = {
@@ -1446,240 +867,6 @@ const 构建后置正向提示词 = (
     );
 };
 
-const 读取ZipUint16LE = (bytes: Uint8Array, offset: number): number => (
-    bytes[offset] | (bytes[offset + 1] << 8)
-);
-
-const 读取ZipUint32LE = (bytes: Uint8Array, offset: number): number => (
-    (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0
-);
-
-const 图片字节匹配文件名 = (bytes: Uint8Array, fileName: string): boolean => {
-    const lower = (fileName || '').toLowerCase();
-    if (lower.endsWith('.png')) {
-        return bytes.length >= 8
-            && bytes[0] === 137
-            && bytes[1] === 80
-            && bytes[2] === 78
-            && bytes[3] === 71
-            && bytes[4] === 13
-            && bytes[5] === 10
-            && bytes[6] === 26
-            && bytes[7] === 10;
-    }
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-        return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    }
-    if (lower.endsWith('.webp')) {
-        return bytes.length >= 12
-            && bytes[0] === 82
-            && bytes[1] === 73
-            && bytes[2] === 70
-            && bytes[3] === 70
-            && bytes[8] === 87
-            && bytes[9] === 69
-            && bytes[10] === 66
-            && bytes[11] === 80;
-    }
-    if (lower.endsWith('.gif')) {
-        return bytes.length >= 6
-            && bytes[0] === 71
-            && bytes[1] === 73
-            && bytes[2] === 70
-            && bytes[3] === 56;
-    }
-    return bytes.length > 0;
-};
-
-const 字节序列匹配 = (bytes: Uint8Array, offset: number, signature: Uint8Array): boolean => {
-    if (offset < 0 || offset + signature.length > bytes.length) return false;
-    for (let i = 0; i < signature.length; i += 1) {
-        if (bytes[offset + i] !== signature[i]) return false;
-    }
-    return true;
-};
-
-const 查找字节序列 = (bytes: Uint8Array, signature: Uint8Array, startIndex = 0): number => {
-    const start = Math.max(0, startIndex);
-    for (let offset = start; offset <= bytes.length - signature.length; offset += 1) {
-        if (字节序列匹配(bytes, offset, signature)) return offset;
-    }
-    return -1;
-};
-
-const 读取Uint32BE = (bytes: Uint8Array, offset: number): number => {
-    if (offset < 0 || offset + 4 > bytes.length) return 0;
-    return ((bytes[offset] << 24) >>> 0)
-        + (bytes[offset + 1] << 16)
-        + (bytes[offset + 2] << 8)
-        + bytes[offset + 3];
-};
-
-const 提取PNG范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
-    if (!字节序列匹配(bytes, start, PNG签名)) return null;
-    let offset = start + PNG签名.length;
-    while (offset + 12 <= bytes.length) {
-        const length = 读取Uint32BE(bytes, offset);
-        const typeOffset = offset + 4;
-        const dataEnd = offset + 8 + length;
-        const chunkEnd = dataEnd + 4;
-        if (!Number.isFinite(length) || chunkEnd > bytes.length) return null;
-        if (字节序列匹配(bytes, typeOffset, PNG_IEND块签名)) {
-            return bytes.subarray(start, chunkEnd);
-        }
-        offset = chunkEnd;
-    }
-    return null;
-};
-
-const 提取JPEG范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
-    if (!字节序列匹配(bytes, start, JPEG签名)) return null;
-    for (let offset = start + 3; offset < bytes.length - 1; offset += 1) {
-        if (bytes[offset] === 0xff && bytes[offset + 1] === 0xd9) {
-            return bytes.subarray(start, offset + 2);
-        }
-    }
-    return null;
-};
-
-const 提取GIF范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
-    if (!字节序列匹配(bytes, start, GIF87签名) && !字节序列匹配(bytes, start, GIF89签名)) return null;
-    for (let offset = start + 6; offset < bytes.length; offset += 1) {
-        if (bytes[offset] === 0x3b) {
-            return bytes.subarray(start, offset + 1);
-        }
-    }
-    return null;
-};
-
-const 提取WEBP范围 = (bytes: Uint8Array, start: number): Uint8Array | null => {
-    if (!字节序列匹配(bytes, start, RIFF签名) || !字节序列匹配(bytes, start + 8, WEBP签名)) return null;
-    const riffSize = 读取ZipUint32LE(bytes, start + 4);
-    const end = start + 8 + riffSize;
-    if (riffSize <= 0 || end > bytes.length) return null;
-    return bytes.subarray(start, end);
-};
-
-const 从二进制中提取首张图片 = (bytes: Uint8Array, startIndex = 0): { fileName: string; imageBytes: Uint8Array } | null => {
-    const candidates = [
-        { fileName: 'image_0.png', offset: 查找字节序列(bytes, PNG签名, startIndex), extract: 提取PNG范围 },
-        { fileName: 'image_0.jpg', offset: 查找字节序列(bytes, JPEG签名, startIndex), extract: 提取JPEG范围 },
-        { fileName: 'image_0.gif', offset: 查找字节序列(bytes, GIF87签名, startIndex), extract: 提取GIF范围 },
-        { fileName: 'image_0.gif', offset: 查找字节序列(bytes, GIF89签名, startIndex), extract: 提取GIF范围 },
-        { fileName: 'image_0.webp', offset: 查找字节序列(bytes, RIFF签名, startIndex), extract: 提取WEBP范围 }
-    ]
-        .filter((candidate) => candidate.offset >= 0)
-        .sort((a, b) => a.offset - b.offset);
-    for (const candidate of candidates) {
-        const imageBytes = candidate.extract(bytes, candidate.offset);
-        if (imageBytes?.length && 图片字节匹配文件名(imageBytes, candidate.fileName)) {
-            return { fileName: candidate.fileName, imageBytes };
-        }
-    }
-    return null;
-};
-
-const 从Zip中央目录提取首张图片 = (bytes: Uint8Array): { fileName: string; imageBytes: Uint8Array } | null => {
-    for (let offset = 0; offset <= bytes.length - 46; offset += 1) {
-        if (读取ZipUint32LE(bytes, offset) !== 0x02014b50) continue;
-
-        const compressionMethod = 读取ZipUint16LE(bytes, offset + 10);
-        const compressedSize = 读取ZipUint32LE(bytes, offset + 20);
-        const fileNameLength = 读取ZipUint16LE(bytes, offset + 28);
-        const extraLength = 读取ZipUint16LE(bytes, offset + 30);
-        const commentLength = 读取ZipUint16LE(bytes, offset + 32);
-        const localHeaderOffset = 读取ZipUint32LE(bytes, offset + 42);
-        const fileNameStart = offset + 46;
-        const fileNameEnd = fileNameStart + fileNameLength;
-        if (fileNameEnd > bytes.length) return null;
-
-        const fileName = UTF8解码器.decode(bytes.subarray(fileNameStart, fileNameEnd));
-        if (!/\.(png|jpe?g|webp|gif)$/i.test(fileName)) {
-            offset = fileNameEnd + extraLength + commentLength - 1;
-            continue;
-        }
-
-        if (localHeaderOffset + 30 > bytes.length || 读取ZipUint32LE(bytes, localHeaderOffset) !== 0x04034b50) {
-            return null;
-        }
-        const localFileNameLength = 读取ZipUint16LE(bytes, localHeaderOffset + 26);
-        const localExtraLength = 读取ZipUint16LE(bytes, localHeaderOffset + 28);
-        const dataStart = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
-        const dataEnd = dataStart + compressedSize;
-        if (dataStart > bytes.length || dataEnd > bytes.length) return null;
-
-        const compressedBytes = bytes.subarray(dataStart, dataEnd);
-        if (compressionMethod === 0) {
-            return 图片字节匹配文件名(compressedBytes, fileName) ? { fileName, imageBytes: compressedBytes } : null;
-        }
-        if (compressionMethod === 8) {
-            const imageBytes = inflateSync(compressedBytes);
-            return 图片字节匹配文件名(imageBytes, fileName) ? { fileName, imageBytes } : null;
-        }
-        throw new Error(`不支持的 ZIP 压缩方式: ${compressionMethod}`);
-    }
-
-    return null;
-};
-
-const 从Zip本地文件头提取首张图片 = (bytes: Uint8Array): { fileName: string; imageBytes: Uint8Array } | null => {
-    for (let offset = 0; offset <= bytes.length - 30; offset += 1) {
-        if (读取ZipUint32LE(bytes, offset) !== 0x04034b50) continue;
-
-        const compressionMethod = 读取ZipUint16LE(bytes, offset + 8);
-        const compressedSize = 读取ZipUint32LE(bytes, offset + 18);
-        const fileNameLength = 读取ZipUint16LE(bytes, offset + 26);
-        const extraLength = 读取ZipUint16LE(bytes, offset + 28);
-        const fileNameStart = offset + 30;
-        const fileNameEnd = fileNameStart + fileNameLength;
-        if (fileNameEnd > bytes.length) continue;
-
-        const fileName = UTF8解码器.decode(bytes.subarray(fileNameStart, fileNameEnd));
-        const dataStart = fileNameEnd + extraLength;
-        if (dataStart >= bytes.length || !/\.(png|jpe?g|webp|gif)$/i.test(fileName)) {
-            offset = Math.max(offset, dataStart - 1);
-            continue;
-        }
-
-        try {
-            if (compressionMethod === 8) {
-                const compressedBytes = compressedSize > 0 && dataStart + compressedSize <= bytes.length
-                    ? bytes.subarray(dataStart, dataStart + compressedSize)
-                    : bytes.subarray(dataStart);
-                const imageBytes = inflateSync(compressedBytes);
-                if (图片字节匹配文件名(imageBytes, fileName)) {
-                    return { fileName, imageBytes };
-                }
-            } else if (compressionMethod === 0 && compressedSize > 0 && dataStart + compressedSize <= bytes.length) {
-                const imageBytes = bytes.subarray(dataStart, dataStart + compressedSize);
-                if (图片字节匹配文件名(imageBytes, fileName)) {
-                    return { fileName, imageBytes };
-                }
-            } else if (compressionMethod === 0) {
-                const imageEntry = 从二进制中提取首张图片(bytes, dataStart);
-                if (imageEntry) {
-                    return {
-                        fileName: fileName || imageEntry.fileName,
-                        imageBytes: imageEntry.imageBytes
-                    };
-                }
-            }
-        } catch {
-            // Keep scanning in case this PK signature appeared inside compressed data.
-        }
-    }
-
-    return null;
-};
-
-const 从Zip提取首张图片 = (bytes: Uint8Array): { fileName: string; imageBytes: Uint8Array } | null => (
-    从Zip中央目录提取首张图片(bytes) || 从Zip本地文件头提取首张图片(bytes) || 从二进制中提取首张图片(bytes)
-);
-
-export const __测试__从Zip中央目录提取首张图片 = 从Zip中央目录提取首张图片;
-export const __测试__从Zip本地文件头提取首张图片 = 从Zip本地文件头提取首张图片;
-export const __测试__从Zip提取首张图片 = 从Zip提取首张图片;
-
 const 构图附加负面提示词映射: Partial<Record<'头像' | '半身' | '立绘' | '场景' | '部位特写', string>> = {
     头像: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate face, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
     半身: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
@@ -1733,7 +920,7 @@ export const 构建最终图片提示词 = (
     const height = Number.isFinite(parsedHeight) && parsedHeight > 0 ? parsedHeight : 1024;
     const 原始前置正向提示词 = (options?.附加正向提示词 || '').trim();
     const 主体正向提示词 = 清洗最终主体提示词(prompt || '', {
-        isNovelAI: apiConfig.图片后端类型 === 'novelai' || apiConfig.词组转化输出策略 === 'nai_character_segments'
+        使用权重语法: apiConfig.词组转化输出策略 === 'tag_segments'
     });
     const 需要默认中国人物 = (
         是否角色构图(composition)
@@ -1751,8 +938,8 @@ export const 构建最终图片提示词 = (
         尺寸: size,
         后端类型: apiConfig.图片后端类型
     });
-    const 使用NAI角色分段 = apiConfig.词组转化输出策略 === 'nai_character_segments' && /\|/.test(主体正向提示词);
-    const 最终正向提示词 = 规范化Artist标签大小写(使用NAI角色分段
+    const 使用分段Tags角色段 = apiConfig.词组转化输出策略 === 'tag_segments' && /\|/.test(主体正向提示词);
+    const 最终正向提示词 = 规范化Artist标签大小写(使用分段Tags角色段
         ? (() => {
             const segments = 主体正向提示词
                 .split('|')
@@ -1795,19 +982,9 @@ const 为不支持独立负面字段的模型附加负面提示词 = (prompt: st
     return `${basePrompt}\nNegative prompt: ${negative}`;
 };
 
-const 构建生图请求头 = (apiConfig: 当前可用接口结构): Record<string, string> => {
-    const backendType = apiConfig.图片后端类型 || 'openai';
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-    };
-    if (backendType === 'novelai') {
-        headers.Accept = 'application/zip';
-    }
-    if (apiConfig.apiKey && (backendType === 'openai' || backendType === 'novelai')) {
-        headers.Authorization = `Bearer ${apiConfig.apiKey}`;
-    }
-    return headers;
-};
+const 构建生图请求头 = (): Record<string, string> => ({
+    'Content-Type': 'application/json'
+});
 
 const 获取ComfyUI基础地址 = (baseUrlRaw: string): string => {
     return 清理末尾斜杠(baseUrlRaw || '');
@@ -2062,54 +1239,6 @@ const 构建ComfyUI工作流 = (
     return 补齐ComfyUI负向提示词节点(injected, negativePrompt);
 };
 
-const 规范化SD采样器与调度器 = (pngParams?: PNG解析参数结构): { samplerName: string; scheduler?: string } => {
-    const rawSampler = (pngParams?.采样器 || '').trim();
-    const rawScheduler = (pngParams?.噪声计划 || '').trim().toLowerCase();
-
-    const samplerMap: Record<string, string> = {
-        'k_euler': 'Euler',
-        'k_euler_ancestral': 'Euler a',
-        'k_dpmpp_2m': 'DPM++ 2M',
-        'k_dpmpp_2s_ancestral': 'DPM++ 2S a',
-        'k_dpmpp_sde': 'DPM++ SDE',
-        'k_dpmpp_2m_sde': 'DPM++ 2M SDE'
-    };
-    const schedulerMap: Record<string, string> = {
-        'karras': 'Karras',
-        'exponential': 'Exponential',
-        'polyexponential': 'Polyexponential',
-        'sgm_uniform': 'SGM Uniform',
-        'simple': 'Simple',
-        'normal': 'Normal'
-    };
-
-    let samplerName = rawSampler;
-    let scheduler = rawScheduler;
-
-    const parenMatch = rawSampler.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-    if (parenMatch) {
-        samplerName = (parenMatch[1] || '').trim();
-        scheduler = ((parenMatch[2] || '').trim() || scheduler).toLowerCase();
-    }
-
-    const lowerSampler = samplerName.toLowerCase();
-    if (lowerSampler.endsWith(' karras')) {
-        samplerName = samplerName.slice(0, -7).trim();
-        scheduler = scheduler || 'karras';
-    } else if (lowerSampler.endsWith(' exponential')) {
-        samplerName = samplerName.slice(0, -12).trim();
-        scheduler = scheduler || 'exponential';
-    }
-
-    samplerName = samplerMap[samplerName] || samplerName || 'DPM++ 2M';
-    const normalizedScheduler = schedulerMap[scheduler] || '';
-
-    return {
-        samplerName,
-        scheduler: normalizedScheduler || undefined
-    };
-};
-
 const 等待 = async (ms: number, signal?: AbortSignal): Promise<void> => {
     if (!signal) {
         await new Promise((resolve) => setTimeout(resolve, ms));
@@ -2229,7 +1358,7 @@ const 尝试终止ComfyUI任务 = async (task: ComfyUI队列任务): Promise<voi
     try {
         await fetch(构建ComfyUI端点(task.baseUrl, '/queue', task.channel), {
             method: 'DELETE',
-            headers: 构建生图请求头(task.apiConfig),
+            headers: 构建生图请求头(),
             body: JSON.stringify({ delete: [task.promptId] })
         });
     } catch {
@@ -2238,7 +1367,7 @@ const 尝试终止ComfyUI任务 = async (task: ComfyUI队列任务): Promise<voi
     try {
         await fetch(构建ComfyUI端点(task.baseUrl, '/interrupt', task.channel), {
             method: 'POST',
-            headers: 构建生图请求头(task.apiConfig),
+            headers: 构建生图请求头(),
             body: JSON.stringify({ client_id: 'wuxia-web' })
         });
     } catch {
@@ -2255,7 +1384,6 @@ export const 终止全部ComfyUI生图任务 = async (): Promise<void> => {
 const 执行ComfyUI生图 = async (
     prompt: string,
     apiConfig: 当前可用接口结构,
-    responseFormat: 图片响应格式类型,
     size: string,
     negativePrompt: string,
     signal?: AbortSignal,
@@ -2281,7 +1409,7 @@ const 执行ComfyUI生图 = async (
         {
             const result = await fetchComfyUI直连优先(baseUrl, promptPath, {
                 method: 'POST',
-                headers: 构建生图请求头(apiConfig),
+                headers: 构建生图请求头(),
                 body: JSON.stringify({
                     prompt: workflow,
                     client_id: 'wuxia-web'
@@ -2355,14 +1483,14 @@ const 执行ComfyUI生图 = async (
                         ? {
                             response: await fetch(构建ComfyUI端点(baseUrl, historyPath, 'proxy'), {
                                 method: 'GET',
-                                headers: 构建生图请求头(apiConfig),
+                                headers: 构建生图请求头(),
                                 signal
                             }),
                             channel: 'proxy' as const
                         }
                         : await fetchComfyUI直连优先(baseUrl, historyPath, {
                         method: 'GET',
-                        headers: 构建生图请求头(apiConfig),
+                        headers: 构建生图请求头(),
                         signal
                         }, apiConfig.baseUrl);
                     historyResponse = result.response;
@@ -2414,38 +1542,6 @@ const 执行ComfyUI生图 = async (
                         });
                     }
                     if (imageUrl) {
-                        if (responseFormat === 'b64_json' || responseFormat === 'base64') {
-                            let imageResponse: Response;
-                            const downloadStartedAt = Date.now();
-                            try {
-                                imageResponse = await fetch(imageUrl, { signal });
-                            } catch (error: any) {
-                                追加生图调试事件(debugTrace, {
-                                    阶段: '下载 ComfyUI 图片失败',
-                                    状态: 'failed',
-                                    图片地址: imageUrl,
-                                    promptId,
-                                    错误: error?.message || String(error || '')
-                                });
-                                throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
-                            }
-                            追加生图调试事件(debugTrace, {
-                                阶段: '下载 ComfyUI 图片',
-                                状态: imageResponse.ok ? 'success' : 'failed',
-                                耗时ms: Date.now() - downloadStartedAt,
-                                HTTP状态: imageResponse.status,
-                                promptId,
-                                图片地址: imageUrl
-                            });
-                            if (!imageResponse.ok) {
-                                throw new Error(`ComfyUI 图片下载失败: ${imageResponse.status}`);
-                            }
-                            return {
-                                图片URL: await blob转DataUrl(await imageResponse.blob()),
-                                原始响应: historyText,
-                                调试链路: debugTrace
-                            };
-                        }
                         return {
                             图片URL: imageUrl,
                             原始响应: historyText,
@@ -2499,14 +1595,13 @@ const 构建ComfyUI自动切换候选 = (apiConfig: 当前可用接口结构): �
 const 执行ComfyUI生图并自动切换 = async (
     prompt: string,
     apiConfig: 当前可用接口结构,
-    responseFormat: 图片响应格式类型,
     size: string,
     negativePrompt: string,
     signal?: AbortSignal,
     pngParams?: PNG解析参数结构
 ): Promise<图片生成结果> => {
     try {
-        const result = await 执行ComfyUI生图(prompt, apiConfig, responseFormat, size, negativePrompt, signal, pngParams);
+        const result = await 执行ComfyUI生图(prompt, apiConfig, size, negativePrompt, signal, pngParams);
         return apiConfig.自动切换提示
             ? { ...result, 客户提示: apiConfig.自动切换提示 }
             : result;
@@ -2517,7 +1612,7 @@ const 执行ComfyUI生图并自动切换 = async (
         const errors: string[] = [typeof error?.message === 'string' ? error.message : String(error || '')];
         for (const candidate of candidates) {
             try {
-                const result = await 执行ComfyUI生图(prompt, candidate, responseFormat, size, negativePrompt, signal, pngParams);
+                const result = await 执行ComfyUI生图(prompt, candidate, size, negativePrompt, signal, pngParams);
                 return {
                     ...result,
                     客户提示: candidate.自动切换提示 || `当前 ComfyUI 后端不可用，已自动切换到在线后端：${candidate.baseUrl}`
@@ -2576,181 +1671,6 @@ const 请求分词器文本 = async (
     });
 };
 
-const 构建NovelAI请求体 = (
-    prompt: string,
-    apiConfig: 当前可用接口结构,
-    size: string,
-    extraNegativePrompt?: string,
-    options?: { 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构 }
-): Record<string, unknown> => {
-    const model = (apiConfig.model || '').trim();
-    if (!model) {
-        throw new Error('NovelAI 缺少模型名称，请先填写例如 nai-diffusion-4-5-full');
-    }
-    const [width, height] = size.split('x').map((value) => Number(value));
-    const useCustomParams = apiConfig.NovelAI启用自定义参数 === true;
-    const pngSampler = options?.PNG参数?.采样器;
-    const pngSteps = options?.PNG参数?.步数;
-    const pngScale = options?.PNG参数?.CFG强度;
-    const pngNoiseSchedule = (options?.PNG参数?.噪声计划 || '').trim();
-    const pngCfgRescale = options?.PNG参数?.CFG重缩放;
-    const pngSeed = options?.PNG参数?.随机种子;
-    const pngSmea = options?.PNG参数?.SMEA;
-    const pngSmeaDyn = options?.PNG参数?.SMEA动态;
-    const pngV4Prompt = options?.PNG参数?.V4正向提示;
-    const pngV4NegativePrompt = options?.PNG参数?.V4负向提示;
-    const pngDynamicThresholding = options?.PNG参数?.动态阈值;
-    const pngDynamicThresholdingPercentile = options?.PNG参数?.动态阈值百分位;
-    const pngDynamicThresholdingMimic = options?.PNG参数?.动态阈值模拟CFG;
-    const pngSkipCfgAboveSigma = options?.PNG参数?.高Sigma跳过CFG;
-    const pngSkipCfgBelowSigma = options?.PNG参数?.低Sigma跳过CFG;
-    const pngPreferBrownian = options?.PNG参数?.偏好布朗噪声;
-    const pngEulerBugCompat = options?.PNG参数?.Euler祖先采样Bug兼容;
-    const pngExplikeFineDetail = options?.PNG参数?.精细细节增强;
-    const pngMinimizeSigmaInf = options?.PNG参数?.最小化Sigma无穷;
-    const sampler = pngSampler || (useCustomParams ? (apiConfig.NovelAI采样器 || 'k_euler_ancestral') : 'k_euler_ancestral');
-    const noiseSchedule = pngNoiseSchedule || (useCustomParams ? (apiConfig.NovelAI噪点表 || 'karras') : 'karras');
-    const steps = Number.isFinite(pngSteps)
-        ? Math.max(1, Math.min(50, Number(pngSteps)))
-        : (useCustomParams ? Math.max(1, Math.min(50, Number(apiConfig.NovelAI步数) || 28)) : 28);
-    const baseNegativePrompt = useCustomParams
-        ? ((apiConfig.NovelAI负面提示词 || '').trim() || 默认NovelAI负面提示词)
-        : 默认NovelAI负面提示词;
-    const negativePrompt = options?.跳过基础负面提示词 ? '' : baseNegativePrompt;
-    const mergedNegativePrompt = 合并负面提示词片段(negativePrompt, extraNegativePrompt, 自动去水印负面提示词);
-    const finalNegativePrompt = options?.跳过基础负面提示词
-        ? (mergedNegativePrompt || '')
-        : (mergedNegativePrompt || negativePrompt || baseNegativePrompt);
-    const naiV4Prompt = 拆分NAIV4提示结构(prompt);
-    const isNovelAIV4Model = /^nai-diffusion-4(?:-|$)/i.test(model);
-    const parameters: Record<string, unknown> = {
-        params_version: 3,
-        width: Number.isFinite(width) ? width : 1024,
-        height: Number.isFinite(height) ? height : 1024,
-        scale: Number.isFinite(Number(pngScale)) ? Number(pngScale) : 5,
-        sampler,
-        steps,
-        n_samples: 1,
-        ucPreset: 0,
-        qualityToggle: true,
-        sm: pngSmea === true,
-        sm_dyn: pngSmeaDyn === true,
-        dynamic_thresholding: pngDynamicThresholding === true,
-        controlnet_strength: 1,
-        legacy: false,
-        add_original_image: false,
-        legacy_v3_extend: false,
-        prompt,
-        noise_schedule: noiseSchedule
-    };
-    if (!isNovelAIV4Model && finalNegativePrompt) {
-        parameters.negative_prompt = finalNegativePrompt;
-    }
-    if (Number.isFinite(Number(pngCfgRescale))) {
-        parameters.cfg_rescale = Number(pngCfgRescale);
-    }
-    if (Number.isFinite(Number(pngSeed))) {
-        parameters.seed = Math.max(0, Math.floor(Number(pngSeed)));
-    }
-    if (Number.isFinite(Number(pngDynamicThresholdingPercentile))) {
-        parameters.dynamic_thresholding_percentile = Number(pngDynamicThresholdingPercentile);
-    }
-    if (Number.isFinite(Number(pngDynamicThresholdingMimic))) {
-        parameters.dynamic_thresholding_mimic_scale = Number(pngDynamicThresholdingMimic);
-    }
-    if (Number.isFinite(Number(pngSkipCfgAboveSigma))) {
-        parameters.skip_cfg_above_sigma = Number(pngSkipCfgAboveSigma);
-    }
-    if (Number.isFinite(Number(pngSkipCfgBelowSigma))) {
-        parameters.skip_cfg_below_sigma = Number(pngSkipCfgBelowSigma);
-    }
-    if (pngPreferBrownian !== undefined) {
-        parameters.prefer_brownian = pngPreferBrownian === true;
-    }
-    if (pngEulerBugCompat !== undefined) {
-        parameters.deliberate_euler_ancestral_bug = pngEulerBugCompat === true;
-    }
-    if (pngExplikeFineDetail !== undefined) {
-        parameters.explike_fine_detail = pngExplikeFineDetail === true;
-    }
-    if (pngMinimizeSigmaInf !== undefined) {
-        parameters.minimize_sigma_inf = pngMinimizeSigmaInf === true;
-    }
-
-    if (isNovelAIV4Model) {
-        parameters.v4_prompt = {
-            use_coords: pngV4Prompt?.useCoords === true,
-            use_order: pngV4Prompt?.useOrder === true,
-            caption: {
-                base_caption: prompt,
-                char_captions: []
-            },
-            legacy_uc: pngV4Prompt?.legacyUc === true
-        };
-        parameters.v4_negative_prompt = {
-            use_coords: pngV4NegativePrompt?.useCoords === true,
-            use_order: pngV4NegativePrompt?.useOrder === true,
-            caption: {
-                base_caption: finalNegativePrompt,
-                char_captions: []
-            },
-            legacy_uc: pngV4NegativePrompt?.legacyUc === true
-        };
-    }
-
-    if (sampler === 'k_euler_ancestral' && pngEulerBugCompat === undefined && pngPreferBrownian === undefined) {
-        parameters.deliberate_euler_ancestral_bug = false;
-        parameters.prefer_brownian = true;
-    }
-
-    return {
-        input: prompt,
-        model,
-        action: 'generate',
-        parameters
-    };
-};
-
-const 解析NovelAI图片响应 = async (response: Response): Promise<图片生成结果> => {
-    const blob = await response.blob();
-    const contentType = (response.headers.get('content-type') || '').toLowerCase();
-    if (contentType.startsWith('image/')) {
-        return {
-            图片URL: await blob转DataUrl(blob)
-        };
-    }
-    if (contentType.includes('text/html')) {
-        const detail = await blob.text().catch(() => '');
-        const preview = detail.replace(/\s+/g, ' ').trim().slice(0, 160);
-        throw new Error(`NovelAI 图片响应返回了 HTML 页面，通常表示 /api/novelai 代理没有生效，当前请求可能被前端路由兜底到了首页。请更新到最新版本，或确认当前访问的站点已部署 NovelAI 代理。${preview ? `响应预览: ${preview}` : ''}`);
-    }
-
-    const buffer = new Uint8Array(await blob.arrayBuffer());
-    try {
-        const files = unzipSync(buffer);
-        const imageEntry = Object.entries(files).find(([name]) => /\.(png|jpe?g|webp|gif)$/i.test(name));
-        if (!imageEntry) {
-            throw new Error('压缩包中未找到图片文件');
-        }
-        const [fileName, imageBytes] = imageEntry;
-        return {
-            图片URL: uint8数组转DataUrl(imageBytes, 推断图片Mime类型(fileName))
-        };
-    } catch {
-        const imageEntry = 从Zip提取首张图片(buffer);
-        if (imageEntry) {
-            return {
-                图片URL: uint8数组转DataUrl(imageEntry.imageBytes, 推断图片Mime类型(imageEntry.fileName))
-            };
-        }
-        const detail = await blob.text().catch(() => '');
-        const preview = detail
-            ? detail.slice(0, 40).replace(/[^\x20-\x7E\u4e00-\u9fa5]/g, '')
-            : '';
-        throw new Error(`NovelAI 图片响应无法解析${preview ? `，响应像 ZIP/二进制但未能提取图片: ${preview}` : ''}`);
-    }
-};
-
 const 读取NPC字段文本 = (data: any, key: string): string => {
     const value = data?.[key];
     if (typeof value === 'string') return value.trim();
@@ -2782,13 +1702,6 @@ const 读取NPC数组片段 = (data: any, key: string): string => {
         })
         .filter(Boolean)
         .join('，');
-};
-
-const 生成NovelAI人物数量标签 = (source: Record<string, unknown>): string => {
-    const gender = 读取NPC字段文本(source, '性别');
-    if (gender === '女') return '1girl';
-    if (gender === '男') return '1man';
-    return 'solo';
 };
 
 const 香闺秘档部位描述字段映射: Record<香闺秘档部位类型, string> = {
@@ -2831,7 +1744,6 @@ export const buildNpcDirectImagePrompt = (
     options?: NPC提示词选项
 ): { 原始描述: string; 生图词组: string } => {
     const source = (npcData && typeof npcData === 'object') ? npcData as Record<string, unknown> : {};
-    const isNovelAI = options?.后端类型 === 'novelai';
     const fragments = [
         读取NPC字段文本(source, '性别'),
         读取NPC字段文本(source, '年龄') ? `${读取NPC字段文本(source, '年龄')}岁` : '',
@@ -2860,20 +1772,10 @@ export const buildNpcDirectImagePrompt = (
     // 背包物品不进入 NPC 生图 prompt：它们是随身道具，不是穿戴，容易让模型把丹药瓶子画到人手里
     展开对象为值('补充视觉设定').forEach((val) => fragments.push(val));
 
-    if (isNovelAI) {
-        const characterCountTag = 生成NovelAI人物数量标签(source);
-        if (options?.构图 === '立绘') {
-            fragments.push(characterCountTag, 'full body, standing, character focus');
-        } else {
-            fragments.push(characterCountTag, 'portrait, upper body, face focus');
-        }
-    } else {
-        if (options?.构图 === '立绘') fragments.push('全身角色，站姿，角色主体');
-    }
+    if (options?.构图 === '立绘') fragments.push('全身角色，站姿，角色主体');
     if ((options?.额外要求 || '').trim()) fragments.push((options?.额外要求 || '').trim());
 
-    const 原始词组 = fragments.filter(Boolean).join(isNovelAI ? ', ' : '，');
-    const 生图词组 = isNovelAI ? 保守补全NAI权重语法(原始词组) : 原始词组;
+    const 生图词组 = fragments.filter(Boolean).join('，');
     return {
         原始描述: JSON.stringify(source ?? {}, null, 2),
         生图词组
@@ -3124,7 +2026,7 @@ const 移除思考标签块 = (rawText: string): string => (
         .trim()
 );
 
-const 转换NAI括号权重语法 = (rawText: string): string => {
+const 转换括号权重语法 = (rawText: string): string => {
     let output = rawText || '';
     for (let i = 0; i < 8; i += 1) {
         const next = output.replace(/\(([^()]+?)\s*:\s*(-?\d+(?:\.\d+)?)\)/g, (_match, content, weight) => {
@@ -3149,7 +2051,7 @@ const 转换NAI括号权重语法 = (rawText: string): string => {
     return 规范化Artist标签大小写(output);
 };
 
-const 清洗NAI脏权重语法 = (rawText: string): string => {
+const 清洗脏权重语法 = (rawText: string): string => {
     let output = rawText || '';
 
     for (let i = 0; i < 8; i += 1) {
@@ -3208,7 +2110,7 @@ const 清洗NAI脏权重语法 = (rawText: string): string => {
     return output;
 };
 
-const 清洗最终主体提示词 = (rawText: string, options?: { isNovelAI?: boolean }): string => {
+const 清洗最终主体提示词 = (rawText: string, options?: { 使用权重语法?: boolean }): string => {
     const withoutThinking = 移除思考标签块(rawText);
     const 基础段内容 = 提取最后一个标签文本(withoutThinking, '基础');
     const 角色块内容 = 提取最后一个标签文本(withoutThinking, '角色');
@@ -3218,11 +2120,11 @@ const 清洗最终主体提示词 = (rawText: string, options?: { isNovelAI?: bo
         const safeRoles = 序号角色列表
             .map((item) => 规范化Artist标签大小写(清理生图词组输出(item?.内容 || '')))
             .filter(Boolean);
-        const mergedStructured = options?.isNovelAI
+        const mergedStructured = options?.使用权重语法
             ? [safeBase, ...safeRoles].filter(Boolean).join(' | ')
             : [safeBase, ...safeRoles].filter(Boolean).join('; ');
         if (mergedStructured.trim()) {
-            return options?.isNovelAI ? 保守补全NAI权重语法(mergedStructured) : mergedStructured.trim();
+            return options?.使用权重语法 ? 保守补全权重语法(mergedStructured) : mergedStructured.trim();
         }
     }
     const extracted = 提取最后一个标签文本列表(withoutThinking, ['提示词', '词组', '生图词组'])
@@ -3239,7 +2141,7 @@ const 清洗最终主体提示词 = (rawText: string, options?: { isNovelAI?: bo
     );
     const cleaned = 规范化Artist标签大小写(清理生图词组输出(withoutResidualTags));
     if (!cleaned) return '';
-    return options?.isNovelAI ? 保守补全NAI权重语法(cleaned) : cleaned;
+    return options?.使用权重语法 ? 保守补全权重语法(cleaned) : cleaned;
 };
 
 const 解析标签属性 = (raw: string): Record<string, string> => {
@@ -3395,7 +2297,7 @@ const 构建角色锚点稳定外观提示词 = (
 
 const 规范化角色名 = (name: string): string => (name || '').toLowerCase().replace(/\s+/g, '').trim();
 
-const 清理NAI角色段占位词 = (text: string): string => {
+const 清理分段角色段占位词 = (text: string): string => {
     const source = 清理生图词组输出(text)
         .replace(/^\[\d+\]\s*/u, '')
         .replace(/^(?:主体|角色\s*\d+|character\s*\d+|role\s*\d+|subject)\s*[:：\-]?\s*/iu, '')
@@ -3408,7 +2310,7 @@ const 清理NAI角色段占位词 = (text: string): string => {
         .join(', ');
 };
 
-const 推断NAI角色起始标签 = (text: string): string => {
+const 推断角色起始标签 = (text: string): string => {
     const source = (text || '').toLowerCase();
     if (!source) return '';
     if (/\b(1woman|woman|adult woman|adult female|female adult)\b/.test(source)) return '1woman';
@@ -3418,26 +2320,26 @@ const 推断NAI角色起始标签 = (text: string): string => {
     return '';
 };
 
-const 是NAI角色起始标签 = (token: string): boolean => (
+const 是角色起始标签 = (token: string): boolean => (
     /^(?:1girl|1boy|1woman|1man|girl|boy|woman|man)$/iu.test((token || '').trim())
 );
 
-const 确保NAI角色段起始标签 = (text: string): string => {
-    const cleaned = 清理NAI角色段占位词(text);
+const 确保角色段起始标签 = (text: string): string => {
+    const cleaned = 清理分段角色段占位词(text);
     if (!cleaned) return '';
     const tokens = 去重提示词片段(按逗号拆分提示词(cleaned));
     if (tokens.length <= 0) return '';
-    const inferredLead = 推断NAI角色起始标签(cleaned);
+    const inferredLead = 推断角色起始标签(cleaned);
     const normalizedTokens = inferredLead
-        ? 去重提示词片段([inferredLead, ...tokens.filter((token) => !是NAI角色起始标签(token))])
+        ? 去重提示词片段([inferredLead, ...tokens.filter((token) => !是角色起始标签(token))])
         : tokens;
     return normalizedTokens.join(', ');
 };
 
-const 构建NAI基础人数标签 = (segments: string[]): string[] => {
+const 构建基础人数标签 = (segments: string[]): string[] => {
     const counts = { '1girl': 0, '1boy': 0, '1woman': 0, '1man': 0 } as Record<string, number>;
     segments.forEach((segment) => {
-        const lead = 推断NAI角色起始标签(segment);
+        const lead = 推断角色起始标签(segment);
         if (lead && counts[lead] !== undefined) counts[lead] += 1;
     });
     const labels: string[] = [];
@@ -3448,10 +2350,10 @@ const 构建NAI基础人数标签 = (segments: string[]): string[] => {
     return labels;
 };
 
-const 补全NAI基础人数标签 = (base: string, segments: string[]): string => {
+const 补全基础人数标签 = (base: string, segments: string[]): string => {
     const cleanedBase = 清理生图词组输出(base);
     if (/\b\d+\s*(?:girls?|boys?|women|men)\b/i.test(cleanedBase)) return cleanedBase;
-    const countLabels = 构建NAI基础人数标签(segments);
+    const countLabels = 构建基础人数标签(segments);
     if (countLabels.length <= 0) return cleanedBase;
     return 合并正向提示词片段(countLabels.join(', '), cleanedBase);
 };
@@ -3506,13 +2408,13 @@ const 序列化结构化词组结果 = (
 ): string => {
     const 基础 = (structured?.基础 || '').trim();
     const 角色段列表 = 构建结构化角色段列表(structured?.角色列表 || [], anchors);
-    if (strategy === 'nai_character_segments') {
+    if (strategy === 'tag_segments') {
         const 序列化角色段 = 角色段列表
-            .map((role) => 确保NAI角色段起始标签(合并正向提示词片段(构建角色锚点稳定外观提示词(role.锚点), role.内容)))
-            .map((text) => (text ? 保守补全NAI权重语法(text) : ''))
+            .map((role) => 确保角色段起始标签(合并正向提示词片段(构建角色锚点稳定外观提示词(role.锚点), role.内容)))
+            .map((text) => (text ? 保守补全权重语法(text) : ''))
             .filter(Boolean);
-        if (序列化角色段.length <= 0) return 保守补全NAI权重语法(基础);
-        const 基础段 = 保守补全NAI权重语法(补全NAI基础人数标签(基础, 序列化角色段));
+        if (序列化角色段.length <= 0) return 保守补全权重语法(基础);
+        const 基础段 = 保守补全权重语法(补全基础人数标签(基础, 序列化角色段));
         return [基础段, ...序列化角色段].filter(Boolean).join(' | ');
     }
 
@@ -3525,8 +2427,8 @@ const 序列化结构化词组结果 = (
         })
         .filter(Boolean);
 
-    if (strategy === 'gemini_structured' || strategy === 'grok_structured') {
-        const baseLabel = strategy === 'grok_structured' ? 'Scene staging' : 'Base scene';
+    if (strategy === 'gemini_structured' || strategy === 'cinematic_structured') {
+        const baseLabel = strategy === 'cinematic_structured' ? 'Scene staging' : 'Base scene';
         return [
             基础 ? `${baseLabel}: ${基础}` : '',
             ...角色描述段
@@ -3554,7 +2456,7 @@ const 序列化词组转化器输出 = (
         return 序列化结构化词组结果(structured, strategy, roleAnchors);
     }
     const cleaned = 清洗最终主体提示词(sanitizedRawText, {
-        isNovelAI: strategy === 'nai_character_segments'
+        使用权重语法: strategy === 'tag_segments'
     });
     if (!cleaned) return '';
     if (strategy === 'flat') return cleaned;
@@ -3566,25 +2468,25 @@ const 序列化词组转化器输出 = (
 
 const 归一化单段词组转化器输出 = (
     rawText: string,
-    options?: { isNovelAI?: boolean }
+    options?: { 使用权重语法?: boolean }
 ): string => {
     const sanitizedRawText = 移除思考标签块(rawText);
     const structured = 解析结构化词组结果(sanitizedRawText);
     const merged = structured
         ? 合并正向提示词片段(
             structured.基础,
-            ...((structured.角色列表 || []).map((role) => 清理NAI角色段占位词(role?.内容 || '')))
+            ...((structured.角色列表 || []).map((role) => 清理分段角色段占位词(role?.内容 || '')))
         )
-        : 清洗最终主体提示词(sanitizedRawText, { isNovelAI: options?.isNovelAI });
-    return options?.isNovelAI
-        ? 保守补全NAI权重语法(merged)
+        : 清洗最终主体提示词(sanitizedRawText, { 使用权重语法: options?.使用权重语法 });
+    return options?.使用权重语法
+        ? 保守补全权重语法(merged)
         : 清理生图词组输出(merged);
 };
 
-const 保守补全NAI权重语法 = (rawText: string): string => {
+const 保守补全权重语法 = (rawText: string): string => {
     const cleaned = 清理生图词组输出(
-        清洗NAI脏权重语法(
-            转换NAI括号权重语法(
+        清洗脏权重语法(
+            转换括号权重语法(
                 移除思考标签块(rawText)
             )
         )
@@ -3716,54 +2618,6 @@ const 构建ComfyUI缺少PromptId提示 = (baseUrlRaw: string, response: Respons
     return details.join('\n');
 };
 
-const 提取图片生成结果 = (payload: any): 图片生成结果 | null => {
-    if (!payload || typeof payload !== 'object') return null;
-
-    const 读取图片字段 = (value: any): 图片生成结果 | null => {
-        if (!value) return null;
-        if (typeof value === 'string') {
-            const trimmed = value.trim();
-            if (!trimmed) return null;
-            if (/^https?:\/\//i.test(trimmed) || /^data:image\//i.test(trimmed)) {
-                return { 图片URL: trimmed };
-            }
-            if (/^[A-Za-z0-9+/=\s]+$/.test(trimmed) && trimmed.length > 64) {
-                return { 图片URL: `data:image/png;base64,${trimmed.replace(/\s+/g, '')}` };
-            }
-            return { 本地路径: trimmed };
-        }
-        if (typeof value === 'object') {
-            const url = typeof value.url === 'string' ? value.url.trim() : '';
-            const path = typeof value.path === 'string' ? value.path.trim() : (typeof value.local_path === 'string' ? value.local_path.trim() : '');
-            const b64 = typeof value.b64_json === 'string'
-                ? value.b64_json.trim()
-                : (typeof value.base64 === 'string' ? value.base64.trim() : (typeof value.image_base64 === 'string' ? value.image_base64.trim() : (typeof value.image === 'string' ? value.image.trim() : '')));
-            if (url) return { 图片URL: url };
-            if (b64) return { 图片URL: `data:image/png;base64,${b64.replace(/\s+/g, '')}` };
-            if (path) return { 本地路径: path };
-        }
-        return null;
-    };
-
-    const candidates = [
-        payload?.data?.[0],
-        payload?.images?.[0],
-        payload?.output?.[0],
-        payload?.result,
-        payload?.image,
-        payload?.url,
-        payload?.path,
-        payload
-    ];
-
-    for (const candidate of candidates) {
-        const hit = 读取图片字段(candidate);
-        if (hit) return hit;
-    }
-
-    return null;
-};
-
 export const buildNpcSecretPartDirectImagePrompt = (
     npcData: unknown,
     options: NPC秘档部位提示词选项
@@ -3776,11 +2630,10 @@ export const buildNpcSecretPartDirectImagePrompt = (
         throw new Error(`${部位}描述为空，无法生成${部位}特写。`);
     }
 
-    const isNovelAI = options.后端类型 === 'novelai';
     const 额外要求 = (options?.额外要求 || '').trim();
     const 角色锚点注入词 = 构建角色锚点注入提示词(options?.角色锚点, { 构图: '部位特写', 部位 });
     const fragments = [
-        isNovelAI ? 生成NovelAI人物数量标签(source) : 'single female subject',
+        'single female subject',
         读取NPC字段文本(source, '性别') === '女' ? 'female' : '',
         角色锚点注入词,
         描述文本,
@@ -3807,7 +2660,7 @@ export const buildNpcSecretPartDirectImagePrompt = (
                 衣着: 读取NPC字段文本(source, '衣着')
             }
         }, null, 2),
-        生图词组: isNovelAI ? 保守补全NAI权重语法(合并正向提示词片段(...fragments)) : 合并正向提示词片段(...fragments)
+        生图词组: 合并正向提示词片段(...fragments)
     };
 };
 
@@ -3858,7 +2711,7 @@ export const generateNpcSecretPartImagePrompt = async (
     const 词组转化器AI角色提示词 = (apiConfig.词组转化器AI角色提示词 || '').trim();
     const 相关转换提示词 = (apiConfig.词组转化器提示词 || '').trim();
     const 额外要求 = (options?.额外要求 || '').trim();
-    const isNovelAI = options?.后端类型 === 'novelai';
+    const 使用权重语法 = apiConfig.词组转化输出策略 === 'tag_segments';
     const 启用画师串预设 = options?.启用画师串预设 === true;
     const 兼容模式 = options?.兼容模式 === true;
     const 风格提示词输入 = (options?.风格提示词输入 || '').trim();
@@ -3866,10 +2719,10 @@ export const generateNpcSecretPartImagePrompt = async (
     const 使用角色锚点 = Boolean((角色锚点?.正面提示词 || '').trim());
     const 角色锚点注入词 = 构建角色锚点注入提示词(角色锚点, { 构图: '部位特写', 部位 });
     const 特写说明 = 构建香闺秘档部位特写说明(部位);
-    const 默认系统提示词 = (isNovelAI ? [
-        '你是 NovelAI V4/V4.5 专用的角色局部特写提示词专家。',
+    const 默认系统提示词 = (使用权重语法 ? [
+        '你是分段 tags 角色局部特写提示词专家。',
         '任务：根据输入的角色资料、角色锚点和目标部位描述，生成稳定、可画的英文 tags。',
-        '【输出策略】：可以使用 NovelAI 权重分组语法来组织构图、主体、局部细节和附加风格要求，但不要默认补充固定质量串或固定画风串。',
+        '【输出策略】：可以使用权重分组语法来组织构图、主体、局部细节和附加风格要求，但不要默认补充固定质量串或固定画风串。',
         '【构图规范】：极速聚焦（Macro Focus）。目标部位必须撑满画面，禁止任何退回半身、全身或普通人像的倾向。',
         '【画面形态】：只能是单张完整画面、单一主体、单一镜头；禁止拼贴、参考页、分镜、宫格、底部小图、缩略图条和任何文字水印。',
         '【视觉纹理】：重点描述 skins texture, subsurface scattering, glistening moisture, soft shadows, rim lighting。',
@@ -3897,7 +2750,7 @@ export const generateNpcSecretPartImagePrompt = async (
     ])
         .filter(Boolean)
         .join('\n');
-    const taskPrompt = isNovelAI ? [
+    const taskPrompt = 使用权重语法 ? [
         '【角色与目标部位资料】',
         原始描述,
         使用角色锚点 ? `\n【角色稳定视觉锚点】\n${(角色锚点?.正面提示词 || '').trim()}` : '',
@@ -3946,7 +2799,7 @@ export const generateNpcSecretPartImagePrompt = async (
     const 生图词组 = 强化香闺秘档特写词组(
         合并正向提示词片段(
             角色锚点注入词,
-            归一化单段词组转化器输出(raw, { isNovelAI })
+            归一化单段词组转化器输出(raw, { 使用权重语法 })
         ),
         部位
     );
@@ -3970,10 +2823,8 @@ export const generateNpcImagePrompt = async (
     const 额外要求 = (options?.额外要求 || '').trim();
     const 词组转化器AI角色提示词 = (apiConfig.词组转化器AI角色提示词 || '').trim();
     const 相关转换提示词 = (apiConfig.词组转化器提示词 || '').trim();
-    const isNovelAI = options?.后端类型 === 'novelai';
-    const 输出策略 = isNovelAI
-        ? (apiConfig.词组转化输出策略 === 'flat' ? 'nai_character_segments' : (apiConfig.词组转化输出策略 || 'nai_character_segments'))
-        : (apiConfig.词组转化输出策略 || 'flat');
+    const 输出策略 = apiConfig.词组转化输出策略 || 'flat';
+    const 使用权重语法 = 输出策略 === 'tag_segments';
     const 启用画师串预设 = options?.启用画师串预设 === true;
     const 兼容模式 = options?.兼容模式 === true;
     const 风格提示词输入 = (options?.风格提示词输入 || '').trim();
@@ -3984,7 +2835,7 @@ export const generateNpcImagePrompt = async (
         : 构图 === '半身'
             ? '半身角色像，聚焦面部辨识、肩颈线条、上半身服饰层次与手部动作。'
             : '头像特写，聚焦头部与领口，保证五官辨识、目光与面部气质表达。';
-    const 默认系统提示词 = (isNovelAI ? [
+    const 默认系统提示词 = (使用权重语法 ? [
         `当前任务目标画风：${画风要求}。除非输入资料或附加要求明确指定，否则不要擅自锁定具体风格标签。`,
         '请把身份、境界、性格、外貌、身材和衣着转换成可见的角色信息，不要写成空泛气质词。',
         使用角色锚点
@@ -4007,7 +2858,7 @@ export const generateNpcImagePrompt = async (
     ])
         .filter(Boolean)
         .join('\n');
-    const taskPrompt = isNovelAI ? [
+    const taskPrompt = 使用权重语法 ? [
         '【NPC基础资料】',
         原始描述,
         使用角色锚点 ? `\n【角色稳定视觉锚点】\n${(角色锚点?.正面提示词 || '').trim()}` : '',
@@ -4075,9 +2926,7 @@ export const generateNpcImagePrompt = async (
             }]
             : []
     });
-    const 生图词组 = 输出策略 === 'flat' && isNovelAI
-        ? 保守补全NAI权重语法(序列化结果)
-        : 序列化结果;
+    const 生图词组 = 序列化结果;
     if (!生图词组) {
         throw new Error('词组转化器未返回有效生图词组');
     }
@@ -4112,10 +2961,8 @@ export const generateSceneImagePrompt = async (
     const 启用画师串预设 = options?.启用画师串预设 === true;
     const 兼容模式 = options?.兼容模式 === true;
     const 风格提示词输入 = (options?.风格提示词输入 || '').trim();
-    const isNovelAI = options?.后端类型 === 'novelai';
-    const 输出策略 = isNovelAI
-        ? 'nai_character_segments'
-        : (apiConfig.词组转化输出策略 || 'flat');
+    const 输出策略 = apiConfig.词组转化输出策略 || 'flat';
+    const 使用权重语法 = 输出策略 === 'tag_segments';
     const 构图要求 = options?.构图要求;
     const 额外要求 = (options?.额外要求 || '').trim();
     const 原始角色锚点列表 = Array.isArray(options?.角色锚点列表) ? options?.角色锚点列表.filter((item) => (item?.正面提示词 || '').trim()) : [];
@@ -4164,7 +3011,7 @@ export const generateSceneImagePrompt = async (
             : '',
         兼容模式 && 风格提示词输入 ? '请吸收额外提供的非主体风格正面提示词，并将其提炼进最终场景词组中。' : '',
         '词组使用短语串，按逗号分隔。',
-        '若目标后端是 NovelAI，优先使用带权重的标签分组，例如 1.22::anime background, scenic composition::, 1.1::misty courtyard, wet stone path::。',
+        使用权重语法 ? '优先使用带权重的标签分组，例如 1.22::anime background, scenic composition::, 1.1::misty courtyard, wet stone path::。' : '',
         纯场景模式
             ? '输出格式固定为 <提示词结构><基础>...</基础></提示词结构>。'
             : '输出格式固定为 <提示词结构><基础>...</基础><角色>[1]角色名称|tags\n[2]角色名称|tags</角色></提示词结构>。',
@@ -4221,7 +3068,7 @@ export const generateSceneImagePrompt = async (
         纯场景模式
             ? '结构化输出：只写 <基础>，内容只包含环境、建筑、地形、天气、材质、镜头、布局、光影与景深；不要输出 <角色>。'
             : '结构化输出：<基础> 写环境、镜头、天气、布局、多人关系框架；<角色> 内按 [序号]角色名称|tags 逐条写该角色的外观锚点补充、动作、姿态、视线与环境/他人的关系。',
-        !纯场景模式 && isNovelAI ? 'NovelAI 最终会使用 | 连接基础段与角色段；每条 [序号] 角色内容开头优先写 1girl、1boy、1woman 或 1man。' : '',
+        !纯场景模式 && 使用权重语法 ? '分段 tags 最终会使用 | 连接基础段与角色段；每条 [序号] 角色内容开头优先写 1girl、1boy、1woman 或 1man。' : '',
         '题材优先：只在正文或附加要求确实属于武侠/仙侠时融入气场、剑意、写意留白等元素；现代或末日题材应改用街区废墟、车辆、警戒线、临时营地、设备、血污、尘土、雨水、霓虹或现实光影等可见元素。',
         使用角色锚点 ? '锚点模式下，请直接沿用角色的稳定外观，让 [序号] 角色内容集中承载站位、动作、关系、镜头和环境。' : '',
         构图要求 === '纯场景'
@@ -4276,9 +3123,7 @@ export const generateSceneImagePrompt = async (
         strategy: 输出策略,
         roleAnchors: 序列化角色锚点列表
     });
-    const 生图词组 = 输出策略 === 'flat' && isNovelAI
-        ? 保守补全NAI权重语法(序列化结果)
-        : 序列化结果;
+    const 生图词组 = 序列化结果;
     if (!生图词组) {
         throw new Error('场景词组转化器未返回有效生图词组');
     }
@@ -4305,51 +3150,20 @@ export const generateImageByPrompt = async (
     signal?: AbortSignal,
     options?: { 构图?: 生图构图类型; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构 }
 ): Promise<图片生成结果> => {
-    const endpoint = 构建图片端点(apiConfig.baseUrl, apiConfig.图片接口路径);
-    if (!endpoint) throw new Error('Missing API Base URL');
+    if (!获取ComfyUI基础地址(apiConfig.baseUrl)) throw new Error('ComfyUI 缺少 API 地址');
     const promptBundle = 构建最终图片提示词(prompt, apiConfig, options);
     const normalizedPrompt = promptBundle.最终正向提示词;
     if (!normalizedPrompt) throw new Error('Missing image prompt');
 
-    const responseFormat: 图片响应格式类型 = apiConfig.图片响应格式 === 'b64_json' || apiConfig.图片响应格式 === 'base64'
-        ? apiConfig.图片响应格式
-        : 'url';
-    const backendType = apiConfig.图片后端类型 || 'openai';
-    const shouldUseCustomOpenAIPayload = apiConfig.图片走OpenAI自定义格式 === true;
-    const isChatCompletionsEndpoint = /\/chat\/completions$/i.test(endpoint);
-    const imageModel = 规范化OpenAI图片模型名称(apiConfig.model || '');
-    const isGptImageModel = /^(gpt-image|chatgpt-image)/i.test(imageModel);
-    const endpointInfo = (() => {
-        try {
-            return new URL(endpoint);
-        } catch {
-            return null;
-        }
-    })();
-    const originalBaseHost = (() => {
-        try {
-            return new URL(规范化OpenAI图片基础地址(apiConfig.baseUrl)).hostname;
-        } catch {
-            return '';
-        }
-    })();
-    const isPucodingImageEndpoint = /(^|\.)pucoding\.com$/i.test(originalBaseHost)
-        || /\/api\/pucoding-image\/v1\/images\//i.test(endpointInfo?.pathname || '');
-    const negativePromptText = promptBundle.最终负向提示词;
-    const promptWithInlineNegative = promptBundle.带内联负面提示词的正向提示词;
-    const shouldSkipBaseNegative = options?.跳过基础负面提示词 === true;
-    const size = promptBundle.尺寸;
-    const width = promptBundle.宽度;
-    const height = promptBundle.高度;
-    if (backendType === 'novelai' && !(apiConfig.apiKey || '').trim()) {
-        throw new Error('NovelAI 缺少 Persistent API Token，请先在文生图设置中填写');
+    if (apiConfig.图片后端类型 !== 'comfyui') {
+        throw new Error('当前版本仅支持 ComfyUI 文生图后端');
     }
-
-    if (backendType === 'comfyui') {
+    const negativePromptText = promptBundle.最终负向提示词;
+    const size = promptBundle.尺寸;
+    try {
         const result = await 执行ComfyUI生图并自动切换(
             normalizedPrompt,
             apiConfig,
-            responseFormat,
             size,
             negativePromptText,
             signal,
@@ -4360,135 +3174,12 @@ export const generateImageByPrompt = async (
             最终正向提示词: normalizedPrompt,
             最终负向提示词: negativePromptText
         };
-    }
-
-    let requestBody: Record<string, unknown>;
-    if (backendType === 'sd_webui') {
-        const sdSampler = 规范化SD采样器与调度器(options?.PNG参数);
-        requestBody = {
-            prompt: normalizedPrompt,
-            negative_prompt: negativePromptText || undefined,
-            width,
-            height,
-            steps: Number.isFinite(Number(options?.PNG参数?.步数)) ? Math.max(1, Math.floor(Number(options?.PNG参数?.步数))) : 28,
-            cfg_scale: Number.isFinite(Number(options?.PNG参数?.CFG强度)) ? Number(options?.PNG参数?.CFG强度) : 7,
-            sampler_name: sdSampler.samplerName,
-            scheduler: sdSampler.scheduler,
-            batch_size: 1,
-            n_iter: 1
-        };
-    } else if (backendType === 'novelai') {
-        requestBody = 构建NovelAI请求体(normalizedPrompt, apiConfig, size, options?.附加负面提示词, {
-            跳过基础负面提示词: shouldSkipBaseNegative,
-            PNG参数: options?.PNG参数
-        });
-    } else {
-        requestBody = isChatCompletionsEndpoint
-            ? {
-                model: imageModel || apiConfig.model,
-                stream: false,
-                messages: [
-                    {
-                        role: 'user',
-                        content: promptWithInlineNegative
-                    }
-                ]
-            }
-            : {
-                model: imageModel || apiConfig.model,
-                prompt: promptWithInlineNegative,
-                n: 1,
-                size
-            };
-        if (isGptImageModel && !isChatCompletionsEndpoint) {
-            if (isPucodingImageEndpoint) {
-                requestBody.response_format = 'b64_json';
-            } else {
-                requestBody.moderation = 'auto';
-            }
-        }
-        if (!isGptImageModel && !isChatCompletionsEndpoint) {
-            requestBody.response_format = responseFormat;
-        }
-        if (!isGptImageModel && isChatCompletionsEndpoint && (shouldUseCustomOpenAIPayload || responseFormat !== 'url')) {
-            requestBody.response_format = responseFormat === 'url'
-                ? { type: 'url' }
-                : { type: responseFormat };
-        }
-    }
-
-    let response: Response;
-    try {
-        response = await fetch(endpoint, {
-            method: 'POST',
-            headers: 构建生图请求头(apiConfig),
-            body: JSON.stringify(requestBody),
-            signal
-        });
     } catch (error: any) {
-        if (backendType === 'novelai') {
-            throw new Error(`NovelAI 请求失败：${error?.message || '网络异常'}。如果你在本地开发环境，请确认仍在通过 Vite dev server 访问，并使用 https://image.novelai.net 作为基础地址。`);
-        }
         if (判断疑似网络或跨域错误(error)) {
-            if (backendType === 'comfyui') {
-                throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
-            }
-            throw new Error(构建通用生图连接失败提示(backendType, apiConfig.baseUrl, error));
+            throw new Error(await 构建ComfyUI精确连接失败提示(apiConfig.baseUrl, error));
         }
         throw error;
     }
-
-    if (!response.ok) {
-        const detail = await 读取失败详情文本(response, Number.POSITIVE_INFINITY);
-        if (backendType === 'novelai' && NOVELAI_TRIAL_RECAPTCHA_PATTERN.test(detail)) {
-            throw new 协议请求错误(构建NovelAI试用验证码错误提示(response.status), response.status, detail);
-        }
-        if (backendType === 'novelai' && response.status === 403 && NOVELAI_ACCESS_DENIED_PATTERN.test(detail)) {
-            throw new 协议请求错误(构建NovelAI访问受限错误提示(response.status), response.status, detail);
-        }
-        if (backendType === 'novelai' && response.status >= 500 && !detail) {
-            throw new 协议请求错误('图片生成请求失败: 500 - NovelAI 代理握手失败，请重启 Vite 开发服务器后重试。', response.status, detail);
-        }
-        throw new 协议请求错误(`图片生成请求失败: ${response.status}${detail ? ` - ${detail}` : ''}`, response.status, detail);
-    }
-
-    if (backendType === 'novelai') {
-        const result = await 解析NovelAI图片响应(response);
-        return {
-            ...result,
-            最终正向提示词: normalizedPrompt,
-            最终负向提示词: negativePromptText
-        };
-    }
-
-    const rawText = await response.text();
-    const parsed = 解析可能是JSON字符串(rawText);
-    const result = 提取图片生成结果(parsed);
-    if (!result) {
-        const completionText = parsed ? 提取OpenAI完整文本(parsed) : '';
-        const textToParse = completionText || rawText;
-
-        // 新增：支持 grok-imagine 等模型返回 Markdown 图片链接的格式
-        // 优先尝试解析 Markdown 格式: ![...](URL)，兼容 http/https 和 data:
-        const markdownUrlRegex = /!\[.*?\]\(([^)]+)\)/;
-        const markdownMatch = textToParse.match(markdownUrlRegex);
-        if (markdownMatch && markdownMatch[1]) {
-            return {
-                图片URL: markdownMatch[1].trim(),
-                原始响应: rawText,
-                最终正向提示词: normalizedPrompt,
-                最终负向提示词: negativePromptText
-            };
-        }
-        throw new Error(`图片生成响应无法解析: ${rawText.slice(0, 500)}`);
-    }
-
-    return {
-        ...result,
-        原始响应: rawText,
-        最终正向提示词: normalizedPrompt,
-        最终负向提示词: negativePromptText
-    };
 };
 
 export const persistImageAssetLocally = async (

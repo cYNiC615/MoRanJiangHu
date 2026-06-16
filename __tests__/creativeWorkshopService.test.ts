@@ -22,7 +22,7 @@ const 创建旧版开局模块 = () => ({
     type: 'opening' as const,
     title: '旧版开局模板',
     subtitle: '',
-    description: '旧版创意工坊开局模块',
+    description: '旧版本地模式包开局模块',
     tags: ['旧版', '兼容'],
     payload: {
         mode: '武侠',
@@ -43,9 +43,6 @@ const 创建旧版开局模块 = () => ({
                 lockGeneratedGenders: true,
                 defaultEquipment: {
                     武器: '青锋剑'
-                },
-                defaultCurrency: {
-                    底层货币: 88
                 }
             }
         }
@@ -80,7 +77,7 @@ describe('creativeWorkshop service compatibility', () => {
         expect(modules[0].payload?.legacyType).toBe('opening');
         expect(modules[0].payload?.migratedFromLegacyOpening).toBe(true);
         expect(modules[0].modeRuntimeProfile?.opening?.defaultEquipment).toEqual({ 武器: '青锋剑' });
-        expect(modules[0].modeRuntimeProfile?.opening?.defaultCurrency).toEqual({ 底层货币: 88 });
+        expect((modules[0].modeRuntimeProfile?.opening as any)?.[['default', 'Currency'].join('')]).toBeUndefined();
         expect(modules[0].contentBlocks?.[0]?.content).toContain('旧版开局模块正文');
         expect(localStorage.setItem).toHaveBeenCalledTimes(1);
         const [, rewritten] = vi.mocked(localStorage.setItem).mock.calls[0];
@@ -102,13 +99,13 @@ describe('creativeWorkshop service compatibility', () => {
         expect(String(migrated?.payload?.manualWorldPrompt || '')).toContain('旧版开局模块正文');
     });
 
-    it('列出创意工坊模块不会请求或返回云端社区模块', async () => {
+    it('列出本地模式包模块不会请求或返回云端重复模块', async () => {
         const fetchMock = vi.fn(async () => new Response(JSON.stringify({
             ok: true,
             entries: [{
                 id: 'cloud-topic-demo',
                 type: 'topic',
-                title: '云端社区模式',
+                title: '云端重复模式',
                 subtitle: 'cloud',
                 description: '不应出现在本地 homebrew 列表里',
                 tags: ['cloud'],

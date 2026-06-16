@@ -11,8 +11,7 @@ const baseState = {
         }
     },
     环境: {
-        具体地点: '旧巷',
-        天气: '阴'
+        具体地点: '旧巷'
     },
     社交: [
         {
@@ -22,12 +21,10 @@ const baseState = {
         }
     ],
     任务列表: [],
-    约定列表: [],
     世界: {
         地图层级: [],
         地图建筑: []
     },
-    战斗: {},
     剧情: {},
     剧情规划: {},
     玩家组织: {}
@@ -150,13 +147,11 @@ describe('variableRegistry', () => {
             baseState.环境 as any,
             baseState.社交 as any,
             baseState.世界 as any,
-            baseState.战斗 as any,
             baseState.剧情 as any,
             baseState.剧情规划 as any,
             undefined,
             baseState.玩家组织 as any,
             baseState.任务列表 as any,
-            baseState.约定列表 as any,
             '世界.地图建筑',
             { 名称: '旧式建筑' },
             'push'
@@ -171,19 +166,17 @@ describe('variableRegistry', () => {
             baseState.环境 as any,
             baseState.社交 as any,
             baseState.世界 as any,
-            { 是否战斗中: false } as any,
             baseState.剧情 as any,
             baseState.剧情规划 as any,
             undefined,
             { 名称: '旧组织' } as any,
             baseState.任务列表 as any,
-            baseState.约定列表 as any,
             '战斗.是否战斗中',
             true,
             'set'
         );
 
-        expect(result.battle).toEqual({ 是否战斗中: false });
+        expect('battle' in result).toBe(false);
         expect(result.sect).toEqual({ 名称: '旧组织' });
     });
 });

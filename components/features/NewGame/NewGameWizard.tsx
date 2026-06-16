@@ -4,12 +4,11 @@ import { 接口设置结构, OpeningConfig, WorldGenConfig, 角色数据结构, 
 import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../data/presets';
 import type { 开局预设方案结构 } from '../../../data/newGamePresets';
 import { 从模式世界书提取提示词, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
-import type { CurrencySystem, 题材模式类型 } from '../../../models/system';
+import type { 题材模式类型 } from '../../../models/system';
 import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
 import NewGameDiyTools from './NewGameDiyTools';
 import GeneratedGenderSelector from './GeneratedGenderSelector';
-import NewGameCurrencySystemSetup from './NewGameCurrencySystemSetup';
 import * as dbService from '../../../services/dbService';
 import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键, 构建开局运行时快照, 构建预设表单恢复结果, 构建预设直开恢复结果, 获取快速重开运行时恢复参数 } from '../../../utils/customNewGamePresets';
 import {
@@ -40,7 +39,7 @@ import {
     获取题材模式配置,
     题材模式顺序
 } from '../../../utils/workshopEngine';
-import { 构建官方模式运行时配置, 构建货币系统模板, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
+import { 构建官方模式运行时配置, 规范化模式运行时配置 } from '../../../utils/modeRuntimeProfile';
 import { 构建默认技艺 } from '../../../utils/skillDefaults';
 import { 设置键 } from '../../../utils/settingsSchema';
 import { 根据名称映射天赋抽卡, 根据名称映射抽卡, 补全天赋抽卡名称列表, 补全抽卡名称列表, 天赋抽卡数量, 出身抽卡数量, 抽取天赋卡牌, 抽取卡牌 } from '../../../utils/talentDraw';
@@ -80,7 +79,6 @@ type 自定义开局预设元信息 = {
     名称: string;
     简介: string;
 };
-type 货币偏好 = 'follow_mode' | 'custom' | 'legacy';
 type 属性结构 = {
     力量: number;
     敏捷: number;
@@ -119,7 +117,7 @@ const 读取模块世界细节生成配置 = (module: 创意工坊模块条目):
 const 渲染模块世界细节要求 = (config: 创意工坊世界细节生成配置): string => {
     if (config.aiGenerate) return '';
     return [
-        '【创意工坊自定义世界细节】',
+        '【本地模式包自定义世界细节】',
         '该模式包要求优先使用本地自定义的重要人物、重要势力和地图分布；AI 只能补齐空白与细节，不得另起一套核心世界骨架。',
         config.importantPeople ? `【重要人物】\n${config.importantPeople}` : '',
         config.importantFactions ? `【重要势力/宗门/组织】\n${config.importantFactions}` : '',
@@ -274,8 +272,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [创意工坊注入状态, 设置创意工坊注入状态] = useState('');
     const [创意工坊注入中, 设置创意工坊注入中] = useState(false);
     const [activeModuleExtraRules, setActiveModuleExtraRules] = useState('');
-    const [货币偏好, 设置货币偏好] = useState<货币偏好>('follow_mode');
-
     // Custom Inputs
     const [customTalent, setCustomTalent] = useState<天赋结构>({ 名称: '', 描述: '', 效果: '' });
     const [showCustomTalent, setShowCustomTalent] = useState(false);
@@ -672,7 +668,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             天赋列表: params?.天赋列表 ?? selectedTalents,
             出身背景: params?.背景 ?? selectedBackground,
             称号: '初出茅庐', 境界: 初始境界名称, 境界层级: 初始境界层级,
-            金钱: { 金元宝: 0, 银子: 0, 铜钱: 0 },
+            金钱: { baseAmount: 0 },
             当前精力, 最大精力,
             当前内力, 最大内力,
             当前饱腹, 最大饱腹,
@@ -753,21 +749,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         const normalizedPartner = normalizedPartnerList[0] || 默认初始伙伴配置();
         setOpeningConfigEnabled(Boolean(normalizedOpeningConfig) && normalizedOpeningConfig?.配置约束启用 !== false);
         setOpeningConfig(restoredOpeningConfig);
-        const restoredCurrencySystem = restoredOpeningConfig.modeRuntimeProfile?.economy.currencySystem;
-        设置货币偏好(!restoredCurrencySystem
-            ? (restoredOpeningConfig.modeRuntimeProfile ? 'legacy' : 'follow_mode')
-            : (() => {
-                const topicDefault = 构建货币系统模板('topic-default', {
-                    ...restoredOpeningConfig.modeRuntimeProfile!,
-                    economy: { ...restoredOpeningConfig.modeRuntimeProfile!.economy, currencySystem: undefined }
-                });
-                const fingerprint = (s: CurrencySystem) => JSON.stringify({
-                    id: s.id, name: s.name, baseUnitId: s.baseUnitId,
-                    formatStyle: s.formatStyle || 'compound',
-                    units: (s.units || []).map(u => ({ id: u.id, name: u.name, symbol: u.symbol || '', baseRate: Number(u.baseRate) || 1, order: Number(u.order) || 1 }))
-                });
-                return fingerprint(restoredCurrencySystem) === fingerprint(topicDefault) ? 'follow_mode' : 'custom';
-            })());
         setPartnerList(normalizedPartnerList);
         setActivePartnerIndex(0);
         载入伙伴配置到表单(normalizedPartner);
@@ -959,55 +940,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         允许生成性别: 规范化开局生成性别列表(modeRuntimeProfile?.opening?.allowedGeneratedGenders),
         生成性别锁定: modeRuntimeProfile?.opening?.lockGeneratedGenders === true
     });
-    const 清除运行时货币系统 = <T extends OpeningConfig['modeRuntimeProfile']>(modeRuntimeProfile: T): T => {
-        if (!modeRuntimeProfile) return modeRuntimeProfile;
-        return {
-            ...modeRuntimeProfile,
-            economy: {
-                ...modeRuntimeProfile.economy,
-                currencySystem: undefined
-            }
-        } as T;
-    };
-    const 保留自定义货币系统 = (modeRuntimeProfile: NonNullable<OpeningConfig['modeRuntimeProfile']>) => {
-        if (货币偏好 === 'legacy') return 清除运行时货币系统(modeRuntimeProfile);
-        const currentCurrencySystem = openingConfig.modeRuntimeProfile?.economy.currencySystem;
-        if (货币偏好 !== 'custom' || !currentCurrencySystem) return modeRuntimeProfile;
-        return {
-            ...modeRuntimeProfile,
-            economy: {
-                ...modeRuntimeProfile.economy,
-                currencySystem: currentCurrencySystem as CurrencySystem
-            }
-        };
-    };
-    const 更新开局货币系统 = (
-        nextProfile: NonNullable<OpeningConfig['modeRuntimeProfile']>,
-        preference: 'follow_mode' | 'custom' = 'custom'
-    ) => {
-        设置货币偏好(preference);
-        setOpeningConfig((prev) => ({
-            ...prev,
-            modeRuntimeProfile: nextProfile
-        }));
-        setWorldConfig((prev) => ({
-            ...prev,
-            modeRuntimeProfile: nextProfile
-        }));
-    };
-    const 使用旧版三层货币系统 = () => {
-        设置货币偏好('legacy');
-        setOpeningConfig((prev) => ({
-            ...prev,
-            modeRuntimeProfile: 清除运行时货币系统(prev.modeRuntimeProfile)
-        }));
-        setWorldConfig((prev) => ({
-            ...prev,
-            modeRuntimeProfile: 清除运行时货币系统(prev.modeRuntimeProfile)
-        }));
-    };
     const 更新题材模式 = (题材模式: OpeningConfig['题材模式']) => {
-        const modeRuntimeProfile = 保留自定义货币系统(构建官方模式运行时配置(题材模式));
+        const modeRuntimeProfile = 构建官方模式运行时配置(题材模式);
         设置模式包背景列表([]);
         设置模式包天赋列表([]);
         设置模式包世界书列表([]);
@@ -1061,10 +995,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             const module = await 下载创意工坊模块(entry);
             const mode = 读取模块模式(module);
             if (mode) 更新题材模式(mode);
-            const modeRuntimeProfile = 保留自定义货币系统(规范化模式运行时配置(
+            const modeRuntimeProfile = 规范化模式运行时配置(
                 module.modeRuntimeProfile || (module.payload as any)?.modeRuntimeProfile,
                 mode || openingConfig.题材模式
-            ));
+            );
             const resolvedMode = modeRuntimeProfile.identity.baseMode as 题材模式类型;
             const moduleBackgrounds = 提取模块背景列表(module);
             const moduleTalents = 提取模块天赋列表(module);
@@ -1172,7 +1106,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
             }
             设置创意工坊注入状态(`已注入「${module.title}」的模式专属世界书、身份背景池和天赋池。可在后续步骤继续微调角色与开局要求。`);
         } catch (error: any) {
-            设置创意工坊注入状态(`工坊预设注入失败：${error?.message || '未知错误'}`);
+            设置创意工坊注入状态(`模式包预设注入失败：${error?.message || '未知错误'}`);
         } finally {
             设置创意工坊注入中(false);
         }
@@ -1901,17 +1835,17 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-4">
                                         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                             <div>
-                                                <div className="text-sm text-emerald-300 font-bold">创意工坊模式</div>
+                                                <div className="text-sm text-emerald-300 font-bold">本地模式包</div>
                                                 <div className="mt-1 text-[11px] leading-6 text-gray-400">
                                                     模式包现在以“模式专属世界书”为核心，一次选择就会写入题材口径、世界规则与能力体系。开局配置仍保留在新建存档流程里单独调整。
                                                 </div>
                                             </div>
-                                            <span className="text-[10px] text-emerald-200 font-mono tracking-[0.18em]">WORKSHOP</span>
+                                            <span className="text-[10px] text-emerald-200 font-mono tracking-[0.18em]">MODE PACK</span>
                                         </div>
                                         <InlineSelect
                                             value={已选创意工坊模式}
                                             options={[
-                                                { value: '', label: '不使用工坊模式' },
+                                                { value: '', label: '不使用模式包' },
                                                 ...题材模式顺序.map((mode) => ({ value: mode, label: `${mode}模式` }))
                                             ]}
                                             onChange={选择创意工坊模式}
@@ -1970,7 +1904,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] leading-5">
                                             <div className="rounded-xl border border-white/8 bg-black/30 p-3">
                                                 <div className="text-gray-500">市场入口</div>
-                                                <div className="mt-1 text-gray-200">{当前题材配置.auctionName}</div>
+                                                <div className="mt-1 text-gray-200">{当前题材配置.marketName}</div>
                                             </div>
                                             <div className="rounded-xl border border-white/8 bg-black/30 p-3">
                                                 <div className="text-gray-500">{当前题材配置.densityLabel}</div>
@@ -1986,24 +1920,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             </div>
                                         </div>
                                     </div>
-
-                                    {openingConfig.modeRuntimeProfile && (
-                                        <NewGameCurrencySystemSetup
-                                            profile={openingConfig.modeRuntimeProfile}
-                                            onChangeProfile={更新开局货币系统}
-                                            onUseLegacyCurrency={使用旧版三层货币系统}
-                                            onTouched={(touched) => 设置货币偏好(touched ? 'custom' : 'follow_mode')}
-                                        />
-                                    )}
-                                    {货币偏好 === 'legacy' ? (
-                                        <div className="rounded-xl border border-wuxia-cyan/20 bg-wuxia-cyan/[0.06] px-3 py-2 text-[11px] leading-5 text-wuxia-cyan">
-                                            当前已切换为旧版三层货币系统，会保留题材的 currencyTiers；如需重新启用新版动态货币，请在上方选择“题材默认”或其他模板。
-                                        </div>
-                                    ) : 货币偏好 === 'custom' && (
-                                        <div className="rounded-xl border border-wuxia-gold/15 bg-wuxia-gold/[0.04] px-3 py-2 text-[11px] leading-5 text-wuxia-gold">
-                                            已保留你自定义的货币系统；如需使用题材默认，可在上方重新选择“题材默认”模板。
-                                        </div>
-                                    )}
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
@@ -2948,7 +2864,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <div className="rounded-2xl border border-wuxia-gold/20 bg-black/25 p-4 text-xs leading-6 text-gray-400">
                                         <div className="text-sm text-wuxia-gold font-bold">当前题材：{当前题材配置.label}</div>
                                         <div className="mt-1">{当前题材配置.hint}</div>
-                                        <div className="mt-2 text-gray-500">市场入口：{当前题材配置.auctionName}；{当前题材配置.currencyPrompt}；{当前题材配置.currencyExchangePrompt}</div>
+                                        <div className="mt-2 text-gray-500">市场入口：{当前题材配置.marketName}；{当前题材配置.currencyPrompt}；{当前题材配置.currencyExchangePrompt}</div>
                                     </div>
                                     <div className="space-y-3">
                                         <label className="text-sm text-wuxia-cyan font-bold">开局切入偏好</label>
@@ -3008,10 +2924,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.memberDescription}</div>
                                         </div>
                                         <开关按钮
-                                            checked={openingConfig.开局生成同门 !== false}
-                                            label={openingConfig.开局生成同门 !== false ? '生成' : '不生成'}
+                                            checked={openingConfig.开局生成成员 !== false}
+                                            label={openingConfig.开局生成成员 !== false ? '生成' : '不生成'}
                                             onToggle={() => {
-                                                setOpeningConfig((prev) => ({ ...prev, 开局生成同门: prev.开局生成同门 === false }));
+                                                setOpeningConfig((prev) => ({ ...prev, 开局生成成员: prev.开局生成成员 === false }));
                                             }}
                                         />
                                     </div>
@@ -3019,7 +2935,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                     <div>
                                         <div className="text-sm text-gray-200">女主剧情规划</div>
-                                        <div className="text-[11px] text-gray-500 mt-1">控制是否主动生成女主 NPC 和推进情感线；创意工坊可预设此项</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">控制是否主动生成女主 NPC 和推进情感线；模式包可预设此项</div>
                                     </div>
                                     <select
                                         value={openingConfig.启用女主剧情规划 === undefined ? '默认' : openingConfig.启用女主剧情规划 ? '启用' : '关闭'}

@@ -57,6 +57,9 @@ const retiredNeedles = [
     'core_realm',
     'stat_kungfu',
     'stat_cultivation',
+    'stat_combat',
+    'cultivationSystemEnabled',
+    'isCultivationSystemEnabled',
     'retired_growth_core',
     'retired_ability_prompt',
     'retired_growth_stat',
@@ -68,7 +71,8 @@ const retiredNeedles = [
     '小说分解',
     'nativeRuntime',
     'Capacitor',
-    'MobileQuickMenu'
+    'MobileQuickMenu',
+    '对象存储'
 ];
 
 describe('homebrew dead feature registry', () => {
@@ -99,13 +103,20 @@ describe('homebrew dead feature registry', () => {
             'services/auctionHouse.ts',
             'data/defaultAuctionItemImages.ts',
             'public/assets/auction-items',
-            'scripts/generate-gpt-image2-auction-images.mjs',
             'utils/nativeRuntime.ts',
             'utils/realmConfig.ts',
             'utils/realmDisplay.ts',
             'components/layout/MobileQuickMenu.tsx',
             'android',
-            'capacitor.config.ts'
+            'capacitor.config.ts',
+            'docs/homebrew-dead-feature-registry.md',
+            '.tmp-release-assets',
+            'tests/bugfix-map-theme.spec.mjs',
+            'tests/dialogue-render-fallback.spec.mjs',
+            'tests/e2e-autogen-off.spec.mjs',
+            'tests/e2e-current.spec.mjs',
+            'tests/e2e-npc-placeholder-identity.spec.mjs',
+            'tests/save-single-export.spec.mjs'
         ].forEach((relativePath) => {
             expect(projectFileExists(relativePath), relativePath).toBe(false);
         });
@@ -129,17 +140,17 @@ describe('homebrew dead feature registry', () => {
         expect(hits).toEqual([]);
     });
 
-    it('keeps the registry as a current-state file without deleted-history baggage', () => {
-        const registry = readProjectFile('docs/homebrew-dead-feature-registry.md');
-        expect(registry).toContain('## Current Live Residue');
-        expect(registry).toContain('Old battle state shell');
-        expect(registry).toContain('Generic organization legacy naming');
-        expect(registry).toContain('Structured weather/festival field shell');
-        expect(registry).not.toContain('Retired growth prompt id placeholders');
-        expect(registry).not.toContain('同人/原著融合残留');
-        expect(registry).not.toContain('小说分解残留');
-        expect(registry).not.toContain('New Phase 2 Deep Deletion Queue');
-        expect(registry).not.toContain('backend_pending');
-        expect(registry).not.toContain('storage_pending');
+    it('keeps retired feature guardrails in current-state docs without deleted-history baggage', () => {
+        const map = readProjectFile('docs/homebrew-function-map-and-simplification-decision-table.md');
+        expect(projectFileExists('docs/homebrew-dead-feature-registry.md')).toBe(false);
+        expect(map).toContain('## 已退役功能护栏');
+        expect(map).toContain('No live retired-feature residue');
+        expect(map).not.toContain('Generic organization legacy naming');
+        expect(map).not.toContain('Retired growth prompt id placeholders');
+        expect(map).not.toContain('同人/原著融合残留');
+        expect(map).not.toContain('小说分解残留');
+        expect(map).not.toContain('New Phase 2 Deep Deletion Queue');
+        expect(map).not.toContain('backend_pending');
+        expect(map).not.toContain('storage_pending');
     });
 });

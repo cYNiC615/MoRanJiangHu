@@ -37,7 +37,7 @@ export interface 基础物品 {
     是否可堆叠: boolean; // 是否允许堆叠
     最大堆叠?: number;   // 单格最大堆叠数 (可选，默认99或999)
 
-    价值: number;        // 铜钱
+    价值: number;        // 元
     
     当前耐久: number;
     最大耐久: number;    // 0为不可破坏

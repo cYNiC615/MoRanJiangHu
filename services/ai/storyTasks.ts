@@ -689,7 +689,6 @@ export const generateVariableCalibrationUpdate = async (
         worldEvolutionUpdated?: boolean;
         builtinPromptEntries?: 内置提示词条目结构[];
         survivalNeedsEnabled?: boolean;
-        cultivationSystemEnabled?: boolean;
         recentRounds?: Array<{
             回合: number;
             玩家输入: string;
@@ -723,8 +722,7 @@ export const generateVariableCalibrationUpdate = async (
     const 默认系统补充提示词 = 构建变量模型系统提示词({
         worldEvolutionEnabled: params.worldEvolutionUpdated === true,
         worldEvolutionUpdated: params.worldEvolutionUpdated === true,
-        survivalNeedsEnabled: params.survivalNeedsEnabled !== false,
-        cultivationSystemEnabled: params.cultivationSystemEnabled === true
+        survivalNeedsEnabled: params.survivalNeedsEnabled !== false
     }).trim();
     const 去重后的系统补充提示词 = (() => {
         const source = (systemPrompt || '').trim();
@@ -764,8 +762,7 @@ export const generateVariableCalibrationUpdate = async (
         {
             role: 'system',
             content: `【职责】\n${构建变量模型职责提示词({
-                survivalNeedsEnabled: params.survivalNeedsEnabled !== false,
-                cultivationSystemEnabled: params.cultivationSystemEnabled === true
+                survivalNeedsEnabled: params.survivalNeedsEnabled !== false
             })}`
         },
         ...(去重后的系统补充提示词

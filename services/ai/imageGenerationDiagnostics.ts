@@ -1,4 +1,3 @@
-import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取本地站点基址 } from '../../utils/localAppInfo';
 
 type ComfyUI远程探测结果 = {
@@ -159,91 +158,6 @@ export const 构建ComfyUI运行时代理端点 = (baseUrlRaw: string, pathRaw: 
     return `${proxyBase}/api/image-backend/comfyui-proxy${pathPart}?${params.toString()}`;
 };
 
-export const 规范化OpenAI图片模型名称 = (modelRaw: string): string => {
-    const model = (modelRaw || '').trim();
-    return model.replace(/^gpt-iamge-/i, 'gpt-image-');
-};
-
-export const 规范化OpenAI图片基础地址 = (baseUrlRaw: string): string => {
-    const trimmed = 清理末尾斜杠((baseUrlRaw || '').trim());
-    if (!trimmed) return '';
-
-    try {
-        const url = new URL(trimmed);
-        const path = 清理末尾斜杠(url.pathname || '');
-        const lowerPath = path.toLowerCase();
-        const isKnownPucodingPage = /(^|\.)pucoding\.com$/i.test(url.hostname)
-            && (
-                lowerPath === '/playground/image'
-                || lowerPath === '/keys'
-                || lowerPath === '/dashboard/api-keys'
-                || lowerPath === '/docs/image-api'
-            );
-        if (isKnownPucodingPage) {
-            return url.origin;
-        }
-    } catch {
-        return trimmed;
-    }
-
-    return trimmed;
-};
-
-const 判断可走OpenAI图片运行时代理 = (url: URL): boolean => {
-    if (!/^https:$/i.test(url.protocol)) return false;
-    if (!/^\/(?:v1\/)?images\/(?:generations|edits)$/i.test(url.pathname)) return false;
-    if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(url.hostname)) return false;
-    return true;
-};
-
-const 转换为运行时OpenAI图片代理端点 = (directEndpoint: string): string => {
-    if (!directEndpoint) return directEndpoint;
-    try {
-        const url = new URL(directEndpoint);
-        if (!判断可走OpenAI图片运行时代理(url)) return directEndpoint;
-        const proxyUrl = new URL(`${获取运行时代理基础地址()}/api/image-backend/openai-image-proxy${url.pathname}`);
-        proxyUrl.search = url.search;
-        proxyUrl.searchParams.set('url', `${url.origin}${url.pathname.replace(/\/(?:v1\/)?images\/(?:generations|edits)$/i, '')}`.replace(/\/+$/, ''));
-        return proxyUrl.toString();
-    } catch {
-        return directEndpoint;
-    }
-};
-
-const 构建OpenAI图片直连生成端点 = (baseUrlRaw: string, customPathRaw?: string): string => {
-    const base = 规范化OpenAI图片基础地址(baseUrlRaw);
-    const customPath = (customPathRaw || '').trim();
-    if (/^https?:\/\//i.test(customPath)) {
-        const normalizedCustomBase = 规范化OpenAI图片基础地址(customPath);
-        if (normalizedCustomBase && normalizedCustomBase !== 清理末尾斜杠(customPath)) {
-            return 构建OpenAI图片直连生成端点(normalizedCustomBase);
-        }
-        return 清理末尾斜杠(customPath);
-    }
-    if (!base) return '';
-    if (customPath) {
-        const rawPath = customPath.startsWith('/') ? customPath : `/${customPath}`;
-        const normalizedPath = /\/v1$/i.test(base) && /^\/v1\//i.test(rawPath)
-            ? rawPath.replace(/^\/v1/i, '')
-            : rawPath;
-        return `${base}${normalizedPath}`;
-    }
-    if (/\/images\/generations$/i.test(base)) return base;
-    if (/\/v1$/i.test(base)) return `${base}/images/generations`;
-    return `${base}/v1/images/generations`;
-};
-
-export const 构建OpenAI图片生成端点 = (
-    baseUrlRaw: string,
-    customPathRaw?: string,
-    options?: { useRuntimeProxy?: boolean }
-): string => {
-    const directEndpoint = 构建OpenAI图片直连生成端点(baseUrlRaw, customPathRaw);
-    return options?.useRuntimeProxy
-        ? 转换为运行时OpenAI图片代理端点(directEndpoint)
-        : directEndpoint;
-};
-
 export const 构建ComfyUI连接失败提示 = (baseUrlRaw: string, error?: any): string => {
     const baseUrl = (baseUrlRaw || '').replace(/\/+$/, '') || '未填写';
     const rawMessage = typeof error?.message === 'string' && error.message.trim() ? error.message.trim() : '';
@@ -327,19 +241,4 @@ export const 构建ComfyUI精确连接失败提示 = async (baseUrlRaw: string, 
     }
 
     return 构建ComfyUI连接失败提示(baseUrl, error);
-};
-
-export const 构建通用生图连接失败提示 = (
-    backendType: 当前可用接口结构['图片后端类型'] | undefined,
-    baseUrlRaw: string,
-    error: any
-): string => {
-    if (backendType === 'comfyui') {
-        return 构建ComfyUI连接失败提示(baseUrlRaw, error);
-    }
-    if (backendType === 'sd_webui') {
-        const rawMessage = typeof error?.message === 'string' && error.message.trim() ? error.message.trim() : '网络异常';
-        return `Stable Diffusion WebUI 连接失败。可能是服务器未启动、地址不可访问、跨域被浏览器拦截，或 WebUI 未开启 API/CORS。请确认地址、端口和启动参数后重试。\n原始错误：${rawMessage}`;
-    }
-    return error?.message || '图片生成请求失败，请检查网络、接口地址和密钥配置。';
 };

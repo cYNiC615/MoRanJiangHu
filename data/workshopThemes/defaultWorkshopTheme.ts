@@ -78,7 +78,7 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
     description: '内置武侠/仙侠/现代/末日/无限流等题材的新建存档主题。流程、基础字段、默认值和选项均由主题配置驱动。',
     defaultMode: '武侠',
     creationFlow: [
-        { id: 'world', label: '世界观', description: '选择题材、世界规模、世界观草稿和创意工坊模式。', required: true },
+        { id: 'world', label: '世界观', description: '选择题材、世界规模、世界观草稿和本地模式包。', required: true },
         { id: 'backgrounds', label: '天赋背景', description: '选择或自定义长期身份背景与天赋。', required: true },
         { id: 'character', label: '角色基础', description: '设置主角基础信息、出生日期、形象和属性。', required: true },
         { id: 'companion', label: '开局伙伴', description: '设置可选同行伙伴。' },
@@ -129,8 +129,8 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
         初始关系模板: '师门牵引',
         关系侧重: ['师门', '友情'],
         开局切入偏好: '日常低压',
-        开局生成门派: true,
-        开局生成同门: true,
+        开局生成组织: true,
+        开局生成成员: true,
         允许生成性别: ['男', '女', '男娘', '扶她'],
         生成性别锁定: false,
         初始伙伴: undefined

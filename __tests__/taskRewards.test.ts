@@ -4,7 +4,7 @@ import { 结算已完成任务奖励 } from '../utils/taskRewards';
 const 创建奖励状态 = () => ({
     角色: {
         姓名: '陈砾',
-        金钱: { 金元宝: 0, 银子: 0, 铜钱: 0 },
+        金钱: { baseAmount: 0 },
         物品列表: [],
         技艺: [{ 名称: '急救', 等级: '未入门', 熟练度: 0, 描述: '' }],
         可分配属性点: 0
@@ -74,10 +74,10 @@ describe('任务完成奖励结算', () => {
         expect(response.logs).toEqual([]);
     });
 
-    it('支持无限流奖励点和支线剧情结算到底层货币字段', () => {
+    it('支持现代金额结算到 baseAmount', () => {
         const state = 创建奖励状态();
-        state.任务列表[0].标题 = '完成第一次主神任务';
-        state.任务列表[0].奖励描述 = ['奖励点 +1000', 'D级支线剧情 +1', 'C级支线剧情 +1', '队伍信用 +30'];
+        state.任务列表[0].标题 = '完成同城委托';
+        state.任务列表[0].奖励描述 = ['元 +1000', '现金 +30', '队伍信用 +30'];
         const response: any = { logs: [], tavern_commands: [] };
         const result = 结算已完成任务奖励({
             response,
@@ -85,69 +85,23 @@ describe('任务完成奖励结算', () => {
         });
 
         expect(result.changed).toBe(true);
-        expect(result.state.角色.金钱.铜钱).toBe(1000);
-        expect(result.state.角色.金钱.银子).toBe(1);
-        expect(result.state.角色.金钱.金元宝).toBe(1);
-        expect(result.state.角色.金钱.baseAmount).toBe(102000);
+        expect(result.state.角色.金钱).toEqual({ baseAmount: 1030 });
         expect(result.state.玩家组织.玩家贡献).toBe(150);
-        expect(response.logs.some((log: any) => log.text.includes('奖励点 +1000') && log.text.includes('D级支线剧情 +1'))).toBe(true);
+        expect(response.logs.some((log: any) => log.text.includes('元 +1000') && log.text.includes('现金 +30'))).toBe(true);
     });
 
-    it('显式单币种 currencySystem 可以把文本奖励折算进 baseAmount', () => {
+    it('支持人民币和电子支付写法', () => {
         const state = 创建奖励状态();
-        state.任务列表[0].标题 = '完成同城委托';
-        state.任务列表[0].奖励描述 = ['获得 500 ¥', '信用点 +300'];
+        state.任务列表[0].标题 = '完成线上委托';
+        state.任务列表[0].奖励描述 = ['获得 500 ¥', '电子支付 +300'];
         const response: any = { logs: [], tavern_commands: [] };
         const result = 结算已完成任务奖励({
             response,
-            state,
-            runtimeProfile: {
-                economy: {
-                    currencySystem: {
-                        id: 'modern-credit',
-                        name: '现代信用货币',
-                        baseUnitId: 'credit',
-                        formatStyle: 'single',
-                        units: [
-                            { id: 'credit', name: '信用点', symbol: '¥', baseRate: 1, order: 1, aliases: ['现金', '额度'] }
-                        ]
-                    }
-                }
-            } as any
+            state
         });
 
         expect(result.changed).toBe(true);
         expect(result.state.角色.金钱.baseAmount).toBe(800);
-        expect(result.state.任务列表[0].奖励到账记录).toEqual(expect.arrayContaining(['¥ +500', '信用点 +300']));
-    });
-
-    it('显式多层 currencySystem 可以按 baseRate 折算货币奖励', () => {
-        const state = 创建奖励状态();
-        state.任务列表[0].标题 = '完成坊市委托';
-        state.任务列表[0].奖励描述 = ['获得 2 银', '获得 1 金'];
-        const response: any = { logs: [], tavern_commands: [] };
-        const result = 结算已完成任务奖励({
-            response,
-            state,
-            runtimeProfile: {
-                economy: {
-                    currencySystem: {
-                        id: 'ancient-money',
-                        name: '古代钱制',
-                        baseUnitId: 'copper',
-                        formatStyle: 'compound',
-                        units: [
-                            { id: 'gold', name: '金', baseRate: 10000, order: 3, aliases: ['金叶子'] },
-                            { id: 'silver', name: '银', baseRate: 100, order: 2, aliases: ['银锭'] },
-                            { id: 'copper', name: '铜', baseRate: 1, order: 1, aliases: ['铜板'] }
-                        ]
-                    }
-                }
-            } as any
-        });
-
-        expect(result.changed).toBe(true);
-        expect(result.state.角色.金钱.baseAmount).toBe(10200);
-        expect(result.state.任务列表[0].奖励到账记录).toEqual(expect.arrayContaining(['银 +2', '金 +1']));
+        expect(result.state.任务列表[0].奖励到账记录).toEqual(expect.arrayContaining(['¥ +500', '电子支付 +300']));
     });
 });

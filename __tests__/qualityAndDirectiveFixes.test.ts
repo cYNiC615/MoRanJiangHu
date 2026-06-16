@@ -143,7 +143,6 @@ describe('正文优化重试', () => {
                 环境: {} as any,
                 剧情: {} as any,
                 社交: [],
-                战斗: {} as any,
                 角色: {} as any,
                 文章优化已开启: true,
                 深拷贝: (value: any) => JSON.parse(JSON.stringify(value))
@@ -190,7 +189,6 @@ describe('正文优化重试', () => {
                 环境: {} as any,
                 剧情: {} as any,
                 社交: [],
-                战斗: {} as any,
                 角色: {} as any,
                 文章优化已开启: true,
                 深拷贝: (value: any) => JSON.parse(JSON.stringify(value))
@@ -211,8 +209,8 @@ describe('无限流商城文案边界', () => {
         const profile = 获取题材模式配置('无限流');
         const labels = 获取题材界面文案('无限流');
 
-        expect(profile.auctionName).toBe('主神商城');
-        expect(labels.菜单.retiredMarket).toBe('主神商城');
+        expect(profile.marketName).toBe('主神商城');
+        expect(labels.菜单.market).toBe('主神商城');
         expect(labels.组织.商城).toBe('团队商城');
     });
 
@@ -273,8 +271,8 @@ describe('无限流商城文案边界', () => {
             {} as any,
             {
                 题材模式: '无限流',
-                开局生成门派: true,
-                开局生成同门: false
+                开局生成组织: true,
+                开局生成成员: false
             } as any
         );
 

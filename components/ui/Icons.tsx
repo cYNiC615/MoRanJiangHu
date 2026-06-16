@@ -193,7 +193,7 @@ export const IconTarget: React.FC<IconProps> = (props) => {
     );
 };
 
-/** 铜钱/银两（武侠金钱） — 奖励 / 金钱 */
+/** 现代货币 — 奖励 / 金钱 */
 export const IconCoins: React.FC<IconProps> = (props) => {
     const { className, width, height } = defaults(props);
     return (
@@ -269,20 +269,7 @@ export const IconBattery: React.FC<IconProps> = (props) => {
     );
 };
 
-/** 罗盘/风水（武侠罗盘） — 态势 */
-export const IconCompass: React.FC<IconProps> = (props) => {
-    const { className, width, height } = defaults(props);
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={width} height={height} className={className}>
-            <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.05" />
-            <circle cx="12" cy="12" r="7" />
-            <polygon points="12 4 14 12 12 20 10 12" fill="currentColor" fillOpacity="0.2" />
-            <path d="M12 2 V4 M12 20 V22 M2 12 H4 M20 12 H22 L 5 5 L 6.5 6.5 M 17.5 17.5 L 19 19 M 19 5 L 17.5 6.5 M 6.5 17.5 L 5 19" strokeOpacity={0.5} />
-        </svg>
-    );
-};
-
-/** 气爆/火石（武侠接战） — 战斗 / 攻击 / 爆炸 */
+/** 气爆/火石（武侠动作） — 冲突 / 攻击 / 爆炸 */
 export const IconExplosion: React.FC<IconProps> = (props) => {
     const { className, width, height } = defaults(props);
     return (

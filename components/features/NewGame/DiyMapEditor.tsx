@@ -123,7 +123,7 @@ const featureFieldGroups: Record<WorldMapDiyFeatureType, Array<{ key: string; la
     ],
     portal: [
         { key: '类型', label: '类型', placeholder: '传送阵/灵脉节点' },
-        { key: '通行难度', label: '通行难度', placeholder: '需令牌/需灵石/不稳定' },
+        { key: '通行难度', label: '通行难度', placeholder: '需令牌/需权限/不稳定' },
         { key: '旅行速度', label: '旅行速度', placeholder: '瞬达/半日/随机' },
         { key: '安全性', label: '安全性', placeholder: '稳定/偏移/反噬' },
     ],

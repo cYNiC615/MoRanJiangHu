@@ -6,7 +6,7 @@ import {
     isOfficialCreativeWorkshopDuplicate
 } from '../utils/creativeWorkshopDedupe';
 
-const cloneOfficialAsCommunity = (entry: 创意工坊模块条目): 创意工坊模块条目 => ({
+const cloneOfficialAsCloudCopy = (entry: 创意工坊模块条目): 创意工坊模块条目 => ({
     ...JSON.parse(JSON.stringify(entry)),
     id: `cloud-copy-${entry.id}`,
     source: 'cloud',
@@ -16,19 +16,19 @@ const cloneOfficialAsCommunity = (entry: 创意工坊模块条目): 创意工坊
     downloadUrl: '/api/workshop/modules?action=download&id=cloud-copy'
 });
 
-describe('创意工坊官方重复内容拦截', () => {
+describe('本地模式包官方重复内容拦截', () => {
     it('用内容指纹识别官方模板被换来源重复贡献', () => {
         const official = 创意工坊模块列表[0];
-        const communityCopy = cloneOfficialAsCommunity(official);
+        const cloudCopy = cloneOfficialAsCloudCopy(official);
 
-        expect(buildCreativeWorkshopContentFingerprint(communityCopy)).toBe(buildCreativeWorkshopContentFingerprint(official));
-        expect(isOfficialCreativeWorkshopDuplicate(communityCopy, 创意工坊模块列表)).toBe(true);
+        expect(buildCreativeWorkshopContentFingerprint(cloudCopy)).toBe(buildCreativeWorkshopContentFingerprint(official));
+        expect(isOfficialCreativeWorkshopDuplicate(cloudCopy, 创意工坊模块列表)).toBe(true);
     });
 
-    it('列表合并时保留官方模板并过滤社区重复项', () => {
+    it('列表合并时保留官方模板并过滤云端重复项', () => {
         const official = 创意工坊模块列表[0];
-        const communityCopy = cloneOfficialAsCommunity(official);
-        const entries = filterCreativeWorkshopDuplicates([official, communityCopy]);
+        const cloudCopy = cloneOfficialAsCloudCopy(official);
+        const entries = filterCreativeWorkshopDuplicates([official, cloudCopy]);
 
         expect(entries).toHaveLength(1);
         expect(entries[0]).toBe(official);
@@ -37,7 +37,7 @@ describe('创意工坊官方重复内容拦截', () => {
     it('玩家真正改过内容后不视为官方重复', () => {
         const official = 创意工坊模块列表[0];
         const changed = {
-            ...cloneOfficialAsCommunity(official),
+            ...cloneOfficialAsCloudCopy(official),
             description: `${official.description} 玩家新增了一条独立规则。`
         };
 

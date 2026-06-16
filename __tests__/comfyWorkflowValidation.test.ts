@@ -60,7 +60,7 @@ describe('ComfyUI workflow upload validation', () => {
             localStorage: createLocalStorageMock(),
             location: {
                 protocol: 'https:',
-                origin: 'https://msjh.bacon159.pp.ua',
+                origin: 'https://app.example.test',
             },
         });
         let submittedWorkflow: any = null;

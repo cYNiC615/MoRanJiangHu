@@ -52,7 +52,6 @@ type 主剧情上下文片段 = {
     环境状态: string;
     角色状态: string;
     任务状态: string;
-    约定状态: string;
     COT提示词: string;
     格式提示词: string;
     字数要求提示词: string;
@@ -257,7 +256,6 @@ export const 构建主剧情请求参数 = (
         pushEntry('state_environment', '当前环境', '系统', 'system', params.builtContext.contextPieces.环境状态);
         pushEntry('state_role', '用户角色数据', '系统', 'system', params.builtContext.contextPieces.角色状态);
         pushEntry('state_tasks', '任务列表', '系统', 'system', params.builtContext.contextPieces.任务状态);
-        pushEntry('state_agreements', '约定列表', '系统', 'system', params.builtContext.contextPieces.约定状态);
         pushEntry('memory_short', '短期记忆', '记忆', 'system', params.builtContext.shortMemoryContext);
 
         pushEntry('script', '即时剧情回顾', '历史', 'system', scriptSectionText);

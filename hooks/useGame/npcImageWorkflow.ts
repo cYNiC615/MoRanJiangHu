@@ -106,10 +106,6 @@ const 获取图片后端显示名 = (apiConfig: 当前可用接口结构): strin
     switch (apiConfig.图片后端类型) {
         case 'comfyui':
             return 'ComfyUI';
-        case 'sd_webui':
-            return 'Stable Diffusion WebUI';
-        case 'novelai':
-        case 'openai':
         default:
             return (apiConfig.model || '').trim() || '图片模型';
     }
@@ -344,12 +340,10 @@ export const 执行NPC生图工作流 = async (
     const taskSource: 生图任务来源类型 = options?.source || 'auto';
     const 可绕过自动开关 = options?.force === true;
     const backendType = imageApi?.图片后端类型;
-    const wantsPromptTransformer = backendType === 'novelai' || imageFeature.使用词组转化器 !== false;
+    const wantsPromptTransformer = imageFeature.使用词组转化器 !== false;
     const promptApi = wantsPromptTransformer ? deps.获取生图词组转化器接口配置(deps.apiConfig) : null;
     const promptApiAvailable = Boolean(promptApi && deps.接口配置是否可用(promptApi));
-    const shouldUsePromptTransformer = backendType === 'novelai'
-        ? true
-        : Boolean(wantsPromptTransformer && promptApiAvailable);
+    const shouldUsePromptTransformer = Boolean(wantsPromptTransformer && promptApiAvailable);
     if (!imageFeature.总开关) {
         const message = '文生图功能总开关未开启，无法执行 NPC 生图。';
         if (options?.force) throw new Error(message);
@@ -366,14 +360,6 @@ export const 执行NPC生图工作流 = async (
         return;
     }
     if (wantsPromptTransformer && !promptApiAvailable) {
-        if (backendType === 'novelai') {
-            const message = 'NovelAI 模式必须绑定可用的词组转化器接口，请先完成配置。';
-            if (options?.force) {
-                throw new Error(message);
-            }
-            console.warn(`NPC 生图已跳过：${message}`);
-            return;
-        }
         console.warn('NPC 生图词组转化器配置不可用，已改用角色资料直出提示词继续生成。');
     }
     if (deps.NPC生图进行中集合.has(npcKey)) return;
@@ -437,9 +423,7 @@ export const 执行NPC生图工作流 = async (
     const 后端类型 = backendType;
     const 画风附加要求 = 获取画风附加要求(画风);
     const 词组转化器预设上下文 = 获取词组转化器预设上下文(deps.apiConfig, 'npc', 角色锚点 ? 'anchor' : 'default');
-    const NPC词组序列化策略 = backendType === 'novelai' && 词组转化器预设上下文.词组序列化策略 === 'flat'
-        ? 'nai_character_segments'
-        : 词组转化器预设上下文.词组序列化策略;
+    const NPC词组序列化策略 = 词组转化器预设上下文.词组序列化策略;
     const 词组转化器提示词 = [词组转化器预设上下文.相关提示词.trim(), 画风附加要求]
         .filter(Boolean)
         .join('\n\n');

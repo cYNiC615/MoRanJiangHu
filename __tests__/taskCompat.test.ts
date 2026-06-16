@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { 归一化任务类型, 规范化任务自动结算 } from '../utils/taskCompat';
 
 describe('任务分类归一化', () => {
-    it('把宗门/师门语义归入门派任务', () => {
+    it('把宗门/师门语义归入组织任务', () => {
         expect(归一化任务类型({
             类型: '宗门委托',
             标题: '外务堂急令',

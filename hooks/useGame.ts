@@ -12,8 +12,7 @@ import {
     记忆系统结构,
     WorldGenConfig,
     世界数据结构,
-    战斗状态结构,
-    详细门派结构,
+    玩家组织结构,
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
@@ -66,18 +65,15 @@ import {
     创建开场空白剧情,
     创建开场空白环境,
     创建开场空白世界,
-    创建开场空白战斗,
     创建空剧情规划,
-    创建空门派状态,
+    创建空组织状态,
     创建空记忆系统,
     规范化世界状态,
-    规范化战斗状态,
-    规范化门派状态,
-    同步角色与门派状态,
+    规范化组织状态,
+    同步角色与组织状态,
     规范化剧情状态,
     规范化剧情规划状态 as 基础规范化剧情规划状态,
     规范化女主剧情规划状态 as 基础规范化女主剧情规划状态,
-    战斗结束自动清空,
     按回合窗口裁剪历史
 } from './useGame/storyState';
 import type { 开场命令基态 } from './useGame/storyState';
@@ -162,10 +158,8 @@ type 回合快照结构 = {
         环境: 环境信息结构;
         社交: any[];
         世界: 世界数据结构;
-        战斗: 战斗状态结构;
-        玩家组织: 详细门派结构;
+        玩家组织: 玩家组织结构;
         任务列表: any[];
-        约定列表: any[];
         剧情: 剧情系统结构;
         剧情规划: 剧情规划结构;
         女主剧情规划?: 女主剧情规划结构;
@@ -366,10 +360,8 @@ export const useGame = () => {
         环境, 设置环境,
         社交, 设置社交,
         世界, 设置世界,
-        战斗, 设置战斗,
         玩家组织, 设置玩家组织,
         任务列表, 设置任务列表,
-        约定列表, 设置约定列表,
         剧情, 设置剧情,
         剧情规划, 设置剧情规划,
         女主剧情规划, 设置女主剧情规划,
@@ -382,13 +374,11 @@ export const useGame = () => {
         showSettings, setShowSettings,
         showInventory, setShowInventory,
         showEquipment, setShowEquipment,
-        showBattle, setShowBattle,
         showSocial, setShowSocial,
         showTeam, setShowTeam,
         showWorld, setShowWorld,
         showMap, setShowMap,
         showTask, setShowTask,
-        showAgreement, setShowAgreement,
         showStory, setShowStory,
         showHeroinePlan, setShowHeroinePlan,
         showMemory, setShowMemory,
@@ -766,10 +756,8 @@ export const useGame = () => {
         设置环境(snapshotEnv);
         设置社交(应用同名NPC过滤(规范化社交列表(深拷贝(snapshot.回档前状态.社交)), 角色?.姓名));
         设置世界(规范化世界状态(深拷贝(snapshot.回档前状态.世界)));
-        设置战斗(深拷贝(snapshot.回档前状态.战斗));
         设置玩家组织(深拷贝(snapshot.回档前状态.玩家组织));
         设置任务列表(深拷贝(snapshot.回档前状态.任务列表));
-        设置约定列表(深拷贝(snapshot.回档前状态.约定列表));
         设置剧情(规范化剧情状态(深拷贝(snapshot.回档前状态.剧情)));
         设置剧情规划(规范化剧情规划状态(深拷贝(snapshot.回档前状态.剧情规划)));
         设置女主剧情规划(规范化女主剧情规划状态(深拷贝(snapshot.回档前状态.女主剧情规划)));
@@ -1571,9 +1559,6 @@ export const useGame = () => {
 
     const 读取文生图功能配置 = () => {
         const feature = apiConfig?.功能模型占位 as any;
-        const 当前后端 = feature?.文生图后端类型 === 'novelai' || feature?.文生图后端类型 === 'comfyui'
-            ? feature.文生图后端类型
-            : 'other';
         const 场景横竖屏 = feature?.自动场景生图横竖屏 === '竖屏' ? '竖屏' : '横屏';
         const 场景尺寸 = typeof feature?.自动场景生图分辨率 === 'string' && feature.自动场景生图分辨率.trim()
             ? feature.自动场景生图分辨率.trim()
@@ -1586,9 +1571,7 @@ export const useGame = () => {
         return {
             总开关: Boolean(feature?.文生图功能启用 || 自动任务已开启),
             NPC开关: Boolean(feature?.NPC生图启用),
-            使用词组转化器: 当前后端 === 'novelai'
-                ? true
-                : feature?.NPC生图使用词组转化器 !== false,
+            使用词组转化器: feature?.NPC生图使用词组转化器 !== false,
             性别筛选: feature?.NPC生图性别筛选 === '男' || feature?.NPC生图性别筛选 === '女' || feature?.NPC生图性别筛选 === '全部'
                 ? feature.NPC生图性别筛选
                 : '全部',
@@ -1728,8 +1711,6 @@ export const useGame = () => {
         后台场景生图监控Ref.current = pendingMonitors;
     }, [场景生图任务队列]);
 
-    const 读取成长体系开关 = (): boolean => false;
-
     const 构建文生图额外要求 = (extra?: string): string => {
         const runtimeGameConfig = 规范化游戏设置(gameConfig);
         const runtimeImageExtraPrompt = 构建文生图运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig);
@@ -1749,10 +1730,8 @@ export const useGame = () => {
         深拷贝,
         环境时间转标准串,
         构建完整地点文本,
-        成长体系已启用: 读取成长体系开关,
-        提取NPC生图基础数据: (npc) => 提取NPC生图基础数据(npc, {
-            cultivationSystemEnabled: 读取成长体系开关()
-        }),
+        成长体系已启用: () => false,
+        提取NPC生图基础数据,
         读取文生图功能配置,
         场景模式已开启,
         构建文生图额外要求,
@@ -1937,9 +1916,7 @@ export const useGame = () => {
             读取文生图功能配置,
             NPC符合自动生图条件,
             NPC生图进行中集合: NPC生图进行中Ref.current,
-            提取NPC生图基础数据: (targetNpc) => 提取NPC生图基础数据附带私密描述(targetNpc, {
-                cultivationSystemEnabled: 读取成长体系开关()
-            }),
+            提取NPC生图基础数据: 提取NPC生图基础数据附带私密描述,
             创建NPC生图任务,
             生成NPC生图记录ID,
             追加NPC生图任务,
@@ -1974,9 +1951,7 @@ export const useGame = () => {
             接口配置是否可用,
             读取文生图功能配置,
             NPC私密部位生图进行中集合: NPC香闺秘档生图进行中Ref.current,
-            提取NPC香闺秘档部位生图数据: (targetNpc, targetPart) => 提取NPC香闺秘档部位生图数据(targetNpc, targetPart, {
-                cultivationSystemEnabled: 读取成长体系开关()
-            }),
+            提取NPC香闺秘档部位生图数据,
             创建NPC生图任务,
             生成NPC生图记录ID,
             追加NPC生图任务,
@@ -2638,7 +2613,6 @@ export const useGame = () => {
             环境,
             剧情,
             社交,
-            战斗,
             角色,
             文章优化已开启: 文章优化功能已开启(),
             深拷贝,
@@ -2658,7 +2632,7 @@ export const useGame = () => {
         });
     }
 
-    const 构建门派同门社交档案 = (member: any, index: number, sectText: string) => {
+    const 构建组织成员社交档案 = (member: any, index: number, sectText: string) => {
         const semantic = String((玩家组织 as any)?.组织语义 || (玩家组织 as any)?.组织类型 || (玩家组织 as any)?.题材组织类型 || '').trim();
         const isInfiniteSect = semantic === '轮回小队' || /主神|轮回|奖励点|支线剧情|基因锁|主神空间|恐怖片|轮回者/u.test(sectText);
         const isApocalypseSect = !isInfiniteSect && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
@@ -2672,7 +2646,7 @@ export const useGame = () => {
         return {
             id: typeof member?.id === 'string' && member.id.trim()
                 ? member.id.trim()
-                : `sect_member_${玩家组织?.ID || 'unknown'}_${index}`,
+                : `organization_member_${玩家组织?.ID || 'unknown'}_${index}`,
             姓名: typeof member?.姓名 === 'string' && member.姓名.trim() ? member.姓名.trim() : `${memberLabel}${index + 1}`,
             性别: typeof member?.性别 === 'string' ? member.性别 : '未知',
             年龄: Number.isFinite(Number(member?.年龄)) ? Number(member.年龄) : undefined,
@@ -2716,7 +2690,7 @@ export const useGame = () => {
         const sectText = JSON.stringify(玩家组织 || {});
         const missing = members
             .filter((member: any) => member?.是否玩家本人 !== true)
-            .map((member: any, index: number) => 构建门派同门社交档案(member, index, sectText))
+            .map((member: any, index: number) => 构建组织成员社交档案(member, index, sectText))
             .filter((npc: any) => {
                 const keys = [npc?.id, npc?.姓名].map(normalizedKey).filter(Boolean);
                 return keys.length > 0 && keys.every((key) => !known.has(key));
@@ -2746,10 +2720,8 @@ export const useGame = () => {
         开局社交刚初始化Ref.current = true;
         设置社交(应用同名NPC过滤(规范化社交列表(openingBase.社交), 角色?.姓名));
         设置世界(openingBase.世界);
-        设置战斗(openingBase.战斗);
         设置玩家组织(openingBase.玩家组织);
         设置任务列表(openingBase.任务列表 || []);
-        设置约定列表(openingBase.约定列表 || []);
         设置剧情(规范化剧情状态(openingBase.剧情));
         设置剧情规划(规范化剧情规划状态(openingBase.剧情规划 || 创建空剧情规划()));
         设置女主剧情规划(openingBase.女主剧情规划);
@@ -2803,10 +2775,8 @@ export const useGame = () => {
             环境: typeof 环境;
             社交: typeof 社交;
             世界: typeof 世界;
-            战斗: typeof 战斗;
-            玩家组织?: 详细门派结构;
+            玩家组织?: 玩家组织结构;
             任务列表?: any[];
-            约定列表?: any[];
             剧情: typeof 剧情;
             剧情规划: typeof 剧情规划;
             女主剧情规划?: 女主剧情规划结构;
@@ -2827,10 +2797,8 @@ export const useGame = () => {
                 环境,
                 社交,
                 世界,
-                战斗,
                 玩家组织,
                 任务列表,
-                约定列表,
                 剧情,
                 剧情规划,
                 女主剧情规划
@@ -2839,8 +2807,7 @@ export const useGame = () => {
                 规范化环境信息,
                 规范化社交列表: 规范化社交列表安全,
                 规范化世界状态,
-                规范化战斗状态,
-                规范化门派状态,
+                规范化组织状态,
                 规范化剧情状态,
                 规范化剧情规划状态,
                 规范化女主剧情规划状态,
@@ -2849,15 +2816,12 @@ export const useGame = () => {
                     启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
                     题材模式: 开局配置?.题材模式
                 },
-                战斗结束自动清空,
                 设置角色,
                 设置环境,
                 设置社交,
                 设置世界,
-                设置战斗,
                 设置玩家组织,
                 设置任务列表,
-                设置约定列表,
                 设置剧情,
                 设置剧情规划,
                 设置女主剧情规划,
@@ -2874,7 +2838,7 @@ export const useGame = () => {
                         社交: 修复开局伙伴社交列表(state.社交, 开局配置, state.角色 || 角色)
                     });
                     const finalizeState = (state: typeof nextState): typeof nextState => (
-                        同步角色与门派状态(修复开局伙伴(清理题材物品(state))) as typeof nextState
+                        同步角色与组织状态(修复开局伙伴(清理题材物品(state))) as typeof nextState
                     );
                     if (!变量生成功能已启用(apiConfig)) {
                         return finalizeState(nextState);
@@ -2883,8 +2847,7 @@ export const useGame = () => {
                         规范化环境信息,
                         规范化社交列表: 规范化社交列表安全,
                         规范化世界状态,
-                        规范化战斗状态,
-                        规范化门派状态,
+                        规范化组织状态,
                         规范化剧情状态,
                         规范化剧情规划状态,
                         规范化女主剧情规划状态,
@@ -2920,7 +2883,6 @@ export const useGame = () => {
             环境: typeof 环境;
             社交: typeof 社交;
             世界: typeof 世界;
-            战斗: typeof 战斗;
             剧情: typeof 剧情;
             剧情规划: typeof 剧情规划;
             女主剧情规划?: 女主剧情规划结构;
@@ -2965,10 +2927,8 @@ export const useGame = () => {
         角色,
         环境,
         世界,
-        战斗,
         玩家组织,
         任务列表,
-        约定列表,
         历史记录,
         规划分析进行中Ref,
         开局配置,
@@ -2977,8 +2937,7 @@ export const useGame = () => {
         规范化环境信息,
         规范化社交列表: 规范化社交列表安全,
         规范化世界状态,
-        规范化战斗状态,
-        规范化门派状态,
+        规范化组织状态,
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
@@ -3095,7 +3054,6 @@ export const useGame = () => {
         设置历史记录,
         设置玩家组织,
         设置任务列表,
-        设置约定列表,
         设置社交,
         记录变量生成上下文,
         set聊天区自动滚动抑制令牌,
@@ -3163,10 +3121,8 @@ export const useGame = () => {
             角色,
             环境,
             世界,
-            战斗,
             玩家组织,
             任务列表,
-            约定列表,
             剧情,
             剧情规划,
             女主剧情规划,
@@ -3194,10 +3150,8 @@ export const useGame = () => {
             角色,
             环境,
             世界,
-            战斗,
             玩家组织,
             任务列表,
-            约定列表,
             剧情,
             剧情规划,
             女主剧情规划,
@@ -3242,10 +3196,8 @@ export const useGame = () => {
                 环境,
                 社交,
                 世界,
-                战斗,
                 玩家组织,
                 任务列表,
-                约定列表,
                 剧情,
                 剧情规划,
                 女主剧情规划,
@@ -3352,8 +3304,7 @@ export const useGame = () => {
         推送右下角提示,
         保存图片资源: dbService.保存图片资源,
         获取社交列表: () => 社交Ref.current,
-        获取角色: () => 角色,
-        isCultivationSystemEnabled: 读取成长体系开关
+        获取角色: () => 角色
     });
 
     const updateMemorySystem = (nextMemory: 记忆系统结构) => {
@@ -3402,10 +3353,8 @@ export const useGame = () => {
         环境,
         社交,
         世界,
-        战斗,
         玩家组织,
         任务列表,
-        约定列表,
         剧情,
         剧情规划,
         女主剧情规划,
@@ -3422,8 +3371,7 @@ export const useGame = () => {
         构建完整地点文本,
         规范化环境信息,
         规范化世界状态,
-        规范化战斗状态,
-        规范化门派状态,
+        规范化组织状态,
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
@@ -3438,8 +3386,7 @@ export const useGame = () => {
         获取当前提示词池: () => prompts,
         创建开场空白环境,
         创建开场空白世界,
-        创建开场空白战斗,
-        创建空门派状态,
+        创建空组织状态,
         创建开场空白剧情,
         应用并同步记忆系统,
         setHasSave,
@@ -3473,10 +3420,8 @@ export const useGame = () => {
         设置环境,
         设置社交,
         设置世界,
-        设置战斗,
         设置玩家组织,
         设置任务列表,
-        设置约定列表,
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
@@ -3512,10 +3457,8 @@ export const useGame = () => {
         环境,
         角色,
         世界,
-        战斗,
         玩家组织,
         任务列表,
-        约定列表,
         剧情,
         剧情规划,
         女主剧情规划,
@@ -3541,10 +3484,8 @@ export const useGame = () => {
         设置游戏初始时间,
         设置社交,
         设置世界,
-        设置战斗,
         设置玩家组织,
         设置任务列表,
-        设置约定列表,
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
@@ -3563,8 +3504,7 @@ export const useGame = () => {
         创建开场命令基态,
         创建开场空白环境,
         创建开场空白世界,
-        创建开场空白战斗,
-        创建空门派状态,
+        创建空组织状态,
         创建开场空白剧情,
         创建空剧情规划,
         创建空记忆系统,
@@ -3583,8 +3523,7 @@ export const useGame = () => {
         规范化角色物品容器映射,
         规范化社交列表: 规范化社交列表安全,
         规范化世界状态,
-        规范化战斗状态,
-        规范化门派状态,
+        规范化组织状态,
         游戏设置启用自动重试,
         执行带自动重试的生成请求,
         更新流式草稿为自动重试提示,
@@ -3680,8 +3619,7 @@ export const useGame = () => {
     const {
         updateRuntimeVariableSection,
         applyRuntimeVariableCommand,
-        removeTask,
-        removeAgreement
+        removeTask
     } = 创建运行时变量工作流({
         获取历史记录: () => 历史记录,
         深拷贝,
@@ -3690,24 +3628,21 @@ export const useGame = () => {
             环境,
             社交,
             世界,
-            战斗,
             剧情,
             剧情规划,
             女主剧情规划,
             玩家组织,
             任务列表,
-            约定列表,
             记忆系统
         }),
         规范化角色物品容器映射,
         规范化环境信息,
         规范化社交列表: 规范化社交列表安全,
         规范化世界状态,
-        规范化战斗状态,
         规范化剧情状态,
         规范化剧情规划状态,
         规范化女主剧情规划状态,
-        规范化门派状态,
+        规范化组织状态,
         规范化记忆系统,
         环境时间转标准串,
         获取开局配置: () => 开局配置,
@@ -3715,13 +3650,11 @@ export const useGame = () => {
         设置环境,
         设置社交,
         设置世界,
-        设置战斗,
         设置剧情,
         设置剧情规划,
         设置女主剧情规划,
         设置玩家组织,
         设置任务列表,
-        设置约定列表,
         应用并同步记忆系统,
         performAutoSave,
         女主规划已启用: () => {
@@ -3782,9 +3715,7 @@ export const useGame = () => {
         接口配置是否可用,
         读取文生图功能配置,
         主角生图进行中集合: 主角生图进行中Ref.current,
-        提取主角生图基础数据: (character) => 提取主角生图基础数据(character, {
-            cultivationSystemEnabled: 读取成长体系开关()
-        }),
+        提取主角生图基础数据,
         创建NPC生图任务,
         生成NPC生图记录ID,
         追加NPC生图任务,
@@ -3851,7 +3782,7 @@ export const useGame = () => {
             chatForceScrollToken: 聊天区强制置底令牌
         },
         setters: {
-            setShowSettings, setShowInventory, setShowEquipment, setShowBattle, setShowSocial, setShowTeam, setShowWorld, setShowMap, setShowTask, setShowAgreement, setShowStory, setShowHeroinePlan, setShowMemory, setShowSaveLoad,
+            setShowSettings, setShowInventory, setShowEquipment, setShowSocial, setShowTeam, setShowWorld, setShowMap, setShowTask, setShowStory, setShowHeroinePlan, setShowMemory, setShowSaveLoad,
             setActiveTab, setCurrentTheme,
             setApiConfig, setVisualConfig, setImageManagerConfig, setPrompts,
             setCharacter: 设置角色,
@@ -3888,7 +3819,6 @@ export const useGame = () => {
             updateNpcPresence,
             removeNpc,
             removeTask,
-            removeAgreement,
             generateNpcImageManually,
             generateNpcSecretPartImage,
             retryNpcImageGeneration,

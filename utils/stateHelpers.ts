@@ -3,13 +3,11 @@ import {
     环境信息结构,
     NPC结构,
     世界数据结构,
-    战斗状态结构,
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    详细门派结构,
-    任务结构,
-    约定结构
+    玩家组织结构,
+    任务结构
 } from '../types';
 
 type 状态命令动作 = 'set' | 'add' | 'push' | 'delete' | 'sub';
@@ -19,13 +17,11 @@ const 根路径列表 = [
     '剧情规划',
     '玩家组织',
     '任务列表',
-    '约定列表',
     '记忆系统',
     '角色',
     '环境',
     '社交',
     '世界',
-    '战斗',
     '剧情'
 ] as const;
 
@@ -36,13 +32,11 @@ type 命令结果结构 = {
     env: 环境信息结构;
     social: NPC结构[];
     world: 世界数据结构;
-    battle: 战斗状态结构;
     story: 剧情系统结构;
     storyPlan: 剧情规划结构;
     heroinePlan: 女主剧情规划结构 | undefined;
-    sect: 详细门派结构;
+    sect: 玩家组织结构;
     tasks: 任务结构[];
-    agreements: 约定结构[];
 };
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -70,16 +64,12 @@ const 女主规划相对根字段 = ['阶段推进', '女主条目', '女主互�
 const 兼容值路径别名 = (rawPath: string): string => {
     const path = (rawPath || '').trim();
     if (!path) return '';
-    if (path === '战斗态势') return '战斗';
-    if (path.startsWith('战斗态势.主角.')) return `战斗.${path.slice('战斗态势.主角.'.length)}`;
-    if (path.startsWith('战斗态势.角色.')) return `战斗.${path.slice('战斗态势.角色.'.length)}`;
-    if (path.startsWith('战斗态势.')) return `战斗.${path.slice('战斗态势.'.length)}`;
     return path;
 };
 
 const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
 const 废弃环境字段 = new Set(['天气', '节日']);
-const 废弃命令根路径 = new Set(['战斗', '玩家组织']);
+const 废弃命令根路径 = new Set(['战斗', '战斗态势', '玩家组织']);
 
 export const 是否废弃世界地图字段路径 = (normalizedKey: string): boolean => {
     const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
@@ -285,13 +275,11 @@ export const applyStateCommand = (
     rootEnv: 环境信息结构,
     rootSocial: NPC结构[],
     rootWorld: 世界数据结构,
-    rootBattle: 战斗状态结构,
     rootStory: 剧情系统结构,
     rootStoryPlan: 剧情规划结构,
     rootHeroinePlan: 女主剧情规划结构 | undefined,
-    rootSect: 详细门派结构,
+    rootSect: 玩家组织结构,
     rootTasks: 任务结构[],
-    rootAgreements: 约定结构[],
     key: string,
     value: any,
     action: 状态命令动作
@@ -304,13 +292,11 @@ export const applyStateCommand = (
         env: rootEnv,
         social: rootSocial,
         world: rootWorld,
-        battle: rootBattle,
         story: rootStory,
         storyPlan: rootStoryPlan,
         heroinePlan: rootHeroinePlan,
         sect: rootSect,
-        tasks: rootTasks,
-        agreements: rootAgreements
+        tasks: rootTasks
     };
 
     if (!parsed) {
@@ -343,9 +329,6 @@ export const applyStateCommand = (
             case '世界':
                 result.world = next as 世界数据结构;
                 break;
-            case '战斗':
-                result.battle = next as 战斗状态结构;
-                break;
             case '剧情':
                 result.story = next as 剧情系统结构;
                 break;
@@ -356,13 +339,10 @@ export const applyStateCommand = (
                 result.heroinePlan = next as 女主剧情规划结构 | undefined;
                 break;
             case '玩家组织':
-                result.sect = next as 详细门派结构;
+                result.sect = next as 玩家组织结构;
                 break;
             case '任务列表':
                 result.tasks = Array.isArray(next) ? next as 任务结构[] : [];
-                break;
-            case '约定列表':
-                result.agreements = Array.isArray(next) ? next as 约定结构[] : [];
                 break;
             default:
                 break;
@@ -379,8 +359,6 @@ export const applyStateCommand = (
                 return result.social;
             case '世界':
                 return result.world;
-            case '战斗':
-                return result.battle;
             case '剧情':
                 return result.story;
             case '剧情规划':
@@ -391,8 +369,6 @@ export const applyStateCommand = (
                 return result.sect;
             case '任务列表':
                 return result.tasks;
-            case '约定列表':
-                return result.agreements;
             default:
                 return undefined;
         }

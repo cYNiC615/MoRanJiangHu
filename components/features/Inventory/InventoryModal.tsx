@@ -14,7 +14,7 @@ import { 获取物品明细分组 } from '../../../utils/rulebook';
 import { 是否杂物类物品 } from '../../../utils/inventoryActions';
 import { 规范化消耗品使用效果 } from '../../../utils/itemEffects';
 import { 获取题材界面文案 } from '../../../utils/resourceLabels';
-import { 格式化世界观BaseAmount, 获取世界观BaseAmount单位标签, 获取世界观货币卡片信息, 获取背包货币物品聚合列表, 获取货币显示模式, 获取货币完整单位标签 } from '../../../utils/currencyDisplay';
+import { 格式化世界观BaseAmount, 获取世界观BaseAmount单位标签, 获取世界观货币卡片信息, 获取背包货币物品聚合列表 } from '../../../utils/currencyDisplay';
 
 interface Props {
     character: any;
@@ -249,10 +249,8 @@ const InventoryModal: React.FC<Props> = ({ character, openingConfig, onClose, on
     const totalValue = items.reduce((sum, item) => (
         sum + getSafeNumber(item?.价值) * getSafeNumber(item?.堆叠数量, 1)
     ), 0);
-    const currencyMode = 获取货币显示模式(openingConfig, character);
-    const legacyValueUnit = 获取货币完整单位标签('铜钱', currencyMode);
-    const valueUnit = 获取世界观BaseAmount单位标签(openingConfig, character, legacyValueUnit);
-    const totalValueText = 格式化世界观BaseAmount(totalValue, openingConfig, character, `${totalValue.toLocaleString()} ${legacyValueUnit}`);
+    const valueUnit = 获取世界观BaseAmount单位标签(openingConfig, character);
+    const totalValueText = 格式化世界观BaseAmount(totalValue, openingConfig, character);
     const 货币卡片 = 获取世界观货币卡片信息(openingConfig, character);
     const 货币物品列表 = useMemo(() => 获取背包货币物品聚合列表(items), [items]);
     const selectedEquipSlots = selectedItem ? 获取物品可装备槽位(selectedItem) : [];

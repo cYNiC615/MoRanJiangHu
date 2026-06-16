@@ -25,13 +25,7 @@ export interface 角色装备 {
 }
 
 export interface 角色金钱 {
-    上层货币: number;
-    中层货币: number;
-    底层货币: number;
-    baseAmount?: number;
-    金元宝?: number;
-    银子?: number;
-    铜钱?: number;
+    baseAmount: number;
 }
 
 export interface 玩家BUFF结构 {

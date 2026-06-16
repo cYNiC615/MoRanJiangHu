@@ -9,12 +9,12 @@ describe('开局配置题材边界', () => {
     it('末日丧尸会保留营地和队友生成开关', () => {
         const config = 规范化开局配置({
             题材模式: '末日丧尸',
-            开局生成门派: true,
-            开局生成同门: true
+            开局生成组织: true,
+            开局生成成员: true
         });
 
-        expect(config.开局生成门派).toBe(true);
-        expect(config.开局生成同门).toBe(true);
+        expect(config.开局生成组织).toBe(true);
+        expect(config.开局生成成员).toBe(true);
     });
 
     it('末世丧尸作为旧称会规范化到末日丧尸', () => {
@@ -25,7 +25,7 @@ describe('开局配置题材边界', () => {
         expect(config.题材模式).toBe('末日丧尸');
     });
 
-    it('末日丧尸界面文案不把组织显示成门派同门', () => {
+    it('末日丧尸界面文案不把组织显示成旧门派成员', () => {
         const copy = 获取题材开局配置文案('末日丧尸');
 
         expect(copy.organizationEnabled).toBe(true);
@@ -39,13 +39,13 @@ describe('开局配置题材边界', () => {
     it('现代都市会把组织位显示为现实组织和成员', () => {
         const config = 规范化开局配置({
             题材模式: '现代都市',
-            开局生成门派: true,
-            开局生成同门: true
+            开局生成组织: true,
+            开局生成成员: true
         });
         const copy = 获取题材开局配置文案('现代都市');
 
-        expect(config.开局生成门派).toBe(true);
-        expect(config.开局生成同门).toBe(true);
+        expect(config.开局生成组织).toBe(true);
+        expect(config.开局生成成员).toBe(true);
         expect(copy.organizationEnabled).toBe(true);
         expect(copy.organizationTitle).toBe('开局生成组织');
         expect(copy.memberTitle).toBe('开局生成成员');
@@ -75,7 +75,7 @@ describe('开局配置题材边界', () => {
         expect(config.生成性别锁定).toBe(false);
     });
 
-    it('创意工坊运行时配置可提供默认生成性别并锁定', () => {
+    it('模式包运行时配置可提供默认生成性别并锁定', () => {
         const runtime = 构建官方模式运行时配置('现代都市', {
             opening: {
                 ...构建官方模式运行时配置('现代都市').opening,

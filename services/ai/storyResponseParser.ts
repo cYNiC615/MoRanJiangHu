@@ -732,7 +732,7 @@ const 规范化日志发送者 = (senderRaw: string): string => {
 const 是否判定类日志发送者 = (senderRaw: string): boolean => {
     const sender = (senderRaw || '').trim();
     return Boolean(提取判定日志前缀(sender))
-        || /^(【)?(?:判定|NSFW判定|先机|瞄准|接战|对撞|对抗|防御|化解|伤害|态势|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender);
+        || /^(【)?(?:判定|NSFW判定|对撞|对抗|防御|化解|伤害|反击|反馈|消耗|洞察|衰退)(】)?$/.test(sender);
 };
 
 const 正文冒号说话人排除集合 = new Set([

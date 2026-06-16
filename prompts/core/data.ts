@@ -23,8 +23,7 @@ HomebrewSaveData
 ├─ 环境
 ├─ 角色
 ├─ 社交
-├─ 任务列表
-└─ 约定列表
+└─ 任务列表
 
 ## 2. 环境
 环境
@@ -48,7 +47,7 @@ ${构建成长体系附加块('├─ 当前内力/最大内力: number')}
 ├─ 当前口渴/最大口渴: number
 ├─ 当前负重/最大负重: number
 ├─ 当前坐标X/当前坐标Y: number
-├─ 金钱: { 金元宝:number, 银子:number, 铜钱:number, baseAmount?:number }
+├─ 金钱: { baseAmount:number }
 ├─ 力量/敏捷/体质/攻击力/防御力: number
 ├─ 头部当前血量/头部最大血量/头部状态: number|string
 ├─ 胸部当前血量/胸部最大血量/胸部状态: number|string
@@ -111,16 +110,11 @@ ${构建成长体系附加块(`
 角色.突破条件[i] = { 名称:string, 描述:string, 要求:string, 当前进度:string }
 `)}
 
-### 3.6 【类型别名】可选货币体系 CurrencySystem
-开局运行配置可选包含：modeRuntimeProfile.economy.currencySystem?: CurrencySystem
-CurrencySystem = { id:string, name:string, baseUnitId:string, formatStyle?:"single"|"compound", units:Array<CurrencyUnit> }
-CurrencyUnit = { id:string, name:string, symbol?:string, baseRate:number, order:number, aliases?:string[] }
+### 3.6 【类型别名】角色.金钱
+MoneyAmount = { baseAmount:number }
 说明：
-- currencySystem 是可选字段，不要求每个世界都输出；缺失时程序继续使用旧三层货币 fallback。
-- 角色.金钱 的金元宝/银子/铜钱三层兼容字段必须保留；baseAmount 是程序结算用最小单位，可缺省由程序补齐。
-- 现代/都市可用单币种元、信用点；近未来可用企业点数、研究额度、异常物资、情报信用；末世可用信用点、物资券、瓶盖、子弹；无限流可用奖励点、支线剧情。
-- 所有 baseRate 必须是正整数；baseUnitId 对应单位的 baseRate 必须为 1；order 越大表示越高等级货币；普通世界 1-4 个单位即可。
-- 交易、购买和出售结算由程序按 baseAmount 处理，AI 不要在剧情或变量里手动乱算汇率。
+- 现代单一货币，单位为元。
+- 交易、购买、出售、收入、报酬和奖励都只改 \`baseAmount\`。
 
 ## 4. 社交
 社交[i]
@@ -147,7 +141,7 @@ CurrencyUnit = { id:string, name:string, symbol?:string, baseRate:number, order:
 - \`天赋列表\` 与 \`出身背景\` 是 NPC 技艺初始值的主要依据；新增或补齐 NPC 时应让二者共同解释其 \`技艺\` 的等级、熟练度和描述。
 - \`当前装备\` 不是按身份自动配装的模板字段；只写正文、设定或既有变量明确成立的穿戴/持有事实，未确认槽位写“无”。赤身、囚禁、失物、刚被限制行动等状态应保留“无”，不得凭性别、职业或身份补出整套衣物、内衣、袜鞋、武器、饰品。
 - \`背包\` 只记录明确随身物；没有证据时写空数组，不要自动补干粮、疗伤散、信物等默认物。
-- 若记录 NPC 地点、约定地点或后台位置，避免只写“东门 / 客栈 / 渡口 / 市集”等可跨城重复的短名；应尽量写完整环境路径，例如“大地点 > 中地点 > 小地点 > 具体地点”。地图层级本身只使用寰宇/大地点/中地点/小地点/区地点/子地点。
+- 若记录 NPC 地点、碰面地点或后台位置，避免只写“东门 / 客栈 / 渡口 / 市集”等可跨城重复的短名；应尽量写完整环境路径，例如“大地点 > 中地点 > 小地点 > 具体地点”。地图层级本身只使用寰宇/大地点/中地点/小地点/区地点/子地点。
 
 ### 4.1 基础状态扩展（所有 NPC 必须有基础属性、行动资源与七部位状态）
 社交[i]
@@ -208,7 +202,7 @@ ${构建男娘NSFW附加块(`### 4.3 重要男性 / 男娘 / 扶她 NSFW 扩展�
 - 【误判禁止】“第一次主动透露情报 / 第一次交出权限 / 初次回报 / 初次合作 / 第一次见面”等普通叙事不是初夜证据，不得据此改 \`是否处女\` 或补 \`初夜*\` 字段。
 - 【子宫记录边界】只有正文明确坐实体内射精、精液进入体内/深处/宫口/子宫等事实时，才追加 \`子宫.内射记录\`；单纯亲密、插入或初夜事实不等于自动内射。
 
-## 5. 任务、约定
+## 5. 任务
 任务列表[i]
 ├─ 标题/描述/类型/发布人/发布地点: string
 ${构建成长体系附加块('├─ 推荐境界: string')}
@@ -217,20 +211,6 @@ ${构建成长体系附加块('├─ 推荐境界: string')}
 ├─ 目标列表: Array<{ 描述:string, 当前进度:number, 总需进度:number, 完成状态:boolean }>
 ├─ 奖励描述: string[]
 └─ 剧情暗线?: string
-
-约定列表[i]
-├─ 对象:string
-├─ 头衔?:string
-├─ 性质:string
-├─ 标题:string
-├─ 誓言内容:string
-├─ 约定地点:string
-├─ 约定时间:string(YYYY:MM:DD:HH:MM)
-├─ 有效时段:number
-├─ 当前状态:string
-├─ 履行后果:string
-├─ 违约后果:string
-└─ 背景故事?:string
 
 ## 6. 协议边界
 - 时间推进口径以 \`<时间推进法则>\` 为准。

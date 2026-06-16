@@ -52,8 +52,7 @@ import {
     规范化剧情状态,
     规范化剧情规划状态,
     规范化女主剧情规划状态,
-    规范化世界状态,
-    规范化战斗状态
+    规范化世界状态
 } from './storyState';
 import { 构建地图空间场景 } from '../../utils/mapSpatial';
 import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
@@ -94,7 +93,6 @@ export type 系统提示词上下文片段 = {
     环境状态: string;
     角色状态: string;
     任务状态: string;
-    约定状态: string;
 };
 
 export type 系统提示词构建结果 = {
@@ -407,7 +405,7 @@ export const 构建系统提示词 = ({
                 openingConfig || source?.开局配置 || source?.openingConfig,
                 role
             ),
-            写入说明: '真实写入仍使用 角色.金钱；程序兼容 baseAmount 与旧三层字段。'
+            写入说明: '真实写入统一使用 角色.金钱.baseAmount，单位为元。'
         };
         const 装备原始 = role?.装备 && typeof role.装备 === 'object' ? role.装备 : {};
         const 装备 = {
@@ -668,34 +666,7 @@ export const 构建系统提示词 = ({
 
         return 包装树状上下文('世界', 裁剪成长体系上下文数据(orderedWorld, normalizedGameConfig));
     };
-    const 构建战斗状态文本 = (payload: any) => {
-        const battle = 规范化战斗状态(payload?.战斗);
-        const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
-        const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
-        const 取数值 = (value: any, fallback: number = 0) => (
-            typeof value === 'number' && Number.isFinite(value) ? value : fallback
-        );
-        const enemyRawList = Array.isArray(battle?.敌方) ? battle.敌方 : [];
-        const orderedEnemy = enemyRawList.map((enemyRaw: any, index: number) => ({
-            索引: index,
-            名字: 取文本(enemyRaw?.名字),
-            境界: 取文本(enemyRaw?.境界),
-            简介: 取文本(enemyRaw?.简介),
-            技能: 取数组(enemyRaw?.技能),
-            战斗力: 取数值(enemyRaw?.战斗力),
-            防御力: 取数值(enemyRaw?.防御力),
-            当前血量: 取数值(enemyRaw?.当前血量),
-            最大血量: 取数值(enemyRaw?.最大血量),
-            当前精力: 取数值(enemyRaw?.当前精力),
-            最大精力: 取数值(enemyRaw?.最大精力)
-        }));
-        const orderedBattle = {
-            是否战斗中: battle?.是否战斗中 === true,
-            敌方: orderedEnemy
-        };
-        return 包装树状上下文('战斗', orderedBattle);
-    };
-    const 构建门派状态文本 = (payload: any) => {
+    const 构建组织状态文本 = (payload: any) => {
         const sect = payload?.玩家组织 && typeof payload.玩家组织 === 'object' ? payload.玩家组织 : {};
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
         const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
@@ -737,9 +708,9 @@ export const 构建系统提示词 = ({
             ID: 取文本(sect?.ID),
             名称: 取文本(sect?.名称),
             简介: 取文本(sect?.简介),
-            门规: 取数组(sect?.门规),
-            门派资金: 取数值(sect?.门派资金),
-            门派物资: 取数值(sect?.门派物资),
+            组织规则: 取数组(sect?.组织规则),
+            组织资金: 取数值(sect?.组织资金),
+            组织物资: 取数值(sect?.组织物资),
             建设度: 取数值(sect?.建设度),
             玩家职位: 取文本(sect?.玩家职位),
             玩家贡献: 取数值(sect?.玩家贡献),
@@ -777,28 +748,6 @@ export const 构建系统提示词 = ({
             剧情暗线: 取文本(task?.剧情暗线)
         }));
         return 包装树状上下文('任务列表', 裁剪成长体系上下文数据(orderedTasks, normalizedGameConfig));
-    };
-    const 构建约定列表文本 = (payload: any) => {
-        const agreements = Array.isArray(payload?.约定列表) ? payload.约定列表 : [];
-        const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
-        const 取数值 = (value: any, fallback: number = 0) => (
-            typeof value === 'number' && Number.isFinite(value) ? value : fallback
-        );
-        const orderedAgreements = agreements.map((item: any) => ({
-            对象: 取文本(item?.对象),
-            头衔: 取文本(item?.头衔),
-            性质: 取文本(item?.性质),
-            标题: 取文本(item?.标题),
-            誓言内容: 取文本(item?.誓言内容),
-            约定地点: 取文本(item?.约定地点),
-            约定时间: 取文本(item?.约定时间),
-            有效时段: 取数值(item?.有效时段),
-            当前状态: 取文本(item?.当前状态),
-            履行后果: 取文本(item?.履行后果),
-            违约后果: 取文本(item?.违约后果),
-            背景故事: 取文本(item?.背景故事)
-        }));
-        return 包装树状上下文('约定列表', orderedAgreements);
     };
     const 构建地图建筑状态文本 = (payload: any) => {
         const source = payload || {};
@@ -955,25 +904,12 @@ export const 构建系统提示词 = ({
         'write_perspective_third'
     ];
     const normalizedGameConfig = 规范化游戏设置(gameConfig);
-    const 启用成长体系 = false;
     const activeWorldbookScopes: 世界书作用域[] = Array.isArray(options?.世界书作用域) && options.世界书作用域.length > 0
         ? options.世界书作用域
         : [normalizedGameConfig.启用酒馆预设模式 === true ? 'tavern' : 'main'];
     const openingConfig = options?.openingConfig
         || statePayload?.开局配置
         || statePayload?.openingConfig;
-    const 构建当前货币系统提示词 = (): string => {
-        const currencySystem = (openingConfig as any)?.modeRuntimeProfile?.economy?.currencySystem;
-        if (!currencySystem || typeof currencySystem !== 'object') return '';
-        return 包装树状上下文('当前货币系统', {
-            currencySystem,
-            使用规则: [
-                'currencySystem 是当前世界的显式货币体系；后续余额、奖励、价格文本应优先使用 units[].name/symbol/aliases 识别。',
-                '角色.金钱 继续保留金元宝/银子/铜钱兼容字段；baseAmount 是最小结算单位。',
-                '交易计算由程序处理，不要在剧情中手动改汇率或重建 currencySystem。'
-            ]
-        });
-    };
     const worldbookInjection = 构建世界书注入文本({
         books: Array.isArray(worldbooks) ? worldbooks : [],
         scopes: activeWorldbookScopes,
@@ -1291,15 +1227,12 @@ export const 构建系统提示词 = ({
     const npcContext = 构建NPC上下文(socialData || [], memoryConfig, {
         worldPrompt,
         realmPrompt,
-        openingConfig,
-        cultivationSystemEnabled: 启用成长体系
+        openingConfig
     });
     const contextMapAndBuilding = 构建地图建筑状态文本(statePayload);
-    const contextCurrencySystem = 构建当前货币系统提示词();
     const promptHeader = [
         worldPrompt.trim(),
         contextMapAndBuilding,
-        contextCurrencySystem,
         npcContext.离场数据块,
         构建女性姓名候选提示词({
             usedNames: 收集女性姓名候选已用名({
@@ -1341,7 +1274,6 @@ export const 构建系统提示词 = ({
     const contextEnvironmentState = 构建环境状态文本(statePayload);
     const contextRoleState = 构建角色状态文本(statePayload);
     const contextTaskState = 构建任务列表文本(statePayload);
-    const contextAgreementState = 构建约定列表文本(statePayload);
     const normalizedMemoryConfig = 规范化记忆配置(memoryConfig);
     const shortMemoryInjectLimit = Math.max(1, Number(normalizedMemoryConfig.短期记忆阈值) || 30);
     const shortMemoryEntries = options?.禁用短期记忆
@@ -1370,7 +1302,6 @@ export const 构建系统提示词 = ({
             contextEnvironmentState,
             contextRoleState,
             contextTaskState,
-            contextAgreementState,
             cotPrompt
         ].filter(Boolean).join('\n\n'),
         shortMemoryContext,
@@ -1398,8 +1329,7 @@ export const 构建系统提示词 = ({
             世界状态: contextWorldState,
             环境状态: contextEnvironmentState,
             角色状态: contextRoleState,
-            任务状态: contextTaskState,
-            约定状态: contextAgreementState
+            任务状态: contextTaskState
         }
     };
 };

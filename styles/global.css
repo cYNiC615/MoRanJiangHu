@@ -1191,20 +1191,20 @@ html[data-theme="day"] .landing-edition-card {
   }
 }
 
-html[data-theme="day"] .mobile-chat-message-bubble,
-html[data-theme="day"] .mobile-chat-message-bubble *,
-html[data-theme="day"] .mobile-chat-dialogue-bubble,
-html[data-theme="day"] .mobile-chat-dialogue-bubble *,
-html[data-theme="day"] [data-mobile-chat-bubble="true"],
-html[data-theme="day"] [data-mobile-chat-bubble="true"] * {
+html[data-theme="day"] .compact-chat-message-bubble,
+html[data-theme="day"] .compact-chat-message-bubble *,
+html[data-theme="day"] .compact-chat-dialogue-bubble,
+html[data-theme="day"] .compact-chat-dialogue-bubble *,
+html[data-theme="day"] [data-compact-chat-bubble="true"],
+html[data-theme="day"] [data-compact-chat-bubble="true"] * {
   color: var(--day-ink-strong) !important;
   opacity: 1 !important;
   text-shadow: none !important;
 }
 
-html[data-theme="day"] .mobile-chat-message-bubble,
-html[data-theme="day"] .mobile-chat-dialogue-bubble,
-html[data-theme="day"] [data-mobile-chat-bubble="true"] {
+html[data-theme="day"] .compact-chat-message-bubble,
+html[data-theme="day"] .compact-chat-dialogue-bubble,
+html[data-theme="day"] [data-compact-chat-bubble="true"] {
   background: rgba(255, 252, 244, 0.96) !important;
   background-color: rgba(255, 252, 244, 0.96) !important;
   border-color: rgba(128, 93, 55, 0.55) !important;

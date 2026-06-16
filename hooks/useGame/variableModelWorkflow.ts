@@ -22,7 +22,7 @@ export { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 
 type 变量模型基态 = Pick<
     响应命令处理状态,
-    '角色' | '环境' | '世界' | '社交' | '任务列表' | '约定列表'
+    '角色' | '环境' | '世界' | '社交' | '任务列表'
 >;
 
 export type 变量模型校准参数 = {
@@ -72,8 +72,7 @@ const 允许根路径 = [
     'gameState.环境',
     'gameState.世界',
     'gameState.社交',
-    'gameState.任务列表',
-    'gameState.约定列表'
+    'gameState.任务列表'
 ] as const;
 
 const 大型数组限制映射: Record<string, number> = {
@@ -83,8 +82,7 @@ const 大型数组限制映射: Record<string, number> = {
     已结算事件: 20,
     江湖史册: 20,
     地图层级: 30,
-    任务列表: 30,
-    约定列表: 30
+    任务列表: 30
 };
 
 const 忽略字段集合 = new Set([
@@ -119,10 +117,9 @@ const 清理变量模型上下文 = (value: unknown, parentKey = ''): unknown =>
 
 const 序列化变量模型状态 = (
     state: 变量模型基态,
-    options?: { survivalNeedsEnabled?: boolean; cultivationSystemEnabled?: boolean }
+    options?: { survivalNeedsEnabled?: boolean }
 ): string => {
     const survivalNeedsEnabled = options?.survivalNeedsEnabled !== false;
-    const cultivationSystemEnabled = options?.cultivationSystemEnabled === true;
     const role = state.角色 && typeof state.角色 === 'object'
         ? {
             ...state.角色,
@@ -141,13 +138,9 @@ const 序列化变量模型状态 = (
         环境: state.环境,
         世界: state.世界,
         社交: state.社交,
-        任务列表: state.任务列表,
-        约定列表: state.约定列表
+        任务列表: state.任务列表
     };
-    const trimmedPayload = cultivationSystemEnabled
-        ? payload
-        : 裁剪成长体系上下文数据(payload, { 启用成长体系: false });
-    return JSON.stringify(清理变量模型上下文(trimmedPayload), null, 2);
+    return JSON.stringify(清理变量模型上下文(裁剪成长体系上下文数据(payload, { 启用成长体系: false })), null, 2);
 };
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
@@ -496,7 +489,6 @@ export const 执行变量模型校准工作流 = async (
 ): Promise<变量模型校准结果 | null> => {
     const runtimeGameConfig = 规范化游戏设置(deps.gameConfig);
     const 启用饱腹口渴系统 = runtimeGameConfig.启用饱腹口渴系统 !== false;
-    const 启用成长体系 = false;
     const 启用男娘NSFW内容 = runtimeGameConfig.启用NSFW模式 === true && runtimeGameConfig.启用男娘NSFW内容 !== false;
     if (!变量校准功能已启用(deps.apiConfig)) return null;
 
@@ -563,8 +555,7 @@ export const 执行变量模型校准工作流 = async (
     const 请求变量模型 = (retryHint = '') => textAIService.generateVariableCalibrationUpdate(
         {
             stateJson: 序列化变量模型状态(params.baseState, {
-                survivalNeedsEnabled: 启用饱腹口渴系统,
-                cultivationSystemEnabled: 启用成长体系
+                survivalNeedsEnabled: 启用饱腹口渴系统
             }),
             response: params.parsedResponse,
             calibrationRulesContext,
@@ -572,7 +563,6 @@ export const 执行变量模型校准工作流 = async (
             worldEvolutionUpdated: params.worldEvolutionUpdated === true,
             builtinPromptEntries: params.builtinPromptEntries,
             survivalNeedsEnabled: 启用饱腹口渴系统,
-            cultivationSystemEnabled: 启用成长体系,
             recentRounds: params.recentRounds,
             isOpeningRound: params.isOpeningRound === true,
             openingTaskContext: params.openingTaskContext

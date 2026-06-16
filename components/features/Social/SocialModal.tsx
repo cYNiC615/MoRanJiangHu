@@ -13,7 +13,6 @@ import { IconBeads, IconHeart, IconMars, IconScroll, IconSparkles } from '../../
 
 interface Props {
     socialList: NPC结构[];
-    cultivationSystemEnabled?: boolean;
     onClose: () => void;
     selectedNpcId?: string | null;
     onSelectedNpcIdChange?: (npcId: string | null) => void;
@@ -60,7 +59,6 @@ const 计算社交排序权重 = (npc: NPC结构): number => {
 
 const SocialModal: React.FC<Props> = ({
     socialList,
-    cultivationSystemEnabled = false,
     onClose,
     selectedNpcId,
     onSelectedNpcIdChange,
@@ -82,7 +80,6 @@ const SocialModal: React.FC<Props> = ({
         })
     ), [socialList]);
     use图片资源回源预取(sortedSocialList);
-    const 显示境界 = cultivationSystemEnabled === true;
     const 获取NPC稳定ID = React.useCallback((npc: any, index = 0): string => (
         String(npc?.id || npc?.ID || npc?.姓名 || `npc-${index}`).trim()
     ), []);
@@ -276,7 +273,7 @@ const SocialModal: React.FC<Props> = ({
         const bagTargets = 读取NPC背包(npc).map((item) => item.名称).filter(Boolean).slice(0, 8);
         return Array.from(new Set([
             '随机随身物品',
-            '钱袋/灵石袋',
+            '钱包/卡包',
             ...bagTargets,
             '贴身信物',
             '内衣/贴身衣物',
@@ -667,12 +664,6 @@ const SocialModal: React.FC<Props> = ({
                                         {npc.姓名}
                                     </div>
                                     <div className="social-roster-card__meta text-[10px] text-gray-500 flex items-center gap-1 mt-0.5 min-w-0 overflow-hidden">
-                                        {显示境界 && npc.境界 && (
-                                            <>
-                                                <span className="min-w-0 truncate">{npc.境界}</span>
-                                                <span className="w-1 h-1 rounded-full bg-gray-700 shrink-0"></span>
-                                            </>
-                                        )}
                                         <span className={`shrink-0 whitespace-nowrap ${npcDead ? 'text-gray-400' : npc.是否在场 ? 'text-emerald-400/90' : 'text-gray-600'}`}>
                                             {npcDead ? '已故' : npc.是否在场 ? '在场' : '离线'}
                                         </span>
@@ -806,9 +797,6 @@ const SocialModal: React.FC<Props> = ({
                                             </div>
 
                                             <div className="flex flex-wrap gap-1.5 mb-3 leading-none">
-                                                {显示境界 && currentNPC.境界 && (
-                                                    <span className="max-w-[14rem] truncate text-[11px] leading-none bg-black/60 border border-wuxia-gold/20 px-2 py-1 rounded text-wuxia-gold/80 shadow-inner">LV.{currentNPC.境界}</span>
-                                                )}
                                                 <span className="max-w-[18rem] truncate text-[11px] leading-none bg-black/60 border border-white/10 px-2 py-1 rounded text-gray-300">{currentNPC.身份}</span>
                                                 <span className={`text-[11px] leading-none px-2 py-1 flex items-center gap-1 rounded border border-white/10 bg-black/60 ${当前角色已死亡 ? 'text-gray-300' : currentNPC.是否在场 ? 'text-emerald-400' : 'text-gray-500'}`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${当前角色已死亡 ? 'bg-gray-400' : currentNPC.是否在场 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`}></span>

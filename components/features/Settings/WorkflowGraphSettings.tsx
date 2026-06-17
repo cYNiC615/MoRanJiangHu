@@ -311,11 +311,7 @@ const WorkflowGraphSettings: React.FC<{
                 subtitle: '剧情规划修订',
                 row: 4,
                 order: 1,
-                enabled: feature.规划分析功能启用 !== false && (
-                    Boolean(feature.规划分析独立模型开关)
-                    || Boolean(feature.剧情规划独立模型开关)
-                    || Boolean(feature.女主规划独立模型开关)
-                ),
+                enabled: feature.规划分析功能启用 !== false && Boolean(feature.规划分析独立模型开关),
                 api: planningApi,
                 configTab: 'planning_model',
                 modelConfig: {
@@ -487,7 +483,7 @@ const WorkflowGraphSettings: React.FC<{
         const selectedConfig = getSelectedConfig(selectedChannelId) || {
             id: selectedChannelId || `${stage.id}_dedicated`,
             名称: `${stage.title}独立接口`,
-            供应商: 'openai_custom' as const,
+            供应商: 'openai_compatible' as const,
             协议覆盖: 'auto' as const,
             baseUrl: '',
             apiKey: '',

@@ -51,24 +51,6 @@ type 内置提示词说明 = {
     标签: string[];
 };
 
-const 互斥主剧情COT槽位 = new Set<string>([
-    世界书本体槽位.主剧情COT_常规,
-    世界书本体槽位.主剧情COT_女主规划,
-    世界书本体槽位.主剧情COT_NTL女主规划
-]);
-
-const 成对女主规划槽位 = new Set<string>([
-    世界书本体槽位.主剧情女主规划_常规,
-    世界书本体槽位.主剧情女主规划_NTL,
-    世界书本体槽位.主剧情女主规划思考_常规,
-    世界书本体槽位.主剧情女主规划思考_NTL
-]);
-
-const 兼容保留变量槽位 = new Set<string>([
-    世界书本体槽位.主剧情变量校准_常规,
-    世界书本体槽位.主剧情变量校准_世界演变
-]);
-
 const 获取内置提示词说明 = (entry: 内置提示词条目结构 | null): 内置提示词说明 | null => {
     if (!entry) return null;
     const slotId = entry.槽位ID;

@@ -547,8 +547,6 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     世界演变独立模型开关: false,
     变量计算独立模型开关: false,
     规划分析独立模型开关: false,
-    女主规划独立模型开关: false,
-    剧情规划独立模型开关: false,
     文章优化独立模型开关: false,
     剧情回忆使用模型: '',
     剧情回忆渠道ID: '',
@@ -596,14 +594,6 @@ export const 默认功能模型占位: 功能模型占位配置结构 = {
     规划分析渠道ID: '',
     规划分析API地址: '',
     规划分析API密钥: '',
-    女主规划使用模型: '',
-    女主规划渠道ID: '',
-    女主规划API地址: '',
-    女主规划API密钥: '',
-    剧情规划使用模型: '',
-    剧情规划渠道ID: '',
-    剧情规划API地址: '',
-    剧情规划API密钥: '',
     文章优化使用模型: '',
     文章优化渠道ID: '',
     文章优化API地址: '',
@@ -1119,10 +1109,6 @@ const 标准化单配置 = (raw: any, index: number): 单接口配置结构 => {
 
 const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 => {
     const polishPromptCandidate = typeof raw?.文章优化提示词 === 'string' ? raw.文章优化提示词 : '';
-    const legacyPlanningEnabled = Boolean(raw?.剧情规划独立模型开关) || Boolean(raw?.女主规划独立模型开关);
-    const legacyPlanningModel = 读取字符串(raw?.剧情规划使用模型 || raw?.女主规划使用模型);
-    const legacyPlanningBaseUrl = 读取字符串(raw?.剧情规划API地址 || raw?.女主规划API地址);
-    const legacyPlanningApiKey = 读取字符串(raw?.剧情规划API密钥 || raw?.女主规划API密钥);
     const 画师串预设列表 = 标准化画师串预设列表(raw?.画师串预设列表);
     const 词组转化器提示词预设列表 = 标准化词组转化器提示词预设列表(raw?.词组转化器提示词预设列表);
     const 模型词组转化器预设列表 = 标准化模型词组转化器预设列表(raw?.模型词组转化器预设列表, 词组转化器提示词预设列表);
@@ -1219,9 +1205,7 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         记忆总结独立模型开关: Boolean(raw?.记忆总结独立模型开关),
         世界演变独立模型开关: Boolean(raw?.世界演变独立模型开关),
         变量计算独立模型开关: Boolean(raw?.变量计算独立模型开关),
-        规划分析独立模型开关: 读取布尔值(raw?.规划分析独立模型开关) ?? legacyPlanningEnabled,
-        女主规划独立模型开关: Boolean(raw?.女主规划独立模型开关),
-        剧情规划独立模型开关: Boolean(raw?.剧情规划独立模型开关),
+        规划分析独立模型开关: Boolean(raw?.规划分析独立模型开关),
         文章优化独立模型开关: Boolean(raw?.文章优化独立模型开关),
         剧情回忆使用模型: 读取字符串(raw?.剧情回忆使用模型),
         剧情回忆渠道ID: 读取字符串(raw?.剧情回忆渠道ID),
@@ -1256,18 +1240,10 @@ const 标准化功能模型占位 = (raw: any): 功能模型占位配置结构 =
         变量计算API地址: 读取字符串(raw?.变量计算API地址),
         变量计算API密钥: 读取字符串(raw?.变量计算API密钥),
         规划分析功能启用: 读取布尔值(raw?.规划分析功能启用) ?? true,
-        规划分析使用模型: 读取字符串(raw?.规划分析使用模型 || legacyPlanningModel),
-        规划分析渠道ID: 读取字符串(raw?.规划分析渠道ID || raw?.剧情规划渠道ID || raw?.女主规划渠道ID),
-        规划分析API地址: 读取字符串(raw?.规划分析API地址 || legacyPlanningBaseUrl),
-        规划分析API密钥: 读取字符串(raw?.规划分析API密钥 || legacyPlanningApiKey),
-        女主规划使用模型: 读取字符串(raw?.女主规划使用模型),
-        女主规划渠道ID: 读取字符串(raw?.女主规划渠道ID),
-        女主规划API地址: 读取字符串(raw?.女主规划API地址),
-        女主规划API密钥: 读取字符串(raw?.女主规划API密钥),
-        剧情规划使用模型: 读取字符串(raw?.剧情规划使用模型),
-        剧情规划渠道ID: 读取字符串(raw?.剧情规划渠道ID),
-        剧情规划API地址: 读取字符串(raw?.剧情规划API地址),
-        剧情规划API密钥: 读取字符串(raw?.剧情规划API密钥),
+        规划分析使用模型: 读取字符串(raw?.规划分析使用模型),
+        规划分析渠道ID: 读取字符串(raw?.规划分析渠道ID),
+        规划分析API地址: 读取字符串(raw?.规划分析API地址),
+        规划分析API密钥: 读取字符串(raw?.规划分析API密钥),
         文章优化使用模型: 读取字符串(raw?.文章优化使用模型),
         文章优化渠道ID: 读取字符串(raw?.文章优化渠道ID),
         文章优化API地址: 读取字符串(raw?.文章优化API地址),
@@ -1510,19 +1486,12 @@ export const 获取生图画师串预设 = (
     return scopedList[0] || null;
 };
 
-const 获取后端自动模型词组转化器预设ID = (
-    settings: 接口设置结构,
-    scope?: 词组转化器提示词预设类型
-): string => {
-    return 'transformer_model_bundle_comfyui';
-};
 export const 获取命中模型词组转化器预设 = (
-    settings: 接口设置结构,
-    scope?: 词组转化器提示词预设类型
+    settings: 接口设置结构
 ): 模型词组转化器预设结构 | null => {
     const feature = settings?.功能模型占位;
     const list = Array.isArray(feature?.模型词组转化器预设列表) ? feature.模型词组转化器预设列表 : [];
-    const backendPresetId = 获取后端自动模型词组转化器预设ID(settings, scope);
+    const backendPresetId = 'transformer_model_bundle_comfyui';
     if (backendPresetId) {
         const matchedByBackend = list.find((item) => item?.id === backendPresetId);
         if (matchedByBackend) return matchedByBackend;
@@ -1538,7 +1507,7 @@ export const 获取词组转化器预设上下文 = (
 ): 词组转化器预设上下文结构 => {
     const feature = settings?.功能模型占位;
     const list = Array.isArray(feature?.词组转化器提示词预设列表) ? feature.词组转化器提示词预设列表 : [];
-    const matchedModelPreset = 获取命中模型词组转化器预设(settings, scope);
+    const matchedModelPreset = 获取命中模型词组转化器预设(settings);
     const targetId = scope === 'scene'
         ? (
             读取字符串(matchedModelPreset?.场景词组转化器提示词预设ID).trim()
@@ -1787,37 +1756,15 @@ export const 获取世界演变接口配置 = (settings: 接口设置结构): �
 export const 获取规划分析接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {
     const feature = (settings as any)?.功能模型占位;
     if (feature?.规划分析功能启用 === false) return null;
-    const enabled = Boolean(feature?.规划分析独立模型开关)
-        || Boolean(feature?.剧情规划独立模型开关)
-        || Boolean(feature?.女主规划独立模型开关);
-    const model = 读取字符串(
-        feature?.规划分析使用模型
-        || feature?.剧情规划使用模型
-        || feature?.女主规划使用模型
-    ).trim();
-    if (!enabled || !model) return null;
-    const baseUrl = 读取字符串(
-        feature?.规划分析API地址
-        || feature?.剧情规划API地址
-        || feature?.女主规划API地址
-    ).trim();
-    const apiKey = 读取字符串(
-        feature?.规划分析API密钥
-        || feature?.剧情规划API密钥
-        || feature?.女主规划API密钥
-    ).trim();
+    // ponytail: the split story/heroine planning model pages are gone; one planning knob is enough.
+    const enabled = Boolean(feature?.规划分析独立模型开关);
+    if (!enabled) return null;
     return 构建独立文本接口配置(settings, {
-        渠道ID: feature?.规划分析渠道ID || feature?.剧情规划渠道ID || feature?.女主规划渠道ID,
-        使用模型: model,
-        API地址: baseUrl,
-        API密钥: apiKey
+        渠道ID: feature?.规划分析渠道ID,
+        使用模型: feature?.规划分析使用模型,
+        API地址: feature?.规划分析API地址,
+        API密钥: feature?.规划分析API密钥
     });
-};
-
-export const 获取女主规划接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => 获取规划分析接口配置(settings);
-
-export const 获取剧情规划接口配置 = (settings: 接口设置结构): 当前可用接口结构 | null => {
-    return 获取规划分析接口配置(settings);
 };
 
 type 已发现ComfyUI后端缓存项 = Pick<Partial<发现图片后端记录结构>, 'id' | 'workspace' | 'lastHeartbeatAt' | 'connectTokenMatched'> & {

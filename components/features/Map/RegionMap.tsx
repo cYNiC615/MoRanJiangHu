@@ -4,7 +4,6 @@ import {
     NPC有显式地图位置,
     NPC有精确地图位置,
     NPC属于地图视图,
-    NPC显式位置命中任一,
     NPC精确位置命中任一,
     构建当前地点候选,
     构建当前叶子地点候选,
@@ -25,7 +24,6 @@ interface Props {
     viewLocationName?: string;
     viewPathNames?: string[];
     viewDescription?: string;
-    viewNodeNpcs?: any[];
 }
 
 const 约束数值 = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -120,7 +118,7 @@ const 取地图尺寸 = (level: 地点层级类型) => {
     return { w: 52, h: 40, pad: 4 };
 };
 
-const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName, onSelect, onLocateCurrent, level, socialList = [], env, viewLocationName = '', viewPathNames = [], viewDescription = '', viewNodeNpcs = [] }) => {
+const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName, onSelect, onLocateCurrent, level, socialList = [], env, viewLocationName = '', viewPathNames = [], viewDescription = '' }) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const { w: MAP_W, h: MAP_H, pad: MAP_PAD } = 取地图尺寸(level);
 
@@ -509,7 +507,6 @@ const RegionMap: React.FC<Props> = ({ nodes, currentNodeId, currentLocationName,
                     for (let px = 2; px < MAP_W - 2; px += 2.5 + (稳定哈希数(`mt-${ri}-${px}`) % 20) / 10) {
                         peaks.push({ x: px, h: 0.6 + (稳定哈希数(`pk-${ri}-${px}`) % 60) / 30 });
                     }
-                    const topY = ri === 0 ? yy - 2 : yy + 2;
                     return <g key={`mtns-${ri}`}>
                         {peaks.map((p, pi) => {
                             if (pi === 0) return null;

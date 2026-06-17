@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { GameLog, GameResponse, NPC结构, 视觉设置结构 } from '../../../types';
 import { NarratorRenderer, CharacterRenderer, JudgmentRenderer, RewardRenderer } from './MessageRenderers';
 import GameButton from '../../ui/GameButton';
-import { 构建区域文字样式 } from '../../../utils/visualSettings';
 import { 规范化可渲染对白日志 } from '../../../utils/dialogueLogNormalizer';
 import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../../utils/judgmentFormat';
 
@@ -16,8 +15,6 @@ interface Props {
     outputTokens?: number;
     onSaveEdit: (newRawText: string) => Promise<string | null> | string | null;
     onPolishTurn?: () => Promise<string | null> | string | null;
-    fontSize?: number;
-    lineHeight?: number;
     collapseThinkingStream?: boolean;
     visualConfig?: 视觉设置结构;
     socialList?: NPC结构[];
@@ -96,8 +93,6 @@ const TurnItem: React.FC<Props> = ({
     outputTokens,
     onSaveEdit,
     onPolishTurn,
-    fontSize = 16,
-    lineHeight = 1.6,
     collapseThinkingStream = true,
     visualConfig,
     socialList,
@@ -119,7 +114,6 @@ const TurnItem: React.FC<Props> = ({
     const [polishError, setPolishError] = useState<string | null>(null);
     const [showOriginalBody, setShowOriginalBody] = useState(false);
     const [expandedRawLogKey, setExpandedRawLogKey] = useState<string | null>(null);
-    const chatStyle = 构建区域文字样式(visualConfig, '聊天');
     const 紧凑字号 = 'var(--ui-compact-font-size, 14px)';
     const 微字号 = 'var(--ui-micro-font-size, 12px)';
     const 紧凑等宽字号 = 'var(--ui-compact-mono-font-size, 12px)';
@@ -282,13 +276,6 @@ const TurnItem: React.FC<Props> = ({
         if (typeof value === 'number' || typeof value === 'boolean') return String(value);
         if (value === null || value === undefined) return 'null';
         try { return JSON.stringify(value, null, 2); } catch { return String(value); }
-    };
-
-    const 是否使用预格式化 = (value: unknown): boolean => {
-        if (value === null || value === undefined) return false;
-        if (typeof value === 'object') return true;
-        if (typeof value === 'string' && (value.includes('\n') || value.length > 80)) return true;
-        return false;
     };
 
     const 生成简约值文本 = (value: unknown): string => {
@@ -543,7 +530,6 @@ const TurnItem: React.FC<Props> = ({
                             {commands.map((cmd, idx) => {
                                 const valueText = 格式化命令值(cmd?.value);
                                 const compactValueText = 生成简约值文本(cmd?.value);
-                                const needPre = 是否使用预格式化(cmd?.value);
                                 const isCompact = commandViewMode === 'compact';
                                 return (
                                     <div key={`${cmd.action}-${cmd.key}-${idx}`} className={`rounded border transition-all ${isCompact ? 'border-white/5 bg-black/20 hover:bg-black/40' : 'border-emerald-500/10 bg-black/40'}`}>

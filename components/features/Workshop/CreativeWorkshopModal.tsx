@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 从模式世界书提取提示词, 创意工坊模块分区, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
-import type { ModeRuntimeProfile, 世界书结构 } from '../../../types';
+import type { ModeRuntimeProfile, 世界书结构, 世界书作用域 } from '../../../types';
 import type { 题材模式类型 } from '../../../models/system';
 import { 题材模式配置表, 题材模式顺序 } from '../../../utils/topicModeProfiles';
 import { 构建官方模式运行时配置, 规范化模式运行时配置, 渲染模式运行时配置世界书内容 } from '../../../utils/modeRuntimeProfile';
@@ -213,7 +213,8 @@ const 创建默认模式元数据草稿 = (mode: 题材模式类型): Pick<贡�
     };
 };
 
-const 下载JSON = (entry: 创意工坊模块条目) => {
+// ponytail: this is local export, not a remote download flow.
+const 导出JSON = (entry: 创意工坊模块条目) => {
     const payload = {
         schema: 'moranjianghu-creative-workshop-module',
         version: 1,
@@ -385,6 +386,8 @@ const 世界细节配置有自定义内容 = (config: 创意工坊世界细节�
     Boolean(config.importantPeople?.trim() || config.importantFactions?.trim() || config.mapDesign?.trim() || config.mapDiyDraft?.enabled)
 );
 
+const 模式世界书作用域: 世界书作用域[] = ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'];
+
 const 渲染世界细节生成配置 = (config: 创意工坊世界细节生成配置): string => {
     if (config.aiGenerate) {
         return [
@@ -427,14 +430,14 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
     内置: false,
     创建时间: Date.now(),
     更新时间: Date.now(),
-    条目: [
+    条目: ([
         {
             id: `${suiteId}-metadata`,
             标题: '模式元数据',
             内容: 渲染模式元数据世界书内容(draft),
             条目形态: 'normal',
             类型: 'system_rule',
-            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            作用域: 模式世界书作用域,
             注入模式: 'always',
             关键词: [],
             优先级: 105,
@@ -448,7 +451,7 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
             内容: 渲染模式运行时配置世界书内容(规范化模式运行时配置(draft.modeRuntimeProfile, draft.mode)),
             条目形态: 'normal',
             类型: 'system_rule',
-            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            作用域: 模式世界书作用域,
             注入模式: 'always',
             关键词: [],
             优先级: 104,
@@ -462,7 +465,7 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
             内容: 渲染世界细节生成配置(构建世界细节生成配置(draft)),
             条目形态: 'normal',
             类型: 'system_rule',
-            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            作用域: 模式世界书作用域,
             注入模式: 'always',
             关键词: [],
             优先级: 103,
@@ -476,7 +479,7 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
             内容: draft.topicBody.trim(),
             条目形态: 'normal',
             类型: 'world_lore',
-            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            作用域: 模式世界书作用域,
             注入模式: 'always',
             关键词: [],
             优先级: 100,
@@ -490,7 +493,7 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
             内容: draft.worldRulesBody.trim(),
             条目形态: 'normal',
             类型: 'system_rule',
-            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            作用域: 模式世界书作用域,
             注入模式: 'always',
             关键词: [],
             优先级: 95,
@@ -504,7 +507,7 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
             内容: draft.abilityBody.trim(),
             条目形态: 'normal',
             类型: 'system_rule',
-            作用域: ['main', 'opening', 'world_evolution', 'variable_calibration', 'story_plan', 'heroine_plan', 'tavern'],
+            作用域: 模式世界书作用域,
             注入模式: 'always',
             关键词: [],
             优先级: 90,
@@ -512,7 +515,7 @@ const 构建贡献模式世界书 = (draft: 贡献草稿, suiteId: string, suite
             创建时间: Date.now(),
             更新时间: Date.now()
         }
-    ].filter((entry) => entry.内容)
+    ] satisfies 世界书结构['条目']).filter((entry) => entry.内容)
 }];
 
 const 构建贡献模块 = (draft: 贡献草稿, contributor: string, existingEntries?: 创意工坊模块条目[]): 创意工坊模块条目 => {
@@ -870,7 +873,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
             const modules = contributionModules.map((module) => 导入本地创意工坊模块(module));
             const first = modules[0];
             setStatus(contributionDraft.type === 'comfy_workflow'
-                ? `已保存本地模块「${first.title}」，可以在本地导入分区预览。`
+                ? `已保存本地模式包工作流「${first.title}」，可以在本地列表预览。`
                 : `已保存完整模式包「${contributionDraft.title.trim()}」。`);
             setActiveType(first.type);
             setSourceFilter('local');
@@ -1187,7 +1190,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                             <div className="text-xs font-mono tracking-[0.28em] text-wuxia-gold">LOCAL MODE PACKS</div>
                             <h2 className="mt-2 text-lg font-serif font-bold tracking-[0.18em] text-wuxia-gold">本地模式包</h2>
                             <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-50/75">
-                                本地模式包与图片工作流的管理入口。这里保留本地导入、JSON 保存和开局可用的模式包整理。
+                                本地模式包与图片工作流的管理入口。这里保留本地导入导出和开局可用的模式包整理。
                             </p>
                         </div>
                     )}
@@ -1225,7 +1228,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                 className="hidden"
                                 onChange={(event) => void 导入JSON文件(event)}
                             />
-                            <input value={contributor} onChange={(event) => setContributor(event.target.value)} placeholder="作者署名" className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/40" />
+                            <input value={contributor} onChange={(event) => setContributor(event.target.value)} placeholder="本地署名" className="h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/40" />
                             <button type="button" onClick={() => jsonImportInputRef.current?.click()} disabled={busyId === 'import-json'} className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/15 disabled:opacity-50">{busyId === 'import-json' ? '导入中' : '导入 JSON'}</button>
                             <button type="button" onClick={() => setShowContributionForm((value) => !value)} className="rounded-lg border border-wuxia-gold/25 px-3 py-2 text-xs text-wuxia-gold hover:border-wuxia-gold/45">{showContributionForm ? '收起编辑表单' : '新建本地模块'}</button>
                             <button type="button" onClick={() => void refreshEntries()} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:border-white/25 disabled:opacity-50">{loading ? '刷新中' : '刷新列表'}</button>
@@ -1299,7 +1302,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                 {contributionDraft.type === 'comfy_workflow' ? (
                                     <label className="block text-xs text-gray-300">
                                         工作流内容
-                                        <textarea value={contributionDraft.body} onChange={(event) => setContributionDraft((prev) => ({ ...prev, body: event.target.value }))} placeholder="粘贴 ComfyUI API Workflow JSON，或写清工作流下载/使用说明。" className="mt-1 min-h-36 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
+                                        <textarea value={contributionDraft.body} onChange={(event) => setContributionDraft((prev) => ({ ...prev, body: event.target.value }))} placeholder="粘贴 ComfyUI API Workflow JSON，或写清本地使用说明。" className="mt-1 min-h-36 w-full resize-y rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm leading-6 text-gray-100 outline-none placeholder:text-gray-500 focus:border-wuxia-gold/45" />
                                     </label>
                                 ) : (
                                     <div className="grid gap-3">
@@ -1627,7 +1630,7 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                                 </select>
                                             )}
                                             <div className="mt-1 text-xs text-wuxia-gold/80">{entry.subtitle}</div>
-                                            <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '匿名'}{entry.versionNote ? ` · ${entry.versionNote}` : ''}</div>
+                                            <div className="mt-1 text-[11px] text-gray-500">{entry.source === 'local' ? '本地导入' : '官方预设'} · {entry.contributor || '未署名'}{entry.versionNote ? ` · ${entry.versionNote}` : ''}</div>
                                         </div>
                                         <div className="shrink-0 border border-white/15 px-2 py-0.5 text-[10px] text-gray-300">可注入</div>
                                     </div>
@@ -1637,8 +1640,8 @@ const CreativeWorkshopModal: React.FC<Props> = ({ open, onClose }) => {
                                     </div>
                                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
                                         <button type="button" onClick={() => setPreviewEntry(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">预览注入</button>
-                                        <button type="button" onClick={() => 下载JSON(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">下载 JSON</button>
-                                        <button type="button" onClick={() => void 复制文本(构建模块摘要(entry)).then((ok) => setStatus(ok ? `已复制「${entry.title}」注入摘要。` : '复制失败，请改用下载 JSON。'))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">复制摘要</button>
+                                        <button type="button" onClick={() => 导出JSON(entry)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">导出 JSON</button>
+                                        <button type="button" onClick={() => void 复制文本(构建模块摘要(entry)).then((ok) => setStatus(ok ? `已复制「${entry.title}」注入摘要。` : '复制失败，请改用导出 JSON。'))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-200 hover:border-white/25">复制摘要</button>
                                     </div>
                                 </div>
                             );

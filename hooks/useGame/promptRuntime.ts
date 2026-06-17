@@ -36,7 +36,6 @@ export type 酒馆上下文结构 = {
     contextPieces: {
         worldPrompt: string;
         地图建筑状态: string;
-        境界体系提示词: string;
         otherPrompts: string;
         难度设置提示词: string;
         叙事人称提示词: string;
@@ -253,7 +252,6 @@ const 构建酒馆世界书文本 = (
     return [
         contextPieces.worldPrompt,
         contextPieces.地图建筑状态,
-        contextPieces.境界体系提示词,
         contextPieces.离场NPC档案,
         otherPrompts,
         contextPieces.难度设置提示词,

@@ -381,8 +381,6 @@ export const 写入四段记忆 = (
     shortEntry: string,
     options?: {
         immediateLimit?: number;
-        shortLimit?: number;
-        midLimit?: number;
         recordTime?: string;
         timestamp?: string;
     }
@@ -393,7 +391,6 @@ export const 写入四段记忆 = (
     if (!full && !summary) return next;
 
     const immediateLimit = Math.max(1, Number(options?.immediateLimit) || 10);
-    const shortLimit = Math.max(5, Number(options?.shortLimit) || 30);
 
     if (full) next.即时记忆.push(合并即时与短期(full, summary));
     else if (summary) next.短期记忆.push(summary);

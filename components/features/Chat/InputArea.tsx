@@ -110,12 +110,6 @@ const 获取性能时间 = (): number => (
 
 const 压缩队列进度用于渲染 = <T extends QueueProgressPayload>(progress: T): T => progress;
 
-const 合并队列命令展示 = (commandTexts: string[]): string => (
-    commandTexts.length > 0
-        ? commandTexts.join('\n')
-        : ''
-);
-
 const 格式化队列耗时 = (elapsedMs?: number): string => {
     if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs) || elapsedMs < 0) return '';
     if (elapsedMs < 1000) return `${Math.round(elapsedMs)}ms`;
@@ -705,7 +699,7 @@ const InputArea: React.FC<Props> = ({
         channelName: mainStoryModelInfo?.channelName || '未配置渠道',
         modelName: mainStoryModelInfo?.modelName || '未选择模型'
     };
-    const pipelineStages = (isOpeningQueue ? [
+    const pipelineStages: Array<{ id: string; label: string; progress?: QueueProgressPayload | null }> = (isOpeningQueue ? [
         { id: 'opening-input', label: '玩家建档输入', progress: openingLocalProgress },
         { id: 'opening-story', label: '开局主剧情', progress: openingStoryProgress },
         { id: 'opening-polish', label: '开局文章优化', progress: openingPolishProgress },
@@ -878,11 +872,9 @@ const InputArea: React.FC<Props> = ({
                                         const fullRawText = stage.progress?.rawText || '';
                                         const rawText = fullRawText;
                                         const progressText = stage.progress?.text;
-                                        const originalCommandTexts = Array.isArray((stage.progress as { commandTexts?: string[] } | null)?.commandTexts)
+                                        const commandTexts = Array.isArray((stage.progress as { commandTexts?: string[] } | null)?.commandTexts)
                                             ? ((stage.progress as { commandTexts?: string[] }).commandTexts || [])
                                             : [];
-                                        const commandTexts = originalCommandTexts;
-                                        const commandDisplayText = 合并队列命令展示(commandTexts);
                                         const rawExpanded = expandedRawStageId === stage.id;
                                         const commandExpanded = expandedCommandStageId === stage.id;
                                         const isVariableStage = stage.id === 'variable';
@@ -930,8 +922,8 @@ const InputArea: React.FC<Props> = ({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    if (stage.id === 'story' && onReroll) {
-                                                                        void onReroll();
+                                                                    if (stage.id === 'story') {
+                                                                        void handleReroll();
                                                                     } else if (isVariableStage && onRetryLatestVariableGeneration) {
                                                                         void handleRetryVariableGeneration();
                                                                     }

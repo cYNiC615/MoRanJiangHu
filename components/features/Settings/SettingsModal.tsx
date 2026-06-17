@@ -4,8 +4,9 @@ import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import { lazyImportWithReload } from '../../../utils/lazyImportWithReload';
 import { 
     接口设置结构, 提示词结构, ThemePreset, 视觉设置结构, 聊天记录结构,
-    游戏设置结构, 记忆配置结构, 记忆系统结构, NPC结构, TavernCommand, OpeningConfig, 剧情系统结构
+    游戏设置结构, 记忆配置结构, 记忆系统结构, NPC结构, TavernCommand, OpeningConfig
 } from '../../../types';
+import type { ProfileId as StageModelProfileId } from './StageModelSettings';
 
 const ApiSettings = React.lazy(() => lazyImportWithReload('settings-api', () => import('./ApiSettings')));
 const ImageGenerationSettings = React.lazy(() => lazyImportWithReload('settings-image-generation', () => import('./ImageGenerationSettings')));
@@ -22,19 +23,53 @@ const ContextViewer = React.lazy(() => lazyImportWithReload('settings-context-vi
 const LogViewer = React.lazy(() => lazyImportWithReload('settings-log-viewer', () => import('./LogViewer')));
 const WorkflowGraphSettings = React.lazy(() => lazyImportWithReload('settings-workflow-graph', () => import('./WorkflowGraphSettings')));
 const RecallModelSettings = React.lazy(() => lazyImportWithReload('settings-recall-model', () => import('./RecallModelSettings')));
-const MemorySummaryModelSettings = React.lazy(() => lazyImportWithReload('settings-memory-summary-model', () => import('./MemorySummaryModelSettings')));
-const MemoryRefineModelSettings = React.lazy(() => lazyImportWithReload('settings-memory-refine-model', () => import('./MemoryRefineModelSettings')));
+const StageModelSettings = React.lazy(() => lazyImportWithReload('settings-stage-model', () => import('./StageModelSettings')));
 const MapModelSettings = React.lazy(() => lazyImportWithReload('settings-map-model', () => import('./MapModelSettings')));
-const PolishModelSettings = React.lazy(() => lazyImportWithReload('settings-polish-model', () => import('./PolishModelSettings')));
-const WorldEvolutionModelSettings = React.lazy(() => lazyImportWithReload('settings-world-evolution-model', () => import('./WorldEvolutionModelSettings')));
-const VariableModelSettings = React.lazy(() => lazyImportWithReload('settings-variable-model', () => import('./VariableModelSettings')));
-const PlanningModelSettings = React.lazy(() => lazyImportWithReload('settings-planning-model', () => import('./PlanningModelSettings')));
 const IndependentApiGptModeSettings = React.lazy(() => lazyImportWithReload('settings-independent-api-gpt-mode', () => import('./IndependentApiGptModeSettings')));
 const NpcManager = React.lazy(() => lazyImportWithReload('settings-npc-manager', () => import('./NpcManager')));
 const VariableManager = React.lazy(() => lazyImportWithReload('settings-variable-manager', () => import('./VariableManager')));
 
 type SettingsTab = 'api' | 'workflow_graph' | 'image_generation' | 'recall' | 'memory_summary_model' | 'memory_refine_model' | 'map_model' | 'polish' | 'world_evolution' | 'variable_model' | 'planning_model' | 'independent_api_gpt' | 'prompt' | 'storage' | 'theme' | 'visual' | 'world' | 'game' | 'reality' | 'tavern_preset' | 'memory' | 'history' | 'context' | 'logs' | 'npc_management' | 'variable_manager';
 type RuntimeStateSections = Record<'角色' | '环境' | '社交' | '世界' | '剧情' | '女主剧情规划' | '任务列表' | '记忆系统', unknown>;
+
+// ponytail: these tabs all render the same model settings shell; keep only the profile mapping here.
+const stageModelTabProfiles: Partial<Record<SettingsTab, StageModelProfileId>> = {
+    memory_summary_model: 'memory_summary',
+    memory_refine_model: 'memory_refine',
+    polish: 'polish',
+    world_evolution: 'world_evolution',
+    variable_model: 'variable_model',
+    planning_model: 'planning_model'
+};
+
+// ponytail: one static tab list feeds desktop and mobile; filtering happens once below.
+const tabItems = [
+    { id: 'game', label: '游戏设定' },
+    { id: 'reality', label: '真实世界' },
+    { id: 'tavern_preset', label: '酒馆预设' },
+    { id: 'memory', label: '记忆配置' },
+    { id: 'visual', label: '视觉显示' },
+    { id: 'npc_management', label: 'NPC管理' },
+    { id: 'variable_manager', label: '变量管理' },
+    { id: 'history', label: '互动历史' },
+    { id: 'context', label: '上下文' },
+    { id: 'logs', label: '运行日志' },
+    { id: 'api', label: '接口连接' },
+    { id: 'workflow_graph', label: '生成流程图' },
+    { id: 'image_generation', label: '文生图' },
+    { id: 'recall', label: '剧情回忆' },
+    { id: 'memory_summary_model', label: '记忆总结' },
+    { id: 'memory_refine_model', label: '记忆精炼' },
+    { id: 'map_model', label: '地图生成' },
+    { id: 'polish', label: '文章优化' },
+    { id: 'world_evolution', label: '世界演变' },
+    { id: 'variable_model', label: '变量生成' },
+    { id: 'planning_model', label: '规划分析' },
+    { id: 'independent_api_gpt', label: '独立API GPT' },
+    { id: 'prompt', label: '提示词' },
+    { id: 'theme', label: '界面风格' },
+    { id: 'storage', label: '数据存储' }
+] as const;
 
 type ContextSection = {
     id: string;
@@ -75,7 +110,6 @@ interface Props {
     memorySystem?: 记忆系统结构;
     socialList: NPC结构[];
     runtimeState: RuntimeStateSections;
-    currentStory?: 剧情系统结构;
     openingConfig?: OpeningConfig;
     contextSnapshot?: ContextSnapshot;
 
@@ -107,37 +141,10 @@ interface Props {
 
 const SettingsModal: React.FC<Props> = ({ 
     activeTab, onTabChange, onClose,
-    apiConfig, visualConfig, gameConfig, memoryConfig, prompts, currentTheme, history, memorySystem, socialList, runtimeState, currentStory, openingConfig, contextSnapshot,
+    apiConfig, visualConfig, gameConfig, memoryConfig, prompts, currentTheme, history, memorySystem, socialList, runtimeState, openingConfig, contextSnapshot,
     onSaveApi, onSaveVisual, onSaveGame, onSaveMemory, onDeleteMemory, onRefineMemories, onRegenerateMapFromMemory, onCreateNpc, onSaveNpc, onDeleteNpc, onRestoreNpcBackup, onStartNpcMemorySummary, onUploadNpcImage, onReplaceVariableSection, onApplyVariableCommand, onUpdatePrompts, onThemeChange,
     onReturnToHome, isHome, returnHomeSaving = false, requestConfirm
 }) => {
-    const tabItems = [
-        { id: 'game', label: '游戏设定' },
-        { id: 'reality', label: '真实世界' },
-        { id: 'tavern_preset', label: '酒馆预设' },
-        { id: 'memory', label: '记忆配置' },
-        { id: 'visual', label: '视觉显示' },
-        { id: 'npc_management', label: 'NPC管理' },
-        { id: 'variable_manager', label: '变量管理' },
-        { id: 'history', label: '互动历史' },
-        { id: 'context', label: '上下文' },
-        { id: 'logs', label: '运行日志' },
-        { id: 'api', label: '接口连接' },
-        { id: 'workflow_graph', label: '生成流程图' },
-        { id: 'image_generation', label: '文生图' },
-        { id: 'recall', label: '剧情回忆' },
-        { id: 'memory_summary_model', label: '记忆总结' },
-        { id: 'memory_refine_model', label: '记忆精炼' },
-        { id: 'map_model', label: '地图生成' },
-        { id: 'polish', label: '文章优化' },
-        { id: 'world_evolution', label: '世界演变' },
-        { id: 'variable_model', label: '变量生成' },
-        { id: 'planning_model', label: '规划分析' },
-        { id: 'independent_api_gpt', label: '独立API GPT' },
-        { id: 'prompt', label: '提示词' },
-        { id: 'theme', label: '界面风格' },
-        { id: 'storage', label: '数据存储' }
-    ] as const;
     const diagnosticsEnabled = (gameConfig as any)?.启用研发诊断模式 === true;
     const visibleTabItems = diagnosticsEnabled
         ? tabItems
@@ -159,13 +166,9 @@ const SettingsModal: React.FC<Props> = ({
         if (activeTab === 'workflow_graph') return <WorkflowGraphSettings settings={apiConfig} onSave={onSaveApi} onNavigate={(tab) => onTabChange(tab as SettingsTab)} />;
         if (activeTab === 'image_generation') return <ImageGenerationSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'recall') return <RecallModelSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'memory_summary_model') return <MemorySummaryModelSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'memory_refine_model') return <MemoryRefineModelSettings settings={apiConfig} onSave={onSaveApi} />;
+        const stageModelProfile = stageModelTabProfiles[activeTab];
+        if (stageModelProfile) return <StageModelSettings profile={stageModelProfile} settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'map_model') return <MapModelSettings settings={apiConfig} onSave={onSaveApi} onRegenerateMapFromMemory={onRegenerateMapFromMemory} />;
-        if (activeTab === 'polish') return <PolishModelSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'world_evolution') return <WorldEvolutionModelSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'variable_model') return <VariableModelSettings settings={apiConfig} onSave={onSaveApi} />;
-        if (activeTab === 'planning_model') return <PlanningModelSettings settings={apiConfig} onSave={onSaveApi} />;
         if (activeTab === 'independent_api_gpt' && gameConfig && onSaveGame) return <IndependentApiGptModeSettings settings={gameConfig} onSave={onSaveGame} />;
         if (activeTab === 'prompt') return <PromptManager prompts={prompts} onUpdate={onUpdatePrompts} requestConfirm={requestConfirm} runtimePromptStates={contextSnapshot?.runtimePromptStates} />;
         if (activeTab === 'theme') return <ThemeSettings currentTheme={currentTheme} onThemeChange={onThemeChange} />;
@@ -187,7 +190,7 @@ const SettingsModal: React.FC<Props> = ({
         if (activeTab === 'variable_manager') {
             return (
                 <VariableManager
-                    runtimeState={runtimeState}
+                    runtimeState={{ ...runtimeState, 地图系统: undefined }}
                     openingConfig={openingConfig}
                     onReplaceSection={onReplaceVariableSection}
                     onApplyCommand={onApplyVariableCommand}
@@ -297,7 +300,7 @@ const SettingsModal: React.FC<Props> = ({
                             </div>
                             <div className="px-2 pb-2 overflow-x-auto no-scrollbar">
                                 <div className="flex gap-2 min-w-max">
-                                    {tabItems.map(item => (
+                                    {visibleTabItems.map(item => (
                                         <button
                                             key={`m-${item.id}`}
                                             onClick={() => onTabChange(item.id as any)}

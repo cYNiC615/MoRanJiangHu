@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { 选择最佳可用模型 } from '../components/features/Settings/ApiSettings';
-import { 创建接口配置模板, 获取剧情回忆接口配置, 规范化接口设置 } from '../utils/apiConfig';
+import { 创建接口配置模板, 获取剧情回忆接口配置, 获取规划分析接口配置, 规范化接口设置 } from '../utils/apiConfig';
 
 describe('接口模型自动选择', () => {
     it('优先选择同渠道返回列表中版本号更大的高能力模型', () => {
@@ -101,5 +101,44 @@ describe('阶段上游模型解析', () => {
         expect(config?.baseUrl).toBe('https://old-manual-endpoint.test/v1');
         expect(config?.apiKey).toBe('old-manual-key');
         expect(config?.model).toBe('recall-default-model');
+    });
+});
+
+describe('规划分析阶段模型解析', () => {
+    const createSettings = (planningModel: string) => 规范化接口设置({
+        activeConfigId: 'main-channel',
+        configs: [
+            {
+                ...创建接口配置模板('openai_compatible'),
+                id: 'main-channel',
+                名称: '主剧情渠道',
+                baseUrl: 'https://main.example.test/v1',
+                apiKey: 'main-key',
+                model: 'main-model'
+            },
+            {
+                ...创建接口配置模板('openai_compatible'),
+                id: 'planning-channel',
+                名称: '规划分析渠道',
+                baseUrl: 'https://planning.example.test/v1',
+                apiKey: 'planning-key',
+                model: 'planning-default-model'
+            }
+        ],
+        功能模型占位: {
+            规划分析功能启用: true,
+            规划分析独立模型开关: true,
+            规划分析渠道ID: 'planning-channel',
+            规划分析使用模型: planningModel
+        }
+    });
+
+    it('规划分析模型为空时使用所选渠道默认模型', () => {
+        const config = 获取规划分析接口配置(createSettings(''));
+
+        expect(config?.id).toBe('planning-channel');
+        expect(config?.baseUrl).toBe('https://planning.example.test/v1');
+        expect(config?.apiKey).toBe('planning-key');
+        expect(config?.model).toBe('planning-default-model');
     });
 });

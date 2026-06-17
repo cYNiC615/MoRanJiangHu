@@ -349,7 +349,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
         const itemRef = getSafeText(selectedItem?.ID);
         if (!itemRef) return;
         const result = onDiscardItem(itemRef);
-        setActionMessage(result?.message || '已丢弃物品');
+        setActionMessage(result ? result.message : '已丢弃物品');
         if (!result || result.ok) setSelectedItem(null);
     };
 
@@ -363,7 +363,7 @@ const DetailMetricCard: React.FC<{ groupTitle: string; entry: any }> = ({ groupT
     const handleDiscardAllMisc = () => {
         if (!onDiscardAllMisc) return;
         const result = onDiscardAllMisc();
-        setActionMessage(result?.message || '已一键丢弃杂物');
+        setActionMessage(result ? result.message : '已一键丢弃杂物');
         if (!result || result.ok) setSelectedItem(null);
     };
 

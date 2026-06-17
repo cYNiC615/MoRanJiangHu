@@ -145,7 +145,6 @@ const 生成等高线 = (
 
 const 生成地貌区域 = (
     layer: any,
-    buildings: any[],
     mapWidth: number,
     mapHeight: number
 ) => {
@@ -394,8 +393,8 @@ const GridMapScene: React.FC<Props> = ({
         [selectedLayer, currentLayerBuildings, mapWidth, mapHeight]
     );
     const terrainRegions = useMemo(
-        () => 生成地貌区域(selectedLayer, currentLayerBuildings, mapWidth, mapHeight),
-        [selectedLayer, currentLayerBuildings, mapWidth, mapHeight]
+        () => 生成地貌区域(selectedLayer, mapWidth, mapHeight),
+        [selectedLayer, mapWidth, mapHeight]
     );
     const contentBounds = useMemo(() => {
         let bounds: { minX: number; minY: number; maxX: number; maxY: number } | null = null;

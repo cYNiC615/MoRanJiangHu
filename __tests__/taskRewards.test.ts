@@ -49,9 +49,9 @@ describe('任务完成奖励结算', () => {
         expect(result.state.角色.可分配属性点).toBe(1);
         expect(result.state.角色.技艺.find((item: any) => item.名称 === '急救')?.熟练度).toBe(8);
         expect(result.state.角色.物品列表).toEqual([]);
-        expect(result.state.任务列表[0].奖励已发放).toBe(true);
-        expect(result.state.任务列表[0].奖励发放人).toBe('值班组长');
-        expect(result.state.任务列表[0].奖励到账记录).toContain('净水包 x1');
+        expect((result.state.任务列表[0] as any).奖励已发放).toBe(true);
+        expect((result.state.任务列表[0] as any).奖励发放人).toBe('值班组长');
+        expect((result.state.任务列表[0] as any).奖励到账记录).toContain('净水包 x1');
         expect(response.logs.some((log: any) => log.sender === '奖励' && log.text.includes('【任务完成】'))).toBe(true);
         expect(response.logs.some((log: any) => log.sender === '奖励' && log.text.includes('【奖励到账】') && log.text.includes('净水包 x1'))).toBe(true);
         expect(response.logs.some((log: any) => log.sender === '奖励' && log.text.includes('背包物品必须由AI变量命令写入'))).toBe(true);
@@ -59,8 +59,8 @@ describe('任务完成奖励结算', () => {
 
     it('已经发放过奖励的任务不会重复发放', () => {
         const state = 创建奖励状态();
-        state.任务列表[0].奖励已发放 = true;
-        state.任务列表[0].奖励到账记录 = ['组织信用 +80'];
+        (state.任务列表[0] as any).奖励已发放 = true;
+        (state.任务列表[0] as any).奖励到账记录 = ['组织信用 +80'];
         const response: any = { logs: [], tavern_commands: [] };
         const result = 结算已完成任务奖励({
             response,

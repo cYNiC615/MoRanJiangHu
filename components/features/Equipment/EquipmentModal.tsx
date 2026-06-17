@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { 角色数据结构, 装备槽位 } from '../../../types';
+import { 角色数据结构 } from '../../../types';
 import { 游戏物品 } from '../../../models/item';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import { 获取图片展示地址 } from '../../../utils/imageAssets';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
-import { IconSwords, IconDagger, IconShield, IconArmor, IconBackpack, IconRing, IconBelt, IconHelmet, IconBoot, IconPants, IconGlove, IconHorse, ItemTypeIcon } from '../../ui/Icons';
+import { IconSwords, IconDagger, IconShield, IconArmor, IconBackpack, IconBelt, IconHelmet, IconBoot, IconPants, IconGlove, IconHorse, ItemTypeIcon } from '../../ui/Icons';
 import { 获取物品可装备槽位, 计算装备评分, 装备物品到角色, 卸下角色装备 } from '../../../utils/equipmentActions';
 import { 格式化世界观BaseAmount, 获取世界观货币卡片信息 } from '../../../utils/currencyDisplay';
 import { 获取题材界面文案 } from '../../../utils/resourceLabels';

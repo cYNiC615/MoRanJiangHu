@@ -3,7 +3,8 @@ import {
     normalizeStateCommandKey,
     是否废弃世界地图字段路径,
     是否废弃环境字段路径,
-    是否废弃命令根路径
+    是否废弃命令根路径,
+    是否废弃玩家组织字段路径
 } from './stateHelpers';
 
 type 路径片段 = string | number;
@@ -22,6 +23,7 @@ const 变量登记根路径 = [
     '剧情',
     '剧情规划',
     '女主剧情规划',
+    '玩家组织',
     '任务列表',
     '记忆系统'
 ] as const;
@@ -255,8 +257,13 @@ export const 构建变量路径登记表 = (
         if (details.length >= maxLines * 2) break;
     }
 
-    const uniqueDetails = Array.from(new Set(details)).filter((path) => !roots.includes(path as any));
-    return Array.from(new Set([...roots, ...uniqueDetails])).slice(0, maxLines);
+    const uniqueDetails = Array.from(new Set(details)).filter((path) => (
+        !roots.includes(path as any)
+        && !是否废弃玩家组织字段路径(normalizeStateCommandKey(path))
+    ));
+    return Array.from(new Set([...roots, ...uniqueDetails]))
+        .filter((path) => !是否废弃玩家组织字段路径(normalizeStateCommandKey(path)))
+        .slice(0, maxLines);
 };
 
 export const 构建变量路径登记提示 = (stateLike: Record<string, any>): string => {
@@ -281,6 +288,9 @@ export const 校验变量命令是否登记 = (
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
     if (是否废弃命令根路径(normalizedKey)) {
         return { allowed: false, normalizedKey, reason: '废弃功能根路径已退役' };
+    }
+    if (是否废弃玩家组织字段路径(normalizedKey)) {
+        return { allowed: false, normalizedKey, reason: '组织任务入口已迁移到全局任务列表' };
     }
     if (是否废弃环境字段路径(normalizedKey)) {
         return { allowed: false, normalizedKey, reason: '天气和节日结构化环境字段已废弃' };

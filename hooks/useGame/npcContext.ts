@@ -1,21 +1,20 @@
-import type { OpeningConfig, 记忆配置结构 } from '../../types';
-import { 规范化记忆配置 } from './memoryUtils';
 import { 构建NPC记忆展示结果 } from './npcMemorySummary';
 import { normalizeCanonicalGameTime, 结构化时间转标准串 } from './timeUtils';
 
-export const 提取NPC生图基础数据 = (npc: any) => {
-    const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
-        return Object.fromEntries(
-            Object.entries(obj).filter(([, value]) => {
-                if (value === undefined || value === null) return false;
-                if (typeof value === 'string' && value.trim().length === 0) return false;
-                if (Array.isArray(value) && value.length === 0) return false;
-                if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return false;
-                return true;
-            })
-        ) as Partial<T>;
-    };
+// ponytail: NPC/image context serializers all use the same empty-field rule; keep one copy.
+const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
+    return Object.fromEntries(
+        Object.entries(obj).filter(([, value]) => {
+            if (value === undefined || value === null) return false;
+            if (typeof value === 'string' && value.trim().length === 0) return false;
+            if (Array.isArray(value) && value.length === 0) return false;
+            if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return false;
+            return true;
+        })
+    ) as Partial<T>;
+};
 
+export const 提取NPC生图基础数据 = (npc: any) => {
     const 取首个非空文本 = (...values: unknown[]): string => {
         for (const value of values) {
             if (typeof value === 'string' && value.trim().length > 0) return value.trim();
@@ -73,18 +72,6 @@ export const 提取NPC生图基础数据 = (npc: any) => {
 };
 
 export const 提取主角生图基础数据 = (character: any) => {
-    const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
-        return Object.fromEntries(
-            Object.entries(obj).filter(([, value]) => {
-                if (value === undefined || value === null) return false;
-                if (typeof value === 'string' && value.trim().length === 0) return false;
-                if (Array.isArray(value) && value.length === 0) return false;
-                if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return false;
-                return true;
-            })
-        ) as Partial<T>;
-    };
-
     const 取文本 = (value: unknown): string => (
         typeof value === 'string' ? value.trim() : ''
     );
@@ -110,8 +97,8 @@ export const 提取主角生图基础数据 = (character: any) => {
     });
 };
 
-export const 提取NPC香闺秘档部位生图数据 = (npc: any, part: '胸部' | '小穴' | '屁穴' | '肉棒', options?: 生图基础数据选项) => {
-    const 基础 = 提取NPC生图基础数据(npc, options);
+export const 提取NPC香闺秘档部位生图数据 = (npc: any, part: '胸部' | '小穴' | '屁穴' | '肉棒') => {
+    const 基础 = 提取NPC生图基础数据(npc);
     const 读取文本 = (obj: any, key: string): string | undefined => (
         typeof obj?.[key] === 'string' && obj[key].trim().length > 0 ? obj[key].trim() : undefined
     );
@@ -134,33 +121,11 @@ export const 提取NPC香闺秘档部位生图数据 = (npc: any, part: '胸部'
     };
 };
 
-export const 构建NPC上下文 = (
-    socialData: any[],
-    memoryConfig: 记忆配置结构,
-    options?: {
-        worldPrompt?: string;
-        realmPrompt?: string;
-        openingConfig?: OpeningConfig | null;
-    }
-): {
+export const 构建NPC上下文 = (socialData: any[]): {
     在场数据块: string;
     离场数据块: string;
 } => {
     const npcList = Array.isArray(socialData) ? socialData : [];
-    const 普通关键记忆条数N = 5;
-    const 重要角色关键记忆条数N = 规范化记忆配置(memoryConfig).重要角色关键记忆条数N;
-
-    const 清理空字段 = <T extends Record<string, any>>(obj: T): Partial<T> => {
-        return Object.fromEntries(
-            Object.entries(obj).filter(([, value]) => {
-                if (value === undefined || value === null) return false;
-                if (typeof value === 'string' && value.trim().length === 0) return false;
-                if (Array.isArray(value) && value.length === 0) return false;
-                if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) return false;
-                return true;
-            })
-        ) as Partial<T>;
-    };
 
     const 树状上下文缩进 = (depth: number): string => '  '.repeat(depth);
 
@@ -414,56 +379,27 @@ export const 构建NPC上下文 = (
     const 读取文本 = (obj: any, key: string): string => (
         typeof obj?.[key] === 'string' ? obj[key].trim() : ''
     );
-
-    const 读取胸部描述 = (npc: any): string => {
-        return 读取文本(npc, '胸部描述');
-    };
-
-    const 读取小穴描述 = (npc: any): string => {
-        return 读取文本(npc, '小穴描述');
-    };
-
-    const 读取屁穴描述 = (npc: any): string => {
-        return 读取文本(npc, '屁穴描述');
-    };
-
-    const 读取肉棒描述 = (npc: any): string => {
-        return 读取文本(npc, '肉棒描述');
-    };
-
-    const 读取男娘设定 = (npc: any): string => {
-        return 读取文本(npc, '男娘设定');
-    };
-
-    const 读取扶她设定 = (npc: any): string => {
-        return 读取文本(npc, '扶她设定');
-    };
-
-    const 读取性癖 = (npc: any): string => {
-        return 读取文本(npc, '性癖');
-    };
-
-    const 读取敏感点 = (npc: any): string => {
-        return 读取文本(npc, '敏感点');
-    };
+    const 文本化 = (value: unknown): string => (
+        typeof value === 'string' ? value.trim() : ''
+    );
 
     const 标准化名器档案 = (npc: any) => {
         const source = Array.isArray(npc?.名器档案) ? npc.名器档案 : [];
         const normalized = source
             .map((entry: any) => 清理空字段({
-                部位: 读取文本(entry?.部位) || undefined,
-                名称: 读取文本(entry?.名称) || undefined,
-                品质: 读取文本(entry?.品质) || undefined,
-                来源世界书: 读取文本(entry?.来源世界书) || undefined,
-                稳定描述: 读取文本(entry?.稳定描述) || undefined,
+                部位: 文本化(entry?.部位) || undefined,
+                名称: 文本化(entry?.名称) || undefined,
+                品质: 文本化(entry?.品质) || undefined,
+                来源世界书: 文本化(entry?.来源世界书) || undefined,
+                稳定描述: 文本化(entry?.稳定描述) || undefined,
                 效果: entry?.效果 && typeof entry.效果 === 'object' ? 清理空字段({
                     判定修正: typeof entry.效果?.判定修正 === 'number' ? entry.效果.判定修正 : undefined,
                     魅力修正: typeof entry.效果?.魅力修正 === 'number' ? entry.效果.魅力修正 : undefined,
                     亲密推进修正: typeof entry.效果?.亲密推进修正 === 'number' ? entry.效果.亲密推进修正 : undefined,
                     双修收益修正: typeof entry.效果?.双修收益修正 === 'number' ? entry.效果.双修收益修正 : undefined,
                     风险修正: typeof entry.效果?.风险修正 === 'number' ? entry.效果.风险修正 : undefined,
-                    标签: Array.isArray(entry.效果?.标签) ? entry.效果.标签.map(读取文本).filter(Boolean).slice(0, 8) : undefined,
-                    说明: 读取文本(entry.效果?.说明) || undefined
+                    标签: Array.isArray(entry.效果?.标签) ? entry.效果.标签.map(文本化).filter(Boolean).slice(0, 8) : undefined,
+                    说明: 文本化(entry.效果?.说明) || undefined
                 }) : undefined
             }))
             .filter((entry: any) => entry?.部位 && entry?.名称);
@@ -500,15 +436,15 @@ export const 构建NPC上下文 = (
             外貌描写: typeof npc?.外貌描写 === 'string' ? npc.外貌描写 : undefined,
             身材描写: typeof npc?.身材描写 === 'string' ? npc.身材描写 : undefined,
             衣着风格: typeof npc?.衣着风格 === 'string' ? npc.衣着风格 : undefined,
-            胸部描述: 读取胸部描述(npc) || undefined,
-            小穴描述: 读取小穴描述(npc) || undefined,
-            屁穴描述: 读取屁穴描述(npc) || undefined,
-            肉棒描述: 读取肉棒描述(npc) || undefined,
-            男娘设定: 读取男娘设定(npc) || undefined,
-            扶她设定: 读取扶她设定(npc) || undefined,
+            胸部描述: 读取文本(npc, '胸部描述') || undefined,
+            小穴描述: 读取文本(npc, '小穴描述') || undefined,
+            屁穴描述: 读取文本(npc, '屁穴描述') || undefined,
+            肉棒描述: 读取文本(npc, '肉棒描述') || undefined,
+            男娘设定: 读取文本(npc, '男娘设定') || undefined,
+            扶她设定: 读取文本(npc, '扶她设定') || undefined,
             名器档案: 标准化名器档案(npc),
-            性癖: 读取性癖(npc) || undefined,
-            敏感点: 读取敏感点(npc) || undefined,
+            性癖: 读取文本(npc, '性癖') || undefined,
+            敏感点: 读取文本(npc, '敏感点') || undefined,
             子宫: (() => {
                 const 子宫档案 = 标准化子宫档案(npc);
                 return 子宫档案 || undefined;

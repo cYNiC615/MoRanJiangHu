@@ -9,7 +9,7 @@ import { 设置键 } from '../../utils/settingsSchema';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 按功能开关过滤提示词内容 } from '../../utils/promptFeatureToggles';
-import { 构建题材默认境界体系提示词, 题材是否使用默认现代境界 } from '../../utils/topicRealmDefaults';
+import { 题材是否使用默认现代境界 } from '../../utils/topicRealmDefaults';
 import { 构建开局运行时快照 } from '../../utils/customNewGamePresets';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import { 合并世界基底到开场状态 } from './storyState';
@@ -48,7 +48,6 @@ type 世界生成工作流依赖 = {
 };
 
 const 世界观阶段超时毫秒 = 300000;
-const 境界阶段超时毫秒 = 300000;
 const 开局流式预览最小间隔毫秒 = 700;
 export const 选择开局境界体系来源 = (params: {
     启用成长体系: boolean;
@@ -248,7 +247,6 @@ export const 执行世界生成工作流 = async (
         ? {
             ...openingConfig,
             runtimeSnapshot: 构建开局运行时快照({
-                openingConfig,
                 openingStreaming,
                 openingExtraPrompt: normalizedOpeningExtraPrompt,
                 openingExtraRequirement: openingConfig.runtimeSnapshot?.openingExtraRequirement,
@@ -304,8 +302,6 @@ export const 执行世界生成工作流 = async (
 
     let worldStreamHeartbeat: ReturnType<typeof setInterval> | null = null;
     let worldDeltaReceived = false;
-    let realmStreamHeartbeat: ReturnType<typeof setInterval> | null = null;
-    let realmDeltaReceived = false;
     const 开局流式历史更新器 = openingStreaming
         ? 创建开局流式历史更新器(deps.设置历史记录)
         : null;
@@ -464,7 +460,6 @@ export const 执行世界生成工作流 = async (
         deps.setLoading(false);
     } catch (error: any) {
         if (worldStreamHeartbeat) clearInterval(worldStreamHeartbeat);
-        if (realmStreamHeartbeat) clearInterval(realmStreamHeartbeat);
         开局流式历史更新器?.停止();
         recordDiagnosticLog('error', ['世界观生成失败', {
             message: error?.message || '',

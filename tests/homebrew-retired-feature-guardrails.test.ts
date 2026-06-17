@@ -10,6 +10,9 @@ const readProjectFile = (relativePath: string) => {
 };
 
 const projectFileExists = (relativePath: string) => existsSync(resolve(projectRoot, relativePath));
+const joinParts = (...parts: string[]) => parts.join('');
+const joinPath = (...parts: string[]) => parts.join('/');
+const retiredRegistryPath = joinPath('docs', ['homebrew-dead-feature', 'registry.md'].join('-'));
 
 const productionRoots = [
     'App.tsx',
@@ -72,10 +75,19 @@ const retiredNeedles = [
     'nativeRuntime',
     'Capacitor',
     'MobileQuickMenu',
-    '对象存储'
+    '对象存储',
+    joinParts('HeroinePlan', 'ModelSettings'),
+    joinParts('StoryPlan', 'ModelSettings'),
+    joinParts('Planning', 'ModelSettings'),
+    '女主规划独立模型开关',
+    '剧情规划独立模型开关',
+    '女主规划使用模型',
+    '剧情规划使用模型',
+    '获取女主规划接口配置',
+    '获取剧情规划接口配置'
 ];
 
-describe('homebrew dead feature registry', () => {
+describe('homebrew retired feature guardrails', () => {
     it('removes Phase 1.5 retired feature packages and assets', () => {
         [
             'components/features/AuctionHouse',
@@ -109,7 +121,7 @@ describe('homebrew dead feature registry', () => {
             'components/layout/MobileQuickMenu.tsx',
             'android',
             'capacitor.config.ts',
-            'docs/homebrew-dead-feature-registry.md',
+            retiredRegistryPath,
             '.tmp-release-assets',
             'tests/bugfix-map-theme.spec.mjs',
             'tests/dialogue-render-fallback.spec.mjs',
@@ -140,11 +152,18 @@ describe('homebrew dead feature registry', () => {
         expect(hits).toEqual([]);
     });
 
-    it('keeps retired feature guardrails in current-state docs without deleted-history baggage', () => {
+    it('keeps current-state docs at the Phase 2.5 closeout boundary', () => {
         const map = readProjectFile('docs/homebrew-function-map-and-simplification-decision-table.md');
-        expect(projectFileExists('docs/homebrew-dead-feature-registry.md')).toBe(false);
-        expect(map).toContain('## 已退役功能护栏');
-        expect(map).toContain('No live retired-feature residue');
+        const detailedMap = readProjectFile('docs/homebrew-detailed-feature-map.md');
+        const audit = readProjectFile('docs/homebrew-ai-native-plan-status-audit.md');
+        expect(projectFileExists(retiredRegistryPath)).toBe(false);
+        expect(map).toContain('| Phase 2.5 | 已完成 |');
+        expect(map).toContain('| Phase 3 | 当前下一阶段 |');
+        expect(detailedMap).toContain('## 当前手动 Smoke 待处理项');
+        expect(audit).toContain('Phase 2.5 已正式完成');
+        expect(map).not.toContain('| Phase 2.5 | 进行中 |');
+        expect(map).not.toContain('| Phase 2.5 | 下一阶段 |');
+        expect(map).not.toContain('No live retired-feature residue');
         expect(map).not.toContain('Generic organization legacy naming');
         expect(map).not.toContain('Retired growth prompt id placeholders');
         expect(map).not.toContain('同人/原著融合残留');

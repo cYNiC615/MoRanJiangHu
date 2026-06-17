@@ -51,7 +51,7 @@ const 创建旧版开局模块 = () => ({
     source: 'local' as const
 });
 
-describe('creativeWorkshop service compatibility', () => {
+describe('creativeWorkshop service', () => {
     beforeEach(() => {
         vi.restoreAllMocks();
         vi.stubGlobal('localStorage', createLocalStorageMock());
@@ -63,54 +63,35 @@ describe('creativeWorkshop service compatibility', () => {
         vi.unstubAllGlobals();
     });
 
-    it('读取本地旧版 opening 模块时会自动升级并回写为当前结构', () => {
+    it('读取本地旧版 opening 模块时会清掉，不再维护旧格式升级兼容', () => {
         const legacy = 创建旧版开局模块();
         localStorage.setItem(本地创意工坊模块存储键, JSON.stringify([legacy]));
         vi.mocked(localStorage.setItem).mockClear();
 
         const modules = 读取本地创意工坊模块();
 
-        expect(modules).toHaveLength(1);
-        expect(modules[0].type).toBe('topic');
-        expect(modules[0].formatVersion).toBe(2);
-        expect(modules[0].workshopKind).toBe('standard_module');
-        expect(modules[0].payload?.legacyType).toBe('opening');
-        expect(modules[0].payload?.migratedFromLegacyOpening).toBe(true);
-        expect(modules[0].modeRuntimeProfile?.opening?.defaultEquipment).toEqual({ 武器: '青锋剑' });
-        expect((modules[0].modeRuntimeProfile?.opening as any)?.[['default', 'Currency'].join('')]).toBeUndefined();
-        expect(modules[0].contentBlocks?.[0]?.content).toContain('旧版开局模块正文');
+        expect(modules).toEqual([]);
         expect(localStorage.setItem).toHaveBeenCalledTimes(1);
         const [, rewritten] = vi.mocked(localStorage.setItem).mock.calls[0];
-        expect(rewritten).toContain('"type":"topic"');
-        expect(rewritten).toContain('"legacyType":"opening"');
+        expect(rewritten).toBe('[]');
     });
 
-    it('导入的旧版 opening 模块会在当前列表中以独立模式包出现', async () => {
-        导入本地创意工坊模块(创建旧版开局模块() as any);
-
-        const modules = await 列出创意工坊模块();
-        const migrated = modules.find((entry) => entry.source === 'local' && entry.payload?.suiteId === 'legacy-opening-legacy-opening-demo');
-
-        expect(migrated).toBeTruthy();
-        expect(migrated?.type).toBe('topic');
-        expect(migrated?.payload?.packagePart).toBe('mode_package');
-        expect(migrated?.id).toBe('legacy-opening-legacy-opening-demo-mode-package');
-        expect(migrated?.modeRuntimeProfile?.opening?.lockGeneratedGenders).toBe(true);
-        expect(String(migrated?.payload?.manualWorldPrompt || '')).toContain('旧版开局模块正文');
+    it('导入旧版 opening 模块会被拒绝', () => {
+        expect(() => 导入本地创意工坊模块(创建旧版开局模块() as any)).toThrow('模块 JSON 格式不完整');
     });
 
-    it('列出本地模式包模块不会请求或返回云端重复模块', async () => {
+    it('列出本地模式包模块不会请求外部列表', async () => {
         const fetchMock = vi.fn(async () => new Response(JSON.stringify({
             ok: true,
             entries: [{
-                id: 'cloud-topic-demo',
+                id: 'external-topic-demo',
                 type: 'topic',
-                title: '云端重复模式',
-                subtitle: 'cloud',
+                title: '外部重复模式',
+                subtitle: 'external',
                 description: '不应出现在本地 homebrew 列表里',
-                tags: ['cloud'],
+                tags: ['external'],
                 payload: { mode: '现代都市' },
-                injectionPreview: ['cloud entry']
+                injectionPreview: ['external entry']
             }]
         })));
         vi.stubGlobal('fetch', fetchMock);
@@ -118,7 +99,6 @@ describe('creativeWorkshop service compatibility', () => {
         const modules = await 列出创意工坊模块();
 
         expect(fetchMock).not.toHaveBeenCalled();
-        expect(modules.some((entry) => entry.source === 'cloud')).toBe(false);
-        expect(modules.some((entry) => entry.id === 'cloud-topic-demo')).toBe(false);
+        expect(modules.some((entry) => entry.id === 'external-topic-demo')).toBe(false);
     });
 });

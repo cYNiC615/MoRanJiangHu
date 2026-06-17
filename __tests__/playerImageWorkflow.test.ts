@@ -135,6 +135,6 @@ describe('playerImageWorkflow', () => {
         } as any);
 
         expect(执行生图).toHaveBeenCalledTimes(1);
-        expect(执行生图.mock.calls[0][1]).toEqual(expect.objectContaining({ 构图: '立绘' }));
+        expect((执行生图.mock.calls[0] as any[])[1]).toEqual(expect.objectContaining({ 构图: '立绘' }));
     });
 });

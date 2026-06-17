@@ -31,7 +31,6 @@ interface Props {
     apiConfig?: 接口设置结构;
     playerAnchor?: 角色锚点结构 | null;
     nsfwEnabled?: boolean;
-    femboyNsfwEnabled?: boolean;
     onGeneratePlayerImage?: (options?: 主角生图选项) => Promise<void> | void;
     onGeneratePlayerSecretPartImage?: (part: string) => Promise<void> | void;
     onExtractPlayerAnchor?: (options?: { 名称?: string; 额外要求?: string }) => Promise<角色锚点结构 | null | void> | 角色锚点结构 | null | void;
@@ -116,7 +115,6 @@ const CharacterModal: React.FC<Props> = ({
     apiConfig,
     playerAnchor,
     nsfwEnabled = false,
-    femboyNsfwEnabled = true,
     onGeneratePlayerImage,
     onGeneratePlayerSecretPartImage,
     onExtractPlayerAnchor,

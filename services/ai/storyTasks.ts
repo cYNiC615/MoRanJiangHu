@@ -31,19 +31,11 @@ import {
 } from './chatCompletionClient';
 import {
     parseStoryRawText,
-    type StoryParseOptions,
     提取首个标签内容,
     提取首尾思考区段,
     解析动态世界块,
     解析命令块
 } from './storyResponseParser';
-
-const 归一化或补全境界体系提示词 = (content: string) => content;
-const 校验境界体系提示词完整性 = (content: string) => ({
-    ok: Boolean(content || ''),
-    normalizedText: content || '',
-    reason: content ? '' : 'empty'
-});
 
 export interface ConnectionTestResult {
     ok: boolean;
@@ -122,15 +114,6 @@ interface RecallStreamOptions {
     stream?: boolean;
     onDelta?: (delta: string, accumulated: string) => void;
 }
-
-const 构建独立任务触发消息 = (
-    taskPrompt: string,
-    gptMode?: boolean,
-    fallback = '开始任务'
-): 通用消息 => ({
-    role: 'user',
-    content: gptMode ? taskPrompt : fallback
-});
 
 export const generateMemoryRecall = async (
     systemPrompt: string,
@@ -655,7 +638,8 @@ export const generateWorldEvolutionUpdate = async (
     if (normalizedCotPrompt) {
         messagesRaw.push({ role: 'system', content: normalizedCotPrompt });
         if (!gptMode) {
-            messagesRaw.push(构建独立任务触发消息(userPrompt, false));
+            // ponytail: two non-GPT task chains only need this fixed trigger; no helper for a literal.
+            messagesRaw.push({ role: 'user', content: '开始任务' });
         }
     }
     if (normalizedCotPseudoPrompt) {
@@ -777,7 +761,7 @@ export const generateVariableCalibrationUpdate = async (
         { role: 'system', content: `【变量生成COT】\n${variableCotPrompt}` },
         { role: 'system', content: 构建变量模型输出格式提示词() },
         { role: gptMode ? 'user' : 'assistant', content: taskPrompt },
-        ...(!gptMode ? [构建独立任务触发消息('开始任务', false)] : []),
+        ...(!gptMode ? [{ role: 'user' as const, content: '开始任务' }] : []),
         { role: 'assistant', content: 构建变量模型COT伪装提示词() || 默认COT伪装历史消息提示词.trim() }
     ], { 保留System: true, 合并同角色: false });
 
@@ -800,19 +784,6 @@ export const generateVariableCalibrationUpdate = async (
         rawText
     };
 };
-
-const 解析说明块 = (text: string): string[] => 解析动态世界块(text);
-
-const 统计括号差值 = (value: string): number => {
-    let balance = 0;
-    for (const char of (value || '')) {
-        if (char === '(' || char === '（') balance += 1;
-        if (char === ')' || char === '）') balance -= 1;
-    }
-    return balance;
-};
-
-const 存在未闭合括号 = (value: string): boolean => 统计括号差值(value) > 0;
 
 const 构建规划分析消息链 = (
     params: {
@@ -1052,6 +1023,33 @@ const 修复故事响应协议 = async (
     return 解析故事响应(repairedText, requestOptions);
 };
 
+// ponytail: both story request paths share the same parse/repair fallback; one branch is enough.
+const 解析或修复故事响应 = async (
+    rawText: string,
+    apiConfig: 当前可用接口结构,
+    signal?: AbortSignal,
+    requestOptions?: StoryRequestOptions
+): Promise<StoryResponseResult> => {
+    try {
+        return 解析故事响应(rawText, requestOptions);
+    } catch (error: any) {
+        if (requestOptions?.validateDialogueFormat !== true || error?.name !== 'StoryResponseParseError') {
+            throw error;
+        }
+
+        const reason = error?.parseDetail || error?.message || '正文对白格式不合规';
+        if (!是否正文对白格式错误(error)) {
+            return 修复故事响应协议(rawText, reason, apiConfig, signal, requestOptions);
+        }
+
+        try {
+            return await 修复故事响应正文对白格式(rawText, reason, apiConfig, signal, requestOptions);
+        } catch {
+            return 修复故事响应协议(rawText, reason, apiConfig, signal, requestOptions);
+        }
+    }
+};
+
 export const generateStoryResponse = async (
     systemPrompt: string,
     userContext: string,
@@ -1122,21 +1120,7 @@ export const generateStoryResponse = async (
             stripReasoning: requestOptions?.stripReasoning,
             prefixMode: requestOptions?.prefixMode
         });
-        try {
-            return 解析故事响应(rawText, requestOptions);
-        } catch (error: any) {
-            if (requestOptions?.validateDialogueFormat === true && error?.name === 'StoryResponseParseError') {
-                if (是否正文对白格式错误(error)) {
-                    try {
-                        return await 修复故事响应正文对白格式(rawText, error?.parseDetail || error?.message || '正文对白格式不合规', apiConfig, signal, requestOptions);
-                    } catch {
-                        return 修复故事响应协议(rawText, error?.parseDetail || error?.message || '正文对白格式不合规', apiConfig, signal, requestOptions);
-                    }
-                }
-                return 修复故事响应协议(rawText, error?.parseDetail || error?.message || '正文对白格式不合规', apiConfig, signal, requestOptions);
-            }
-            throw error;
-        }
+        return 解析或修复故事响应(rawText, apiConfig, signal, requestOptions);
     }
 
     const normalizedSystemPrompt = typeof systemPrompt === 'string' ? systemPrompt.trim() : '';
@@ -1217,21 +1201,7 @@ export const generateStoryResponse = async (
         prefixMode: requestOptions?.prefixMode
     });
 
-    try {
-        return 解析故事响应(rawText, requestOptions);
-    } catch (error: any) {
-        if (requestOptions?.validateDialogueFormat === true && error?.name === 'StoryResponseParseError') {
-            if (是否正文对白格式错误(error)) {
-                try {
-                    return await 修复故事响应正文对白格式(rawText, error?.parseDetail || error?.message || '正文对白格式不合规', apiConfig, signal, requestOptions);
-                } catch {
-                    return 修复故事响应协议(rawText, error?.parseDetail || error?.message || '正文对白格式不合规', apiConfig, signal, requestOptions);
-                }
-            }
-            return 修复故事响应协议(rawText, error?.parseDetail || error?.message || '正文对白格式不合规', apiConfig, signal, requestOptions);
-        }
-        throw error;
-    }
+    return 解析或修复故事响应(rawText, apiConfig, signal, requestOptions);
 };
 
 export const testConnection = async (

@@ -6,7 +6,8 @@ import type {
     剧情系统结构,
     剧情规划结构,
     女主剧情规划结构,
-    环境信息结构
+    环境信息结构,
+    世界书作用域
 } from '../../types';
 import * as textAIService from '../../services/ai/text';
 import { 获取规划分析接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
@@ -59,7 +60,7 @@ type 规划更新工作流依赖 = {
     设置剧情: (story: 剧情系统结构) => void;
     设置剧情规划: (plan: 剧情规划结构) => void;
     设置女主剧情规划: (plan?: 女主剧情规划结构) => void;
-    performAutoSave: (snapshot?: any) => Promise<void>;
+    performAutoSave: (snapshot?: any) => Promise<unknown>;
 };
 
 type 统一规划分析结果 = {
@@ -356,15 +357,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             ? deps.开局配置.启用女主剧情规划 === true
             : 规范化游戏设置(deps.gameConfig).启用女主剧情规划 === true;
         const normalizedGameConfig = 规范化游戏设置(deps.gameConfig);
-        const 启用成长体系 = false;
         const 独立规划分析GPT模式 = normalizedGameConfig.独立APIGPT模式?.规划分析 === true;
-        const worldPrompt = (() => {
-            const hit = Array.isArray(deps.prompts)
-                ? deps.prompts.find((item) => item?.id === 'core_world')
-                : undefined;
-            return 按功能开关过滤提示词内容(typeof hit?.内容 === 'string' ? hit.内容.trim() : '', normalizedGameConfig);
-        })();
-        const realmPrompt = '';
         const activeStoryPlan = deps.规范化剧情规划状态(params.state.剧情规划);
         const activeHeroinePlan = heroineEnabled
             ? deps.规范化女主剧情规划状态(params.state.女主剧情规划)
@@ -385,9 +378,10 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
 
         await 后台让出主线程();
         检查规划分析中断(params.signal);
+        const planningWorldbookScopes: 世界书作用域[] = heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'];
         const planningWorldbookParams = {
             books: Array.isArray(deps.worldbooks) ? deps.worldbooks : [],
-            scopes: heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'],
+            scopes: planningWorldbookScopes,
             environment: params.state.环境,
             social: params.state.社交,
             world: params.state.世界,
@@ -479,7 +473,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         });
 
         检查规划分析中断(params.signal);
-        const 规划分析非流式输出 = normalizedGameConfig.启用非流式输出 || normalizedGameConfig.功能模型占位?.规划分析非流式输出;
+        const 规划分析非流式输出 = normalizedGameConfig.启用非流式输出 || deps.apiConfig?.功能模型占位?.规划分析非流式输出 === true;
         const result = await probe.timeAsync('规划分析模型请求总耗时', () => 执行规划分析带超时和重试((signal, markStreamActivity) => textAIService.generatePlanningAnalysis({
             playerName: (deps.角色?.姓名 || '').trim() || '未命名',
             currentStoryJson,

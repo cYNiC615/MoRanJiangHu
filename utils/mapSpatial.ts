@@ -301,19 +301,6 @@ const 构建层级唯一键 = (
 
 const 获取层级尺寸 = (层级: 地图层级类型): 地图层尺寸结构 => 默认层级尺寸[层级];
 
-const 计算散点坐标 = (
-    name: string,
-    width: number,
-    height: number,
-    index = 0
-): 地图坐标点结构 => {
-    const hash = 稳定散列(name || String(index));
-    return {
-        x: 限制数值(3 + (hash % Math.max(6, width - 5)), 2, Math.max(2, width - 2)),
-        y: 限制数值(3 + ((hash >> 7) % Math.max(6, height - 5)), 2, Math.max(2, height - 2)),
-    };
-};
-
 const 计算偏移坐标 = (
     base: 地图坐标点结构,
     layer: 地图层级结构,
@@ -428,13 +415,6 @@ const 是否野外层级 = (layer?: 地图层级结构 | null): boolean => {
     if (是否室内层级(layer)) return false;
     const text = `${layer.名称}${layer.描述}${layer.归属?.中地点 || ''}${layer.归属?.小地点 || ''}`;
     return 是否野外位置(text);
-};
-
-// 顶层大区判定：用于让地图渲染为"多城市 + 城际道路 + 宏观地貌"
-const 是否大区层级 = (layer?: 地图层级结构 | null): boolean => {
-    if (!layer) return false;
-    // 大地点层级 + 无父级，视为顶层大区
-    return layer.层级 === '大地点' && !layer.父级ID;
 };
 
 const 生成序号文本 = (index: number): string => String(index + 1).padStart(2, '0');
@@ -1108,14 +1088,6 @@ const 规范化地图人物列表 = (world: any): 地图人物结构[] => (
             .filter((item) => item.名称)
         : []
 );
-
-const 匹配层级名称 = (layer: 地图层级结构, env?: Partial<环境信息结构> | null): boolean => {
-    if (!env) return false;
-    if (layer.层级 === '区地点' || layer.层级 === '子地点') return 层级名称命中(layer.名称, env.具体地点);
-    if (layer.层级 === '小地点') return 层级名称命中(layer.名称, env.小地点);
-    if (layer.层级 === '中地点') return 层级名称命中(layer.名称, env.中地点);
-    return 层级名称命中(layer.名称, env.大地点);
-};
 
 const 查找最佳名称层级 = (
     layers: 地图层级结构[],

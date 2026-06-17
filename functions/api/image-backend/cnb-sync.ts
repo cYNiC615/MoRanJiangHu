@@ -310,7 +310,7 @@ const listRegistryItems = async (request: Request, env: any): Promise<RegistryIt
         cursor = page.list_complete ? undefined : page.cursor;
 
         for (const key of page.keys) {
-            const raw = await registry.get(key.name);
+            const raw = await registry.get<string>(key.name);
             if (!raw) continue;
             try {
                 const item = JSON.parse(raw) as RegistryItem;

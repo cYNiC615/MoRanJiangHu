@@ -3,12 +3,10 @@ import {
     角色数据结构,
     环境信息结构,
     聊天记录结构,
-    接口设置结构,
     提示词结构,
     视觉设置结构,
     GameResponse,
     游戏设置结构,
-    记忆配置结构,
     记忆系统结构,
     WorldGenConfig,
     世界数据结构,
@@ -27,8 +25,7 @@ import {
     内置提示词条目结构,
     世界书结构,
     世界书预设组结构,
-    世界书作用域,
-    TavernCommand
+    世界书作用域
 } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import * as dbService from '../services/dbService';
@@ -36,7 +33,7 @@ import * as textAIService from '../services/ai/text';
 import { 终止全部ComfyUI生图任务 } from '../services/ai/image';
 import { recordDiagnosticLog } from '../services/diagnosticLog';
 import { useGameState } from './useGameState';
-import { 规范化接口设置, 获取当前接口配置, 获取主剧情接口配置, 获取剧情回忆接口配置, 获取记忆总结接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取文生图接口配置, 获取场景文生图接口配置, 获取NSFW文生图接口配置, 获取生图词组转化器接口配置, 获取生图画师串预设, 获取词组转化器预设提示词, 接口配置是否可用, 刷新已发现ComfyUI后端缓存, 变量校准功能已启用 as 变量生成功能已启用 } from '../utils/apiConfig';
+import { 规范化接口设置, 获取记忆总结接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取文生图接口配置, 获取场景文生图接口配置, 获取NSFW文生图接口配置, 获取生图词组转化器接口配置, 获取生图画师串预设, 获取词组转化器预设提示词, 接口配置是否可用, 刷新已发现ComfyUI后端缓存, 变量校准功能已启用 as 变量生成功能已启用 } from '../utils/apiConfig';
 import type { 当前可用接口结构 } from '../utils/apiConfig';
 import {
     规范化记忆系统,
@@ -72,13 +69,13 @@ import {
     规范化组织状态,
     同步角色与组织状态,
     规范化剧情状态,
-    规范化剧情规划状态 as 基础规范化剧情规划状态,
-    规范化女主剧情规划状态 as 基础规范化女主剧情规划状态,
+    规范化剧情规划状态,
+    规范化女主剧情规划状态,
     按回合窗口裁剪历史
 } from './useGame/storyState';
-import type { 开场命令基态 } from './useGame/storyState';
+// ponytail: use storyState normalizers directly; local wrappers only hid the same functions.
 import { 执行世界演变更新工作流 } from './useGame/worldEvolutionWorkflow';
-import { 主角角色锚点标识, 创建图片预设工作流, 提取NPC生图基础数据附带私密描述 } from './useGame/imagePresetWorkflow';
+import { 创建图片预设工作流, 提取NPC生图基础数据附带私密描述 } from './useGame/imagePresetWorkflow';
 import { 创建设置持久化工作流 } from './useGame/config/settingsPersistenceWorkflow';
 import { 创建历史回合工作流 } from './useGame/historyTurnWorkflow';
 import { 创建存读档工作流 } from './useGame/saveLoad/saveLoadWorkflow';
@@ -92,40 +89,16 @@ import { 创建主角图片工作流 } from './useGame/playerImageWorkflow';
 import { 创建运行时变量工作流 } from './useGame/runtimeVariableWorkflow';
 import { 创建变量校准协调器 as 创建变量生成协调器 } from './useGame/variableCalibrationCoordinator';
 import { use世界演变控制 } from './useGame/worldEvolutionControl';
-import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './useGame/timeUtils';
-import { 构建NPC上下文, 提取NPC生图基础数据, 提取NPC香闺秘档部位生图数据, 提取主角生图基础数据 } from './useGame/npcContext';
+import { normalizeCanonicalGameTime, 环境时间转标准串 } from './useGame/timeUtils';
+import { 提取NPC生图基础数据, 提取NPC香闺秘档部位生图数据, 提取主角生图基础数据 } from './useGame/npcContext';
 import { 应用NPC记忆总结, 构建手动NPC记忆总结候选, 构建自动NPC记忆总结候选, 构建NPC记忆总结回退文案 } from './useGame/npcMemorySummary';
 import { 规范化游戏设置 } from '../utils/gameSettings';
 import { 规范化视觉设置 } from '../utils/visualSettings';
 import { 默认图片管理设置, 规范化图片管理设置 } from '../utils/imageManagerSettings';
 import { 规范化可选开局配置 } from '../utils/openingConfig';
 import { 修复开局伙伴社交列表 } from '../utils/openingCompanion';
-import {
-    构建COT伪装提示词,
-    构建酒馆预设消息链,
-    构建运行时提示词池,
-    规范化比较文本,
-    酒馆预设模式可用
-} from './useGame/promptRuntime';
-import { 构建世界观种子提示词, 构建世界生成任务上下文提示词 } from '../prompts/runtime/worldSetup';
-import { 世界观生成COT提示词, 世界观生成COT伪装历史消息提示词 } from '../prompts/runtime/worldGenerationCot';
-import {
-    默认文章优化提示词
-} from '../prompts/runtime/defaults';
 import { 构建文生图运行时额外提示词 } from '../prompts/runtime/nsfw';
 import { 构建题材生图额外要求 } from '../utils/topicImageGuidance';
-import { 构建AI角色声明提示词 } from '../prompts/runtime/roleIdentity';
-import {
-    构建字数要求提示词,
-    构建免责声明输出要求提示词,
-    获取输出协议提示词,
-    获取行动选项提示词
-} from '../prompts/runtime/protocolDirectives';
-import { 构建剧情风格助手提示词 } from '../prompts/runtime/storyStyles';
-import { 构建真实世界模式提示词 } from '../prompts/runtime/realWorldMode';
-import { 核心_文章优化思维链 } from '../prompts/core/cotPolish';
-import { 核心_开局思维链 } from '../prompts/core/cotOpening';
-import { 数值_世界演化 } from '../prompts/stats/world';
 import {
     规范化环境信息,
     构建完整地点文本,
@@ -136,7 +109,7 @@ import { 按世界演变分流净化响应 } from './useGame/storyResponseGuards
 import { 执行变量自动校准 } from './useGame/variableCalibration';
 import { 执行变量模型校准工作流 } from './useGame/variableModelWorkflow';
 import { 合并变量校准结果到响应 as 合并变量生成结果到响应 } from './useGame/variableCalibrationMerge';
-import { 获取图片展示地址, 图片资源记录含可恢复地址, 压缩图片资源字段 } from '../utils/imageAssets';
+import { 获取图片展示地址, 图片资源记录含可恢复地址 } from '../utils/imageAssets';
 import { 设置键 } from '../utils/settingsSchema';
 import { countOpenAIChatMessagesTokens, countOpenAITextTokens } from '../utils/tokenEstimate';
 import { 执行游戏后台重计算 } from '../utils/gameHeavyWorkerClient';
@@ -180,8 +153,6 @@ type 最近开局配置结构 = {
     openingExtraPrompt: string;
 };
 
-type 快速重开模式 = 'world_only' | 'opening_only' | 'all';
-
 type 开局独立阶段进度 = {
     phase: 'start' | 'done' | 'error' | 'skipped' | 'cancelled';
     text?: string;
@@ -192,10 +163,6 @@ type 开局独立阶段进度 = {
     startedAt?: number;
     finishedAt?: number;
     elapsedMs?: number;
-};
-
-type 世界生成选项 = {
-    清空前端变量?: boolean;
 };
 
 type 上下文段 = {
@@ -228,6 +195,25 @@ type 发送结果 = {
 };
 
 const 自动重试最大次数 = 3;
+
+// ponytail: pure helpers live outside the hook; renders should not rebuild constants.
+const 显式NPC生图性别集合 = new Set(['男', '女', '男娘', '扶她']);
+
+const NPC生图性别是否显式 = (value: string): boolean => 显式NPC生图性别集合.has(value);
+
+const 游戏时间转排序值 = (input?: string): number | null => {
+    const canonical = normalizeCanonicalGameTime(input || '');
+    if (!canonical) return null;
+    const matched = canonical.match(/^(\d{1,6}):(\d{1,2}):(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+    if (!matched) return null;
+    return (((Number(matched[1]) * 100 + Number(matched[2])) * 100 + Number(matched[3])) * 100 + Number(matched[4])) * 100 + Number(matched[5]);
+};
+
+const 当前时间已达到 = (currentTime?: string, targetTime?: string): boolean => {
+    const currentSort = 游戏时间转排序值(currentTime);
+    const targetSort = 游戏时间转排序值(targetTime);
+    return currentSort !== null && targetSort !== null && currentSort >= targetSort;
+};
 
 type 回忆检索进度 = {
     phase: 'start' | 'stream' | 'done' | 'error';
@@ -355,7 +341,7 @@ export const useGame = () => {
     const gameState = useGameState();
     const {
         view, setView,
-        hasSave, setHasSave,
+        setHasSave,
         角色, 设置角色,
         环境, 设置环境,
         社交, 设置社交,
@@ -370,20 +356,20 @@ export const useGame = () => {
         历史记录, 设置历史记录,
         记忆系统, 设置记忆系统,
         loading, setLoading,
-        worldEvents, setWorldEvents,
-        showSettings, setShowSettings,
-        showInventory, setShowInventory,
-        showEquipment, setShowEquipment,
-        showSocial, setShowSocial,
-        showTeam, setShowTeam,
-        showWorld, setShowWorld,
-        showMap, setShowMap,
-        showTask, setShowTask,
-        showStory, setShowStory,
-        showHeroinePlan, setShowHeroinePlan,
-        showMemory, setShowMemory,
-        showSaveLoad, setShowSaveLoad,
-        activeTab, setActiveTab,
+        setWorldEvents,
+        setShowSettings,
+        setShowInventory,
+        setShowEquipment,
+        setShowSocial,
+        setShowTeam,
+        setShowWorld,
+        setShowMap,
+        setShowTask,
+        setShowStory,
+        setShowHeroinePlan,
+        setShowMemory,
+        setShowSaveLoad,
+        setActiveTab,
         
         apiConfig, setApiConfig,
         visualConfig, setVisualConfig,
@@ -392,7 +378,7 @@ export const useGame = () => {
         memoryConfig, setMemoryConfig,
         prompts, setPrompts,
         ensurePromptsLoaded,
-        currentTheme, setCurrentTheme,
+        setCurrentTheme,
         scrollRef, abortControllerRef, recallAbortControllerRef, variableGenerationAbortControllerRef
     } = gameState;
     const 回合快照栈Ref = useRef<回合快照结构[]>([]);
@@ -806,35 +792,6 @@ export const useGame = () => {
     const 估算AI输出Token = (rawText: string, model?: string): number => (
         countOpenAITextTokens(typeof rawText === 'string' ? rawText : '', model)
     );
-    const 游戏时间转排序值 = (input?: string): number | null => {
-        const canonical = normalizeCanonicalGameTime(input);
-        if (!canonical) return null;
-        const matched = canonical.match(/^(\d{1,6}):(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
-        if (!matched) return null;
-        return (
-            Number(matched[1]) * 100000000 +
-            Number(matched[2]) * 1000000 +
-            Number(matched[3]) * 10000 +
-            Number(matched[4]) * 100 +
-            Number(matched[5])
-        );
-    };
-    const 提取文本中的游戏时间列表 = (text?: string): string[] => {
-        if (!text || typeof text !== 'string') return [];
-        const matched = text.match(/\d{1,6}:\d{1,2}:\d{1,2}:\d{1,2}:\d{1,2}/g) || [];
-        const deduped: string[] = [];
-        matched.forEach((item) => {
-            const canonical = normalizeCanonicalGameTime(item);
-            if (canonical && !deduped.includes(canonical)) deduped.push(canonical);
-        });
-        return deduped;
-    };
-    const 当前时间已达到 = (currentTime?: string, targetTime?: string): boolean => {
-        const currentSort = 游戏时间转排序值(currentTime);
-        const targetSort = 游戏时间转排序值(targetTime);
-        if (currentSort === null || targetSort === null) return false;
-        return currentSort >= targetSort;
-    };
     const 提取响应完整正文文本 = (response?: GameResponse): string => {
         const logs = Array.isArray(response?.logs) ? response.logs : [];
         return logs
@@ -987,14 +944,6 @@ export const useGame = () => {
             .filter((keyword) => body.includes(keyword))
             .map((keyword) => `最近正文命中女主线索「${keyword}」`);
     };
-    const 过滤规划补丁命令 = (
-        commands: TavernCommand[],
-        allowedPrefixes: string[]
-    ): TavernCommand[] => (
-        (Array.isArray(commands) ? commands : [])
-            .filter((cmd) => cmd && typeof cmd.key === 'string' && typeof cmd.action === 'string')
-            .filter((cmd) => allowedPrefixes.some((prefix) => cmd.key === prefix || cmd.key.startsWith(`${prefix}.`) || cmd.key.startsWith(`${prefix}[`)))
-    );
     const 提取原始报错详情 = (error: any): string => {
         const raw = error?.detail ?? error?.message ?? error ?? '未知错误';
         if (typeof raw === 'string') return raw;
@@ -1353,15 +1302,6 @@ export const useGame = () => {
         saveVisualSettings,
         saveImageManagerSettings,
         updateApiConfig,
-        saveArtistPreset,
-        deleteArtistPreset,
-        saveModelConverterPreset,
-        deleteModelConverterPreset,
-        setModelConverterPresetEnabled,
-        savePromptConverterPreset,
-        deletePromptConverterPreset,
-        exportPresets,
-        importPresets,
         saveGameSettings,
         saveMemorySettings,
         updatePrompts
@@ -1530,7 +1470,6 @@ export const useGame = () => {
         写入NPC图片历史记录,
         更新NPC香闺秘档部位结果,
         写入NPC香闺秘档部位记录,
-        获取生图阶段中文,
         创建NPC生图任务,
         追加NPC生图任务,
         更新NPC生图任务,
@@ -1626,89 +1565,94 @@ export const useGame = () => {
         });
     };
 
-    useEffect(() => {
-        if (!后台手动生图监控Ref.current.length) return;
-        const pendingMonitors = 后台手动生图监控Ref.current.filter((monitor) => {
-            const matchedTask = (Array.isArray(NPC生图任务队列) ? NPC生图任务队列 : []).find((task) => (
-                (task?.NPC标识 === monitor.npcId || task?.NPC标识 === `id:${monitor.npcId}`)
-                && (task?.来源 === 'manual' || task?.来源 === 'retry')
-                && (task?.创建时间 || 0) >= monitor.since
-            ));
+    // ponytail: one completion scanner keeps the three background image toasts from drifting.
+    const 刷新后台生图完成提示 = <
+        TMonitor,
+        TTask extends { id: string; 状态?: string; 错误信息?: string }
+    >(
+        monitorsRef: { current: TMonitor[] },
+        notifiedRef: { current: Set<string> },
+        tasks: TTask[],
+        findTask: (monitor: TMonitor, tasks: TTask[]) => TTask | undefined,
+        buildToast: (monitor: TMonitor, task: TTask) => Omit<右下角提示结构, 'id'>
+    ) => {
+        if (!monitorsRef.current.length) return;
+        monitorsRef.current = monitorsRef.current.filter((monitor) => {
+            const matchedTask = findTask(monitor, tasks);
             if (!matchedTask || (matchedTask.状态 !== 'success' && matchedTask.状态 !== 'failed')) {
                 return true;
             }
-            if (已提示后台生图任务Ref.current.has(matchedTask.id)) {
+            if (notifiedRef.current.has(matchedTask.id)) {
                 return false;
             }
-            已提示后台生图任务Ref.current.add(matchedTask.id);
-            推送右下角提示({
-                title: matchedTask.状态 === 'success' ? '手动生图完成' : '手动生图失败',
-                message: matchedTask.状态 === 'success'
-                    ? `${monitor.npcName}的${monitor.构图}已生成完成。`
-                    : `${monitor.npcName}的${monitor.构图}生成失败：${matchedTask.错误信息 || '未知错误'}`,
-                tone: matchedTask.状态 === 'success' ? 'success' : 'error',
-                previewUrl: matchedTask.状态 === 'success' ? 获取图片展示地址(matchedTask) : undefined
-            });
+            notifiedRef.current.add(matchedTask.id);
+            推送右下角提示(buildToast(monitor, matchedTask));
             return false;
         });
-        后台手动生图监控Ref.current = pendingMonitors;
+    };
+
+    useEffect(() => {
+        刷新后台生图完成提示(
+            后台手动生图监控Ref,
+            已提示后台生图任务Ref,
+            NPC生图任务队列,
+            (monitor, tasks) => tasks.find((task) => (
+                (task?.NPC标识 === monitor.npcId || task?.NPC标识 === `id:${monitor.npcId}`)
+                && (task?.来源 === 'manual' || task?.来源 === 'retry')
+                && (task?.创建时间 || 0) >= monitor.since
+            )),
+            (monitor, task) => ({
+                title: task.状态 === 'success' ? '手动生图完成' : '手动生图失败',
+                message: task.状态 === 'success'
+                    ? `${monitor.npcName}的${monitor.构图}已生成完成。`
+                    : `${monitor.npcName}的${monitor.构图}生成失败：${task.错误信息 || '未知错误'}`,
+                tone: task.状态 === 'success' ? 'success' : 'error',
+                previewUrl: task.状态 === 'success' ? 获取图片展示地址(task) : undefined
+            })
+        );
     }, [NPC生图任务队列]);
 
     useEffect(() => {
-        if (!后台私密生图监控Ref.current.length) return;
-        const pendingMonitors = 后台私密生图监控Ref.current.filter((monitor) => {
-            const matchedTask = (Array.isArray(NPC生图任务队列) ? NPC生图任务队列 : []).find((task) => (
+        刷新后台生图完成提示(
+            后台私密生图监控Ref,
+            已提示后台私密生图任务Ref,
+            NPC生图任务队列,
+            (monitor, tasks) => tasks.find((task) => (
                 (task?.NPC标识 === monitor.npcId || task?.NPC标识 === `id:${monitor.npcId}`)
                 && task?.来源 === 'manual'
                 && task?.构图 === '部位特写'
                 && task?.部位 === monitor.部位
                 && (task?.创建时间 || 0) >= monitor.since
-            ));
-            if (!matchedTask || (matchedTask.状态 !== 'success' && matchedTask.状态 !== 'failed')) {
-                return true;
-            }
-            if (已提示后台私密生图任务Ref.current.has(matchedTask.id)) {
-                return false;
-            }
-            已提示后台私密生图任务Ref.current.add(matchedTask.id);
-            推送右下角提示({
-                title: matchedTask.状态 === 'success' ? '私密特写完成' : '私密特写失败',
-                message: matchedTask.状态 === 'success'
+            )),
+            (monitor, task) => ({
+                title: task.状态 === 'success' ? '私密特写完成' : '私密特写失败',
+                message: task.状态 === 'success'
                     ? `${monitor.npcName}的${monitor.部位}特写已生成完成。`
-                    : `${monitor.npcName}的${monitor.部位}特写生成失败：${matchedTask.错误信息 || '未知错误'}`,
-                tone: matchedTask.状态 === 'success' ? 'success' : 'error',
-                previewUrl: matchedTask.状态 === 'success' ? 获取图片展示地址(matchedTask) : undefined
-            });
-            return false;
-        });
-        后台私密生图监控Ref.current = pendingMonitors;
+                    : `${monitor.npcName}的${monitor.部位}特写生成失败：${task.错误信息 || '未知错误'}`,
+                tone: task.状态 === 'success' ? 'success' : 'error',
+                previewUrl: task.状态 === 'success' ? 获取图片展示地址(task) : undefined
+            })
+        );
     }, [NPC生图任务队列]);
 
     useEffect(() => {
-        if (!后台场景生图监控Ref.current.length) return;
-        const pendingMonitors = 后台场景生图监控Ref.current.filter((monitor) => {
-            const matchedTask = (Array.isArray(场景生图任务队列) ? 场景生图任务队列 : []).find((task) => (
+        刷新后台生图完成提示(
+            后台场景生图监控Ref,
+            已提示后台场景生图任务Ref,
+            场景生图任务队列,
+            (monitor, tasks) => tasks.find((task) => (
                 task?.来源 === 'manual'
                 && (task?.创建时间 || 0) >= monitor.since
-            ));
-            if (!matchedTask || (matchedTask.状态 !== 'success' && matchedTask.状态 !== 'failed')) {
-                return true;
-            }
-            if (已提示后台场景生图任务Ref.current.has(matchedTask.id)) {
-                return false;
-            }
-            已提示后台场景生图任务Ref.current.add(matchedTask.id);
-            推送右下角提示({
-                title: matchedTask.状态 === 'success' ? '场景生图完成' : '场景生图失败',
-                message: matchedTask.状态 === 'success'
+            )),
+            (monitor, task) => ({
+                title: task.状态 === 'success' ? '场景生图完成' : '场景生图失败',
+                message: task.状态 === 'success'
                     ? `${monitor.摘要 || '当前正文场景'}已生成完成。`
-                    : `${monitor.摘要 || '当前正文场景'}生成失败：${matchedTask.错误信息 || '未知错误'}`,
-                tone: matchedTask.状态 === 'success' ? 'success' : 'error',
-                previewUrl: matchedTask.状态 === 'success' ? 获取图片展示地址(matchedTask) : undefined
-            });
-            return false;
-        });
-        后台场景生图监控Ref.current = pendingMonitors;
+                    : `${monitor.摘要 || '当前正文场景'}生成失败：${task.错误信息 || '未知错误'}`,
+                tone: task.状态 === 'success' ? 'success' : 'error',
+                previewUrl: task.状态 === 'success' ? 获取图片展示地址(task) : undefined
+            })
+        );
     }, [场景生图任务队列]);
 
     const 构建文生图额外要求 = (extra?: string): string => {
@@ -1818,11 +1762,10 @@ export const useGame = () => {
     };
 
     const 收集最近变量生成上下文 = (history: any[], limit = 2) => {
+        const safeLimit = Math.max(0, Math.min(3, limit));
         if (最近变量生成上下文Ref.current.length > 0) {
-            const safeLimit = Math.max(0, Math.min(3, limit));
             return 最近变量生成上下文Ref.current.slice(-safeLimit).map((item) => 深拷贝(item));
         }
-        const safeLimit = Math.max(0, Math.min(3, limit));
         if (safeLimit <= 0 || !Array.isArray(history)) return [];
         let assistantTurn = 0;
         let latestUserInput = '';
@@ -1996,15 +1939,6 @@ export const useGame = () => {
         return false;
     };
 
-    const 读取NPC最近成功头像记录 = (npc: any): any | null => {
-        const records = 读取NPC图片记录列表(npc);
-        return records.find((item: any) => (
-            item?.状态 === 'success'
-            && item?.构图 === '头像'
-            && 图片资源记录含可恢复地址(item)
-        )) || null;
-    };
-
     const 读取NPC最近成功构图记录 = (npc: any, 构图: '头像' | '半身' | '立绘'): any | null => {
         const records = 读取NPC图片记录列表(npc);
         return records.find((item: any) => (
@@ -2013,10 +1947,6 @@ export const useGame = () => {
             && 图片资源记录含可恢复地址(item)
         )) || null;
     };
-
-    const 显式NPC生图性别集合 = new Set(['男', '女', '男娘', '扶她']);
-
-    const NPC生图性别是否显式 = (value: string): boolean => 显式NPC生图性别集合.has(value);
 
     const 读取NPC需性别补正构图列表 = (npc: any): Array<'头像' | '半身' | '立绘'> => {
         const currentGender = 读取NPC文本字段(npc, '性别');
@@ -2029,7 +1959,7 @@ export const useGame = () => {
         });
     };
 
-    const NPC性别已明确可补正头像 = (npc: any): boolean => {
+    const NPC性别已明确可补正构图 = (npc: any): boolean => {
         if (!npc || typeof npc !== 'object') return false;
         if (!NPC符合自动生图条件(npc)) return false;
         const gender = 读取NPC文本字段(npc, '性别');
@@ -2439,7 +2369,7 @@ export const useGame = () => {
     }, [社交, apiConfig]);
 
     useEffect(() => {
-        const candidateList = (Array.isArray(社交) ? 社交 : []).filter((npc: any) => NPC性别已明确可补正头像(npc));
+        const candidateList = (Array.isArray(社交) ? 社交 : []).filter((npc: any) => NPC性别已明确可补正构图(npc));
         if (candidateList.length <= 0) return;
         const signature = candidateList
             .map((npc: any, index: number) => {
@@ -2621,9 +2551,6 @@ export const useGame = () => {
         options
     );
 
-    const 规范化剧情规划状态 = (raw?: any): 剧情规划结构 => 基础规范化剧情规划状态(raw);
-    const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划结构 | undefined => 基础规范化女主剧情规划状态(raw);
-
     function 规范化社交列表安全(raw?: any[], options?: { 合并同名?: boolean; 保留非姓名库主要女性名?: boolean }) {
         const list = Array.isArray(raw) ? raw : [];
         return 规范化社交列表(list, {
@@ -2632,16 +2559,16 @@ export const useGame = () => {
         });
     }
 
-    const 构建组织成员社交档案 = (member: any, index: number, sectText: string) => {
+    const 构建组织成员社交档案 = (member: any, index: number, organizationText: string) => {
         const semantic = String((玩家组织 as any)?.组织语义 || (玩家组织 as any)?.组织类型 || (玩家组织 as any)?.题材组织类型 || '').trim();
-        const isInfiniteSect = semantic === '轮回小队' || /主神|轮回|奖励点|支线剧情|基因锁|主神空间|恐怖片|轮回者/u.test(sectText);
-        const isApocalypseSect = !isInfiniteSect && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(sectText);
-        const memberLabel = isInfiniteSect ? '队友' : isApocalypseSect ? '同伴' : '同门';
-        const orgLabel = isInfiniteSect ? '轮回小队' : isApocalypseSect ? '营地' : '门派';
+        const isInfiniteMode = semantic === '轮回小队' || /主神|轮回|奖励点|支线剧情|基因锁|主神空间|恐怖片|轮回者/u.test(organizationText);
+        const isApocalypseMode = !isInfiniteMode && /末日|丧尸|营地|避难|安全点|据点|车队|搜救|后勤|巡逻|物资|燃油|口粮|弹药|尸群/u.test(organizationText);
+        const memberLabel = isInfiniteMode ? '队友' : isApocalypseMode ? '同伴' : '同门';
+        const orgLabel = isInfiniteMode ? '轮回小队' : isApocalypseMode ? '营地' : '门派';
         const formatRelation = (value?: string) => {
             const text = String(value || '').trim() || memberLabel;
-            if (isInfiniteSect) return text.replace(/同门/g, '队友').replace(/门派成员/g, '轮回小队成员').replace(/营地成员/g, '轮回小队成员');
-            return isApocalypseSect ? text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员') : text;
+            if (isInfiniteMode) return text.replace(/同门/g, '队友').replace(/门派成员/g, '轮回小队成员').replace(/营地成员/g, '轮回小队成员');
+            return isApocalypseMode ? text.replace(/同门/g, '同伴').replace(/门派成员/g, '营地成员') : text;
         };
         return {
             id: typeof member?.id === 'string' && member.id.trim()
@@ -2687,10 +2614,10 @@ export const useGame = () => {
         const currentSocial = Array.isArray(社交) ? 社交 : [];
         const normalizedKey = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, '').toLowerCase() : '');
         const known = new Set(currentSocial.flatMap((npc: any) => [npc?.id, npc?.ID, npc?.姓名, npc?.名称].map(normalizedKey)).filter(Boolean));
-        const sectText = JSON.stringify(玩家组织 || {});
+        const organizationText = JSON.stringify(玩家组织 || {});
         const missing = members
             .filter((member: any) => member?.是否玩家本人 !== true)
-            .map((member: any, index: number) => 构建组织成员社交档案(member, index, sectText))
+            .map((member: any, index: number) => 构建组织成员社交档案(member, index, organizationText))
             .filter((npc: any) => {
                 const keys = [npc?.id, npc?.姓名].map(normalizedKey).filter(Boolean);
                 return keys.length > 0 && keys.every((key) => !known.has(key));
@@ -2698,11 +2625,11 @@ export const useGame = () => {
         if (missing.length === 0) return;
         let normalized = 规范化社交列表安全([...currentSocial, ...missing], { 合并同名: false });
         // 过滤与主角同名的NPC条目，防止主角被NPC化
-        const playerNameKeySect = typeof 角色?.姓名 === 'string' ? 角色.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
-        if (playerNameKeySect) {
+        const playerNameKey = typeof 角色?.姓名 === 'string' ? 角色.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
+        if (playerNameKey) {
             normalized = normalized.filter((npc: any) => {
                 const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
-                return !npcName || npcName !== playerNameKeySect;
+                return !npcName || npcName !== playerNameKey;
             });
         }
         设置社交(normalized);
@@ -3027,7 +2954,6 @@ export const useGame = () => {
         删除最近自动存档并重置状态,
         深拷贝,
         环境时间转标准串,
-        获取开局配置: () => 开局配置,
         规范化记忆配置,
         规范化记忆系统,
         规范化社交列表: 规范化社交列表安全,
@@ -3290,8 +3216,6 @@ export const useGame = () => {
         importPngStylePresets: 导入PNG画风预设,
         saveCharacterAnchor: 保存角色锚点,
         deleteCharacterAnchor: 删除角色锚点,
-        setCurrentCharacterAnchor: 设置当前角色锚点,
-        getCharacterAnchor: 读取角色锚点,
         getCharacterAnchorByNpcId: 按NPC读取角色锚点,
         getPlayerCharacterAnchor: 读取主角角色锚点,
         getSceneCharacterAnchors: 提取场景角色锚点,
@@ -3441,7 +3365,6 @@ export const useGame = () => {
 
     const {
         handleStartNewGameWizard,
-        generateOpeningStory,
         handleGenerateWorld,
         handleReturnToHome,
         handleQuickRestart
@@ -3585,8 +3508,8 @@ export const useGame = () => {
         设置社交,
         获取玩家组织: () => 玩家组织,
         设置玩家组织,
-        执行社交自动存档: (socialSnapshot, sectSnapshot) => {
-            void performAutoSave({ social: socialSnapshot, sect: sectSnapshot, history: 历史记录, force: true });
+        执行社交自动存档: (socialSnapshot, organizationSnapshot) => {
+            void performAutoSave({ social: socialSnapshot, sect: organizationSnapshot, history: 历史记录, force: true });
         },
         执行NPC变量本地备份: (socialSnapshot, options) => {
             void 保存NPC变量本地备份(socialSnapshot, {
@@ -3644,8 +3567,6 @@ export const useGame = () => {
         规范化女主剧情规划状态,
         规范化组织状态,
         规范化记忆系统,
-        环境时间转标准串,
-        获取开局配置: () => 开局配置,
         设置角色,
         设置环境,
         设置社交,
@@ -3753,12 +3674,10 @@ export const useGame = () => {
             worldEvolutionLastSummary: 世界演变最近摘要,
             worldEvolutionLastRawText: 世界演变最近原始消息,
             memorySummaryOpen: Boolean(待处理记忆总结任务) && 记忆总结阶段 === 'review' && Boolean(记忆总结错误),
-            memorySummaryStage: 记忆总结阶段,
             memorySummaryTask: 待处理记忆总结任务,
             memorySummaryDraft: 记忆总结草稿,
             memorySummaryError: 记忆总结错误,
             npcMemorySummaryOpen: !Boolean(待处理记忆总结任务) && Boolean(待处理NPC记忆总结队列[0]) && NPC记忆总结阶段 === 'review' && Boolean(NPC记忆总结错误),
-            npcMemorySummaryStage: NPC记忆总结阶段,
             npcMemorySummaryTask: 待处理NPC记忆总结队列[0] || null,
             npcMemorySummaryDraft: NPC记忆总结草稿,
             npcMemorySummaryError: NPC记忆总结错误,
@@ -3784,9 +3703,7 @@ export const useGame = () => {
         setters: {
             setShowSettings, setShowInventory, setShowEquipment, setShowSocial, setShowTeam, setShowWorld, setShowMap, setShowTask, setShowStory, setShowHeroinePlan, setShowMemory, setShowSaveLoad,
             setActiveTab, setCurrentTheme,
-            setApiConfig, setVisualConfig, setImageManagerConfig, setPrompts,
             setCharacter: 设置角色,
-            setPlayerSect: 设置玩家组织,
             setWorld: 设置世界
         },
         actions: {
@@ -3851,7 +3768,6 @@ export const useGame = () => {
             clearItemImageHistory: 清空物品图片历史,
             saveSceneImageLocally: 保存场景图片本地副本,
             dismissNotification: 关闭右下角提示,
-            appendSystemMessage: 追加系统消息,
             handleForceWorldEvolutionUpdate,
             getContextSnapshot: buildContextSnapshot,
             handleStartMemorySummary,
@@ -3866,23 +3782,11 @@ export const useGame = () => {
             handleUpdateNpcMemorySummaryDraft,
             handleQueueManualNpcMemorySummary,
             handleApplyNpcMemorySummary,
-            saveArtistPreset,
-            deleteArtistPreset,
-            saveModelConverterPreset,
-            deleteModelConverterPreset,
-            setModelConverterPresetEnabled,
-            savePromptConverterPreset,
-            deletePromptConverterPreset,
             saveCharacterAnchor: 保存角色锚点,
             deleteCharacterAnchor: 删除角色锚点,
-            setCurrentCharacterAnchor: 设置当前角色锚点,
-            getCharacterAnchor: 读取角色锚点,
-            getCharacterAnchorByNpcId: 按NPC读取角色锚点,
             getPlayerCharacterAnchor: 读取主角角色锚点,
             extractCharacterAnchor: 提取角色锚点,
             extractPlayerCharacterAnchor: 提取主角角色锚点,
-            importPresets,
-            exportPresets,
             savePngStylePreset: 保存PNG画风预设,
             deletePngStylePreset: 删除PNG画风预设,
             setCurrentPngStylePreset: 设置当前PNG画风预设,

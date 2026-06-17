@@ -206,7 +206,7 @@ const scenarioConflict = (state, rng) => {
 };
 
 const scenarios = [scenarioExplore, scenarioSocial, scenarioInventory, scenarioTask, scenarioConflict];
-const retiredCommandRootPattern = /^(?:set|add|push|delete)\s+(?:战斗|玩家组织|改编剧情规划|改编女主剧情规划)(?:\.|\[|\s|=)/u;
+const retiredCommandRootPattern = /^(?:set|add|push|delete)\s+(?:战斗|改编剧情规划|改编女主剧情规划)(?:\.|\[|\s|=)/u;
 
 const buildMockResponse = (result) => {
   const body = [

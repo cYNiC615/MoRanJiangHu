@@ -140,8 +140,6 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, to
                                 const isSelected = idx === selectedIdx;
                                 const statusTheme = getStatusTheme(task.当前状态);
                                 const taskLabels = getTaskLabels(task);
-                                const typeTheme = getTypeTheme(taskLabels[0] || task.类型);
-
                                 return (
                                     <button
                                         key={idx}
@@ -224,7 +222,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, to
                                     
                                     <div className="flex flex-wrap gap-4 text-sm font-serif mt-6">
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
-                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{文案?.任务发布字段 || (isApocalypseSect ? '营地委托' : '飞鸽传书')}</div>
+                                            <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{文案?.任务发布字段 || (isApocalypseMode ? '营地委托' : '飞鸽传书')}</div>
                                             <div className="px-3 py-1.5 text-gray-200">{currentTask.发布人}</div>
                                         </div>
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
@@ -233,7 +231,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, to
                                         </div>
                                         <div className="flex bg-black/40 border border-gray-800 rounded shadow-inner overflow-hidden">
                                             <div className="bg-gray-900/50 px-3 py-1.5 border-r border-gray-800 text-gray-500">{文案?.任务推荐字段 || '建议修为'}</div>
-                                            <div className="px-3 py-1.5 text-amber-200">{currentTask.推荐境界 || (isInfiniteSect ? '按任务风险' : '随缘而去')}</div>
+                                            <div className="px-3 py-1.5 text-amber-200">{currentTask.推荐境界 || (isInfiniteMode ? '按任务风险' : '随缘而去')}</div>
                                         </div>
                                         
                                         <div className="flex-1 text-right">

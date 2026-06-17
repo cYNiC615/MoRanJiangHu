@@ -230,7 +230,6 @@ export const buildRealmPromptFromDraft = (draft: RealmDiyDraft): string => {
         if (exact?.name) return exact.name;
         const base = pickRealmForLevel(level);
         if (majorBreaks.includes(level)) return base.name || `第${level}阶`;
-        const nextBreak = majorBreaks.find((mark) => mark > level) || 44;
         const currentBreak = [...majorBreaks].reverse().find((mark) => mark <= level) || 1;
         const inner = Math.max(1, Math.min(9, level - currentBreak + 1));
         const baseName = base.name || `第${currentBreak}阶`;

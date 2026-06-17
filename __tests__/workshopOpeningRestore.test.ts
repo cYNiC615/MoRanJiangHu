@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { 获取快速重开运行时恢复参数, 构建预设直开恢复结果 } from '../utils/customNewGamePresets';
 import { 创意工坊模块列表 } from '../data/creativeWorkshopModules';
+import type { OpeningConfig } from '../types';
+
+const 全部开局生成性别 = ['男', '女', '男娘', '扶她'] as const;
 
 describe('workshop opening restore helpers', () => {
     it('快速重开优先使用 runtimeSnapshot 中的恢复字段', () => {
         const restored = 获取快速重开运行时恢复参数({
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: true,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraPrompt: '来自快照的额外提示',
@@ -59,11 +63,12 @@ describe('workshop opening restore helpers', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: true,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraRequirement: '来自快照的额外要求',
@@ -111,13 +116,14 @@ describe('workshop opening restore helpers', () => {
     it('快速重开和预设直开会静默校准运行时派生状态且不重复污染文本字段', () => {
         const wuxiaTopic = 创意工坊模块列表.find((entry) => entry.source === 'builtin' && entry.id === 'mode-package-武侠');
         expect(wuxiaTopic).toBeTruthy();
-        const openingConfig = {
-            题材模式: '武侠' as const,
-            初始关系模板: '随机邂逅' as const,
-            关系侧重: ['友情'] as const,
-            开局切入偏好: '市井起手' as const,
+        const openingConfig: OpeningConfig = {
+            题材模式: '武侠',
+            初始关系模板: '师门牵引',
+            关系侧重: ['友情'],
+            开局切入偏好: '门派起手',
             开局生成组织: true,
             开局生成成员: true,
+            允许生成性别: [...全部开局生成性别],
             modeRuntimeProfile: {
                 ...(wuxiaTopic!.modeRuntimeProfile as any),
                 identity: {
@@ -241,11 +247,12 @@ describe('workshop opening restore helpers', () => {
                 },
                 openingConfig: {
                     题材模式: '武侠',
-                    初始关系模板: '随机邂逅',
+                    初始关系模板: '师门牵引',
                     关系侧重: ['友情'],
-                    开局切入偏好: '市井起手',
+                    开局切入偏好: '门派起手',
                     开局生成组织: true,
                     开局生成成员: true,
+                    允许生成性别: [...全部开局生成性别],
                 },
                 openingStreaming: true,
                 openingExtraRequirement: '预设开局额外要求'
@@ -296,11 +303,12 @@ describe('workshop opening restore helpers', () => {
             },
             openingConfig: {
                 题材模式: '无限流',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: true,
+                允许生成性别: [...全部开局生成性别],
             },
             openingStreaming: true,
             openingExtraRequirement: ''

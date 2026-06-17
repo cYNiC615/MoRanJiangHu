@@ -1,5 +1,4 @@
 import * as textAIService from '../../services/ai/text';
-import * as dbService from '../../services/dbService';
 import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import type {
@@ -44,7 +43,6 @@ import {
     构建开局变量生成审计重点
 } from '../../prompts/runtime/openingVariableGenerationInit';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
-import { 设置键 } from '../../utils/settingsSchema';
 import {
     世界书本体槽位,
     构建世界书注入文本
@@ -188,7 +186,7 @@ type 开场剧情生成依赖 = {
     }) => void;
     setWorldEvents: (value: string[]) => void;
     应用并同步记忆系统: (memory: 记忆系统结构) => void;
-    performAutoSave: (snapshot?: 自动存档快照结构) => Promise<void>;
+    performAutoSave: (snapshot?: 自动存档快照结构) => Promise<unknown>;
     构建系统提示词: (promptPool: 提示词结构[], memoryData: 记忆系统结构, socialData: any[], statePayload: any, options?: any) => Promise<酒馆上下文结构 & {
         contextPieces: 酒馆上下文结构['contextPieces'] & {
             AI角色声明?: string;
@@ -569,22 +567,6 @@ export const 执行开场剧情生成工作流 = async (
     let openingInputTokens = 0;
 
     try {
-        const 写入或插入提示词 = (
-            promptPool: 提示词结构[],
-            promptId: string,
-            fallbackPrompt: 提示词结构,
-            content: string
-        ): 提示词结构[] => {
-            const nextPrompt = {
-                ...(promptPool.find((item) => item.id === promptId) || fallbackPrompt),
-                id: promptId,
-                内容: content,
-                启用: true
-            };
-            return promptPool.some((item) => item.id === promptId)
-                ? promptPool.map((item) => item.id === promptId ? nextPrompt : item)
-                : [...promptPool, nextPrompt];
-        };
         const controller = new AbortController();
         deps.abortControllerRef.current = controller;
 
@@ -862,8 +844,7 @@ export const 执行开场剧情生成工作流 = async (
         } else {
             const pushOpening = (
                 role: 'system' | 'user' | 'assistant',
-                content?: string,
-                pushOptions?: { openingUserInput?: boolean }
+                content?: string
             ) => {
                 const trimmed = (content || '').trim();
                 if (!trimmed) return;
@@ -872,7 +853,6 @@ export const 执行开场剧情生成工作流 = async (
             };
             pushOpening('system', openingContext.contextPieces.AI角色声明);
             pushOpening('system', openingContext.contextPieces.worldPrompt);
-            pushOpening('system', openingContext.contextPieces.境界体系提示词);
             pushOpening('system', openingContext.contextPieces.otherPrompts);
             pushOpening('system', openingContext.contextPieces.难度设置提示词);
             pushOpening('system', openingContext.contextPieces.叙事人称提示词);
@@ -884,7 +864,7 @@ export const 执行开场剧情生成工作流 = async (
             pushOpening('user', openingCombinedExtraPrompt);
             pushOpening('user', openingDisclaimerRequirementPrompt || '');
             pushOpening('system', openingCotPrompt);
-            pushOpening(openingLatestUserInputRole, openingLatestUserInputAsModel, { openingUserInput: true });
+            pushOpening(openingLatestUserInputRole, openingLatestUserInputAsModel);
             if (!openingRuntimeGptMode) {
                 pushOpening('user', 包装繁体任务提示('开始任务', openingGameConfig));
             }
@@ -1601,6 +1581,7 @@ export const 执行开场剧情生成工作流 = async (
                         社交: mapBaseState.社交,
                         角色: mapBaseState.角色,
                         gameConfig: openingGameConfig,
+                        builtinPromptEntries: deps.builtinPromptEntries,
                         worldbooks: deps.worldbooks,
                         currentResponse: mapContextResponse,
                         stateBase: mapBaseState,
@@ -1904,8 +1885,6 @@ export const 执行开场剧情生成工作流 = async (
             openingShortEntry,
             {
                 immediateLimit: openingMemoryConfig.即时消息上传条数N,
-                shortLimit: openingMemoryConfig.短期记忆阈值,
-                midLimit: openingMemoryConfig.中期记忆阈值,
                 recordTime: openingTime,
                 timestamp: openingTime
             }

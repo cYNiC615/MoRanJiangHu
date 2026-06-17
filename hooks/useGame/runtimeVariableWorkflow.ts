@@ -1,9 +1,7 @@
 import type { TavernCommand } from '../../types';
-import { applyStateCommand, normalizeStateCommandKey, 是否废弃命令根路径 } from '../../utils/stateHelpers';
+import { applyStateCommand, normalizeStateCommandKey, 是否废弃命令根路径, 是否废弃玩家组织字段路径 } from '../../utils/stateHelpers';
 import { preserveInventoryOnUnsafeRoleReplace, sanitizeInventoryCommand } from './inventoryCommandGuard';
 import { 同步角色与组织状态 } from './storyState';
-
-const 同步剧情时间校准 = async ({ nextStory }: { previousStory: any; nextStory: any; envLike: any }) => nextStory;
 
 export type 运行时变量分区类型 =
     | '角色'
@@ -41,8 +39,6 @@ type 运行时变量工作流依赖 = {
     规范化女主剧情规划状态: (value: any) => any;
     规范化组织状态: (value: any) => any;
     规范化记忆系统: (value: any) => any;
-    环境时间转标准串: (value: any) => string;
-    获取开局配置: () => any;
     设置角色: (value: any) => void;
     设置环境: (value: any) => void;
     设置社交: (value: any) => void;
@@ -236,6 +232,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         const 历史记录 = deps.获取历史记录();
         const normalizedKey = normalizeStateCommandKey(command?.key || '');
         if (是否废弃命令根路径(normalizedKey)) return;
+        if (是否废弃玩家组织字段路径(normalizedKey)) return;
         const isMemoryCommand = normalizedKey.startsWith('记忆系统')
             || normalizedKey.startsWith('gameState.记忆系统')
             || (command?.key || '').trim().startsWith('记忆系统');
@@ -269,14 +266,16 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             safeCommand.action
         );
         const nextEnv = deps.规范化环境信息(result.env);
-        const nextChar = deps.规范化角色物品容器映射(result.char, { 当前时间: nextEnv });
+        const syncedOrganization = 同步角色与组织状态({
+            角色: deps.规范化角色物品容器映射(result.char, { 当前时间: nextEnv }),
+            玩家组织: deps.规范化组织状态(result.sect)
+        });
+        const nextChar = syncedOrganization.角色;
+        const nextSect = syncedOrganization.玩家组织;
         const nextSocial = deps.规范化社交列表(result.social, { 合并同名: false, 保留非姓名库主要女性名: true });
         const nextWorld = deps.规范化世界状态(result.world);
-        const nextStory = await 同步剧情时间校准({
-            previousStory: 当前状态.剧情,
-            nextStory: deps.规范化剧情状态(result.story),
-            envLike: nextEnv
-        });
+        // ponytail: the old time-calibration hook was a no-op; normalize the story directly.
+        const nextStory = deps.规范化剧情状态(result.story);
         const nextStoryPlan = deps.规范化剧情规划状态(result.storyPlan);
         const nextHeroinePlan = deps.规范化女主剧情规划状态(result.heroinePlan);
         const nextTasks = Array.isArray(result.tasks) ? result.tasks : [];
@@ -287,6 +286,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
         deps.设置剧情(nextStory);
         deps.设置剧情规划(nextStoryPlan);
         deps.设置女主剧情规划(nextHeroinePlan);
+        deps.设置玩家组织(nextSect);
         deps.设置任务列表(nextTasks);
         void deps.performAutoSave({
             char: nextChar,
@@ -296,6 +296,7 @@ export const 创建运行时变量工作流 = (deps: 运行时变量工作流依
             story: nextStory,
             storyPlan: nextStoryPlan,
             heroinePlan: nextHeroinePlan,
+            sect: nextSect,
             tasks: nextTasks,
             history: 历史记录,
             force: true

@@ -325,9 +325,7 @@ const 主按钮样式 = (disabled: boolean): string => `inline-flex items-center
         : 'border-wuxia-gold/50 bg-wuxia-gold/15 text-wuxia-gold text-shadow-glow hover:border-wuxia-gold hover:bg-wuxia-gold/25 hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]'
 }`;
 
-const 卡片样式 = 'rounded border border-wuxia-gold/20 bg-black/40 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.5)]';
 const 小标题样式 = 'text-[10px] md:text-xs text-wuxia-gold/70 tracking-widest uppercase font-serif drop-shadow-md';
-const 摘要卡片样式 = 'rounded border border-wuxia-gold/20 bg-gradient-to-br from-black/60 to-black/30 p-3 h-[112px] overflow-hidden relative group hover:border-wuxia-gold/40 transition-colors shadow-inner';
 const 生成预设ID = (prefix: string): string => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const 预设输入拦截键盘事件 = (event: React.KeyboardEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -870,14 +868,14 @@ const ImageManagerModal: React.FC<Props> = ({
         [editorModelTransformerPresets, modelTransformerPresetEditorId]
     );
     const activeModelTransformerPreset = React.useMemo(
-        () => 获取命中模型词组转化器预设(presetConfig, activeRuleSection) || editorModelTransformerPresets.find((item) => item.是否启用 === true) || null,
-        [activeRuleSection, editorModelTransformerPresets, presetConfig]
+        () => 获取命中模型词组转化器预设(presetConfig) || editorModelTransformerPresets.find((item) => item.是否启用 === true) || null,
+        [editorModelTransformerPresets, presetConfig]
     );
     React.useEffect(() => {
-        const matched = 获取命中模型词组转化器预设(presetConfig, activeRuleSection);
+        const matched = 获取命中模型词组转化器预设(presetConfig);
         if (!matched?.id || modelTransformerPresetEditorId === matched.id) return;
         setModelTransformerPresetEditorId(matched.id);
-    }, [activeRuleSection, modelTransformerPresetEditorId, presetConfig]);
+    }, [modelTransformerPresetEditorId, presetConfig]);
     const 当前生效NPC预设ID = activeModelTransformerPreset?.NPC词组转化器提示词预设ID || presetFeature?.当前NPC词组转化器提示词预设ID || '';
     const 当前生效场景预设ID = activeModelTransformerPreset?.场景词组转化器提示词预设ID || presetFeature?.当前场景词组转化器提示词预设ID || '';
     const 当前生效场景判定预设ID = activeModelTransformerPreset?.场景判定提示词预设ID || presetFeature?.当前场景判定提示词预设ID || '';
@@ -991,25 +989,6 @@ const ImageManagerModal: React.FC<Props> = ({
     const queueList = React.useMemo(() => {
         return (Array.isArray(queue) ? queue : []).slice().sort((a, b) => (b.创建时间 || 0) - (a.创建时间 || 0));
     }, [queue]);
-
-    const filteredQueue = React.useMemo(() => {
-        const keyword = (filters.角色姓名 || '').trim().toLowerCase();
-        return queueList.filter((task) => {
-            if (filters.角色标识 && !任务标识匹配NPC(task.NPC标识, filters.角色标识)) {
-                return false;
-            }
-            if (keyword && !task.NPC姓名.toLowerCase().includes(keyword)) {
-                return false;
-            }
-            if (filters.状态 && filters.状态 !== '全部') {
-                if (filters.状态 === 'pending') {
-                    return task.状态 === 'queued' || task.状态 === 'running';
-                }
-                return task.状态 === filters.状态;
-            }
-            return true;
-        });
-    }, [filters, queueList]);
 
     const itemSequenceList = React.useMemo(() => (
         Array.isArray(itemImageSequence)
@@ -1188,7 +1167,6 @@ const ImageManagerModal: React.FC<Props> = ({
     }, [npcLibraryGroups, libraryNpcId]);
     use图片资源回源预取(selectedNpc, selectedNpcSecretPartRecords, currentLibraryGroup);
 
-    const historyRecords = React.useMemo(() => filteredRecords.slice(), [filteredRecords]);
     const combinedHistoryRecords = React.useMemo<合并历史记录[]>(() => {
         const npcItems: 合并历史记录[] = filteredRecords.map((record) => ({
             类型: 'npc',
@@ -2042,27 +2020,6 @@ const ImageManagerModal: React.FC<Props> = ({
         });
     };
 
-    const handleExportNpcTransformerPresets = () => {
-        导出JSON文件('transformer-npc-presets.json', {
-            version: 1,
-            presets: npcTransformerPresets
-        });
-    };
-
-    const handleExportSceneTransformerPresets = () => {
-        导出JSON文件('transformer-scene-presets.json', {
-            version: 1,
-            presets: sceneTransformerPresets
-        });
-    };
-
-    const handleExportSceneJudgePresets = () => {
-        导出JSON文件('transformer-scene-judge-presets.json', {
-            version: 1,
-            presets: sceneJudgePresets
-        });
-    };
-
     const handleImportPresetFile = async (event: React.ChangeEvent<HTMLInputElement>, type: 'artist') => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -2158,26 +2115,6 @@ const ImageManagerModal: React.FC<Props> = ({
             setCharacterAnchorNpcId('');
             setCharacterAnchorDraft(null);
         });
-    };
-
-    const handleImportTransformerPromptPresets = async (event: React.ChangeEvent<HTMLInputElement>, scope: 'npc' | 'scene' | 'scene_judge') => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        try {
-            const parsed = JSON.parse(await file.text());
-            const presets = Array.isArray(parsed?.presets) ? parsed.presets : [];
-            updatePresetFeature((feature) => {
-                const preserved = (Array.isArray(feature.词组转化器提示词预设列表) ? feature.词组转化器提示词预设列表 : []).filter((item) => item.类型 !== scope);
-                return {
-                    ...feature,
-                    词组转化器提示词预设列表: [...preserved, ...presets]
-                };
-            });
-        } catch (error: any) {
-            setActionError(`导入预设失败：${error?.message || '文件格式错误'}`);
-        } finally {
-            event.target.value = '';
-        }
     };
 
     const handleSavePresetConfig = async () => {

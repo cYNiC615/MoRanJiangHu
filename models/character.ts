@@ -117,6 +117,13 @@ export interface 角色数据结构 {
     // 技艺
     技艺: 角色技艺[];
 
+    // 可选旧成长字段：当前仍有 UI、Prompt 和存档摘要读口，后续统一重做成长系统时再收口。
+    境界?: string;
+    境界层级?: number;
+    当前内力?: number;
+    最大内力?: number;
+    能力列表?: any[];
+
     当前经验: number;
     升级经验: number;
 

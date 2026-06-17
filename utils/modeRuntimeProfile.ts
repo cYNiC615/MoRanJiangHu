@@ -175,7 +175,7 @@ const 组织默认值 = (mode: 题材模式类型) => {
         };
     }
     if (profile.group === 'urban_xianxia') {
-        const isRecovery = mode === '灵气复苏';
+        const isRecovery = String(profile.value) === '灵气复苏';
         return {
             organizationName: isRecovery ? '机构' : '隐门',
             memberName: isRecovery ? '协作者' : '同道',
@@ -223,6 +223,7 @@ const 组织默认值 = (mode: 题材模式类型) => {
 
 const 能力默认值 = (mode: 题材模式类型) => {
     const profile = 获取题材模式配置(mode);
+    const modeValue = String(profile.value);
     if (mode === '末日丧尸') {
         return {
             primaryAxis: '生存能力、物资管理、感染风险控制与团队信任',
@@ -250,7 +251,7 @@ const 能力默认值 = (mode: 题材模式类型) => {
             combatResolution: '冲突以现实后果、法律风险、人际成本、资金与信息差结算。'
         };
     }
-    if (mode === '灵气复苏') {
+    if (modeValue === '灵气复苏') {
         return {
             primaryAxis: '觉醒稳定度、现代资源、研究认知和异常风险控制',
             progressionNames: ['未觉醒', '灵感初启', '觉醒者', '稳定者', '领域雏形'],
@@ -259,7 +260,7 @@ const 能力默认值 = (mode: 题材模式类型) => {
             combatResolution: '冲突必须兼顾现代环境、封控、科研认知、副作用和普通社会后果。'
         };
     }
-    if (mode === '都市修仙') {
+    if (modeValue === '都市修仙') {
         return {
             primaryAxis: '修行境界、现代身份、资源渠道和人脉风险',
             progressionNames: ['炼体', '引气', '凝神', '筑基', '金丹'],
@@ -268,7 +269,7 @@ const 能力默认值 = (mode: 题材模式类型) => {
             combatResolution: '战斗必须兼顾修行差距、现代场景暴露、人脉风险和法律/舆论后果。'
         };
     }
-    if (mode === '仙侠') {
+    if (profile.group === 'xianxia') {
         return {
             primaryAxis: '灵根、灵力、神识、法宝、术法和道心',
             progressionNames: ['练气', '筑基', '金丹', '元婴', '化神'],
@@ -481,12 +482,17 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
     const baseMode = 规范化题材模式(raw?.identity?.baseMode || fallback.identity.baseMode);
     const official = 构建官方模式运行时配置基础(baseMode);
     const resource = raw?.items?.resourceToggles || {};
+    const 文本列表 = (value: unknown, fallbackList: string[]): string[] => {
+        const list = 拆分模式配置短语(value);
+        return list.length ? list : fallbackList;
+    };
     const 旧资源转列表 = (r: Record<string, boolean>): string[] => {
         const list: string[] = [];
         if (r.food) list.push('饱腹');
         if (r.water) list.push('口渴');
         return list;
     };
+    const activeResources = 文本列表(raw?.items?.activeResources, []);
     return {
         identity: {
             modeId: 文本(raw?.identity?.modeId, official.identity.modeId),
@@ -503,8 +509,8 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             exchangeRules: official.economy.exchangeRules,
             marketName: 文本(raw?.economy?.marketName, official.economy.marketName),
             marketVerb: 文本(raw?.economy?.marketVerb, official.economy.marketVerb),
-            allowedItemTypes: 拆分模式配置短语(raw?.economy?.allowedItemTypes).length ? 拆分模式配置短语(raw.economy.allowedItemTypes) : official.economy.allowedItemTypes,
-            bannedKeywords: 拆分模式配置短语(raw?.economy?.bannedKeywords).length ? 拆分模式配置短语(raw.economy.bannedKeywords) : official.economy.bannedKeywords
+            allowedItemTypes: 文本列表(raw?.economy?.allowedItemTypes, official.economy.allowedItemTypes),
+            bannedKeywords: 文本列表(raw?.economy?.bannedKeywords, official.economy.bannedKeywords)
         },
         time: {
             displayFormat: ['traditional', 'numeric', 'western', 'modern', 'apocalypse', 'infinite'].includes(raw?.time?.displayFormat)
@@ -512,32 +518,32 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
                 : official.time.displayFormat,
             calendarName: 文本(raw?.time?.calendarName, official.time.calendarName),
             narrativeStyle: 文本(raw?.time?.narrativeStyle, official.time.narrativeStyle),
-            dayPeriodNames: 拆分模式配置短语(raw?.time?.dayPeriodNames).length ? 拆分模式配置短语(raw.time.dayPeriodNames) : official.time.dayPeriodNames,
-            allowedTimeTerms: 拆分模式配置短语(raw?.time?.allowedTimeTerms).length ? 拆分模式配置短语(raw.time.allowedTimeTerms) : official.time.allowedTimeTerms,
-            bannedTimeTerms: 拆分模式配置短语(raw?.time?.bannedTimeTerms).length ? 拆分模式配置短语(raw.time.bannedTimeTerms) : official.time.bannedTimeTerms,
+            dayPeriodNames: 文本列表(raw?.time?.dayPeriodNames, official.time.dayPeriodNames),
+            allowedTimeTerms: 文本列表(raw?.time?.allowedTimeTerms, official.time.allowedTimeTerms),
+            bannedTimeTerms: 文本列表(raw?.time?.bannedTimeTerms, official.time.bannedTimeTerms),
             progressionPrompt: 文本(raw?.time?.progressionPrompt, official.time.progressionPrompt)
         },
         organization: {
             organizationName: 文本(raw?.organization?.organizationName, official.organization.organizationName),
             memberName: 文本(raw?.organization?.memberName, official.organization.memberName),
             contributionName: 文本(raw?.organization?.contributionName, official.organization.contributionName),
-            rankNames: 拆分模式配置短语(raw?.organization?.rankNames).length ? 拆分模式配置短语(raw.organization.rankNames) : official.organization.rankNames,
-            organizationAliases: 拆分模式配置短语(raw?.organization?.organizationAliases).length ? 拆分模式配置短语(raw.organization.organizationAliases) : official.organization.organizationAliases,
-            memberAliases: 拆分模式配置短语(raw?.organization?.memberAliases).length ? 拆分模式配置短语(raw.organization.memberAliases) : official.organization.memberAliases
+            rankNames: 文本列表(raw?.organization?.rankNames, official.organization.rankNames),
+            organizationAliases: 文本列表(raw?.organization?.organizationAliases, official.organization.organizationAliases),
+            memberAliases: 文本列表(raw?.organization?.memberAliases, official.organization.memberAliases)
         },
         ability: {
             primaryAxis: 文本(raw?.ability?.primaryAxis, official.ability.primaryAxis),
-            progressionNames: 拆分模式配置短语(raw?.ability?.progressionNames).length ? 拆分模式配置短语(raw.ability.progressionNames) : official.ability.progressionNames,
+            progressionNames: 文本列表(raw?.ability?.progressionNames, official.ability.progressionNames),
             attributePointRules: 文本(raw?.ability?.attributePointRules, official.ability.attributePointRules),
-            skillPool: 拆分模式配置短语(raw?.ability?.skillPool).length ? 拆分模式配置短语(raw.ability.skillPool) : official.ability.skillPool,
+            skillPool: 文本列表(raw?.ability?.skillPool, official.ability.skillPool),
             skillGrowthVerb: 文本(raw?.ability?.skillGrowthVerb, official.ability.skillGrowthVerb),
             combatResolution: 文本(raw?.ability?.combatResolution, official.ability.combatResolution)
         },
         items: {
-            initialItemPool: 拆分模式配置短语(raw?.items?.initialItemPool).length ? 拆分模式配置短语(raw.items.initialItemPool) : official.items.initialItemPool,
-            rewardItemPool: 拆分模式配置短语(raw?.items?.rewardItemPool).length ? 拆分模式配置短语(raw.items.rewardItemPool) : official.items.rewardItemPool,
-            bannedItemKeywords: 拆分模式配置短语(raw?.items?.bannedItemKeywords).length ? 拆分模式配置短语(raw.items.bannedItemKeywords) : official.items.bannedItemKeywords,
-            exclusiveItemTypes: 拆分模式配置短语(raw?.items?.exclusiveItemTypes).length ? 拆分模式配置短语(raw.items.exclusiveItemTypes) : official.items.exclusiveItemTypes,
+            initialItemPool: 文本列表(raw?.items?.initialItemPool, official.items.initialItemPool),
+            rewardItemPool: 文本列表(raw?.items?.rewardItemPool, official.items.rewardItemPool),
+            bannedItemKeywords: 文本列表(raw?.items?.bannedItemKeywords, official.items.bannedItemKeywords),
+            exclusiveItemTypes: 文本列表(raw?.items?.exclusiveItemTypes, official.items.exclusiveItemTypes),
             resourceToggles: {
                 food: 布尔(resource.food, official.items.resourceToggles.food),
                 water: 布尔(resource.water, official.items.resourceToggles.water),
@@ -546,29 +552,29 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
                 fuel: 布尔(resource.fuel, official.items.resourceToggles.fuel),
                 batteries: 布尔(resource.batteries, official.items.resourceToggles.batteries)
             },
-            activeResources: 拆分模式配置短语(raw?.items?.activeResources).length
-                ? 拆分模式配置短语(raw.items.activeResources)
+            activeResources: activeResources.length
+                ? activeResources
                 : raw?.items?.resourceToggles
                     ? 旧资源转列表(raw.items.resourceToggles)
                     : official.items.activeResources
         },
         map: {
-            layerNames: 拆分模式配置短语(raw?.map?.layerNames).length ? 拆分模式配置短语(raw.map.layerNames) : official.map.layerNames,
-            locationTypes: 拆分模式配置短语(raw?.map?.locationTypes).length ? 拆分模式配置短语(raw.map.locationTypes) : official.map.locationTypes,
-            poiTypes: 拆分模式配置短语(raw?.map?.poiTypes).length ? 拆分模式配置短语(raw.map.poiTypes) : official.map.poiTypes,
-            bannedLocationKeywords: 拆分模式配置短语(raw?.map?.bannedLocationKeywords).length ? 拆分模式配置短语(raw.map.bannedLocationKeywords) : official.map.bannedLocationKeywords,
+            layerNames: 文本列表(raw?.map?.layerNames, official.map.layerNames),
+            locationTypes: 文本列表(raw?.map?.locationTypes, official.map.locationTypes),
+            poiTypes: 文本列表(raw?.map?.poiTypes, official.map.poiTypes),
+            bannedLocationKeywords: 文本列表(raw?.map?.bannedLocationKeywords, official.map.bannedLocationKeywords),
             mapPrompt: 文本(raw?.map?.mapPrompt, official.map.mapPrompt)
         },
         task: {
             mainQuestStyle: 文本(raw?.task?.mainQuestStyle, official.task.mainQuestStyle),
-            sideQuestDedupeKeys: 拆分模式配置短语(raw?.task?.sideQuestDedupeKeys).length ? 拆分模式配置短语(raw.task.sideQuestDedupeKeys) : official.task.sideQuestDedupeKeys,
+            sideQuestDedupeKeys: 文本列表(raw?.task?.sideQuestDedupeKeys, official.task.sideQuestDedupeKeys),
             rewardDistributor: 文本(raw?.task?.rewardDistributor, official.task.rewardDistributor),
             rewardVisualizationTemplate: 文本(raw?.task?.rewardVisualizationTemplate, official.task.rewardVisualizationTemplate)
         },
         npc: {
-            defaultIdentityPool: 拆分模式配置短语(raw?.npc?.defaultIdentityPool).length ? 拆分模式配置短语(raw.npc.defaultIdentityPool) : official.npc.defaultIdentityPool,
-            relationTemplates: 拆分模式配置短语(raw?.npc?.relationTemplates).length ? 拆分模式配置短语(raw.npc.relationTemplates) : official.npc.relationTemplates,
-            requiredMainCharacterFields: 拆分模式配置短语(raw?.npc?.requiredMainCharacterFields).length ? 拆分模式配置短语(raw.npc.requiredMainCharacterFields) : official.npc.requiredMainCharacterFields,
+            defaultIdentityPool: 文本列表(raw?.npc?.defaultIdentityPool, official.npc.defaultIdentityPool),
+            relationTemplates: 文本列表(raw?.npc?.relationTemplates, official.npc.relationTemplates),
+            requiredMainCharacterFields: 文本列表(raw?.npc?.requiredMainCharacterFields, official.npc.requiredMainCharacterFields),
             sexualityFallback: 文本(raw?.npc?.sexualityFallback, official.npc.sexualityFallback),
             sensitivityFallback: 文本(raw?.npc?.sensitivityFallback, official.npc.sensitivityFallback),
             autoImageStyle: 文本(raw?.npc?.autoImageStyle, official.npc.autoImageStyle),
@@ -582,19 +588,19 @@ export const 规范化模式运行时配置 = (raw?: any, fallbackMode?: unknown
             visualStyle: 文本(raw?.image?.visualStyle, official.image.visualStyle)
         },
         opening: {
-            defaultBackgrounds: 拆分模式配置短语(raw?.opening?.defaultBackgrounds).length ? 拆分模式配置短语(raw.opening.defaultBackgrounds) : official.opening.defaultBackgrounds,
-            defaultTalents: 拆分模式配置短语(raw?.opening?.defaultTalents).length ? 拆分模式配置短语(raw.opening.defaultTalents) : official.opening.defaultTalents,
+            defaultBackgrounds: 文本列表(raw?.opening?.defaultBackgrounds, official.opening.defaultBackgrounds),
+            defaultTalents: 文本列表(raw?.opening?.defaultTalents, official.opening.defaultTalents),
             companionTemplate: 文本(raw?.opening?.companionTemplate, official.opening.companionTemplate),
-            cutInTemplates: 拆分模式配置短语(raw?.opening?.cutInTemplates).length ? 拆分模式配置短语(raw.opening.cutInTemplates) : official.opening.cutInTemplates,
-            initialQuestTemplates: 拆分模式配置短语(raw?.opening?.initialQuestTemplates).length ? 拆分模式配置短语(raw.opening.initialQuestTemplates) : official.opening.initialQuestTemplates,
+            cutInTemplates: 文本列表(raw?.opening?.cutInTemplates, official.opening.cutInTemplates),
+            initialQuestTemplates: 文本列表(raw?.opening?.initialQuestTemplates, official.opening.initialQuestTemplates),
             allowedGeneratedGenders: 规范化开局生成性别列表(raw?.opening?.allowedGeneratedGenders, official.opening.allowedGeneratedGenders),
             lockGeneratedGenders: 布尔(raw?.opening?.lockGeneratedGenders, official.opening.lockGeneratedGenders),
             defaultEquipment: raw?.opening?.defaultEquipment ?? official.opening.defaultEquipment
         },
         validation: {
-            bannedWords: 拆分模式配置短语(raw?.validation?.bannedWords).length ? 拆分模式配置短语(raw.validation.bannedWords) : official.validation.bannedWords,
-            conflictChecks: 拆分模式配置短语(raw?.validation?.conflictChecks).length ? 拆分模式配置短语(raw.validation.conflictChecks) : official.validation.conflictChecks,
-            migrationCleanupRules: 拆分模式配置短语(raw?.validation?.migrationCleanupRules).length ? 拆分模式配置短语(raw.validation.migrationCleanupRules) : official.validation.migrationCleanupRules
+            bannedWords: 文本列表(raw?.validation?.bannedWords, official.validation.bannedWords),
+            conflictChecks: 文本列表(raw?.validation?.conflictChecks, official.validation.conflictChecks),
+            migrationCleanupRules: 文本列表(raw?.validation?.migrationCleanupRules, official.validation.migrationCleanupRules)
         }
     };
 };

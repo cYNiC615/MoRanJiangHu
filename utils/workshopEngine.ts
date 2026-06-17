@@ -33,16 +33,17 @@ const 必备步骤: 创意工坊引擎步骤定义['id'][] = ['world', 'backgrou
 
 const 规范化步骤列表 = (steps: unknown): 创意工坊引擎步骤定义[] => {
     const source = Array.isArray(steps) ? steps : [];
-    const normalized = source
+    const normalized: 创意工坊引擎步骤定义[] = source
         .map((item: any) => ({
             id: item?.id,
             label: typeof item?.label === 'string' ? item.label.trim() : '',
             description: typeof item?.description === 'string' ? item.description.trim() : '',
             required: item?.required === true
         }))
-        .filter((item): item is 创意工坊引擎步骤定义 => (
+        .filter((item) => (
             必备步骤.includes(item.id) && Boolean(item.label)
-        ));
+        ))
+        .map((item) => ({ ...item, id: item.id as 创意工坊引擎步骤定义['id'] }));
     const seen = new Set<string>();
     const deduped = normalized.filter((item) => {
         if (seen.has(item.id)) return false;
@@ -86,13 +87,14 @@ const 规范化选项列表 = <T extends string>(
 ): Array<创意工坊选项定义<T>> => {
     const source = Array.isArray(options) ? options : [];
     const fallbackValues = new Set(fallback.map((item) => item.value));
-    const normalized = source
+    const normalized: Array<创意工坊选项定义<T>> = source
         .map((item: any) => ({
             value: item?.value,
             label: typeof item?.label === 'string' ? item.label.trim() : '',
             hint: typeof item?.hint === 'string' ? item.hint.trim() : ''
         }))
-        .filter((item): item is 创意工坊选项定义<T> => fallbackValues.has(item.value) && Boolean(item.label));
+        .filter((item) => fallbackValues.has(item.value) && Boolean(item.label))
+        .map((item) => ({ ...item, value: item.value as T }));
     return normalized.length > 0 ? normalized : 深拷贝(fallback);
 };
 

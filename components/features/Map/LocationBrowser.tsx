@@ -175,13 +175,6 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
             || selectedNode.ID === tree.当前节点?.父级ID;
         if (!locationMatches) return people;
 
-        const appendUnique = (person: any) => {
-            const name = String(person?.姓名 || person?.名称 || '').trim();
-            if (!name) return;
-            if (people.some((existing: any) => String(existing?.姓名 || existing?.名称 || '').trim() === name)) return;
-            people.push(person);
-        };
-
         if (safePlayerName) {
             const hasPlayer = people.some((existing: any) => String(existing?.姓名 || existing?.名称 || '').trim() === safePlayerName);
             if (!hasPlayer) people.unshift({ 姓名: safePlayerName, 名称: safePlayerName, 是否玩家本人: true });
@@ -258,7 +251,6 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                         viewLocationName={currentViewNode?.名称 || ''}
                         viewPathNames={breadcrumb.map((node) => node.名称)}
                         viewDescription={currentViewNode?.描述 || ''}
-                        viewNodeNpcs={selectedNodePeople}
                     />
                 </div>
             </div>
@@ -325,7 +317,7 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                const name = String((selectedNode as any).名称 || selectedNode.鍚嶇О || '').trim();
+                                                const name = String(selectedNode.名称 || '').trim();
                                                 if (name) onInsertCommand(`前往【${name}】`);
                                             }}
                                             className="rounded-lg border border-wuxia-gold/30 bg-wuxia-gold/10 px-3 py-1.5 text-[11px] font-bold text-wuxia-gold hover:bg-wuxia-gold/20"
@@ -335,8 +327,8 @@ const LocationBrowser: React.FC<Props> = ({ world, env, onRegenerateMap, compact
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                const name = String((selectedNode as any).名称 || selectedNode.鍚嶇О || '').trim();
-                                                const desc = String((selectedNode as any).描述 || selectedNode.鎻忚堪 || '').trim();
+                                                const name = String(selectedNode.名称 || '').trim();
+                                                const desc = String(selectedNode.描述 || '').trim();
                                                 if (name) onInsertCommand(`查看【${name}】详情${desc ? `：${desc}` : ''}`);
                                             }}
                                             className="rounded-lg border border-gray-700 bg-black/40 px-3 py-1.5 text-[11px] text-gray-300 hover:border-gray-500 hover:text-white"

@@ -112,7 +112,7 @@ describe('NPC old save compatibility', () => {
         const 医术 = npc.技艺.find((item: any) => item.名称 === '医术');
         const positiveSkills = npc.技艺.filter((item: any) => item.熟练度 > 0);
 
-        expect(npc.境界).toBe('聚息境二重');
+        expect(npc.境界).toBe('聚息境中期');
         expect(npc.出身背景.名称).toContain('医药');
         expect(npc.天赋列表.length).toBeGreaterThan(0);
         expect(医术).toBeTruthy();
@@ -165,8 +165,8 @@ describe('NPC old save compatibility', () => {
 
         const total = npc.力量 + npc.敏捷 + npc.体质 + npc.根骨 + npc.悟性 + npc.福源;
 
-        expect(npc.境界层级).toBe(8);
-        expect(total).toBe(37);
+        expect(npc.境界层级).toBe(4);
+        expect(total).toBe(33);
         expect(Math.max(npc.力量, npc.敏捷, npc.体质, npc.根骨, npc.悟性, npc.福源)).toBeLessThan(14);
     });
 

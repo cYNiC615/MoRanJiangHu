@@ -3,10 +3,6 @@ import type { GameLog } from '../types';
 import { 是否可信角色发送者, 规范化正文发送者名 } from './dialogueSpeakerGuard';
 import { 是否判定日志文本 } from './judgmentFormat';
 
-type NormalizeOptions = {
-    knownSpeakers?: string[];
-};
-
 const 开头引号正则 = /^[“"「『]/;
 const 结尾引号正则 = /[”"」』]$/;
 const 说话尾迹正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:]?\s*$/;
@@ -162,52 +158,11 @@ const 是否Judge残留文本 = (text: string): boolean => {
     return Judge标签残留正则.test(source) || Judge数值残留正则.test(source);
 };
 
-const 人物动作动词正则 = /^(?:将|把|给|向|对|朝|走|站|坐|停|回|转|看|望|抬|低|点|摇|皱|叹|笑|冷笑|苦笑|轻笑|沉|伸|握|按|收|拔|举|放|推|扶|拂|敛|挑|倒|取|递|开口|提醒|解释|说道|说|道|问|答)/;
-const 无标签言语引导正则 = /^(.{1,32}?)(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道)\s*[：:，,]\s*(.{2,500})$/;
 const 方括号说话人行正则 = /^【\s*([A-Za-z0-9_\u4e00-\u9fff·]{1,16})\s*】\s*(.{1,800})$/;
 const 方括号说话人片段正则 = /【\s*([A-Za-z0-9_\u4e00-\u9fff·]{1,16})\s*】\s*/g;
-const 裸冒号说话人行正则 = /^([A-Za-z][A-Za-z0-9_· -]{1,23}|[\u4e00-\u9fff]{2,4})(?:[（(][^）)\n]{1,16}[）)])?\s*[:：]\s*(.{1,800})$/u;
-const 裸冒号非对白标签集合 = new Set([
-    '地点', '时间', '天气', '任务', '命令', '短期记忆', '中期记忆', '长期记忆', '即时记忆',
-    '剧情规划', '变量规划', '正文', '行动选项', '动态世界', '触发对象', '对象', '判定值',
-    '难度', '胜方', '败方', '差值', '伤害值', '消耗', '剩余', '后果', '发现度',
-    '基础', '环境', '状态', '幸运', '装备', '结果', '奖励', '获得', '失去'
-]);
-const XML对白标签名黑名单 = new Set([
-    '正文', 'thinking', 'think', 'judge', '变量规划', '剧情规划', '行动选项', '动态世界',
-    't_input', 't_var_plan', 't_plan', 't_state', 't_branch', 't_precheck', 't_logcheck',
-    't_var', 't_npc', 't_cmd', 't_audit', 't_fix', 't_mem', 't_opts'
-]);
-const XML对白标签正则 = /(?:<|&lt;)\s*([A-Za-z0-9_\u4e00-\u9fff·]{1,16})\s*(?:>|&gt;)([\s\S]{1,1800}?)(?:<|&lt;)\s*\/\s*\1\s*(?:>|&gt;)/g;
 const 可疑方括号无引号旁白标签正则 = /(?:的|了|着|过|他|她|它|你|我|这|那|带来|摇|低头|抬头|转身|眼力|细雨|雨声|风声|灯光|夜色|青石|空气)/;
 const 口语起始正则 = /^(?:我|我们|咱|咱们|你|你们|这事|那就|既然|今天|明天|昨天|前天|刚才|之前|现在|眼下|先|别|不要|必须|可以|应该|不是|恐怕|看来|听我|放心|等等|走|快|慢着|且慢|好|嗯|不行|没错|自然|当然|只要)/;
-const 叙事动作特征正则 = /(?:走到|来到|回到|站在|坐在|望向|看向|拿起|放下|推开|打开|穿过|掠过|落在|映在|吹过|响起|传来|升起|落下|归鞘|倒了|喝了|吃了|伸手|抬手|皱眉|点头|摇头|叹息|沉默|停下|转身)/;
 const 口语证据正则 = /[我你咱]|[？?！!]|(?:吧|吗|呢|啊|呀|嘛|呗|啦|喂|哼|嗯|唔|哦|行|好|滚|停|走|快|慢着|且慢)[。！？!?…~～]*$/;
-
-const 提取动作行说话人 = (line: string): string => {
-    const text = (line || '').trim();
-    for (let length = 4; length >= 2; length -= 1) {
-        const name = text.slice(0, length);
-        const rest = text.slice(length);
-        if (!/^[\u4e00-\u9fff]{2,4}$/.test(name)) continue;
-        if (/[冷苦轻]$/.test(name) && /^笑/.test(rest)) continue;
-        if (人物动作动词正则.test(rest)) {
-            const cleaned = 清理说话人(name);
-            if (cleaned) return cleaned;
-        }
-    }
-    return '';
-};
-
-const 是否像无标签口语 = (line: string): boolean => {
-    const text = (line || '').trim();
-    if (text.length < 6 || text.length > 220) return false;
-    if (含有引号对白(text) || 是否Judge残留文本(text)) return false;
-    if (拟声词正则.test(text)) return false;
-    if (!口语证据正则.test(text)) return false;
-    if (叙事动作特征正则.test(text) && !/[我你咱]/.test(text)) return false;
-    return 口语起始正则.test(text) || /[？?！!]$/.test(text) || /(?:吧|吗|呢|啊|罢|了)$/.test(text);
-};
 
 const 取首段引号对白与余文 = (text: string): { speech: string; rest: string } | null => {
     const source = (text || '').trim();
@@ -434,60 +389,6 @@ const 拆分旁白夹杂无标签对白 = (log: GameLog): GameLog[] => {
     return result.length > 1 ? 合并相邻同发送者(result) : [log];
 };
 
-const 裸名引号对白行正则 = /^([\u4e00-\u9fff·]{2,4})\s*([""「『].{1,800}[」』""])$/;
-
-const 拆分旁白中的裸名引号对白 = (log: GameLog): GameLog[] => {
-    const source = typeof log?.text === 'string' ? log.text.replace(/\r\n/g, '\n') : '';
-    if (!source) return [log];
-    const rawSource = 读取日志原始片段(log);
-
-    const lines = source.includes('\n') ? source.split('\n') : [source];
-    const result: GameLog[] = [];
-    for (const rawLine of lines) {
-        const line = rawLine.trim();
-        if (!line) continue;
-
-        const bracketSpeaker = line.match(方括号说话人行正则);
-        const bracketSpeakerName = (bracketSpeaker?.[1] || '').trim();
-        if (bracketSpeaker && bracketSpeakerName) {
-            const rawSpeech = (bracketSpeaker[2] || '').trim();
-            const hasQuotedSpeech = 开头引号正则.test(rawSpeech);
-            const speech = 剥离外层引号(rawSpeech);
-            if (
-                speech
-                && bracketSpeakerName.length <= (hasQuotedSpeech ? 12 : 4)
-                && (hasQuotedSpeech || !可疑方括号无引号旁白标签正则.test(bracketSpeakerName))
-                && !非单一说话人正则.test(bracketSpeakerName)
-                && !泛称说话人正则.test(bracketSpeakerName)
-                && !拟声词正则.test(speech)
-            ) {
-                result.push(附加原始片段({ sender: bracketSpeakerName, text: speech }, rawSource));
-                continue;
-            }
-        }
-
-        const bareMatch = line.match(裸名引号对白行正则);
-        if (bareMatch) {
-            const rawName = (bareMatch[1] || '').trim();
-            const rawSpeech = (bareMatch[2] || '').trim();
-            const speaker = 清理说话人(rawName);
-            if (
-                speaker
-                && !非单一说话人正则.test(speaker)
-                && !泛称说话人正则.test(speaker)
-                && !拟声词正则.test(rawSpeech)
-            ) {
-                result.push(附加原始片段({ sender: speaker, text: rawSpeech }, rawSource));
-                continue;
-            }
-        }
-
-        result.push(附加原始片段({ sender: '旁白', text: line }, rawSource));
-    }
-
-    return result.length > 1 ? 合并相邻同发送者(result) : [log];
-};
-
 const 行中引号对白正则 = /[""「『]([^""」』\n]{1,500})[」』""]/g;
 const 引号后说话人正则 = /^(.{1,20}?)(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道|冷哼|冷笑道|轻声道|低声|高声|厉声|沉声|柔声|淡淡地|淡淡道)(?:\s*[：:，,]\s*|\s+)/;
 const 引号前说话人正则 = /(?:说|说道|道|问|问道|喊|喊道|喝|喝道|答|答道|回|回道|唤|唤道|骂|骂道|笑|笑道|叹|叹道|吩咐|提醒|解释|应|应道|接|接道|开口|继续|补充|又道|冷哼)\s*[：:，,]\s*$/;
@@ -538,53 +439,6 @@ const 拆分旁白行中引号对白 = (log: GameLog): GameLog[] => {
         if (after) parts.push(附加原始片段({ sender: '旁白', text: after }, rawSource));
     }
     return parts.length > 1 ? 合并相邻同发送者(parts) : [log];
-};
-
-const 解码轻量HTML实体 = (value: string): string => (
-    (value || '')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-);
-
-const 是否可渲染XML对白标签 = (rawName: string, speech: string): string => {
-    const name = (rawName || '').trim();
-    if (!name || XML对白标签名黑名单.has(name) || 裸冒号非对白标签集合.has(name)) return '';
-    const speaker = 清理说话人(name);
-    if (!speaker || 非单一说话人正则.test(speaker) || 泛称说话人正则.test(speaker)) return '';
-    const text = 解码轻量HTML实体(speech).trim();
-    if (!text || 是否Judge残留文本(text) || 拟声词正则.test(text)) return '';
-    return speaker;
-};
-
-const 拆分XML标签对白 = (log: GameLog): GameLog[] => {
-    const source = typeof log?.text === 'string' ? log.text : '';
-    if (!source || !/(?:<|&lt;)\s*[A-Za-z0-9_\u4e00-\u9fff·]{1,16}\s*(?:>|&gt;)/.test(source)) return [log];
-    const rawSource = 读取日志原始片段(log);
-
-    const parts: GameLog[] = [];
-    let cursor = 0;
-    let matched = false;
-    let match: RegExpExecArray | null = null;
-    XML对白标签正则.lastIndex = 0;
-
-    while ((match = XML对白标签正则.exec(source)) !== null) {
-        const rawName = match[1] || '';
-        const rawSpeech = match[2] || '';
-        const speaker = 是否可渲染XML对白标签(rawName, rawSpeech);
-        if (!speaker) continue;
-
-        const before = source.slice(cursor, match.index).trim();
-        if (before) parts.push(附加原始片段({ sender: '旁白', text: 解码轻量HTML实体(before) }, rawSource));
-        parts.push(附加原始片段({ sender: speaker, text: 解码轻量HTML实体(rawSpeech).trim() }, rawSource));
-        cursor = XML对白标签正则.lastIndex;
-        matched = true;
-    }
-
-    if (!matched) return [log];
-    const after = source.slice(cursor).trim();
-    if (after) parts.push(附加原始片段({ sender: '旁白', text: 解码轻量HTML实体(after) }, rawSource));
-    return 合并相邻同发送者(parts);
 };
 
 export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): GameLog[] => {
@@ -640,10 +494,8 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
 };
 
 export const 规范化对白日志 = (
-    logs: GameLog[] | undefined,
-    options?: NormalizeOptions
+    logs: GameLog[] | undefined
 ): GameLog[] => {
-    const knownSpeakers = Array.from(new Set((options?.knownSpeakers || []).map(item => (item || '').trim()).filter(Boolean)));
     const normalized = 保护引号换行日志(logs)
         .flatMap((item) => {
             const rawSender = (item?.sender || '旁白').trim() || '旁白';

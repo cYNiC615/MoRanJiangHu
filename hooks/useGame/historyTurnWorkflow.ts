@@ -49,7 +49,6 @@ type 历史回合工作流依赖 = {
     删除最近自动存档并重置状态: () => Promise<void>;
     深拷贝: <T>(value: T) => T;
     环境时间转标准串: (env: 环境信息结构) => string;
-    获取开局配置: () => any;
     规范化记忆配置: (raw?: any) => any;
     规范化记忆系统: (raw?: any) => 记忆系统结构;
     规范化社交列表: (raw?: any[], options?: { 合并同名?: boolean }) => any[];
@@ -75,7 +74,7 @@ type 历史回合工作流依赖 = {
         parsedResponse: GameResponse;
     }) => Promise<GameResponse>;
     应用并同步记忆系统: (memory: 记忆系统结构, options?: { 静默总结提示?: boolean }) => void;
-    performAutoSave: (snapshot?: any) => Promise<void>;
+    performAutoSave: (snapshot?: any) => Promise<unknown>;
     设置剧情: (value: 剧情系统结构) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
     设置玩家组织: (value: 玩家组织结构) => void;
@@ -131,8 +130,6 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
                 shortEntry,
                 {
                     immediateLimit: normalizedMemoryConfig.即时消息上传条数N,
-                    shortLimit: normalizedMemoryConfig.短期记忆阈值,
-                    midLimit: normalizedMemoryConfig.中期记忆阈值,
                     recordTime: gameTime,
                     timestamp: gameTime
                 }
@@ -283,8 +280,6 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             deps.构建短期记忆条目(nextGameTime, displayParsed),
             {
                 immediateLimit: recoveredMemoryConfig.即时消息上传条数N,
-                shortLimit: recoveredMemoryConfig.短期记忆阈值,
-                midLimit: recoveredMemoryConfig.中期记忆阈值,
                 recordTime: nextGameTime,
                 timestamp: nextGameTime
             }

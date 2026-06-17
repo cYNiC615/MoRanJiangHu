@@ -5,14 +5,12 @@ import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结�
 import { 获取主剧情接口配置, 获取剧情回忆接口配置, 获取文章优化接口配置, 获取变量计算接口配置, 获取世界演变接口配置, 获取规划分析接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 计算正文字数容错字数, 正文字数差距在容错内 } from '../../utils/bodyLengthTolerance';
-import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 规范化记忆配置, 规范化记忆系统, 构建即时记忆条目, 构建短期记忆条目, 写入四段记忆 } from './memoryUtils';
 import { 提取剧情回忆标签 } from './memoryRecall';
 import { 执行剧情回忆检索 } from './recallWorkflow';
 import { 构建主剧情请求参数, type 主剧情系统上下文 } from './mainStoryRequest';
 import { 环境时间转标准串 } from './timeUtils';
 import { 检测文章优化协议确认污染 } from './bodyPolish';
-import { 分析世界到期触发 } from './worldEvolutionUtils';
 import { 按世界演变分流净化响应 } from './storyResponseGuards';
 import type { 响应命令处理状态 } from './responseCommandProcessor';
 import type { 自动存档快照结构 } from './saveCoordinator';
@@ -141,6 +139,54 @@ export const 构建中断流式草稿历史 = (params: {
     ];
 };
 
+const 查找最后一个助手占位消息 = (history: 聊天记录结构[]): number => {
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+        const item = history[index];
+        if (item?.role === "assistant" && !item.structuredResponse) return index;
+    }
+    return -1;
+};
+
+// ponytail: streaming, polish and queued phases all replace the same assistant placeholder; one scan is enough.
+const 替换或追加助手回合消息 = (
+    history: 聊天记录结构[],
+    message: 聊天记录结构,
+    options: {
+        targetTimestamp?: number;
+        streamMarker?: number;
+        mergeScrollState?: boolean;
+    } = {}
+): 聊天记录结构[] => {
+    const primaryIndex = typeof options.streamMarker === 'number'
+        ? history.findIndex((item) => (
+            item.timestamp === options.streamMarker
+            && item.role === "assistant"
+            && !item.structuredResponse
+        ))
+        : typeof options.targetTimestamp === 'number'
+            ? history.findIndex((item) => item.timestamp === options.targetTimestamp && item.role === "assistant")
+            : -1;
+    const targetIndex = primaryIndex >= 0 ? primaryIndex : 查找最后一个助手占位消息(history);
+    if (targetIndex < 0) {
+        return [
+            ...history,
+            options.mergeScrollState
+                ? { ...message, autoScrollToTurnIcon: false, autoScrollToTurnStart: true }
+                : { ...message }
+        ];
+    }
+    return history.map((item, index) => {
+        if (index !== targetIndex) return item;
+        if (!options.mergeScrollState) return { ...message };
+        return {
+            ...item,
+            ...message,
+            autoScrollToTurnIcon: false,
+            autoScrollToTurnStart: item.autoScrollToTurnStart === true || message.autoScrollToTurnStart === true
+        };
+    });
+};
+
 const 格式化命令展示路径 = (key: string): string => key.replace(/^gameState\./, '');
 const 队列命令展示数量上限 = 120;
 const 队列命令展示单行上限 = 1800;
@@ -216,12 +262,15 @@ export const 校验响应未命中女性姓名黑名单 = (
 export const 校验响应人称一致性 = (
     response: GameResponse,
     rawText: string,
-    expectedPov: string
+    expectedPov: string,
+    playerNameHint?: string
 ) => {
     const bodyText = 构建叙事人称检测文本(response);
     if (!bodyText) return;
     const sample = bodyText.slice(0, 2000);
-    const playerName = typeof response?.角色?.姓名 === 'string' ? response.角色.姓名.trim() : '';
+    const playerName = typeof playerNameHint === 'string'
+        ? playerNameHint.trim()
+        : (typeof (response as any)?.角色?.姓名 === 'string' ? (response as any).角色.姓名.trim() : '');
     const secondPersonNarrationCount = 统计明显第二人称叙述(sample);
     if (expectedPov === '第二人称') {
         const hasHeShe = playerName && new RegExp(转义正则片段(playerName)).test(sample);
@@ -818,7 +867,7 @@ type 主剧情发送依赖 = {
         baseState?: Partial<响应命令处理状态>,
         options?: { applyState?: boolean }
     ) => 响应命令处理状态;
-    performAutoSave: (snapshot?: 自动存档快照结构) => Promise<void>;
+    performAutoSave: (snapshot?: 自动存档快照结构) => Promise<unknown>;
     执行NPC变量自动备份?: (socialList: any[], options?: { 标签?: string }) => void | Promise<void>;
     执行正文润色: (
         baseResponse: GameResponse,
@@ -1371,8 +1420,7 @@ export const 执行主剧情发送工作流 = async (
                 recordDiagnosticLog('warn', ['主剧情重试', {
                     attempt,
                     maxAttempts,
-                    reason: typeof reason === 'string' ? reason : reason?.message || '',
-                    errorName: reason?.name || '',
+                    reason,
                     streaming: isStreaming
                 }]);
                 if (isStreaming) {
@@ -1476,7 +1524,8 @@ export const 执行主剧情发送工作流 = async (
                 校验响应人称一致性(
                     storyResult.response,
                     deps.获取原始AI消息(storyResult.rawText),
-                    runtimeGameConfig.叙事人称 || '第二人称'
+                    runtimeGameConfig.叙事人称 || '第二人称',
+                    currentState.角色?.姓名
                 );
                 校验响应未改写既有NPC姓名(
                     storyResult.response,
@@ -1687,8 +1736,6 @@ export const 执行主剧情发送工作流 = async (
             shortEntry,
             {
                 immediateLimit: normalizedMemoryConfig.即时消息上传条数N,
-                shortLimit: normalizedMemoryConfig.短期记忆阈值,
-                midLimit: normalizedMemoryConfig.中期记忆阈值,
                 recordTime: nextGameTime,
                 timestamp: nextGameTime
             }
@@ -1708,24 +1755,7 @@ export const 执行主剧情发送工作流 = async (
             autoScrollToTurnStart: true
         };
         if (isStreaming) {
-            deps.设置历史记录(prev => {
-                const streamIndex = prev.findIndex(item => (
-                    item.timestamp === streamMarker
-                    && item.role === "assistant"
-                    && !item.structuredResponse
-                ));
-                const fallbackIndex = streamIndex >= 0
-                    ? streamIndex
-                    : (() => {
-                        for (let index = prev.length - 1; index >= 0; index -= 1) {
-                            const item = prev[index];
-                            if (item?.role === "assistant" && !item.structuredResponse) return index;
-                        }
-                        return -1;
-                    })();
-                if (fallbackIndex < 0) return [...prev, { ...newAiMsg }];
-                return prev.map((item, index) => index === fallbackIndex ? { ...newAiMsg } : item);
-            });
+            deps.设置历史记录(prev => 替换或追加助手回合消息(prev, newAiMsg, { streamMarker }));
         } else {
             deps.设置历史记录([...updatedDisplayHistory, newAiMsg]);
         }
@@ -1760,7 +1790,7 @@ export const 执行主剧情发送工作流 = async (
             });
         }
 
-        const 回合结束自动存档已开启 = 规范化游戏设置(immediateState.gameConfig || currentState.gameConfig).启用回合结束自动存档 !== false;
+        const 回合结束自动存档已开启 = 规范化游戏设置(currentState.gameConfig).启用回合结束自动存档 !== false;
 
         deps.set后台队列处理中(true);
         后台队列已启动 = true;
@@ -1838,28 +1868,10 @@ export const 执行主剧情发送工作流 = async (
                                 ...newAiMsg,
                                 structuredResponse: finalDisplayResponse
                             };
-                            deps.设置历史记录(prev => {
-                                const targetIndex = prev.findIndex(item => item.timestamp === aiTurnTimestamp && item.role === "assistant");
-                                const fallbackIndex = targetIndex >= 0
-                                    ? targetIndex
-                                    : (() => {
-                                        for (let index = prev.length - 1; index >= 0; index -= 1) {
-                                            const item = prev[index];
-                                            if (item?.role === "assistant" && !item.structuredResponse) return index;
-                                        }
-                                        return -1;
-                                    })();
-                                if (fallbackIndex < 0) return [...prev, { ...polishedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: true }];
-                                return prev.map((item, index) => {
-                                    if (index !== fallbackIndex) return item;
-                                    return {
-                                        ...item,
-                                        ...polishedAiMsg,
-                                        autoScrollToTurnIcon: false,
-                                        autoScrollToTurnStart: item.autoScrollToTurnStart === true || polishedAiMsg.autoScrollToTurnStart === true
-                                    };
-                                });
-                            });
+                            deps.设置历史记录(prev => 替换或追加助手回合消息(prev, polishedAiMsg, {
+                                targetTimestamp: aiTurnTimestamp,
+                                mergeScrollState: true
+                            }));
                         } else {
                             options?.onPolishProgress?.({
                                 phase: "done",
@@ -2179,6 +2191,7 @@ export const 执行主剧情发送工作流 = async (
                                 社交: stateSnapshot.社交,
                                 角色: stateSnapshot.角色,
                                 gameConfig: currentState.gameConfig,
+                                builtinPromptEntries: currentState.内置提示词列表,
                                 worldbooks: currentState.世界书列表,
                                 currentResponse: mapContextResponse,
                                 stateBase: stateSnapshot,
@@ -2409,29 +2422,10 @@ export const 执行主剧情发送工作流 = async (
                     ...newAiMsg,
                     structuredResponse: finalDisplayResponse
                 };
-                deps.设置历史记录(prev => {
-                    const targetIndex = prev.findIndex(item => item.timestamp === aiTurnTimestamp && item.role === "assistant");
-                    const fallbackIndex = targetIndex >= 0
-                        ? targetIndex
-                        : (() => {
-                            for (let index = prev.length - 1; index >= 0; index -= 1) {
-                                const item = prev[index];
-                                if (item?.role === "assistant" && !item.structuredResponse) return index;
-                            }
-                            return -1;
-                        })();
-                    if (fallbackIndex < 0) return [...prev, { ...queuedAiMsg, autoScrollToTurnIcon: false, autoScrollToTurnStart: true }];
-                    return prev.map((item, index) => {
-                        if (index !== fallbackIndex) return item;
-
-                        return {
-                            ...item,
-                            ...queuedAiMsg,
-                            autoScrollToTurnIcon: false,
-                            autoScrollToTurnStart: item.autoScrollToTurnStart === true || queuedAiMsg.autoScrollToTurnStart === true
-                        };
-                    });
-                });
+                deps.设置历史记录(prev => 替换或追加助手回合消息(prev, queuedAiMsg, {
+                    targetTimestamp: aiTurnTimestamp,
+                    mergeScrollState: true
+                }));
 
                 const queuedNpcList = deps.提取新增NPC列表(socialBeforeMainCommands, finalState.社交);
                 if (queuedNpcList.length > 0) {

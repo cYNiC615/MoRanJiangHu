@@ -56,8 +56,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const [transferMessage, setTransferMessage] = useState('');
     const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => new Set());
     const [selectedSeriesKey, setSelectedSeriesKey] = useState<string | null>(null);
-    const [lineageMigrationStatus, setLineageMigrationStatus] = useState(() => dbService.读取旧存档谱系迁移状态());
-    const [hydratingVisibleSummaries, setHydratingVisibleSummaries] = useState(false);
     const [saveMenuOpen, setSaveMenuOpen] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const hydratedSummaryIdsRef = useRef<Set<number>>(new Set());
@@ -66,17 +64,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
 
     useEffect(() => {
         void loadSaves(true);
-    }, []);
-
-    useEffect(() => dbService.订阅旧存档谱系迁移状态((status) => {
-        setLineageMigrationStatus(status);
-        if (status.stage === 'completed' || status.stage === 'failed') {
-            void loadSaves(true);
-        }
-    }), []);
-
-    useEffect(() => {
-        void dbService.启动旧存档谱系迁移();
     }, []);
 
     useEffect(() => {
@@ -468,44 +455,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
         }
     };
 
-    const handleHydrateVisibleSummaries = async () => {
-        if (hydratingVisibleSummaries || transferring) return;
-        const targets = visibleSaves
-            .filter((save) => 是旧版缺摘要存档(save))
-            .map((save) => save.id)
-            .filter((id): id is number => typeof id === 'number');
-        if (targets.length <= 0) return;
-
-        setHydratingVisibleSummaries(true);
-        setTransferMessage(`正在恢复当前页存档详情：0 / ${targets.length}`);
-        let completed = 0;
-        try {
-            for (const id of targets) {
-                recordSaveLoadTrace('modal.manualSummaryHydrate.itemStart', { id, completed, total: targets.length });
-                const summary = await dbService.补全存档摘要(id);
-                completed += 1;
-                recordSaveLoadTrace('modal.manualSummaryHydrate.itemDone', {
-                    id,
-                    completed,
-                    total: targets.length,
-                    hasSummary: Boolean(summary),
-                    historyCount: summary?.元数据?.历史记录条数
-                });
-                if (summary) {
-                    setSaves((current) => current.map((item) => item.id === id ? summary : item));
-                }
-                setTransferMessage(`正在恢复当前页存档详情：${completed} / ${targets.length}`);
-                await new Promise((resolve) => window.setTimeout(resolve, 120));
-            }
-            setTransferMessage('当前页存档详情已恢复。');
-        } catch (error: any) {
-            console.error(error);
-            setTransferMessage(`恢复详情中断：${error?.message || '未知错误'}`);
-        } finally {
-            setHydratingVisibleSummaries(false);
-        }
-    };
-
     const downloadArchiveBlob = async (blob: Blob, fileName: string): Promise<void> => {
         const url = 创建并记录ObjectURL(blob, {
             source: 'SaveLoadModal.downloadArchiveBlob',
@@ -629,15 +578,8 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
     const saveTrees = 构建本地时间树(filteredSaves);
     const visibleSaveTrees = saveTrees.slice(0, visibleSaveCount);
     const 展平本地时间树 = (nodes: 本地时间树节点[]): 本地时间树节点[] => nodes.flatMap((node) => [node, ...展平本地时间树(node.children)]);
-    const visibleSaves = visibleSaveTrees.flatMap((series) => 展平本地时间树(series.roots));
     const hasMoreRenderedSaves = visibleSaveCount < saveTrees.length;
     const busy = loading || transferring;
-    const lineageTotal = Math.max(0, Number(lineageMigrationStatus.legacySaves) || 0);
-    const lineageDone = Math.min(lineageTotal, Math.max(0, Number(lineageMigrationStatus.convertedSaves || 0) + Number(lineageMigrationStatus.failedSaves || 0)));
-    const lineagePercent = lineageTotal > 0 ? Math.round((lineageDone / lineageTotal) * 100) : (lineageMigrationStatus.stage === 'completed' ? 100 : 0);
-    const showLineageMigration = lineageMigrationStatus.stage === 'scanning'
-        || lineageMigrationStatus.stage === 'running'
-        || ((lineageMigrationStatus.stage === 'completed' || lineageMigrationStatus.stage === 'failed') && lineageMigrationStatus.legacySaves > 0);
     const selectedSeries = selectedSeriesKey ? saveTrees.find((series) => series.key === selectedSeriesKey) || null : null;
 
     const toggleSeries = (key: string) => {
@@ -882,26 +824,6 @@ const SaveLoadModal: React.FC<Props> = ({ onClose, onLoadGame, onSaveGame, mode,
                                 存档保护已开启，当前禁止删除存档。
                             </div>
                         )}
-                        {showLineageMigration && (
-                            <div className="px-6 py-3 text-[11px] text-sky-100 bg-sky-950/35 border-b border-sky-700/30">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span>
-                                        旧存档谱系转换：{lineageMigrationStatus.lastMessage}
-                                    </span>
-                                    <span>{lineageTotal > 0 ? `${lineageDone}/${lineageTotal}` : `${lineagePercent}%`}</span>
-                                </div>
-                                <div className="mt-2 h-2 overflow-hidden rounded-full border border-sky-400/20 bg-black/40">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-500 ${lineageMigrationStatus.stage === 'failed' ? 'bg-amber-300' : 'bg-sky-300'}`}
-                                        style={{ width: `${lineagePercent}%` }}
-                                    />
-                                </div>
-                                <div className="mt-1 text-[10px] text-sky-100/70">
-                                    旧存档会保留原数据，只补上新谱系字段；未完成时关闭页面，下次进入会继续转换。
-                                </div>
-                            </div>
-                        )}
-
                         <div className="border-b border-gray-800/50 px-4 py-3 text-xs leading-5 text-gray-400 sm:px-6">
                             <span className="font-semibold tracking-[0.16em] text-wuxia-gold">本地存档节点</span>
                             <span className="ml-3">这里显示设备本地存档；自动与手动节点合并在同一棵时间树中，并单独标注来源。</span>

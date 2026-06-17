@@ -255,8 +255,8 @@ const 增量合并模式运行时配置 = (
     }, fallbackMode || nextProfile?.identity.baseMode || previousProfile?.identity.baseMode);
 };
 
+// ponytail: this builder only snapshots explicit runtime fields; passing the full openingConfig was unused coupling.
 export const 构建开局运行时快照 = (params: {
-    openingConfig?: OpeningConfig;
     openingStreaming?: boolean;
     openingExtraRequirement?: string;
     openingExtraPrompt?: string;
@@ -335,7 +335,6 @@ const 校准工坊运行时恢复结果 = (params: {
     }, params.openingConfig?.modeRuntimeProfile);
 
     const normalizedSnapshot = 构建开局运行时快照({
-        openingConfig: params.openingConfig,
         openingStreaming: snapshot?.openingStreaming ?? params.openingStreaming,
         openingExtraPrompt: snapshot?.openingExtraPrompt ?? params.openingExtraPrompt,
         openingExtraRequirement: snapshot?.openingExtraRequirement ?? params.openingExtraRequirement,
@@ -419,9 +418,7 @@ export const 构建预设表单恢复结果 = (
         全部背景选项,
         全部天赋选项,
         selectedBackground,
-        selectedTalents,
-        modeWorldbooks: runtimeRestore.modeWorldbooks,
-        workshopSelection: runtimeRestore.workshopSelection
+        selectedTalents
     };
 };
 
@@ -476,12 +473,7 @@ export const 构建预设直开恢复结果 = (
         ...options,
         ...(wrappedParams || {})
     };
-    const runtimeRestore = 获取快速重开运行时恢复参数({
-        openingConfig: preset.openingConfig,
-        openingStreaming: preset.openingStreaming,
-        openingExtraRequirement: preset.openingExtraRequirement,
-        validModuleKeys: restoreOptions?.validModuleKeys
-    });
+    // ponytail: form restore already calibrates runtime state; direct-open should not run the same pass twice.
     const directFormRestore = 构建预设表单恢复结果(preset, {
         fallbackBackgrounds: restoreOptions?.fallbackBackgrounds || [],
         fallbackTalents: restoreOptions?.fallbackTalents || [],
@@ -489,11 +481,11 @@ export const 构建预设直开恢复结果 = (
         selectedTalentCatalog: restoreOptions?.selectedTalentCatalog,
         validModuleKeys: restoreOptions?.validModuleKeys
     });
-    const openingConfig = preset.openingConfig && (runtimeRestore.modeRuntimeProfile || runtimeRestore.runtimeSnapshot)
+    const openingConfig = preset.openingConfig && (directFormRestore.modeRuntimeProfile || directFormRestore.runtimeSnapshot)
         ? {
             ...preset.openingConfig,
-            ...(runtimeRestore.modeRuntimeProfile ? { modeRuntimeProfile: runtimeRestore.modeRuntimeProfile } : {}),
-            ...(runtimeRestore.runtimeSnapshot ? { runtimeSnapshot: runtimeRestore.runtimeSnapshot } : {})
+            ...(directFormRestore.modeRuntimeProfile ? { modeRuntimeProfile: directFormRestore.modeRuntimeProfile } : {}),
+            ...(directFormRestore.runtimeSnapshot ? { runtimeSnapshot: directFormRestore.runtimeSnapshot } : {})
         }
         : preset.openingConfig;
     return {
@@ -502,12 +494,12 @@ export const 构建预设直开恢复结果 = (
         openingConfig,
         selectedBackground: directFormRestore.selectedBackground,
         selectedTalents: directFormRestore.selectedTalents,
-        openingStreaming: runtimeRestore.openingStreaming,
-        openingExtraRequirement: runtimeRestore.openingExtraRequirement,
-        activeModuleExtraRules: runtimeRestore.activeModuleExtraRules,
-        modeWorldbooks: runtimeRestore.modeWorldbooks,
-        workshopSelection: runtimeRestore.workshopSelection,
-        modeRuntimeProfile: runtimeRestore.modeRuntimeProfile,
-        runtimeSnapshot: runtimeRestore.runtimeSnapshot
+        openingStreaming: directFormRestore.openingStreaming,
+        openingExtraRequirement: directFormRestore.openingExtraRequirement,
+        activeModuleExtraRules: directFormRestore.activeModuleExtraRules,
+        modeWorldbooks: directFormRestore.modeWorldbooks,
+        workshopSelection: directFormRestore.workshopSelection,
+        modeRuntimeProfile: directFormRestore.modeRuntimeProfile,
+        runtimeSnapshot: directFormRestore.runtimeSnapshot
     };
 };

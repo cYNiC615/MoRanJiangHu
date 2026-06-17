@@ -152,7 +152,6 @@ export const 世界书本体槽位 = {
 
 export const 内置世界书分类顺序: 世界书内置分类[] = ['常驻', '开局', '主剧情', '变量生成', '文章优化', '回忆', '世界演变', '地图生成'];
 
-type 世界书本体槽位值 = typeof 世界书本体槽位[keyof typeof 世界书本体槽位];
 const 是本体槽位 = (slotId: unknown): boolean => typeof slotId === 'string' && slotId.startsWith('builtin_slot_');
 
 const 获取剧情风格槽位ID = (
@@ -167,7 +166,6 @@ const 获取剧情风格槽位ID = (
     }
     const styleKeyMap: Record<Exclude<剧情风格类型, 'NTL后宫'>, string> = {
         一般: 'general',
-        修炼: 'cultivation',
         后宫: 'harem',
         修罗场: 'shura',
         纯爱: 'pure_love'
@@ -702,11 +700,6 @@ export const 创建内置预设世界书 = (): 世界书结构 => {
     };
 };
 
-const 获取内置世界书顺序映射 = (): Map<string, number> => {
-    const builtin = 创建内置预设世界书();
-    return new Map((builtin.条目 || []).map((entry, index) => [entry.id, index] as const));
-};
-
 const 规范化作用域列表 = (value: unknown): 世界书作用域[] => {
     const list = 读取字符串数组(value).filter((item): item is 世界书作用域 => (
         item === 'main'
@@ -1056,33 +1049,6 @@ export const 规范化世界书预设组列表 = (raw: unknown): 世界书预设
         map.set(normalized.id, normalized);
     });
     return Array.from(map.values()).sort((a, b) => (b.更新时间 || 0) - (a.更新时间 || 0));
-};
-
-export const 获取内置世界书槽位原文 = (
-    books: 世界书结构[] | undefined,
-    slotId: 世界书本体槽位值 | string
-): string => {
-    const normalizedBooks = 规范化世界书列表(Array.isArray(books) ? books : []);
-    for (const book of normalizedBooks) {
-        for (const entry of Array.isArray(book.条目) ? book.条目 : []) {
-            const normalizedEntry = 规范化世界书条目(entry);
-            if (normalizedEntry.启用 === false) continue;
-            if ((normalizedEntry.内置槽位 || normalizedEntry.id) === slotId) {
-                return normalizedEntry.内容 || '';
-            }
-        }
-    }
-    return '';
-};
-
-export const 获取内置世界书槽位内容 = (params: {
-    books?: 世界书结构[];
-    slotId: 世界书本体槽位值 | string;
-    fallback: string;
-    variables?: Record<string, string | number | boolean | null | undefined>;
-}): string => {
-    const slotContent = 获取内置世界书槽位原文(params.books, params.slotId);
-    return 渲染世界书模板文本(slotContent || params.fallback, params.variables);
 };
 
 export const 获取剧情风格世界书槽位 = (

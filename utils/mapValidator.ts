@@ -13,7 +13,6 @@ import type {
     地图坐标点结构,
     地图四角坐标结构,
 } from '../types';
-import { 计算四角中心, 创建矩形四角 } from './mapSpatial';
 
 // ─── 验证结果类型 ─────────────────────────────────────────────────────────
 
@@ -229,8 +228,7 @@ export const 验证道路空间 = (
  */
 export const 验证人物空间 = (
     person: 地图人物结构,
-    layer: 地图层级结构,
-    buildings: 地图建筑结构[]
+    layer: 地图层级结构
 ): 地图验证问题[] => {
     const issues: 地图验证问题[] = [];
 
@@ -367,7 +365,7 @@ export const 验证并修复地图数据 = (
 
         // 验证人物
         for (const person of layerPersons) {
-            const issues = 验证人物空间(person, layer, layerBuildings);
+            const issues = 验证人物空间(person, layer);
             for (const issue of issues) {
                 if (issue.自动修复) {
                     if (issue.类别 === '坐标越界') {
@@ -389,7 +387,6 @@ export const 验证并修复地图数据 = (
 
     // 生成反馈摘要（可用于指导 AI 修正）
     const errors = allIssues.filter((i) => i.级别 === 'error');
-    const warnings = allIssues.filter((i) => i.级别 === 'warning');
     const unfixed = allIssues.filter((i) => !i.自动修复);
 
     let feedback = '';

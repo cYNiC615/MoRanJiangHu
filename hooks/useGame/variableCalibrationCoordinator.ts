@@ -200,7 +200,6 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
                     重置流式空闲计时器();
                     流式空闲计时器 = window.setTimeout(() => {
                         if (!controller.signal.aborted) controller.abort();
-                        const elapsed = 已收到首次流式数据 ? idleTimeout : firstResponseTimeout;
                         记录变量生成诊断('error', 'stream-idle-timeout', {
                             label,
                             idleMs: ms,

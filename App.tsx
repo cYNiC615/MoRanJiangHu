@@ -12,7 +12,7 @@ import { 环境时间转标准串 } from './hooks/useGame/timeUtils';
 import { 获取主剧情接口配置, 获取文生图接口配置, 获取记忆精炼接口配置, 接口配置是否可用 } from './utils/apiConfig';
 import { 请求模型文本 } from './services/ai/chatCompletionClient';
 import { 记忆精炼系统提示词 } from './prompts/runtime/memoryRefine';
-import { 获取内置世界书槽位内容 } from './utils/worldbook';
+import { 获取内置提示词槽位内容 } from './utils/builtinPrompts';
 import { 生成地图更新 } from './hooks/useGame/mapUpdateWorkflow';
 import { 构建字体注入样式文本, 构建UI文字CSS变量 } from './utils/visualSettings';
 import { 获取图片资源文本地址 } from './utils/imageAssets';
@@ -26,7 +26,6 @@ import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
 import { 分配角色属性点, type 可分配六维属性键 } from './utils/characterAttributePoints';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
-import { 启动旧存档谱系迁移, 读取旧存档谱系迁移状态, 订阅旧存档谱系迁移状态, type 旧存档谱系迁移状态 } from './services/dbService';
 import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
@@ -40,11 +39,8 @@ const ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY = 2500;
 const ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
 const DIAGNOSTIC_ERROR_TOAST_COOLDOWN_MS = 90 * 1000;
-const getDesktopDetailDefaultWidth = (_panelId: string | null): number => {
-    return DESKTOP_DETAIL_MAX_WIDTH;
-};
-
-const 获取物品自动生图Key = (item: any): string => 获取物品图标复用Key(item);
+// ponytail: every right-detail panel shares one default; per-panel defaults were fake flexibility.
+const DESKTOP_DETAIL_DEFAULT_WIDTH = DESKTOP_DETAIL_MAX_WIDTH;
 
 const 是同类物品图标复用目标 = (left: any, right: any): boolean => (
     获取物品图标复用Key(left) === 获取物品图标复用Key(right)
@@ -66,65 +62,6 @@ type 物品自动生图近期结果 = {
 };
 
 type 本回合变化区域 = '角色' | '背包' | '装备' | '队伍' | '社交' | '地图' | '任务列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
-
-const 旧存档谱系迁移提示条: React.FC<{
-    status: 旧存档谱系迁移状态;
-    onClose: () => void;
-}> = ({ status, onClose }) => {
-    const total = Math.max(0, Number(status.legacySaves) || 0);
-    const done = Math.min(total, Math.max(0, Number(status.convertedSaves || 0) + Number(status.failedSaves || 0)));
-    const percent = total > 0 ? Math.round((done / total) * 100) : (status.stage === 'completed' ? 100 : 0);
-    const isActive = status.stage === 'scanning' || status.stage === 'running';
-    const isFailed = status.stage === 'failed';
-
-    return (
-        <div className="fixed left-1/2 top-4 z-[10025] w-[calc(100vw-24px)] max-w-xl -translate-x-1/2 pointer-events-auto">
-            <div className={`rounded-xl border px-4 py-3 shadow-[0_18px_45px_rgba(0,0,0,0.55)] backdrop-blur-md ${
-                isFailed
-                    ? 'border-amber-500/50 bg-amber-950/90 text-amber-50'
-                    : isActive
-                        ? 'border-sky-500/50 bg-sky-950/90 text-sky-50'
-                        : 'border-emerald-500/50 bg-emerald-950/90 text-emerald-50'
-            }`}>
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                            <div className="font-semibold" style={{ fontSize: 'var(--ui-compact-font-size, 14px)' }}>旧存档正在转换为新谱系</div>
-                            <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] opacity-90">{status.stage === 'scanning' ? '扫描中' : status.stage === 'running' ? '转换中' : status.stage === 'completed' ? '已完成' : '需重试'}</span>
-                        </div>
-                        <div className="mt-1 opacity-90" style={{ fontSize: 'var(--ui-compact-font-size, 14px)', lineHeight: '1.55' }}>
-                            旧存档会保留原文件，只补上时间树谱系信息。可以关闭提示继续使用；未完成部分下次进入会继续转换，也可在“重入江湖”页面查看进度。
-                        </div>
-                        <div className="mt-3 space-y-1.5">
-                            <div className="flex items-center justify-between text-[11px] opacity-85">
-                                <span>{status.lastMessage || '正在等待转换进度更新'}</span>
-                                <span>{total > 0 ? `${done}/${total}` : `${percent}%`}</span>
-                            </div>
-                            <div className="h-2 rounded-full bg-black/45 border border-white/10 overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${isFailed ? 'bg-amber-300' : isActive ? 'bg-sky-300' : 'bg-emerald-300'} ${isActive ? 'animate-pulse' : ''}`}
-                                    style={{ width: `${percent}%` }}
-                                />
-                            </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] opacity-80">
-                                <span>旧存档 {status.legacySaves} 个</span>
-                                <span>已转换 {status.convertedSaves} 个</span>
-                                {status.failedSaves > 0 && <span>待重试 {status.failedSaves} 个</span>}
-                            </div>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="shrink-0 rounded border border-white/20 px-2 py-1 text-xs opacity-75 hover:opacity-100 hover:bg-white/10"
-                    >
-                        关闭
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] => {
     const areas = new Set<本回合变化区域>();
@@ -333,9 +270,6 @@ class ModalErrorBoundary extends React.Component<
 
 const App: React.FC = () => {
     const { state, meta, setters, actions } = useGame();
-    const safeGameConfig = state.gameConfig ?? ({} as typeof state.gameConfig);
-    const safeCharacter = state.角色 ?? ({} as typeof state.角色);
-    const safeShowSaveLoad = state.showSaveLoad ?? { show: false, mode: 'save' as const };
     const latestCharacterRef = React.useRef(state.角色);
     React.useEffect(() => {
         latestCharacterRef.current = state.角色;
@@ -349,8 +283,6 @@ const App: React.FC = () => {
     const [sceneQuickGenToastVisible, setSceneQuickGenToastVisible] = React.useState(false);
     const [contextSnapshot, setContextSnapshot] = React.useState<Awaited<ReturnType<typeof actions.getContextSnapshot>> | undefined>(undefined);
     const [returnHomeSaving, setReturnHomeSaving] = React.useState(false);
-    const [legacySaveLineageMigrationStatus, setLegacySaveLineageMigrationStatus] = React.useState(() => 读取旧存档谱系迁移状态());
-    const [legacySaveLineageMigrationNoticeClosed, setLegacySaveLineageMigrationNoticeClosed] = React.useState(false);
     const [selectedSocialNpcId, setSelectedSocialNpcId] = React.useState<string | null>(null);
     const [inventoryInitialItemRef, setInventoryInitialItemRef] = React.useState('');
     const [desktopDetailFullscreen, setDesktopDetailFullscreen] = React.useState(false);
@@ -368,7 +300,6 @@ const App: React.FC = () => {
     const [autoItemImageWakeTick, setAutoItemImageWakeTick] = React.useState(0);
     const 最近运行报错提示IDRef = React.useRef('');
     const 最近运行报错提示时间Ref = React.useRef(0);
-    const legacySaveLineageMigrationNoticeStageRef = React.useRef(legacySaveLineageMigrationStatus.stage);
     const 唤醒物品自动生图扫描 = React.useCallback((delayMs = 0) => {
         if (typeof window === 'undefined') return;
         if (autoItemImageWakeTimerRef.current !== null) {
@@ -385,19 +316,6 @@ const App: React.FC = () => {
             window.clearTimeout(autoItemImageWakeTimerRef.current);
             autoItemImageWakeTimerRef.current = null;
         }
-    }, []);
-    React.useEffect(() => 订阅旧存档谱系迁移状态((status) => {
-        setLegacySaveLineageMigrationStatus(status);
-        if (legacySaveLineageMigrationNoticeStageRef.current !== status.stage) {
-            legacySaveLineageMigrationNoticeStageRef.current = status.stage;
-            setLegacySaveLineageMigrationNoticeClosed(false);
-        }
-    }), []);
-    React.useEffect(() => {
-        const timer = window.setTimeout(() => {
-            void 启动旧存档谱系迁移();
-        }, 900);
-        return () => window.clearTimeout(timer);
     }, []);
     React.useEffect(() => {
         const subscribedAt = Date.now();
@@ -652,7 +570,7 @@ const App: React.FC = () => {
         return 获取图片资源文本地址(selectedAvatar?.本地路径 || selectedAvatar?.图片URL || state.角色?.头像图片URL);
     }, [state.角色]);
     const 主角锚点 = React.useMemo(
-        () => actions.getPlayerCharacterAnchor?.() || null,
+        () => actions.getPlayerCharacterAnchor() || null,
         [actions, state.apiConfig]
     );
     const playerProfile = React.useMemo(
@@ -769,7 +687,7 @@ const App: React.FC = () => {
             if (!item) return;
             if (物品已有可用图标(item)) return;
             candidates.push({
-                key: 获取物品自动生图Key(item),
+                key: 获取物品图标复用Key(item),
                 item,
                 sourceLocation: '背包'
             });
@@ -812,7 +730,7 @@ const App: React.FC = () => {
                     const nextCharacter = { ...(latestCharacter || state.角色), 物品列表: nextItems };
                     setters.setCharacter(nextCharacter);
                     if (shouldSave) {
-                        void actions.performAutoSave?.({ role: nextCharacter, force: true });
+                        void actions.performAutoSave({ role: nextCharacter, force: true });
                     }
                 }
                 return;
@@ -1010,26 +928,11 @@ const App: React.FC = () => {
         state.showHeroinePlan ? 'plan' :
         state.showMemory ? 'memory' :
         showImageManager ? 'image_manager' :
-        safeShowSaveLoad.show ? (safeShowSaveLoad.mode === 'save' ? 'save' : 'load') :
+        state.showSaveLoad.show ? (state.showSaveLoad.mode === 'save' ? 'save' : 'load') :
         state.showSettings ? 'settings' :
         null;
 
-    const desktopRightDetailPanelOpen = state.view === 'game' && (
-        showCharacter
-        || state.showEquipment
-        || state.showInventory
-        || state.showSocial
-        || state.showTeam
-        || state.showWorld
-        || state.showMap
-        || state.showTask
-        || state.showStory
-        || state.showHeroinePlan
-        || state.showMemory
-        || showImageManager
-        || safeShowSaveLoad.show
-        || state.showSettings
-    );
+    const desktopRightDetailPanelOpen = state.view === 'game' && activeDetailPanelId !== null;
     const desktopRightDetailId = activeDetailPanelId || 'detail';
     const desktopRightDetailClass = state.view === 'game'
         ? `desktop-right-detail-modal desktop-right-detail-modal--${desktopRightDetailId}${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
@@ -1043,7 +946,7 @@ const App: React.FC = () => {
     }, [state.apiConfig]);
     const mainStoryApiLabel = `主剧情：${mainStoryApiInfo.channelName} / ${mainStoryApiInfo.modelName}`;
     const desktopRightDetailWidth = React.useMemo(() => clampDesktopDetailWidth(
-        desktopDetailWidths[desktopRightDetailId] ?? getDesktopDetailDefaultWidth(desktopRightDetailId)
+        desktopDetailWidths[desktopRightDetailId] ?? DESKTOP_DETAIL_DEFAULT_WIDTH
     ), [desktopDetailWidths, desktopRightDetailId, viewportWidth]);
     const appRootStyleVars = React.useMemo(() => ({
         ...appUiStyleVars,
@@ -1189,7 +1092,7 @@ const App: React.FC = () => {
         setSelectedSocialNpcId(npc?.id || null);
         setters.setShowSocial(true);
         if (!npc) {
-            actions.pushNotification?.({
+            actions.pushNotification({
                 title: '已打开角色列表',
                 message: '未在成员名录里找到对应角色档案。',
                 tone: 'info'
@@ -1243,7 +1146,7 @@ const App: React.FC = () => {
             return { ok: false as const, message: result.message };
         }
         setters.setCharacter(result.nextCharacter);
-        void actions.performAutoSave?.({ role: result.nextCharacter, force: true });
+        void actions.performAutoSave({ role: result.nextCharacter, force: true });
         actions.pushNotification({ title: '已丢弃物品', message: result.message, tone: 'success' });
         return { ok: true as const, message: result.message };
     }, [actions, setters, state.角色]);
@@ -1267,7 +1170,7 @@ const App: React.FC = () => {
             removedCount += count;
         }
         setters.setCharacter(nextCharacter);
-        void actions.performAutoSave?.({ role: nextCharacter, force: true });
+        void actions.performAutoSave({ role: nextCharacter, force: true });
         const message = `已丢弃 ${removedCount || miscItems.length} 件杂物。`;
         actions.pushNotification({ title: '杂物已丢弃', message, tone: 'success' });
         return { ok: true as const, message };
@@ -1297,7 +1200,7 @@ const App: React.FC = () => {
             ));
             const nextCharacter = { ...state.角色, 物品列表: nextItems };
             setters.setCharacter(nextCharacter);
-            void actions.performAutoSave?.({ role: nextCharacter, force: true });
+            void actions.performAutoSave({ role: nextCharacter, force: true });
             recordDiagnosticLog('info', '[物品手动生图] 成功写入背包物品档案', {
                 itemRef,
                 recordId: result.imageRecord?.id || '',
@@ -1338,7 +1241,7 @@ const App: React.FC = () => {
         };
 
         actions.updateMemorySystem(nextMemorySystem);
-        void actions.performAutoSave?.({ memory: nextMemorySystem, force: true });
+        void actions.performAutoSave({ memory: nextMemorySystem, force: true });
         actions.pushNotification({ title: '记忆已删除', message: `回合 ${round} 的回忆档案已被移除。`, tone: 'success' });
     }, [actions, setters, state.记忆系统]);
     const handleRefineMemories = React.useCallback(async (rounds: number[]): Promise<boolean> => {
@@ -1370,8 +1273,8 @@ const App: React.FC = () => {
             return `${name}\n概括：${summary}\n原文：${raw}\n---`;
         }).join('\n');
 
-        const systemPrompt = 获取内置世界书槽位内容({
-            books: meta.worldbooks,
+        const systemPrompt = 获取内置提示词槽位内容({
+            entries: meta.builtinPromptEntries,
             slotId: 'builtin_memory_refine_system_prompt',
             fallback: 记忆精炼系统提示词
         });
@@ -1441,7 +1344,7 @@ const App: React.FC = () => {
                 回忆档案: nextArchives
             };
             actions.updateMemorySystem(nextMemorySystem);
-            void actions.performAutoSave?.({ memory: nextMemorySystem, force: true });
+            void actions.performAutoSave({ memory: nextMemorySystem, force: true });
             actions.pushNotification({ title: '精炼完成', message: `${selectedEntries.length} 条记忆已精炼为 1 条纪要（回合 ${minRound}-${maxRound}）。`, tone: 'success' });
             return true;
         } catch (error: any) {
@@ -1449,7 +1352,7 @@ const App: React.FC = () => {
             actions.pushNotification({ title: '精炼失败', message: `AI 精炼失败：${errorMsg}`, tone: 'error' });
             return false;
         }
-    }, [actions, meta.worldbooks, state.记忆系统]);
+    }, [actions, meta.builtinPromptEntries, state.记忆系统]);
     const handleRegenerateMapFromMemory = React.useCallback(async (onDelta: (delta: string) => void): Promise<{ ok: boolean; message: string }> => {
         const memory = state.记忆系统;
         const memoryCount = [
@@ -1470,9 +1373,10 @@ const App: React.FC = () => {
                 环境: state.环境,
                 世界: state.世界,
                 社交: state.社交,
-                角色: safeCharacter,
+                角色: state.角色,
                 gameConfig: state.gameConfig,
                 记忆系统: memory,
+                builtinPromptEntries: meta.builtinPromptEntries,
                 worldbooks: meta.worldbooks,
                 onDelta: (delta: string) => {
                     setMapRegenerateRawText((prev: string) => prev + delta);
@@ -1493,13 +1397,13 @@ const App: React.FC = () => {
             setters.setWorld(nextWorld);
             worldRef.current = nextWorld;
             setMapRegenerateRawText(result.rawText || '');
-            void actions.performAutoSave?.({ world: nextWorld, force: true });
+            void actions.performAutoSave({ world: nextWorld, force: true });
             return { ok: true, message: `已清除旧地图，并从回忆库重建 ${result.newLayers.length} 个地点节点。` };
         } catch (error: any) {
             const errorMsg = error?.message || '未知错误';
             return { ok: false, message: errorMsg };
         }
-    }, [actions, meta.worldbooks, safeCharacter, setters, state.世界, state.环境, state.社交, state.记忆系统, state.gameConfig]);
+    }, [actions, meta.builtinPromptEntries, meta.worldbooks, setters, state.世界, state.环境, state.社交, state.记忆系统, state.gameConfig, state.角色]);
     const handleRegenerateMap = React.useCallback(async (): Promise<boolean> => {
         actions.pushNotification({ title: '开始回忆解析', message: '正在从回忆库重建新版地图。', tone: 'info' });
         const result = await handleRegenerateMapFromMemory(() => undefined);
@@ -1523,7 +1427,7 @@ const App: React.FC = () => {
         const nextCharacter = 分配角色属性点(state.角色, key);
         if (nextCharacter === state.角色) return;
         setters.setCharacter(nextCharacter);
-        void actions.performAutoSave?.({ role: nextCharacter, force: true });
+        void actions.performAutoSave({ role: nextCharacter, force: true });
         actions.pushNotification({
             title: '属性点已分配',
             message: `${key} +1，剩余可分配属性点 ${Number((nextCharacter as any).可分配属性点 || 0)}。`,
@@ -1531,7 +1435,6 @@ const App: React.FC = () => {
         });
     }, [actions, setters, state.角色]);
     const closeSaveLoad = React.useCallback(() => setters.setShowSaveLoad({ show: false, mode: 'save' }), [setters]);
-    const closeWorldbookManager = React.useCallback(() => setShowWorldbookManager(false), []);
     const openWorldbookManager = React.useCallback(() => setShowWorldbookManager(true), []);
     const handleStartFromLanding = React.useCallback(() => actions.handleStartNewGameWizard(), [actions]);
     const handleReturnToHomeWithAutoSave = React.useCallback(async () => {
@@ -1546,13 +1449,12 @@ const App: React.FC = () => {
             await actions.performAutoSave({ force: true });
             closeAllPanels();
             actions.handleReturnToHome();
-            setters.setShowSettings(false);
         } catch (error: any) {
             window.alert(`本地保存失败，暂不能返回首页：${error?.message || '未知错误'}`);
         } finally {
             setReturnHomeSaving(false);
         }
-    }, [actions, closeAllPanels, returnHomeSaving, setters]);
+    }, [actions, closeAllPanels, returnHomeSaving]);
     const handleReturnToHomeFromSettings = React.useCallback(async () => {
         const ok = await requestConfirm({
             title: '返回首页',
@@ -1564,12 +1466,6 @@ const App: React.FC = () => {
         if (!ok) return;
         await handleReturnToHomeWithAutoSave();
     }, [handleReturnToHomeWithAutoSave, requestConfirm]);
-    const openPolishSettings = React.useCallback(() => {
-        closeAllPanels();
-        setters.setActiveTab('polish');
-        setters.setShowSettings(true);
-    }, [closeAllPanels, setters]);
-
     const openImageManagerWithCheck = React.useCallback(async () => {
         closeAllPanels();
         setShowImageManager(true);
@@ -1580,25 +1476,10 @@ const App: React.FC = () => {
     const worldRef = React.useRef(state.世界);
     worldRef.current = state.世界;
 
-    const legacySaveLineageMigrationNoticeVisible = !legacySaveLineageMigrationNoticeClosed && (
-        legacySaveLineageMigrationStatus.stage === 'scanning'
-        || legacySaveLineageMigrationStatus.stage === 'running'
-        || (
-            (legacySaveLineageMigrationStatus.stage === 'completed' || legacySaveLineageMigrationStatus.stage === 'failed')
-            && (legacySaveLineageMigrationStatus.legacySaves > 0 || legacySaveLineageMigrationStatus.convertedSaves > 0 || legacySaveLineageMigrationStatus.failedSaves > 0)
-        )
-    );
-
     return (
         <>
             <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} p-3`} style={appRootStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
-                {legacySaveLineageMigrationNoticeVisible && (
-                    <旧存档谱系迁移提示条
-                        status={legacySaveLineageMigrationStatus}
-                        onClose={() => setLegacySaveLineageMigrationNoticeClosed(true)}
-                    />
-                )}
             
             {/* View Switching */}
             {state.view === 'home' && (
@@ -1821,7 +1702,7 @@ const App: React.FC = () => {
                                 worldEvolutionEnabled={meta.worldEvolutionEnabled}
                                 worldEvolutionUpdating={meta.worldEvolutionUpdating}
                                 enableWorldPanel={state.apiConfig?.功能模型占位?.世界演变功能启用 !== false}
-                                enableHeroinePlan={safeGameConfig?.启用女主剧情规划 === true}
+                                enableHeroinePlan={state.gameConfig?.启用女主剧情规划 === true}
                                 enablePlanningPanel={state.apiConfig?.功能模型占位?.规划分析功能启用 !== false}
                                 onSave={openSave}
                                 onLoad={openLoad}
@@ -1894,7 +1775,7 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    {meta.notifications && meta.notifications.length > 0 && (
+                    {meta.notifications.length > 0 && (
                         <div className="fixed right-4 bottom-16 md:bottom-14 z-[10000] flex flex-col gap-2 pointer-events-none">
                             {meta.notifications.map((toast) => (
                                 <div
@@ -1992,14 +1873,14 @@ const App: React.FC = () => {
             </div>
 
             {/* Save/Load Modal */}
-            {safeShowSaveLoad.show && (
+            {state.showSaveLoad.show && (
                 <div className={desktopRightDetailClass}>
                 <懒加载边界>
                     <SaveLoadModal 
                         onClose={closeSaveLoad}
                         onLoadGame={actions.handleLoadGame}
                         onSaveGame={actions.handleSaveGame}
-                        mode={safeShowSaveLoad.mode}
+                        mode={state.showSaveLoad.mode}
                         requestConfirm={requestConfirm}
                     />
                 </懒加载边界>
@@ -2024,7 +1905,6 @@ const App: React.FC = () => {
                             memorySystem={state.记忆系统}
                             socialList={state.社交}
                             runtimeState={runtimeStateSections}
-                            currentStory={state.剧情}
                             openingConfig={state.开局配置}
                             contextSnapshot={contextSnapshot}
                             onSaveApi={actions.saveSettings}
@@ -2083,10 +1963,9 @@ const App: React.FC = () => {
                 <懒加载边界>
                     <MemorySummaryFlowModal
                         open={true}
-                        stage={(meta.memorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
-                        task={meta.memorySummaryTask || null}
-                        draft={meta.memorySummaryDraft || ''}
-                        error={meta.memorySummaryError || ''}
+                        task={meta.memorySummaryTask}
+                        draft={meta.memorySummaryDraft}
+                        error={meta.memorySummaryError}
                         onStart={() => { void actions.handleStartMemorySummary(); }}
                         onCancel={actions.handleCancelMemorySummary}
                         onBack={actions.handleBackToMemorySummaryRemind}
@@ -2100,11 +1979,10 @@ const App: React.FC = () => {
                 <懒加载边界>
                     <NpcMemorySummaryFlowModal
                         open={true}
-                        stage={(meta.npcMemorySummaryStage || 'remind') as 'remind' | 'processing' | 'review'}
-                        task={meta.npcMemorySummaryTask || null}
-                        queueLength={meta.npcMemorySummaryQueueLength || 0}
-                        draft={meta.npcMemorySummaryDraft || ''}
-                        error={meta.npcMemorySummaryError || ''}
+                        task={meta.npcMemorySummaryTask}
+                        queueLength={meta.npcMemorySummaryQueueLength}
+                        draft={meta.npcMemorySummaryDraft}
+                        error={meta.npcMemorySummaryError}
                         onStart={() => { void actions.handleStartNpcMemorySummary(); }}
                         onCancel={actions.handleCancelNpcMemorySummary}
                         onBack={actions.handleBackToNpcMemorySummaryRemind}
@@ -2121,12 +1999,12 @@ const App: React.FC = () => {
                             socialList={state.社交}
                             playerCharacter={state.角色}
                             itemImageSequence={itemImageSequence}
-                            queue={meta.imageGenerationQueue || []}
-                            sceneArchive={meta.sceneImageArchive || {}}
-                            sceneQueue={meta.sceneImageQueue || []}
+                            queue={meta.imageGenerationQueue}
+                            sceneArchive={meta.sceneImageArchive}
+                            sceneQueue={meta.sceneImageQueue}
                             apiConfig={state.apiConfig}
                             imageManagerConfig={state.imageManagerConfig}
-                            femboyNsfwEnabled={safeGameConfig?.启用NSFW模式 === true && safeGameConfig?.启用男娘NSFW内容 !== false}
+                            femboyNsfwEnabled={state.gameConfig?.启用NSFW模式 === true && state.gameConfig?.启用男娘NSFW内容 !== false}
                             currentPersistentWallpaper={state.visualConfig?.常驻壁纸 || ''}
                             onSaveApiConfig={actions.saveSettings}
                             onSaveImageManagerConfig={actions.saveImageManagerSettings}
@@ -2186,7 +2064,7 @@ const App: React.FC = () => {
                                 initialSelectedItemRef={inventoryInitialItemRef}
                                 onCharacterChange={(nextCharacter: any) => {
                                     setters.setCharacter(nextCharacter);
-                                    void actions.performAutoSave?.({ role: nextCharacter, force: true });
+                                    void actions.performAutoSave({ role: nextCharacter, force: true });
                                 }}
                                 onDiscardItem={handleDiscardBagItem}
                                 onDiscardAllMisc={handleDiscardAllMiscItems}
@@ -2204,8 +2082,7 @@ const App: React.FC = () => {
                                 visualConfig={effectiveVisualConfig}
                                 apiConfig={state.apiConfig}
                                 playerAnchor={主角锚点}
-                                nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
-                                femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
+                                nsfwEnabled={state.gameConfig?.启用NSFW模式 === true}
                                 onGeneratePlayerImage={actions.generatePlayerImageManually}
                                 onGeneratePlayerSecretPartImage={actions.generatePlayerSecretPartImage}
                                 onExtractPlayerAnchor={actions.extractPlayerCharacterAnchor}
@@ -2228,7 +2105,7 @@ const App: React.FC = () => {
                                 openingConfig={state.开局配置}
                                 onCharacterChange={(nextCharacter: any) => {
                                     setters.setCharacter(nextCharacter);
-                                    void actions.performAutoSave?.({ role: nextCharacter, force: true });
+                                    void actions.performAutoSave({ role: nextCharacter, force: true });
                                 }}
                                 onClose={() => setters.setShowEquipment(false)} 
                             />
@@ -2254,9 +2131,9 @@ const App: React.FC = () => {
                                 onClose={() => setters.setShowSocial(false)}
                                 selectedNpcId={selectedSocialNpcId}
                                 onSelectedNpcIdChange={setSelectedSocialNpcId}
-                                playerName={safeCharacter?.姓名 || ''}
-                                nsfwEnabled={safeGameConfig?.启用NSFW模式 === true}
-                                femboyNsfwEnabled={safeGameConfig?.启用男娘NSFW内容 !== false}
+                                playerName={state.角色?.姓名 || ''}
+                                nsfwEnabled={state.gameConfig?.启用NSFW模式 === true}
+                                femboyNsfwEnabled={state.gameConfig?.启用男娘NSFW内容 !== false}
                                 onToggleMajorRole={actions.updateNpcMajorRole}
                                 onTogglePresence={actions.updateNpcPresence}
                                 onDeleteNpc={actions.removeNpc}
@@ -2279,8 +2156,8 @@ const App: React.FC = () => {
                                 onForceUpdate={actions.handleForceWorldEvolutionUpdate}
                                 onClose={() => setters.setShowWorld(false)}
                                 social={state.社交}
-                                playerLocation={state.环境?.具体地点 || state.环境?.当前位置 || ''}
-                                playerLocationPath={state.环境?.位置路径 || ''}
+                                playerLocation={state.环境?.具体地点 || state.环境?.小地点 || state.环境?.中地点 || state.环境?.大地点 || ''}
+                                playerLocationPath={[state.环境?.大地点, state.环境?.中地点, state.环境?.小地点, state.环境?.具体地点].filter(Boolean).join(' > ')}
                             />
                         </懒加载边界>
                     )}
@@ -2291,7 +2168,7 @@ const App: React.FC = () => {
                                 world={state.世界}
                                 env={state.环境}
                                 socialList={state.社交}
-                                playerName={safeCharacter?.姓名 || ''}
+                                playerName={state.角色?.姓名 || ''}
                                 uiLabels={题材界面文案}
                                 debugEnabled={(state.gameConfig as any)?.启用研发诊断模式 === true}
                                 onOpenPerson={openNpcDetailFromRecord}
@@ -2325,7 +2202,7 @@ const App: React.FC = () => {
                         </懒加载边界>
                     )}
 
-                    {state.showHeroinePlan && safeGameConfig?.启用女主剧情规划 === true && (
+                    {state.showHeroinePlan && state.gameConfig?.启用女主剧情规划 === true && (
                         <懒加载边界>
                             <HeroinePlanModal
                                 plan={当前女主剧情规划}

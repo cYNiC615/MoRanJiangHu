@@ -8,25 +8,10 @@ import type {
     世界书作用域,
     世界书结构
 } from '../../types';
-import { 规范化记忆配置 } from './memoryUtils';
-import { 格式化短期记忆展示文本 } from './memoryUtils';
+import { 格式化短期记忆展示文本, 规范化记忆配置 } from './memoryUtils';
 import { 构建NPC上下文 } from './npcContext';
 import { normalizeCanonicalGameTime, 环境时间转标准串 } from './timeUtils';
 import { 计算游戏历程天数 } from '../../utils/gameTimeJourney';
-
-const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
-    const canonical = normalizeCanonicalGameTime(raw || '');
-    if (!canonical) return null;
-    const match = canonical.match(/^(\d{1,6}):(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
-    if (!match) return null;
-    return {
-        year: Number(match[1]),
-        month: Number(match[2]),
-        day: Number(match[3]),
-        hour: Number(match[4]),
-        minute: Number(match[5])
-    };
-};
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import {
     构建世界书注入文本,
@@ -54,13 +39,24 @@ import {
     规范化女主剧情规划状态,
     规范化世界状态
 } from './storyState';
-import { 构建地图空间场景 } from '../../utils/mapSpatial';
-import { 构建女主剧情规划协议 } from '../../prompts/core/heroinePlan';
-import { 构建女主规划专项提示词 } from '../../prompts/core/heroinePlanCot';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
 import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
+
+const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
+    const canonical = normalizeCanonicalGameTime(raw || '');
+    if (!canonical) return null;
+    const match = canonical.match(/^(\d{1,6}):(\d{2}):(\d{2}):(\d{2}):(\d{2})$/);
+    if (!match) return null;
+    return {
+        year: Number(match[1]),
+        month: Number(match[2]),
+        day: Number(match[3]),
+        hour: Number(match[4]),
+        minute: Number(match[5])
+    };
+};
 
 export type 运行时提示词状态 = {
     当前启用: boolean;
@@ -73,7 +69,6 @@ export type 系统提示词上下文片段 = {
     AI角色声明: string;
     worldPrompt: string;
     地图建筑状态: string;
-    境界体系提示词: string;
     otherPrompts: string;
     难度设置提示词: string;
     叙事人称提示词: string;
@@ -126,35 +121,6 @@ type 系统提示词构建参数 = {
         强制剧情COT提示词ID?: string;
     };
 };
-
-const 格式化展示上下文 = <T,>(value: T): T => {
-    if (Array.isArray(value)) {
-        return value.map((item, index) => {
-            const formatted = 格式化展示上下文(item);
-            if (formatted && typeof formatted === 'object' && !Array.isArray(formatted)) {
-                return {
-                    [`[${index}]`]: index,
-                    ...(formatted as Record<string, unknown>)
-                };
-            }
-            return formatted;
-        }) as T;
-    }
-    if (!value || typeof value !== 'object') return value;
-    const entries = Object.entries(value as Record<string, unknown>)
-        .filter(([key]) => key !== '索引')
-        .map(([key, child]) => [key, 格式化展示上下文(child)]);
-    return Object.fromEntries(entries) as T;
-};
-
-const 序列化展示上下文 = (value: unknown): string => JSON.stringify(
-    格式化展示上下文(value),
-    null,
-    2
-).replace(
-    /^(\s*)"(\[\d+\])":\s*\d+,?$/gm,
-    '$1"$2"'
-);
 
 const 树状上下文缩进 = (depth: number): string => '  '.repeat(depth);
 
@@ -349,9 +315,6 @@ export const 构建系统提示词 = ({
             return 计算游戏历程天数(currentPiece, initialPiece);
         })();
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
-        const 取数值 = (value: any, fallback: number = 0) => (
-            typeof value === 'number' && Number.isFinite(value) ? value : fallback
-        );
         const 当前坐标X = typeof role?.当前坐标X === 'number' && Number.isFinite(role.当前坐标X) ? role.当前坐标X : 0;
         const 当前坐标Y = typeof role?.当前坐标Y === 'number' && Number.isFinite(role.当前坐标Y) ? role.当前坐标Y : 0;
         const 环境变量列表原始 = Array.isArray(env?.环境变量)
@@ -576,11 +539,6 @@ export const 构建系统提示词 = ({
 
         return 包装树状上下文('用户角色数据', 裁剪成长体系上下文数据(orderedRole, normalizedGameConfig));
     };
-    const 归一化文本 = (value: any) => (
-        typeof value === 'string'
-            ? value.trim().replace(/\s+/g, '').toLowerCase()
-            : ''
-    );
     const 构建世界状态文本 = (payload: any) => {
         const world = 规范化世界状态(payload?.世界);
         const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
@@ -665,61 +623,6 @@ export const 构建系统提示词 = ({
         };
 
         return 包装树状上下文('世界', 裁剪成长体系上下文数据(orderedWorld, normalizedGameConfig));
-    };
-    const 构建组织状态文本 = (payload: any) => {
-        const sect = payload?.玩家组织 && typeof payload.玩家组织 === 'object' ? payload.玩家组织 : {};
-        const 取文本 = (value: any) => (typeof value === 'string' ? value : '');
-        const 取数组 = (value: any) => (Array.isArray(value) ? value : []);
-        const 取数值 = (value: any, fallback: number = 0) => (
-            typeof value === 'number' && Number.isFinite(value) ? value : fallback
-        );
-        const 任务列表 = 取数组(sect?.任务列表).map((task: any) => ({
-            id: 取文本(task?.id),
-            标题: 取文本(task?.标题),
-            描述: 取文本(task?.描述),
-            类型: 取文本(task?.类型),
-            难度: 取数值(task?.难度),
-            发布日期: 取文本(task?.发布日期),
-            截止日期: 取文本(task?.截止日期),
-            刷新日期: 取文本(task?.刷新日期),
-            奖励贡献: 取数值(task?.奖励贡献),
-            奖励资金: 取数值(task?.奖励资金),
-            奖励物品: 取数组(task?.奖励物品),
-            当前状态: 取文本(task?.当前状态)
-        }));
-        const 兑换列表 = 取数组(sect?.兑换列表).map((item: any) => ({
-            id: 取文本(item?.id),
-            物品名称: 取文本(item?.物品名称),
-            类型: 取文本(item?.类型),
-            兑换价格: 取数值(item?.兑换价格),
-            库存: 取数值(item?.库存),
-            要求职位: 取文本(item?.要求职位)
-        }));
-        const 重要成员 = 取数组(sect?.重要成员).map((member: any) => ({
-            id: 取文本(member?.id),
-            姓名: 取文本(member?.姓名),
-            性别: 取文本(member?.性别),
-            年龄: 取数值(member?.年龄),
-            境界: 取文本(member?.境界),
-            身份: 取文本(member?.身份),
-            简介: 取文本(member?.简介)
-        }));
-        const orderedSect = {
-            ID: 取文本(sect?.ID),
-            名称: 取文本(sect?.名称),
-            简介: 取文本(sect?.简介),
-            组织规则: 取数组(sect?.组织规则),
-            组织资金: 取数值(sect?.组织资金),
-            组织物资: 取数值(sect?.组织物资),
-            建设度: 取数值(sect?.建设度),
-            玩家职位: 取文本(sect?.玩家职位),
-            玩家贡献: 取数值(sect?.玩家贡献),
-            累计贡献: 取数值(sect?.累计贡献),
-            任务列表,
-            兑换列表,
-            重要成员
-        };
-        return 包装树状上下文('玩家组织', 裁剪成长体系上下文数据(orderedSect, normalizedGameConfig));
     };
     const 构建任务列表文本 = (payload: any) => {
         const tasks = Array.isArray(payload?.任务列表) ? payload.任务列表 : [];
@@ -1055,8 +958,6 @@ export const 构建系统提示词 = ({
     ]
         .filter(Boolean)
         .join('\n\n'));
-    const realmPrompt = '';
-    const 应用境界区块替换 = (content: string): string => content;
     const writeReqPrompt = enabledPrompts.find(p => p.id === 'write_req');
     const writeReqContent = writeReqPrompt
         ? 按当前设置过滤提示词(应用写作设置(writeReqPrompt.id, 渲染提示词文本(writeReqPrompt.内容)))
@@ -1066,10 +967,10 @@ export const 构建系统提示词 = ({
         const sourcePrompt = effectivePromptPool.find((item) => item.id === promptId)
             || promptPool.find((item) => item.id === promptId);
         if (!sourcePrompt?.内容) return '';
-        return 按当前设置过滤提示词(应用境界区块替换(应用写作设置(
+        return 按当前设置过滤提示词(应用写作设置(
             promptId,
             渲染提示词文本(读取主剧情内置槽位覆盖(promptId, sourcePrompt.内容))
-        )));
+        ));
     };
     const 开局剧情推动协议内容 = options?.注入剧情推动协议 === true
         ? 读取运行时提示词内容('core_story')
@@ -1105,10 +1006,10 @@ export const 构建系统提示词 = ({
     );
     const cotPromptEntries = enabledPrompts
         .filter(p => selectedCotPromptIds.includes(p.id))
-        .map(p => ({ id: p.id, content: 应用境界区块替换(应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容)))) }));
+        .map(p => ({ id: p.id, content: 应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容))) }));
     const formatPromptEntries = enabledPrompts
         .filter(p => p.id === 'core_format')
-        .map(p => ({ id: p.id, content: 应用境界区块替换(应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容)))) }));
+        .map(p => ({ id: p.id, content: 应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容))) }));
     const otherPromptEntries = enabledPrompts
         .filter(p => p.id !== 'core_world'
             && p.id !== 'core_action_options'
@@ -1122,7 +1023,7 @@ export const 构建系统提示词 = ({
             && p.id !== 'write_req'
             && !selectedCotPromptIds.includes(p.id)
             && p.类型 !== '难度设定')
-        .map(p => ({ id: p.id, content: 应用境界区块替换(应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容)))) }));
+        .map(p => ({ id: p.id, content: 应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容))) }));
     const actionOptionsPromptContent = options?.禁用行动选项提示词
         ? ''
         : 按当前设置过滤提示词(渲染提示词文本(
@@ -1135,7 +1036,6 @@ export const 构建系统提示词 = ({
     );
     const difficultyPrompts = difficultyPromptSummary.trim();
     const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(openingConfig));
-    const realmTemplatePrompt = '';
     const otherPrompts = [
         ...otherPromptEntries.map(item => item.content),
         开局剧情推动协议内容,
@@ -1224,11 +1124,7 @@ export const 构建系统提示词 = ({
         };
     });
 
-    const npcContext = 构建NPC上下文(socialData || [], memoryConfig, {
-        worldPrompt,
-        realmPrompt,
-        openingConfig
-    });
+    const npcContext = 构建NPC上下文(socialData || []);
     const contextMapAndBuilding = 构建地图建筑状态文本(statePayload);
     const promptHeader = [
         worldPrompt.trim(),
@@ -1251,7 +1147,6 @@ export const 构建系统提示词 = ({
         }),
         构建模板姓名黑名单提示词(),
         genreModePrompt,
-        realmTemplatePrompt,
         otherPrompts.trim()
     ].filter(Boolean).join('\n\n');
 
@@ -1310,7 +1205,6 @@ export const 构建系统提示词 = ({
             AI角色声明: ai角色声明,
             worldPrompt: worldPrompt.trim(),
             地图建筑状态: contextMapAndBuilding,
-            境界体系提示词: realmTemplatePrompt,
             otherPrompts: otherPrompts.trim(),
             难度设置提示词: difficultyPrompts.trim(),
             叙事人称提示词: activePerspectiveContent.trim(),

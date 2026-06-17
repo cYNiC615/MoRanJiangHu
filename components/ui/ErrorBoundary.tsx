@@ -14,7 +14,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     state: State = { error: null, copied: false };
 
     static getDerivedStateFromError(error: Error): State {
-        return { error };
+        return { error, copied: false };
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo) {

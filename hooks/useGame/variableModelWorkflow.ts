@@ -3,7 +3,7 @@ import type { GameResponse, OpeningConfig, TavernCommand, 世界书结构, 内�
 import { 获取变量计算接口配置, 接口配置是否可用, 变量校准功能已启用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
-import { normalizeStateCommandKey, 是否废弃命令根路径 } from '../../utils/stateHelpers';
+import { normalizeStateCommandKey, 是否废弃命令根路径, 是否废弃玩家组织字段路径 } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
 import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
 import {
@@ -22,7 +22,7 @@ export { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 
 type 变量模型基态 = Pick<
     响应命令处理状态,
-    '角色' | '环境' | '世界' | '社交' | '任务列表'
+    '角色' | '环境' | '世界' | '社交' | '玩家组织' | '任务列表'
 >;
 
 export type 变量模型校准参数 = {
@@ -72,6 +72,7 @@ const 允许根路径 = [
     'gameState.环境',
     'gameState.世界',
     'gameState.社交',
+    'gameState.玩家组织',
     'gameState.任务列表'
 ] as const;
 
@@ -138,6 +139,7 @@ const 序列化变量模型状态 = (
         环境: state.环境,
         世界: state.世界,
         社交: state.社交,
+        玩家组织: state.玩家组织,
         任务列表: state.任务列表
     };
     return JSON.stringify(清理变量模型上下文(裁剪成长体系上下文数据(payload, { 启用成长体系: false })), null, 2);
@@ -476,6 +478,7 @@ const 是否允许变量生成命令 = (cmd: TavernCommand): boolean => {
     const normalizedKey = normalizeStateCommandKey(typeof cmd?.key === 'string' ? cmd.key : '');
     if (!normalizedKey) return false;
     if (是否废弃命令根路径(normalizedKey)) return false;
+    if (是否废弃玩家组织字段路径(normalizedKey)) return false;
     if (/^gameState\.世界\.(地图|建筑|地图建筑|地图道路|地图人物)(?:\.|\[|$)/u.test(normalizedKey)) return false;
 
     const allowed = 允许根路径.find((root) => normalizedKey === root || normalizedKey.startsWith(`${root}.`) || normalizedKey.startsWith(`${root}[`));
@@ -499,11 +502,6 @@ export const 执行变量模型校准工作流 = async (
         构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig),
         runtimeGameConfig
     );
-    const worldPrompt = (() => {
-        const hit = (Array.isArray(params.promptPool) ? params.promptPool : []).find((item) => item?.id === 'core_world');
-        return typeof hit?.内容 === 'string' ? hit.内容.trim() : '';
-    })();
-    const realmPrompt = '';
     const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交, {
         femboyNsfwEnabled: 启用男娘NSFW内容,
         xianxiaMode: false
@@ -511,7 +509,6 @@ export const 执行变量模型校准工作流 = async (
     const dialogueNpcAuditPrompt = 构建正文对白人物审计提示(params.parsedResponse, params.baseState, {
         xianxiaMode: false
     });
-    const playerXianxiaAuditPrompt = '';
     const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
     const femaleNameCandidatePrompt = 构建女性姓名候选提示词({
         usedNames: 收集女性姓名候选已用名(params.baseState),
@@ -528,7 +525,6 @@ export const 执行变量模型校准工作流 = async (
     const templateNameBlacklistPrompt = 构建模板姓名黑名单提示词();
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
-        playerXianxiaAuditPrompt,
         按功能开关过滤提示词内容(构建世界书注入文本({
             books: Array.isArray(params.worldbooks) ? params.worldbooks : [],
             scopes: ['variable_calibration'],
@@ -665,7 +661,7 @@ export const 执行变量模型校准工作流 = async (
             throw error;
         }
 
-        const deathIssues = 检测NPC死亡判定风险命令(dedupedCommands, params.baseState.社交, params.parsedResponse);
+        const deathIssues = 检测NPC死亡判定风险命令(dedupedCommands, params.baseState.社交);
         if (deathIssues.length > 0) {
             const message = `变量生成试图把 NPC 判定为死亡/已故，但证据不足：${deathIssues.join('；')}。死亡判定必须同时写入：当前血量归零、死亡状态、死亡时间、死亡描述；否则只能写重伤、濒死、失踪或状态未知。请重新生成变量命令。`;
             const error = new Error(message);

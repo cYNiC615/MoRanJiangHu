@@ -1,4 +1,4 @@
-import type { OpeningConfig, WorldGenConfig, 游戏难度 } from '../types';
+import type { OpeningConfig, WorldGenConfig } from '../types';
 
 export type 属性分配 = {
     力量: number;

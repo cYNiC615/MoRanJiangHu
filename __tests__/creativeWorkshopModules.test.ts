@@ -4,6 +4,8 @@ import { 标准化开局预设方案, 构建预设表单恢复结果 } from '../
 import { 题材模式顺序 } from '../utils/topicModeProfiles';
 import { 获取题材预设背景, 获取题材预设天赋 } from '../data/presets';
 
+const 全部开局生成性别 = ['男', '女', '男娘', '扶她'] as const;
+
 describe('creativeWorkshopModules', () => {
     it('规划分区均有当前可用模块', () => {
         const sectionIds = 创意工坊模块分区.map((section) => section.id);
@@ -80,7 +82,7 @@ describe('creativeWorkshopModules', () => {
             const entry = 创意工坊模块列表.find((item) => item.payload?.suiteId === suiteId);
             expect(entry?.modeRuntimeProfile?.identity.baseMode, suiteId).toBe('西方奇幻');
             expect(entry?.preset?.openingConfig?.题材模式, suiteId).toBe('西方奇幻');
-            expect(entry?.payload?.modeRuntimeProfile?.identity.baseMode, suiteId).toBe('西方奇幻');
+            expect((entry?.payload?.modeRuntimeProfile as any)?.identity.baseMode, suiteId).toBe('西方奇幻');
         }
     });
 
@@ -141,11 +143,12 @@ describe('creativeWorkshopModules', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: false,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     openingStreaming: false,
                     openingExtraRequirement: '恢复这个额外要求',
@@ -169,7 +172,14 @@ describe('creativeWorkshopModules', () => {
                         }
                     },
                     modeBackgrounds: [
-                        { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
+                        {
+                            名称: '工坊背景',
+                            描述: '描述',
+                            效果: '效果',
+                            初始物品: [{ 名称: '工坊钥匙', 数量: 1, 描述: '开门用', 类型: '工具' }],
+                            可选初始物品: [{ 名称: '应急包', 数量: 1 }],
+                            开局货币: [{ 名称: '现金', 最小数量: 10, 最大数量: 20, 类型: '货币:现金' }]
+                        }
                     ],
                     modeTalents: [
                         { 名称: '工坊天赋', 描述: '描述', 效果: '效果' }
@@ -203,7 +213,14 @@ describe('creativeWorkshopModules', () => {
                 }
             },
             modeBackgrounds: [
-                { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
+                {
+                    名称: '工坊背景',
+                    描述: '描述',
+                    效果: '效果',
+                    初始物品: [{ 名称: '工坊钥匙', 数量: 1, 描述: '开门用', 类型: '工具' }],
+                    可选初始物品: [{ 名称: '应急包', 数量: 1 }],
+                    开局货币: [{ 名称: '现金', 最小数量: 10, 最大数量: 20, 类型: '货币:现金' }]
+                }
             ],
             modeTalents: [
                 { 名称: '工坊天赋', 描述: '描述', 效果: '效果' }
@@ -241,14 +258,22 @@ describe('creativeWorkshopModules', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: false,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     modeBackgrounds: [
-                        { 名称: '工坊背景', 描述: '描述', 效果: '效果' }
+                        {
+                            名称: '工坊背景',
+                            描述: '描述',
+                            效果: '效果',
+                            初始物品: [{ 名称: '工坊钥匙', 数量: 1, 描述: '开门用', 类型: '工具' }],
+                            可选初始物品: [{ 名称: '应急包', 数量: 1 }],
+                            开局货币: [{ 名称: '现金', 最小数量: 10, 最大数量: 20, 类型: '货币:现金' }]
+                        }
                     ],
                     modeTalents: [
                         { 名称: '工坊天赋', 描述: '描述', 效果: '效果' }
@@ -263,6 +288,11 @@ describe('creativeWorkshopModules', () => {
         });
 
         expect(restored.模式包背景列表.map((item) => item.名称)).toContain('工坊背景');
+        expect(restored.模式包背景列表.find((item) => item.名称 === '工坊背景')).toEqual(expect.objectContaining({
+            初始物品: [{ 名称: '工坊钥匙', 数量: 1, 描述: '开门用', 类型: '工具' }],
+            可选初始物品: [{ 名称: '应急包', 数量: 1 }],
+            开局货币: [{ 名称: '现金', 最小数量: 10, 最大数量: 20, 类型: '货币:现金' }]
+        }));
         expect(restored.模式包天赋列表.map((item) => item.名称)).toContain('工坊天赋');
         expect(restored.全部背景选项.map((item) => item.名称)).toContain('宗门旧徒');
         expect(restored.全部背景选项.map((item) => item.名称)).toContain('工坊背景');
@@ -301,11 +331,12 @@ describe('creativeWorkshopModules', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: false,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     modeTalents: [
                         { 名称: '纯阳体质', 描述: '体内阳气充沛。', 效果: '长期提升阳属性修行、恢复与抗寒表现。' }
@@ -360,11 +391,12 @@ describe('creativeWorkshopModules', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: false,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     modeWorldbooks: [{
                         id: 'topic-book',
@@ -435,11 +467,12 @@ describe('creativeWorkshopModules', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: false,
+                允许生成性别: [...全部开局生成性别],
                 runtimeSnapshot: {
                     workshopSelection: {
                         selectedMode: '武侠',
@@ -500,11 +533,12 @@ describe('creativeWorkshopModules', () => {
             },
             openingConfig: {
                 题材模式: '武侠',
-                初始关系模板: '随机邂逅',
+                初始关系模板: '师门牵引',
                 关系侧重: ['友情'],
-                开局切入偏好: '市井起手',
+                开局切入偏好: '门派起手',
                 开局生成组织: true,
                 开局生成成员: false,
+                允许生成性别: [...全部开局生成性别],
                 modeRuntimeProfile: {
                     ...(wuxiaTopic!.modeRuntimeProfile as any),
                     identity: {
@@ -557,7 +591,7 @@ describe('creativeWorkshopModules', () => {
     });
 
     it('开局配置保留在新建存档流程，不作为模式包分区模块', () => {
-        expect(创意工坊模块分区.some((section) => section.id === 'opening')).toBe(false);
-        expect(创意工坊模块列表.some((entry) => entry.type === 'opening')).toBe(false);
+        expect(创意工坊模块分区.map((section) => section.id as string)).not.toContain('opening');
+        expect(创意工坊模块列表.map((entry) => entry.type as string)).not.toContain('opening');
     });
 });

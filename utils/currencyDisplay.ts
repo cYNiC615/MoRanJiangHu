@@ -55,13 +55,6 @@ export const 获取世界观货币槽位 = (
     return [{ key: 'baseAmount', label: 单一货币单位, fullLabel: 单一货币单位 }];
 };
 
-export const 获取货币完整单位标签 = (
-    value?: unknown
-): string => {
-    void value;
-    return 单一货币单位;
-};
-
 export const 获取世界观BaseAmount单位标签 = (
     openingConfig?: OpeningConfig | null,
     character?: Partial<角色数据结构> | null

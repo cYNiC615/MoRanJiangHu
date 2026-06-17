@@ -118,7 +118,7 @@ describe('ComfyUI NSFW image config', () => {
 
 describe('NSFW prompt generation', () => {
     it('构建运行时额外提示词 returns NSFW prompt when enabled', () => {
-        const result = 构建运行时额外提示词('', { 启用NSFW模式: true });
+        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: true });
         expect(result).toContain('NSFW');
         expect(result).toContain('肉棒');
         expect(result).toContain('小穴');
@@ -130,13 +130,13 @@ describe('NSFW prompt generation', () => {
     });
 
     it('构建运行时额外提示词 combines custom prompt with NSFW', () => {
-        const result = 构建运行时额外提示词('custom instruction', { 启用NSFW模式: true });
+        const result = 构建运行时额外提示词('custom instruction', { 启用NSFW模式: true, 启用亲密边界机制: true });
         expect(result).toContain('custom instruction');
         expect(result).toContain('NSFW');
     });
 
     it('构建运行时额外提示词 returns only custom prompt when NSFW disabled', () => {
-        const result = 构建运行时额外提示词('custom instruction', { 启用NSFW模式: false });
+        const result = 构建运行时额外提示词('custom instruction', { 启用NSFW模式: false, 启用亲密边界机制: true });
         expect(result).toBe('custom instruction');
         expect(result).not.toContain('NSFW');
     });
@@ -156,7 +156,7 @@ describe('NSFW prompt generation', () => {
     });
 
     it('构建运行时额外提示词 handles empty custom prompt', () => {
-        const result = 构建运行时额外提示词('', { 启用NSFW模式: true });
+        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: true });
         expect(result).toContain(默认NSFW模式提示词);
         expect(result).toContain(默认亲密边界机制提示词);
     });

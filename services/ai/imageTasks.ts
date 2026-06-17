@@ -14,7 +14,6 @@ import { PNG解析COT伪装历史消息提示词 } from '../../prompts/runtime/p
 import { 角色锚点提取COT伪装历史消息提示词 } from '../../prompts/runtime/imageAnchorExtractionCot';
 import { 本地拆分画师标签 } from './artistTagExtractor';
 import {
-    从Markdown图片中提取DataUrl,
     type 通用消息,
     规范化文本补全消息链,
     读取失败详情文本,
@@ -408,45 +407,6 @@ const 解析PNGExif元数据 = (pngBytes: Uint8Array): Record<string, string> =>
         });
     }
     return result;
-};
-
-const 提取平衡JSON对象 = (text: string, startIndex: number): string => {
-    if (!text || startIndex < 0 || text[startIndex] !== '{') return '';
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-    for (let i = startIndex; i < text.length; i += 1) {
-        const ch = text[i];
-        if (inString) {
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if (ch === '\\') {
-                escaped = true;
-                continue;
-            }
-            if (ch === '"') {
-                inString = false;
-            }
-            continue;
-        }
-        if (ch === '"') {
-            inString = true;
-            continue;
-        }
-        if (ch === '{') {
-            depth += 1;
-            continue;
-        }
-        if (ch === '}') {
-            depth -= 1;
-            if (depth === 0) {
-                return text.slice(startIndex, i + 1);
-            }
-        }
-    }
-    return '';
 };
 
 const 提取LoRA列表 = (text: string): PNG解析参数结构['LoRA列表'] => {
@@ -845,7 +805,7 @@ export const 提取角色锚点提示词 = async (
 };
 
 const 构建后置正向提示词 = (
-    options?: { 构图?: '头像' | '半身' | '立绘' | '场景' | '部位特写'; 场景类型?: 场景生成类型; 尺寸?: string; 后端类型?: string }
+    options?: { 构图?: 生图构图类型; 场景类型?: 场景生成类型; 尺寸?: string; 后端类型?: string }
 ): string => {
     const 单人角色构图增强 = options?.构图 === '头像'
         ? 'single character only, solo portrait, one face, one head, centered headshot, no other people'
@@ -867,7 +827,7 @@ const 构建后置正向提示词 = (
     );
 };
 
-const 构图附加负面提示词映射: Partial<Record<'头像' | '半身' | '立绘' | '场景' | '部位特写', string>> = {
+const 构图附加负面提示词映射: Partial<Record<生图构图类型, string>> = {
     头像: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate face, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
     半身: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
     立绘: 'multiple people, two people, three people, group, crowd, extra person, extra face, extra head, duplicate body, twin, clones, split screen, collage, contact sheet, reference sheet, character sheet, multiple views, comic panel, manga panel, story panels, panel layout, poster layout, speech bubble, dialogue box, word balloon, UI overlay, text box',
@@ -886,7 +846,7 @@ const 提示词明确外国人 = (text: string): boolean => (
 export const 构建最终图片提示词 = (
     prompt: string,
     apiConfig: 当前可用接口结构,
-    options?: { 构图?: '头像' | '半身' | '立绘' | '场景' | '部位特写'; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; PNG参数?: PNG解析参数结构 }
+    options?: { 构图?: 生图构图类型; 场景类型?: 场景生成类型; 附加正向提示词?: string; 附加负面提示词?: string; 尺寸?: string; 跳过基础负面提示词?: boolean; PNG参数?: PNG解析参数结构 }
 ): 图片提示词装配结果 => {
     const composition = options?.构图 || '头像';
     const requestedSize = (options?.尺寸 || '').trim();
@@ -1678,32 +1638,6 @@ const 读取NPC字段文本 = (data: any, key: string): string => {
     return '';
 };
 
-const 读取NPC对象片段 = (data: any, key: string): string => {
-    const source = data?.[key];
-    if (!source || typeof source !== 'object' || Array.isArray(source)) return '';
-    return Object.entries(source as Record<string, unknown>)
-        .map(([name, value]) => {
-            if (typeof value === 'string' && value.trim()) return `${name}:${value.trim()}`;
-            if (typeof value === 'number' && Number.isFinite(value)) return `${name}:${value}`;
-            return '';
-        })
-        .filter(Boolean)
-        .join('，');
-};
-
-const 读取NPC数组片段 = (data: any, key: string): string => {
-    const source = data?.[key];
-    if (!Array.isArray(source)) return '';
-    return source
-        .map((item) => {
-            if (typeof item === 'string') return item.trim();
-            if (item && typeof item === 'object' && typeof (item as any)?.名称 === 'string') return (item as any).名称.trim();
-            return '';
-        })
-        .filter(Boolean)
-        .join('，');
-};
-
 const 香闺秘档部位描述字段映射: Record<香闺秘档部位类型, string> = {
     胸部: '胸部描述',
     小穴: '小穴描述',
@@ -1724,10 +1658,7 @@ const 构建香闺秘档部位特写说明 = (部位: 香闺秘档部位类型):
     return '后庭屁眼局部特写 (Anus-only Extreme Close-up)。单张画面、单一主体、超近距离裁切，目标部位只能是屁眼/肛门及臀缝必要周边，聚焦于皮肤褶皱、边缘轮廓、肉感与后庭细节 (Detailed anus)，避免把小穴/阴部/前庭拉入画面，禁止参考页、拼贴、底部小图、分镜和任何文字水印。';
 };
 
-const 强化香闺秘档特写词组 = (
-    prompt: string,
-    部位: 香闺秘档部位类型
-): string => {
+const 强化香闺秘档特写词组 = (prompt: string): string => {
     const source = 清理生图词组输出(prompt);
     if (!source) return source;
     const deny = /^(?:portrait|headshot|upper body|half body|waist-?up|full body|cowboy shot|wide shot|mid shot|long shot|standing|sitting|kneeling|running|walking|looking at viewer|face focus|facial focus|scenery|environment|landscape|room|indoors|outdoors|background|establishing shot|collage|contact sheet|reference sheet|character sheet|comic panel|manga panel|split screen|multiple views|thumbnail|thumbnails|bottom strip|speech bubble|dialogue box|watermark|signature|logo|text|caption|subtitle)$/i;
@@ -2712,7 +2643,6 @@ export const generateNpcSecretPartImagePrompt = async (
     const 相关转换提示词 = (apiConfig.词组转化器提示词 || '').trim();
     const 额外要求 = (options?.额外要求 || '').trim();
     const 使用权重语法 = apiConfig.词组转化输出策略 === 'tag_segments';
-    const 启用画师串预设 = options?.启用画师串预设 === true;
     const 兼容模式 = options?.兼容模式 === true;
     const 风格提示词输入 = (options?.风格提示词输入 || '').trim();
     const 角色锚点 = options?.角色锚点;
@@ -2796,13 +2726,10 @@ export const generateNpcSecretPartImagePrompt = async (
         cotPseudoHistoryPrompt,
         taskType: '部位特写'
     });
-    const 生图词组 = 强化香闺秘档特写词组(
-        合并正向提示词片段(
-            角色锚点注入词,
-            归一化单段词组转化器输出(raw, { 使用权重语法 })
-        ),
-        部位
-    );
+    const 生图词组 = 强化香闺秘档特写词组(合并正向提示词片段(
+        角色锚点注入词,
+        归一化单段词组转化器输出(raw, { 使用权重语法 })
+    ));
     if (!生图词组) {
         throw new Error('香闺秘档特写词组转化器未返回有效生图词组');
     }
@@ -2825,7 +2752,6 @@ export const generateNpcImagePrompt = async (
     const 相关转换提示词 = (apiConfig.词组转化器提示词 || '').trim();
     const 输出策略 = apiConfig.词组转化输出策略 || 'flat';
     const 使用权重语法 = 输出策略 === 'tag_segments';
-    const 启用画师串预设 = options?.启用画师串预设 === true;
     const 兼容模式 = options?.兼容模式 === true;
     const 风格提示词输入 = (options?.风格提示词输入 || '').trim();
     const 角色锚点 = options?.角色锚点;
@@ -2958,7 +2884,6 @@ export const generateSceneImagePrompt = async (
     const 词组转化器AI角色提示词 = (apiConfig.词组转化器AI角色提示词 || '').trim();
     const 相关场景提示词 = (apiConfig.词组转化器提示词 || '').trim();
     const 相关场景判定提示词 = (apiConfig.场景判定提示词 || '').trim();
-    const 启用画师串预设 = options?.启用画师串预设 === true;
     const 兼容模式 = options?.兼容模式 === true;
     const 风格提示词输入 = (options?.风格提示词输入 || '').trim();
     const 输出策略 = apiConfig.词组转化输出策略 || 'flat';

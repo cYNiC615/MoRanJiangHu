@@ -473,8 +473,6 @@ const ChatList: React.FC<Props> = ({ history, loading, scrollRef, onUpdateHistor
                                     outputTokens={msg.outputTokens}
                                     onSaveEdit={(newJson) => onUpdateHistory ? onUpdateHistory(absoluteIdx, newJson) : null}
                                     onPolishTurn={() => onPolishTurn ? onPolishTurn(absoluteIdx) : null}
-                                    fontSize={visualConfig?.字体大小}
-                                    lineHeight={visualConfig?.段落间距}
                                     collapseThinkingStream={visualConfig?.AI思考流式折叠 !== false}
                                     visualConfig={visualConfig}
                                     socialList={socialList}

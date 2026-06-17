@@ -11,22 +11,19 @@ import type {
     记忆系统结构,
     OpeningConfig
 } from '../../types';
-import { 补齐世界地图空间字段 } from '../../utils/mapSpatial';
-import type { 任务结构, 任务状态 } from '../../models/task';
+import type { 任务结构 } from '../../models/task';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
-import { 规范化任务列表自动结算 } from '../../utils/taskCompat';
 import { buildWorldMapLayersFromDraft } from '../../utils/newGameDiy';
 import { 构建默认技艺 } from '../../utils/skillDefaults';
 import { 获取题材模式配置 } from '../../utils/topicModeProfiles';
 import { 候选名命中模板黑名单 } from '../../utils/templateNameBlacklist';
-import { 获取当前境界配置 } from './stateTransforms';
 import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
 import type { WorldFoundationResult } from '../../services/ai/storyTasks';
 
 const 职位等级排序: Record<string, number> = {};
-const 获取境界层级 = () => 1;
 
-export type 开场命令基态 = {
+// ponytail: only helpers used across files stay exported; opening internals stay local.
+type 开场命令基态 = {
     角色: 角色数据结构;
     环境: 环境信息结构;
     社交: any[];
@@ -267,7 +264,7 @@ const 取字符串数组 = (value: any): string[] => (
 
 const 无门派文本集合 = new Set(['', 'none', '无', '无门派', '无门无派', '尚未加入任何门派', '江湖散人', '散修', '无所属门派']);
 
-export const 是否无组织标识 = (value: any): boolean => {
+const 是否无组织标识 = (value: any): boolean => {
     if (value === null || value === undefined) return true;
     const normalized = typeof value === 'string' ? value.trim().replace(/\s+/g, '') : String(value).trim();
     return 无门派文本集合.has(normalized);
@@ -348,7 +345,7 @@ const 取数字数组 = (value: any): number[] => (
 
 const 深拷贝 = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-export const 创建开场空白角色 = (): 角色数据结构 => ({
+const 创建开场空白角色 = (): 角色数据结构 => ({
     姓名: '',
     头像图片URL: '',
     性别: '男',
@@ -357,26 +354,11 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
     外貌: '',
     性格: '',
     称号: '',
-    境界: '',
-    境界层级: 1,
-    灵根: '',
-    灵根资质: '',
-    当前灵力: 0,
-    最大灵力: 0,
-    当前神识: 0,
-    最大神识: 0,
-    丹田状态: '',
-    道基状态: '',
-    心魔值: 0,
-    功德: 0,
-    业力: 0,
     天赋列表: [],
     出身背景: { 名称: '', 描述: '', 效果: '' },
     金钱: 确保角色金钱BaseAmount({ baseAmount: 0 }),
     当前精力: 0,
     最大精力: 0,
-    当前内力: 0,
-    最大内力: 0,
     当前饱腹: 0,
     最大饱腹: 0,
     当前口渴: 0,
@@ -428,8 +410,7 @@ export const 创建开场空白角色 = (): 角色数据结构 => ({
         坐骑: '无'
     },
     物品列表: [],
-    能力列表: [],
-    技艺: 构建默认技艺('武侠'),
+    技艺: 构建默认技艺(),
     当前经验: 0,
     升级经验: 0,
     玩家BUFF: [],
@@ -467,208 +448,35 @@ export const 创建空组织状态 = (): 玩家组织结构 => ({
 
 export const 同步角色与组织状态 = <T extends { 角色?: any; 玩家组织?: any }>(state: T): T => {
     const role = state?.角色 && typeof state.角色 === 'object' ? state.角色 : undefined;
-    const sect = 规范化组织状态(state?.玩家组织);
+    const organization = 规范化组织状态(state?.玩家组织);
 
     if (!role) {
         return {
             ...state,
-            玩家组织: sect
+            玩家组织: organization
         };
     }
 
-    if (是否无组织标识(sect.ID)) {
+    if (是否无组织标识(organization.ID)) {
         return {
             ...state,
-            玩家组织: sect,
+            玩家组织: organization,
             角色: { ...role }
         };
     }
 
     return {
         ...state,
-        玩家组织: sect,
+        玩家组织: organization,
         角色: { ...role }
     };
-};
-
-const 创建默认组织任务列表 = (sectName: string, seed = 0, openingConfig?: OpeningConfig): 玩家组织结构['任务列表'] => {
-    const isApocalypse = 是末日题材(openingConfig);
-    const isInfinite = 是无限流题材(openingConfig);
-    const isModern = 是现代组织题材(openingConfig) || 是西幻题材(openingConfig);
-    if (isInfinite) {
-        const locations = ['东偏厅', '临时集合点', '古宅入口', '物资角落', '后撤通道', '队伍房间'];
-        const focuses = ['门窗破损', '新人惊慌', '补给散乱', '路线不明', '通讯失效', '火力缺口'];
-        const location = 按种子取项(locations, seed, 3);
-        const focus = 按种子取项(focuses, seed, 7);
-        return [
-            {
-                id: 'sect_default_patrol',
-                标题: `${location}据点加固`,
-                描述: `${sectName}需要先处理${focus}的问题，由队长或资深者安排成员检查${location}，补出一处可短暂停留、有退路的临时防守点。`,
-                类型: '日常',
-                难度: '1星',
-                发布日期: '1:01:01:00:00',
-                截止日期: '1:01:02:23:59',
-                刷新日期: '每日',
-                奖励贡献: 35,
-                奖励资金: 60,
-                奖励物品: [],
-                当前状态: '可接取'
-            },
-            {
-                id: 'sect_default_gather',
-                标题: '任务物资清点',
-                描述: `${sectName}内部需要确认武器、医疗品、照明和通讯器材的可用状态，避免主神任务推进时因为补给不明而误判风险。`,
-                类型: '建设',
-                难度: '1星',
-                发布日期: '1:01:01:00:00',
-                截止日期: '1:01:03:23:59',
-                刷新日期: '每旬',
-                奖励贡献: 45,
-                奖励资金: 80,
-                奖励物品: [],
-                当前状态: '可接取'
-            },
-            {
-                id: 'sect_default_trial',
-                标题: '新人分工复盘',
-                描述: `${sectName}由资深者牵头梳理每名轮回者的能力、物品和心理状态，形成侦查、守门、医疗、记录与后撤分工。`,
-                类型: '历练',
-                难度: '2星',
-                发布日期: '1:01:01:00:00',
-                截止日期: '1:01:05:23:59',
-                刷新日期: '每月',
-                奖励贡献: 90,
-                奖励资金: 140,
-                奖励物品: [],
-                当前状态: '可接取'
-            }
-        ];
-    }
-    const location = isApocalypse
-        ? 按种子取项(['营地外哨', '废弃商超', '临时药房', '封锁线路口', '净水点', '车队停靠点'], seed, 3)
-        : isModern
-            ? 按种子取项(['办公室', '社区门口', '客户现场', '地铁站口', '合作门店', '资料室'], seed, 3)
-            : 按种子取项(['山门外市集', '旧驿道', '外务堂', '藏经阁前院', '灵田边', '后山栈道'], seed, 3);
-    const trouble = isApocalypse
-        ? 按种子取项(['补给短缺', '夜巡空档', '伤员隔离', '路线失联', '噪音引尸', '燃油不足'], seed, 7)
-        : isModern
-            ? 按种子取项(['客户催办', '资料缺口', '邻里矛盾', '预算卡点', '外勤变故', '舆情压力'], seed, 7)
-            : 按种子取项(['商队纠纷', '药材短缺', '散修试探', '旧账未清', '阵纹失修', '弟子争执'], seed, 7);
-    const issuer = isApocalypse ? '营地值班组' : isModern ? '组织协调人' : '外务堂';
-    const trialTitle = isApocalypse ? '结伴搜救' : isModern ? '外勤协作' : '门中历练';
-    const trialDesc = isApocalypse
-        ? `${sectName}安排成员结伴处理外出风险，目标会随附近尸群、物资点和路线变化，可从队友名录中挑选同行者。`
-        : isModern
-            ? `${sectName}安排成员结伴处理外勤事务，目标会随客户、社区和城市事件变化，可从成员名录中挑选协作者。`
-            : `${sectName}安排年轻弟子结伴历练，目标会随附近局势变化，可从成员名录中挑选同行者。`;
-    return [
-    {
-        id: 'sect_default_patrol',
-        标题: `${location}巡查`,
-        描述: `${sectName}近日受${trouble}牵动，${issuer}需要成员去${location}查明缘由，并把结果回报。`,
-        类型: '日常',
-        难度: '1星',
-        发布日期: '1:01:01:00:00',
-        截止日期: '1:01:03:23:59',
-        刷新日期: '每日',
-        奖励贡献: 35,
-        奖励资金: 80,
-        奖励物品: [],
-        当前状态: '可接取'
-    },
-    {
-        id: 'sect_default_gather',
-        标题: `${trouble}委托`,
-        描述: `${sectName}内部正在处理${trouble}，此事牵连主角当前处境与成员关系，适合接下后顺势追查。`,
-        类型: '建设',
-        难度: '1星',
-        发布日期: '1:01:01:00:00',
-        截止日期: '1:01:05:23:59',
-        刷新日期: '每旬',
-        奖励贡献: 55,
-        奖励资金: 120,
-        奖励物品: [],
-        当前状态: '可接取'
-    },
-    {
-        id: 'sect_default_trial',
-        标题: trialTitle,
-        描述: trialDesc,
-        类型: '历练',
-        难度: '2星',
-        发布日期: '1:01:01:00:00',
-        截止日期: '1:01:10:23:59',
-        刷新日期: '每月',
-        奖励贡献: 120,
-        奖励资金: 260,
-        奖励物品: [],
-        当前状态: '可接取'
-    }
-];
-};
-
-const 组织任务状态转任务状态 = (status: string): 任务状态 => {
-    if (status === '已完成') return '已完成';
-    if (status === '已失败' || status === '已过期') return '已失败';
-    return '进行中';
-};
-
-const 从组织任务创建通用任务列表 = (sectName: string, missions: 玩家组织结构['任务列表'], openingConfig?: OpeningConfig): 任务结构[] => {
-    const isInfinite = 是无限流题材(openingConfig);
-    const isTopicOrganization = isInfinite || 是末日题材(openingConfig) || 是现代组织题材(openingConfig) || 是西幻题材(openingConfig);
-    const contributionLabel = isInfinite ? '团队贡献' : '组织信用';
-    const taskContextLabel = isInfinite ? '团队任务' : isTopicOrganization ? '组织事务' : '门中事务';
-    return (
-    Array.isArray(missions) ? missions.map((mission) => ({
-        标题: 取文本(mission?.标题, isInfinite ? '小队协同任务' : isTopicOrganization ? '组织事务' : '门派差遣'),
-        描述: 取文本(mission?.描述, `${sectName}交付的一桩${taskContextLabel}。`),
-        类型: isTopicOrganization ? '支线' : '门派',
-        发布人: isInfinite ? `${sectName}队长` : sectName,
-        发布地点: isInfinite ? '队伍集合点' : sectName,
-        ...(isInfinite ? { 任务世界: '当前任务世界' } : {}),
-        推荐境界: 取文本(mission?.难度, isInfinite ? '按任务风险' : isTopicOrganization ? '按组织事务' : '按门派差遣'),
-        截止时间: 取文本(mission?.截止日期) || undefined,
-        当前状态: 组织任务状态转任务状态(取文本(mission?.当前状态)),
-        目标列表: [{
-            描述: 取文本(mission?.描述, mission?.标题 || (isTopicOrganization ? '处理组织事务' : '处理门派事务')),
-            当前进度: mission?.当前状态 === '已完成' ? 1 : 0,
-            总需进度: 1,
-            完成状态: mission?.当前状态 === '已完成'
-        }],
-        奖励描述: [
-            mission?.奖励贡献 ? `${contributionLabel || '组织贡献'} +${mission.奖励贡献}` : '',
-            mission?.奖励资金 ? (isInfinite ? `生存补给额度 +${mission.奖励资金}` : isTopicOrganization ? `资源额度 +${mission.奖励资金}` : `元 +${mission.奖励资金}`) : '',
-            ...(Array.isArray(mission?.奖励物品) ? mission.奖励物品 : [])
-        ].filter(Boolean),
-        剧情暗线: `${isInfinite ? '团队任务：发布者一般是队长、资深者或团队协调人；奖励应由AI根据正文与变量规划生成，若涉及物品必须通过变量命令写入背包；契机必须来自小队协作、补给清点、侦查分工、防守加固或情报获取，不得复述主神发布的存活倒计时主线。' : isTopicOrganization ? '组织事务' : '组织任务'}：${sectName}的「${取文本(mission?.标题, isInfinite ? '小队协同任务' : isTopicOrganization ? '组织事务' : '门派差遣')}」必须结合当前剧情、地点、在场人物与${isInfinite ? '主神任务进度和小队状态' : isTopicOrganization ? '组织近况' : '门派近况'}推进。`
-    })) : []
-);
-};
-
-const 任务去重键 = (task: any): string => [
-    取文本(task?.类型),
-    取文本(task?.标题),
-    Array.isArray(task?.目标列表) ? task.目标列表.map((item: any) => 取文本(item?.描述)).join('|') : 取文本(task?.描述)
-].join('::').replace(/\s+/g, '');
-
-const 去重开局任务列表 = (tasks: 任务结构[]): 任务结构[] => {
-    const seen = new Set<string>();
-    const exactDeduped = tasks.filter((task) => {
-        const key = 任务去重键(task);
-        if (!key) return true;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-    return 规范化任务列表自动结算(exactDeduped) as 任务结构[];
 };
 
 const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: OpeningConfig): 任务结构 => {
     const topic = openingConfig?.题材模式;
     const organizationName = 是否无组织标识(sect?.ID) ? '' : 取文本(sect?.名称);
-    const publisher = topic === '无限流' ? '主神光球' : (organizationName || (topic === '末日丧尸' ? '求生本能' : topic === '现代都市' ? '现实处境' : topic === '仙侠' ? '问道路引' : '江湖因缘'));
-    const location = topic === '无限流' ? '主神空间' : (organizationName || (topic === '末日丧尸' ? '临时落脚点' : topic === '现代都市' ? '当前城市' : topic === '仙侠' ? '当前落脚处' : '当前落脚处'));
+    const publisher = topic === '无限流' ? '主神光球' : (organizationName || (topic === '末日丧尸' ? '求生本能' : topic === '现代都市' ? '现实处境' : '江湖因缘'));
+    const location = topic === '无限流' ? '主神空间' : (organizationName || (topic === '末日丧尸' ? '临时落脚点' : topic === '现代都市' ? '当前城市' : '当前落脚处'));
     if (topic === '无限流') {
         return {
             标题: '主神任务倒计时',
@@ -737,25 +545,6 @@ const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: Open
             剧情暗线: '主线：完成后要由负责人、合作方或现场联系人确认成果；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
         };
     }
-    if (topic === '仙侠') {
-        return {
-            标题: '问道初途',
-            描述: `${publisher}给出的第一条路并不宏大，主角需要先完成一次入门试炼，确认自身资质、心性与眼前道途的承接。`,
-            类型: '主线',
-            发布人: publisher,
-            发布地点: location,
-            推荐境界: '入门',
-            当前状态: '进行中',
-            目标列表: [{
-                描述: '完成一次入门试炼、灵气感应或基础差遣。',
-                当前进度: 0,
-                总需进度: 1,
-                完成状态: false
-            }],
-        奖励描述: ['组织贡献 +80', '鉴定熟练度 +8', '可分配属性点 +1'],
-            剧情暗线: '主线：完成后要由师长、执事或引路人当面确认奖励；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
-        };
-    }
     return {
         标题: '初入江湖',
         描述: `${publisher}交到眼前的第一件事并不惊天动地，却足以让主角开始在江湖里留下自己的脚印。`,
@@ -773,12 +562,6 @@ const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: Open
         奖励描述: ['组织贡献 +70', '医术熟练度 +6', '可分配属性点 +1'],
         剧情暗线: '主线：完成后要由发布人或见证者确认成果；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
     };
-};
-
-const 确保开局主线任务 = (tasks: 任务结构[], sect: 玩家组织结构, openingConfig?: OpeningConfig): 任务结构[] => {
-    const safeTasks = Array.isArray(tasks) ? tasks : [];
-    if (safeTasks.some((task) => 取文本(task?.类型) === '主线')) return safeTasks;
-    return [创建开局主线任务(sect, openingConfig), ...safeTasks];
 };
 
 const 创建默认兑换列表 = (sectName = '本门', openingConfig?: OpeningConfig): 玩家组织结构['兑换列表'] => {
@@ -988,187 +771,72 @@ const 创建默认资料库列表 = (sectName = '本门', openingConfig?: Openin
     ];
 };
 
-const 能力品质权重: Record<string, number> = { 凡品: 1, 良品: 2, 上品: 3, 极品: 4, 绝世: 5, 传说: 6 };
-
-const 从资料库条目创建能力 = (book: any, sectName: string, openingConfig?: OpeningConfig) => {
-    const bookName = 取文本(book?.名称, '未命名典籍');
-    const inferredType = bookName.includes('剑') ? '剑法' : 取文本(book?.类型, '能力');
-    const isInfinite = 是无限流题材(openingConfig) || /主神|轮回|奖励点|精神力|念动力|基因锁|枪械|血统|模块/u.test(`${bookName} ${inferredType} ${sectName}`);
-    if (isInfinite) {
-        const rawType = 取文本(book?.类型, '综合能力');
-        const skillType = /精神|念动力|超能力/u.test(rawType + bookName)
-            ? '术法'
-            : /血统|基因锁/u.test(rawType + bookName)
-            ? '神通'
-            : /枪械|战斗|格斗|模块/u.test(rawType + bookName)
-            ? '招式'
-            : '被动';
-        const quality = 能力品质权重[取文本(book?.品阶)] ? 取文本(book?.品阶) : '凡品';
-        return {
-            ID: `sect_${取文本(book?.id, bookName)}`,
-            来源藏经ID: 取文本(book?.id),
-            名称: bookName,
-            描述: 取文本(book?.简介, '主神空间记录的能力强化。'),
-            类型: skillType,
-            品质: quality,
-            来源: `${sectName || '轮回小队'}能力库`,
-            当前重数: 1,
-            最高重数: 8,
-            当前熟练度: 0,
-            升级经验: 100,
-            突破条件: '通过任务世界实战、兑换训练或极限压力触发提升',
-            境界限制: 取文本(book?.要求职位, '新人可解锁'),
-            大成方向: '在任务世界中形成稳定可控的高阶运用',
-            圆满效果: `${bookName}满级后可显著提高剧情任务中的生存、侦查或战斗表现。`,
-            武器限制: [],
-            消耗类型: /精神|念动力|扫描/u.test(rawType + bookName) ? '神识' : '精力',
-            消耗数值: 0,
-            施展耗时: '即时',
-            冷却时间: '按场景',
-            基础伤害: /枪械|格斗|战斗|念动力/u.test(rawType + bookName) ? 8 : 0,
-            加成属性: /精神|念动力|扫描/u.test(rawType + bookName) ? '悟性' : /基因锁|体能|格斗/u.test(rawType + bookName) ? '根骨' : '敏捷',
-            加成系数: /枪械|念动力|基因锁|格斗/u.test(rawType + bookName) ? 0.35 : 0.15,
-            内力系数: 0,
-            伤害类型: /精神|念动力/u.test(rawType + bookName) ? '真实' : /枪械|格斗|战斗/u.test(rawType + bookName) ? '物理' : '混合',
-            目标类型: /扫描|感知/u.test(rawType + bookName) ? '全体' : '自身',
-            最大目标数: /扫描|感知/u.test(rawType + bookName) ? 6 : 1,
-            重数描述映射: [{ 重数: 1, 描述: 取文本(book?.简介, '完成基础解锁，能在任务世界中低负荷调用。') }],
-            附带效果: [],
-            被动修正: [],
-            境界特效: []
-        };
-    }
-    const typeMap: Record<string, string> = { 能力: '招式', 剑法: '招式', 刀法: '招式', 拳法: '招式', 身法: '轻功', 心法: '内功', 杂学: '被动' };
-    const quality = 能力品质权重[取文本(book?.品阶)] ? 取文本(book?.品阶) : '凡品';
-    return {
-        ID: `sect_${取文本(book?.id, bookName)}`,
-        来源藏经ID: 取文本(book?.id),
-        名称: bookName,
-        描述: 取文本(book?.简介, '藏经阁所藏典籍。'),
-        类型: typeMap[inferredType] || '招式',
-        品质: quality,
-        来源: `${sectName || '门派'}藏经阁`,
-        当前重数: 1,
-        最高重数: 10,
-        当前熟练度: 0,
-        升级经验: 100,
-        突破条件: '勤修不辍，实战参悟',
-        境界限制: 取文本(book?.要求职位, '无'),
-        大成方向: '稳固根基',
-        圆满效果: `${bookName}圆满后可强化对应武学表现。`,
-        武器限制: [],
-        消耗类型: inferredType === '心法' ? '内力' : '精力',
-        消耗数值: 0,
-        施展耗时: '1息',
-        冷却时间: '0息',
-        基础伤害: 0,
-        加成属性: inferredType === '身法' ? '敏捷' : inferredType === '心法' ? '根骨' : '力量',
-        加成系数: 0,
-        内力系数: inferredType === '心法' ? 1 : 0,
-        伤害类型: inferredType === '心法' ? '内功' : '物理',
-        目标类型: '自身',
-        最大目标数: 1,
-        重数描述映射: [{ 重数: 1, 描述: 取文本(book?.简介, '初窥门径。') }],
-        附带效果: [],
-        被动修正: [],
-        境界特效: []
-    };
-};
-
-const 创建开局散修基础能力 = (charData: 角色数据结构) => {
-    const backgroundName = 取文本((charData as any)?.出身背景?.名称);
-    const source = backgroundName ? `${backgroundName}旧学` : '开局经历';
-    return {
-        ID: 'opening_basic_breath',
-        名称: '基础吐纳诀',
-        描述: '由既有修炼经历沉淀出的入门吐纳法，足以解释主角开局内力与境界来源。',
-        类型: '内功',
-        品质: '凡品',
-        来源: source,
-        当前重数: 1,
-        最高重数: 6,
-        当前熟练度: 0,
-        升级经验: 100,
-        突破条件: '日常吐纳，循序渐进',
-        境界限制: '无',
-        大成方向: '稳固内息',
-        圆满效果: '圆满后可略微提升内力恢复与修炼稳定性。',
-        武器限制: [],
-        消耗类型: '内力',
-        消耗数值: 0,
-        施展耗时: '1刻',
-        冷却时间: '0息',
-        基础伤害: 0,
-        加成属性: '根骨',
-        加成系数: 0,
-        内力系数: 1,
-        伤害类型: '内功',
-        目标类型: '自身',
-        最大目标数: 1,
-        重数描述映射: [{ 重数: 1, 描述: '初步梳理气息，稳住丹田。' }],
-        附带效果: [],
-        被动修正: [],
-        境界特效: []
-    };
-};
-
-const 主角开局应有基础能力 = (charData: 角色数据结构): boolean => {
-    const existing = Array.isArray((charData as any)?.能力列表) && (charData as any).能力列表.length > 0;
-    if (existing) return false;
-    const realmText = 取文本((charData as any)?.境界);
-    const backgroundText = [
-        取文本((charData as any)?.称号),
-        取文本((charData as any)?.出身背景?.名称),
-        取文本((charData as any)?.出身背景?.描述)
-    ].join(' ');
-    const impossibleText = `${realmText} ${backgroundText}`;
-    if (/凡人|普通人|未入境|未修炼|不会武|不会能力|不通武艺/u.test(impossibleText)) return false;
-    return 取数字((charData as any)?.当前内力) > 0
-        || 取数字((charData as any)?.最大内力) > 0
-        || 取数字((charData as any)?.境界层级) > 0
-        || Boolean(realmText && !/无|未知|凡人|未入境/u.test(realmText));
-};
-
-const 补齐开局仙侠字段 = (charData: 角色数据结构, openingConfig?: OpeningConfig): 角色数据结构 => {
-    if (openingConfig?.题材模式 !== '仙侠') return charData;
-    const role = { ...(charData as any) };
-    const rank = Math.max(1, 取数字(role.境界层级, 1));
-    const rootText = `${取文本(role.灵根)} ${取文本(role.灵根资质)}`.trim();
-    return {
-        ...role,
-        灵根: 取文本(role.灵根, '未鉴定灵根'),
-        灵根资质: rootText ? 取文本(role.灵根资质, '普通') : '未鉴定',
-        最大灵力: Math.max(0, 取数字(role.最大灵力, Math.ceil(24 + 取数字(role.根骨, 0) * 4 + 取数字(role.悟性, 0) * 3 + rank * 12))),
-        当前灵力: Math.max(0, 取数字(role.当前灵力, Math.ceil(24 + 取数字(role.根骨, 0) * 4 + 取数字(role.悟性, 0) * 3 + rank * 12))),
-        最大神识: Math.max(0, 取数字(role.最大神识, Math.ceil(12 + 取数字(role.悟性, 0) * 4 + rank * 8))),
-        当前神识: Math.max(0, 取数字(role.当前神识, Math.ceil(12 + 取数字(role.悟性, 0) * 4 + rank * 8))),
-        丹田状态: 取文本(role.丹田状态, '稳定'),
-        道基状态: 取文本(role.道基状态, rank > 1 ? '已筑基痕迹' : '未筑道基'),
-        心魔值: Math.max(0, 取数字(role.心魔值, 0)),
-        功德: 取数字(role.功德, 0),
-        业力: 取数字(role.业力, 0)
-    } as 角色数据结构;
-};
-
 const 无限流违和能力词 = /剑法|刀法|拳谱|残卷|吐纳|内力|真经|宗门|门派|藏经阁|灵石|修仙|炼气|筑基|江湖|武学/u;
 
-const 补齐开局角色能力 = (charData: 角色数据结构, sect: 玩家组织结构, openingConfig?: OpeningConfig): 角色数据结构 => {
-    const currentSkills = Array.isArray((charData as any)?.能力列表) ? 深拷贝((charData as any).能力列表) : [];
-    const isInfinite = 是无限流题材(openingConfig) || 推导组织语义(sect) === '轮回小队';
-    const cleanedSkills = isInfinite
-        ? currentSkills.filter((skill: any) => !无限流违和能力词.test([skill?.名称, skill?.描述, skill?.类型, skill?.来源, skill?.消耗类型, skill?.圆满效果].map((value) => 取文本(value)).join(' ')))
-        : currentSkills;
-    if (cleanedSkills.length > 0) return { ...charData, 能力列表: cleanedSkills };
-    if (['营地', '组织', '轮回小队'].includes(推导组织语义(sect))) {
-        if (!isInfinite) return { ...charData, 能力列表: cleanedSkills };
-    }
-    if (!sect || 是否无组织标识(sect.ID) || !Array.isArray(sect.资料库列表) || sect.资料库列表.length === 0) {
-        return { ...charData, 能力列表: cleanedSkills };
-    }
-    const contribution = Math.max(取数字(sect.累计贡献, 0), 取数字(sect.玩家贡献, 0));
-    const availableBook = sect.资料库列表.find((book: any) => 取数字(book?.要求累计贡献, 0) <= contribution) || sect.资料库列表[0];
-    if (!availableBook) return { ...charData, 能力列表: cleanedSkills };
-    return { ...charData, 能力列表: [从资料库条目创建能力(availableBook, sect.名称, openingConfig)] };
+const 资料库条目转无限流能力 = (entry: any, organizationName: string) => {
+    const name = 取文本(entry?.名称, '团队基础能力');
+    const rawType = `${取文本(entry?.类型)} ${name}`;
+    const type = /精神|扫描|念动力|超能力/u.test(rawType)
+        ? '术法'
+        : /血统|基因锁/u.test(rawType)
+            ? '神通'
+            : /枪械|战斗|格斗|模块/u.test(rawType)
+                ? '招式'
+                : '被动';
+    const quality = ({ 基础: '凡品', 进阶: '良品', 上品: '上品', 极品: '极品' } as Record<string, string>)[取文本(entry?.品阶)] || '凡品';
+    return {
+        ID: `opening_${取文本(entry?.id, name)}`,
+        来源藏经ID: 取文本(entry?.id),
+        名称: name,
+        描述: 取文本(entry?.简介, '团队能力库记录的基础能力。'),
+        类型: type,
+        品质: quality,
+        来源: `${organizationName || '轮回小队'}能力库`,
+        当前重数: 1,
+        最高重数: 8,
+        当前熟练度: 0,
+        升级经验: 100,
+        突破条件: '通过任务世界实战、兑换训练或极限压力触发提升',
+        境界限制: 取文本(entry?.要求职位, '新人可解锁'),
+        大成方向: '在任务世界中形成稳定可控的高阶运用',
+        圆满效果: `${name}满级后可提高任务世界中的生存、侦查或协作表现。`,
+        武器限制: [],
+        消耗类型: /精神|扫描|念动力/u.test(rawType) ? '精神力' : '精力',
+        消耗数值: 0,
+        施展耗时: '即时',
+        冷却时间: '按场景',
+        基础伤害: /枪械|格斗|战斗|念动力/u.test(rawType) ? 8 : 0,
+        加成属性: /精神|扫描|念动力/u.test(rawType) ? '悟性' : /基因锁|体能|格斗/u.test(rawType) ? '根骨' : '敏捷',
+        加成系数: /枪械|念动力|基因锁|格斗/u.test(rawType) ? 0.35 : 0.15,
+        内力系数: 0,
+        伤害类型: /精神|念动力/u.test(rawType) ? '真实' : /枪械|格斗|战斗/u.test(rawType) ? '物理' : '混合',
+        目标类型: /扫描|感知/u.test(rawType) ? '全体' : '自身',
+        最大目标数: /扫描|感知/u.test(rawType) ? 6 : 1,
+        重数描述映射: [{ 重数: 1, 描述: 取文本(entry?.简介, '完成基础解锁，能在任务世界中低负荷调用。') }],
+        附带效果: [],
+        被动修正: [],
+        境界特效: []
+    };
+};
+
+const 清洗无限流开局能力 = (charData: 角色数据结构, organization: 玩家组织结构, openingConfig?: OpeningConfig): 角色数据结构 => {
+    const isInfinite = 是无限流题材(openingConfig) || 推导组织语义(organization) === '轮回小队';
+    if (!isInfinite) return charData;
+    const current = Array.isArray((charData as any)?.能力列表) ? 深拷贝((charData as any).能力列表) : [];
+    const cleaned = current.filter((skill: any) => !无限流违和能力词.test([
+        skill?.名称,
+        skill?.描述,
+        skill?.类型,
+        skill?.来源,
+        skill?.消耗类型,
+        skill?.圆满效果
+    ].map((value) => 取文本(value)).join(' ')));
+    if (cleaned.length > 0) return { ...charData, 能力列表: cleaned } as 角色数据结构;
+    const fallback = Array.isArray(organization?.资料库列表) ? organization.资料库列表[0] : undefined;
+    return {
+        ...charData,
+        能力列表: fallback ? [资料库条目转无限流能力(fallback, 取文本(organization?.名称))] : []
+    } as 角色数据结构;
 };
 
 const 补齐组织重要成员 = (sourceMembers: unknown): 玩家组织结构['重要成员'] => {
@@ -1339,21 +1007,12 @@ const 创建默认组织成员名录 = (sectName: string, openingConfig?: Openin
                 : isFantasy
                     ? 按种子取项(['委托登记', '营地补给', '遗迹调查', '魔物警戒', '药剂整理', '路线护送'], seed, index)
                 : 按种子取项(['外务传令', '照看新弟子', '巡守山门', '整理典籍', '采办物资', '维持组织规则'], seed, index);
-    const realmCfg = 获取当前境界配置();
-    const 取境界种子项 = (种子偏移: number) => {
-        const levels = realmCfg?.levelNames;
-        if (levels && levels.length >= 4) {
-            const indices = [0, Math.floor(levels.length * 0.15), Math.floor(levels.length * 0.3), Math.floor(levels.length * 0.05)];
-            return 按种子取项(indices.map(i => levels[Math.min(i, levels.length - 1)]), seed, 种子偏移);
-        }
-        return '初境';
-    };
     return {
         id: `organization_member_opening_${生成稳定哈希(`${sectName}|${name}|${index}`).toString(36)}`,
         姓名: name,
         性别: 按性别比例取性别(genderRatio, seed, index),
         年龄: identity.includes('执事') || identity.includes('掌事') ? 34 + (seed + index) % 18 : 16 + (seed + index) % 12,
-        境界: 取境界种子项(index),
+        境界: '初境',
         身份: identity,
             简介: `${sectName}${identity}，负责${duty}。`
         };
@@ -1370,24 +1029,6 @@ const 题材资料库是否违和 = (items: any[], organizationKind: 组织题�
         return /藏经阁|能力|心法|身法|剑法|刀法|拳谱|掌法|弟子|宗门|门派|吐纳|丹田|内功|轻功/u.test(text);
     }
     return false;
-};
-
-const 按人数平衡分布 = (total: number, entries: Array<[string, number]>): Record<string, number> => {
-    const safeTotal = Math.max(0, Math.floor(total));
-    if (safeTotal <= 0) return {};
-    const result: Record<string, number> = {};
-    let used = 0;
-    entries.forEach(([key, value]) => {
-        const count = Math.max(0, Math.floor(value));
-        result[key] = count;
-        used += count;
-    });
-    const diff = safeTotal - used;
-    if (diff !== 0 && entries.length > 0) {
-        const target = entries[0][0];
-        result[target] = Math.max(0, (result[target] || 0) + diff);
-    }
-    return result;
 };
 
 const 创建开局组织种子数据 = (
@@ -1526,15 +1167,15 @@ const 推导组织规模数据 = (source: any, displayName: string) => {
     };
 };
 
-export const 创建开局组织状态 = (
+const 创建开局组织状态 = (
     charData: 角色数据结构,
     openingConfig?: OpeningConfig
 ): 玩家组织结构 => {
-    const shouldCreateSect = 开局配置允许生成组织(openingConfig);
-    if (!shouldCreateSect) return 创建空组织状态();
+    const shouldCreateOrganization = 开局配置允许生成组织(openingConfig);
+    if (!shouldCreateOrganization) return 创建空组织状态();
 
     const seedData = 创建开局组织种子数据(charData, openingConfig);
-    const baseName = seedData.sectName;
+    const organizationName = seedData.sectName;
     const contribution = 0;
     const isApocalypse = 是末日题材(openingConfig);
     const isInfinite = 是无限流题材(openingConfig);
@@ -1546,10 +1187,10 @@ export const 创建开局组织状态 = (
         : isModern
             ? '成员'
             : '外门弟子';
-    const playerMember = 创建玩家组织成员简报(charData, baseName, playerRank, openingConfig);
+    const playerMember = 创建玩家组织成员简报(charData, organizationName, playerRank, openingConfig);
     const normalized = 规范化组织状态({
-        ID: baseName,
-        名称: baseName,
+        ID: organizationName,
+        名称: organizationName,
         玩家职位: playerRank,
         玩家贡献: contribution,
         累计贡献: contribution,
@@ -1560,10 +1201,10 @@ export const 创建开局组织状态 = (
         建设度: seedData.build,
         组织语义: seedData.organizationKind,
         成员总数: seedData.total,
-        兑换列表: 创建默认兑换列表(baseName, openingConfig),
-        资料库列表: 创建默认资料库列表(baseName, openingConfig),
+        兑换列表: 创建默认兑换列表(organizationName, openingConfig),
+        资料库列表: 创建默认资料库列表(organizationName, openingConfig),
         任务列表: [],
-        重要成员: 合并玩家到重要成员(创建默认组织成员名录(baseName, openingConfig, charData?.姓名), playerMember)
+        重要成员: 合并玩家到重要成员(创建默认组织成员名录(organizationName, openingConfig, charData?.姓名), playerMember)
     });
     return normalized;
 };
@@ -1630,9 +1271,7 @@ export const 规范化组织状态 = (raw?: any): 玩家组织结构 => {
             ? ({ 题材模式: '无限流' } as OpeningConfig)
         : isModernOrganization
             ? ({ 题材模式: '现代都市' } as OpeningConfig)
-            : organizationKind === '宗门'
-                ? ({ 题材模式: '仙侠' } as OpeningConfig)
-                : undefined;
+            : undefined;
     const rawLibrary = sourceLibrary;
     const shouldReplaceLibrary = 题材资料库是否违和(rawLibrary, organizationKind);
     const sourceIntro = 取文本(source?.简介 || source?.描述 || source?.intro);
@@ -1688,12 +1327,12 @@ export const 保护开局生成组织状态 = <T extends { 玩家组织?: any; �
     baseState: { 玩家组织?: any; 角色?: any },
     openingConfig?: OpeningConfig
 ): T => {
-    const baseSect = 规范化组织状态(baseState?.玩家组织);
-    const nextSect = 规范化组织状态(nextState?.玩家组织);
-    const shouldKeepGeneratedSect = 开局配置允许生成组织(openingConfig)
-        && !是否无组织标识(baseSect.ID)
-        && 是否无组织标识(nextSect.ID);
-    if (!shouldKeepGeneratedSect) return nextState;
+    const baseOrganization = 规范化组织状态(baseState?.玩家组织);
+    const nextOrganization = 规范化组织状态(nextState?.玩家组织);
+    const shouldKeepGeneratedOrganization = 开局配置允许生成组织(openingConfig)
+        && !是否无组织标识(baseOrganization.ID)
+        && 是否无组织标识(nextOrganization.ID);
+    if (!shouldKeepGeneratedOrganization) return nextState;
 
     const nextRole = nextState?.角色 && typeof nextState.角色 === 'object'
         ? { ...nextState.角色 }
@@ -1701,7 +1340,7 @@ export const 保护开局生成组织状态 = <T extends { 玩家组织?: any; �
 
     return {
         ...nextState,
-        玩家组织: baseSect,
+        玩家组织: baseOrganization,
         角色: nextRole
     };
 };
@@ -2034,13 +1673,6 @@ export const 规范化剧情规划状态 = (raw?: any): 剧情规划结构 => {
     };
 };
 
-export const 创建空女主剧情规划 = (): 女主剧情规划结构 => ({
-    阶段推进: [],
-    女主条目: [],
-    女主互动事件: [],
-    女主镜头规划: []
-});
-
 export const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划结构 | undefined => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
     const plan = raw;
@@ -2114,12 +1746,10 @@ export const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划
 
 export const 创建开场基础状态 = (charData: 角色数据结构, worldConfig: WorldGenConfig, openingConfig?: OpeningConfig) => {
     const 玩家组织 = 创建开局组织状态(charData, openingConfig);
-    const 组织任务: 任务结构[] = [];
-    const 角色基态 = 补齐开局角色能力(深拷贝(charData), 玩家组织, openingConfig) as any;
-    const 补齐后角色 = 补齐开局仙侠字段(角色基态, openingConfig);
+    const 角色基态 = 清洗无限流开局能力(深拷贝(charData), 玩家组织, openingConfig);
     const 角色 = {
-        ...补齐后角色,
-        金钱: 确保角色金钱BaseAmount((补齐后角色 as any).金钱)
+        ...角色基态,
+        金钱: 确保角色金钱BaseAmount((角色基态 as any).金钱)
     };
     const 社交 = 修复开局伙伴社交列表([], openingConfig, 角色);
     const 世界 = 创建开场空白世界();
@@ -2129,7 +1759,7 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
     if (地图草稿层级.length > 0) {
         世界.地图层级 = 地图草稿层级 as any;
     }
-    const 开局任务 = 去重开局任务列表(确保开局主线任务(组织任务, 玩家组织, openingConfig));
+    const 开局任务 = [创建开局主线任务(玩家组织, openingConfig)];
     return {
         角色,
         环境: 创建开场空白环境(),

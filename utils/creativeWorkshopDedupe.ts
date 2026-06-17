@@ -1,10 +1,11 @@
 import type { 创意工坊模块条目 } from '../data/creativeWorkshopModules';
 
 type JsonLike = null | boolean | number | string | JsonLike[] | { [key: string]: JsonLike };
+type CreativeWorkshopFingerprintEntry = Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>;
 
 const sortValue = (value: unknown): JsonLike => {
     if (value === null || typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
-        return value;
+        return value as JsonLike;
     }
     if (Array.isArray(value)) {
         return value.map(sortValue);
@@ -26,7 +27,7 @@ const normalizeList = (value: unknown): string[] => Array.isArray(value)
     ? value.map(normalizeText).filter(Boolean)
     : [];
 
-export const buildCreativeWorkshopContentFingerprint = (entry: Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>): string => {
+export const buildCreativeWorkshopContentFingerprint = (entry: CreativeWorkshopFingerprintEntry): string => {
     return JSON.stringify(sortValue({
         type: entry.type,
         formatVersion: entry.formatVersion || null,
@@ -45,8 +46,8 @@ export const buildCreativeWorkshopContentFingerprint = (entry: Pick<创意工坊
 };
 
 export const isOfficialCreativeWorkshopDuplicate = (
-    entry: Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>,
-    officialEntries: Array<Pick<创意工坊模块条目, 'type' | 'title' | 'subtitle' | 'description' | 'tags' | 'payload' | 'injectionPreview' | 'preset' | 'formatVersion' | 'workshopKind' | 'contentBlocks' | 'usagePrompt' | 'safetyNotes'>>
+    entry: CreativeWorkshopFingerprintEntry,
+    officialEntries: CreativeWorkshopFingerprintEntry[]
 ): boolean => {
     const fingerprint = buildCreativeWorkshopContentFingerprint(entry);
     return officialEntries.some((official) => buildCreativeWorkshopContentFingerprint(official) === fingerprint);

@@ -1,4 +1,4 @@
-import type { GameResponse, TavernCommand } from '../types';
+import type { TavernCommand } from '../types';
 import { normalizeStateCommandKey } from './stateHelpers';
 
 const 死亡状态字段正则 = /(?:状态|生死状态|生命状态)$/u;
@@ -60,8 +60,7 @@ const 收集NPC死亡命令状态 = (commands: TavernCommand[]) => {
 
 export const 检测NPC死亡判定风险命令 = (
     commands: TavernCommand[],
-    currentSocial: any[],
-    response?: GameResponse
+    currentSocial: any[]
 ): string[] => {
     if (!Array.isArray(commands) || !Array.isArray(currentSocial)) return [];
     const byIndex = 收集NPC死亡命令状态(commands);
@@ -92,14 +91,13 @@ export const 状态效果是死亡判定 = (item: any): boolean => {
 
 export const 提取NPC死亡风险命令索引 = (
     commands: TavernCommand[],
-    currentSocial: any[],
-    response?: GameResponse
+    currentSocial: any[]
 ): Set<number> => {
     if (!Array.isArray(commands) || !Array.isArray(currentSocial)) return new Set();
     const risky = new Set<number>();
     const byIndex = 收集NPC死亡命令状态(commands);
 
-    byIndex.forEach((state, index) => {
+    byIndex.forEach((state) => {
         if (!state.death) return;
         // AI 提供了死亡状态 + 当前血量归零 + 死亡时间 + 死亡描述，视为完整证据
         if (state.hpZero && state.hasDeathTime && state.hasDeathDesc) return;

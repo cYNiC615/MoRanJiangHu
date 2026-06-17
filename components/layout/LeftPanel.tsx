@@ -103,7 +103,7 @@ const WuxiaProgressBar: React.FC<{
   );
 };
 
-const FlatBar: React.FC<{ label: string; current: number; max: number; type: 'stamina' | 'inner' | 'food' | 'water' | 'load' | 'exp' | 'hp'; visualConfig?: 视觉设置结构; commandDelta?: number | null }> = ({ label, current, max, type, visualConfig, commandDelta = null }) => {
+const FlatBar: React.FC<{ label: string; current: number; max: number; visualConfig?: 视觉设置结构; commandDelta?: number | null }> = ({ label, current, max, visualConfig, commandDelta = null }) => {
     const baseColor = '#d4af37';
     
     const pct = Math.min((current / (max || 1)) * 100, 100);
@@ -343,18 +343,18 @@ const LeftPanel: React.FC<Props> = ({ 角色, onOpenCharacter, onOpenVariableMan
             </div>
 
             <div className="mb-2 shrink-0 flex flex-col gap-0.5">
-                <FlatBar label={`总${资源文案.气血}`} current={总气血.当前} max={总气血.最大} type="hp" visualConfig={visualConfig} commandDelta={总气血变化} />
-                <FlatBar label={资源文案.精力} current={角色.当前精力} max={角色.最大精力} type="stamina" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前精力')} />
+                <FlatBar label={`总${资源文案.气血}`} current={总气血.当前} max={总气血.最大} visualConfig={visualConfig} commandDelta={总气血变化} />
+                <FlatBar label={资源文案.精力} current={角色.当前精力} max={角色.最大精力} visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前精力')} />
                 {启用成长体系 && (
-                    <FlatBar label={资源文案.能量} current={角色.当前内力} max={角色.最大内力} type="inner" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前内力')} />
+                    <FlatBar label={资源文案.能量} current={角色.当前内力} max={角色.最大内力} visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前内力')} />
                 )}
                 {启用饱腹口渴系统 && (
                     <>
-                        <FlatBar label="饱腹" current={角色.当前饱腹} max={角色.最大饱腹} type="food" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前饱腹')} />
-                        <FlatBar label="水分" current={角色.当前口渴} max={角色.最大口渴} type="water" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前口渴')} />
+                        <FlatBar label="饱腹" current={角色.当前饱腹} max={角色.最大饱腹} visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前饱腹')} />
+                        <FlatBar label="水分" current={角色.当前口渴} max={角色.最大口渴} visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前口渴')} />
                     </>
                 )}
-                <FlatBar label="经验" current={角色.当前经验} max={角色.升级经验} type="exp" visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前经验')} />
+                <FlatBar label="经验" current={角色.当前经验} max={角色.升级经验} visualConfig={visualConfig} commandDelta={读取本回合数值变化(latestCommands, '角色.当前经验')} />
             </div>
             <div className="mb-2 shrink-0 border border-gray-800/60 bg-black/30 px-2 py-1 flex items-center justify-between gap-2 overflow-hidden font-mono" style={{ color: 'rgba(209,213,219,1)', fontSize: 缩放字号(1, 14) }}>
                 <span className="shrink-0 whitespace-nowrap text-gray-500">钱财</span>

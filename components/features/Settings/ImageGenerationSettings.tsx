@@ -14,7 +14,7 @@ import GameButton from '../../ui/GameButton';
 import ToggleSwitch from '../../ui/ToggleSwitch';
 import InlineSelect from '../../ui/InlineSelect';
 import { 默认ComfyUI工作流JSON, 默认NSFWComfyUI工作流JSON } from '../../../data/defaultComfyWorkflow';
-import { 规范化接口设置, 获取文生图接口配置, 获取NSFW文生图接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
+import { 规范化接口设置, 获取NSFW文生图接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import { 自动场景横屏尺寸选项, 自动场景竖屏尺寸选项 } from '../../../utils/imageSizeOptions';
 import {
     buildDiscoveredBackendLabel,
@@ -28,7 +28,6 @@ import {
 } from '../../../services/ai/imageBackendRegistry';
 import { 规范化ComfyUI工作流JSON } from '../../../services/ai/comfyWorkflowTools';
 import {
-    下载创意工坊模块,
     导入本地创意工坊模块,
     列出创意工坊模块,
     提取ComfyUI工作流模块JSON,
@@ -46,21 +45,20 @@ interface Props {
     onSave: (settings: 接口设置结构) => void;
 }
 
-type 生图模型字段 = '文生图模型使用模型' | '场景生图模型使用模型' | '词组转化器使用模型' | 'PNG提炼使用模型';
+type 生图模型字段 = '词组转化器使用模型' | 'PNG提炼使用模型';
 type 设置分页 = 'basic' | 'backend' | 'nsfw' | 'transformer' | 'presets' | 'profiles' | 'automation';
 type 画师串适用页签 = 'npc' | 'scene';
 type 词组预设页签 = 'tag' | 'npc' | 'scene';
+type ComfyWorkflowTarget = 'main' | 'scene' | 'nsfw';
+type ComfyWorkflowFlagKey = '使用默认ComfyUI工作流' | '使用默认场景ComfyUI工作流' | '使用默认NSFWComfyUI工作流';
+type ComfyWorkflowJsonKey = 'ComfyUI工作流JSON' | '场景ComfyUI工作流JSON' | 'NSFWComfyUI工作流JSON';
 
 const 初始化模型列表 = (): Record<生图模型字段, string[]> => ({
-    文生图模型使用模型: [],
-    场景生图模型使用模型: [],
     词组转化器使用模型: [],
     PNG提炼使用模型: []
 });
 
 const 初始化加载状态 = (): Record<生图模型字段, boolean> => ({
-    文生图模型使用模型: false,
-    场景生图模型使用模型: false,
     词组转化器使用模型: false,
     PNG提炼使用模型: false
 });
@@ -101,15 +99,84 @@ const ComfyUI工作流风格选项 = [
     '自定义'
 ];
 
-const 图片后端需要模型选择 = (backend: 功能模型占位配置结构['文生图后端类型']): boolean => {
-    return false;
-};
-
-const 图片后端需要鉴权 = (backend: 功能模型占位配置结构['文生图后端类型']): boolean => {
-    return false;
-};
-
 const ComfyUI工作流占位提示 = '__PROMPT__ / {{prompt}}，__NEGATIVE_PROMPT__ / {{negative_prompt}}，__WIDTH__ / {{width}}，__HEIGHT__ / {{height}}，__STEPS__ / {{steps}}，__CFG__ / {{cfg}}，__CFG_RESCALE__ / {{cfg_rescale}}，__SAMPLER__ / {{sampler}}，__SCHEDULER__ / {{scheduler}}，__SEED__ / {{seed}}，__SMEA__ / {{smea}}，__SMEA_DYN__ / {{smea_dyn}}';
+
+const ComfyWorkflowTargetConfig: Record<ComfyWorkflowTarget, {
+    flagKey: ComfyWorkflowFlagKey;
+    workflowKey: ComfyWorkflowJsonKey;
+    defaultWorkflow: string;
+    editorTitle: string;
+    promptTitle: string;
+    stylePromptDefault: string;
+    toggleAria: string;
+    toggleBorderClass: string;
+    toggleTextClass: string;
+    focusClass: string;
+    rows: number;
+    placeholder: string;
+    note: string;
+}> = {
+    main: {
+        flagKey: '使用默认ComfyUI工作流',
+        workflowKey: 'ComfyUI工作流JSON',
+        defaultWorkflow: 默认ComfyUI工作流JSON,
+        editorTitle: 'ComfyUI Workflow JSON',
+        promptTitle: '普通 ComfyUI 工作流',
+        stylePromptDefault: '1',
+        toggleAria: '切换普通生图默认 ComfyUI 工作流',
+        toggleBorderClass: 'border-fuchsia-400/30',
+        toggleTextClass: 'text-fuchsia-100',
+        focusClass: 'focus:border-fuchsia-400',
+        rows: 14,
+        placeholder: '粘贴从 ComfyUI 导出的 API workflow JSON。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__',
+        note: `纯原生 ComfyUI 需要 workflow JSON，提交到 /prompt 后再轮询 /history/{prompt_id}。
+支持占位符：${ComfyUI工作流占位提示}。上传 API 文件会自动替换常见提示词、尺寸和采样参数字段。`
+    },
+    scene: {
+        flagKey: '使用默认场景ComfyUI工作流',
+        workflowKey: '场景ComfyUI工作流JSON',
+        defaultWorkflow: 默认ComfyUI工作流JSON,
+        editorTitle: '场景 ComfyUI Workflow JSON',
+        promptTitle: '场景 ComfyUI 工作流',
+        stylePromptDefault: '17',
+        toggleAria: '切换场景默认 ComfyUI 工作流',
+        toggleBorderClass: 'border-sky-400/30',
+        toggleTextClass: 'text-sky-100',
+        focusClass: 'focus:border-sky-400',
+        rows: 12,
+        placeholder: '可留空以沿用主文生图 ComfyUI workflow。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__',
+        note: `场景独立接口使用原生 ComfyUI workflow；留空时，如果与主文生图后端同为 ComfyUI，会自动沿用主 workflow。
+支持占位符：${ComfyUI工作流占位提示}。上传 API 文件会自动替换常见提示词、尺寸和采样参数字段。`
+    },
+    nsfw: {
+        flagKey: '使用默认NSFWComfyUI工作流',
+        workflowKey: 'NSFWComfyUI工作流JSON',
+        defaultWorkflow: 默认NSFWComfyUI工作流JSON,
+        editorTitle: 'NSFW ComfyUI Workflow JSON',
+        promptTitle: 'NSFW ComfyUI 工作流',
+        stylePromptDefault: '19',
+        toggleAria: '切换 NSFW 默认 ComfyUI 工作流',
+        toggleBorderClass: 'border-rose-400/30',
+        toggleTextClass: 'text-rose-100',
+        focusClass: 'focus:border-rose-400',
+        rows: 10,
+        // ponytail: the retained default is just the current NSFW ComfyUI workflow; no legacy label needed.
+        placeholder: '默认会使用私密部位专用 ComfyUI workflow。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__',
+        note: `留空时会自动使用私密部位专用 ComfyUI workflow，不再默认沿用主 workflow。支持占位符：${ComfyUI工作流占位提示}。`
+    }
+};
+
+// ponytail: one tiny target table replaces repeated main/scene/nsfw key switches.
+const 构建ComfyWorkflow写入补丁 = (
+    target: ComfyWorkflowTarget,
+    workflowJson: string
+): Partial<功能模型占位配置结构> => {
+    const config = ComfyWorkflowTargetConfig[target];
+    return {
+        [config.flagKey]: false,
+        [config.workflowKey]: workflowJson
+    } as Partial<功能模型占位配置结构>;
+};
 
 const 页面容器样式 = 'rounded-2xl border border-fuchsia-500/20 bg-black/25 p-5 space-y-5';
 const 卡片样式 = 'rounded-xl border border-white/10 bg-black/20 p-4 space-y-4';
@@ -172,6 +239,11 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const comfyWorkflowImportRef = React.useRef<HTMLInputElement | null>(null);
     const sceneComfyWorkflowImportRef = React.useRef<HTMLInputElement | null>(null);
     const nsfwComfyWorkflowImportRef = React.useRef<HTMLInputElement | null>(null);
+    const comfyWorkflowImportRefs: Record<ComfyWorkflowTarget, React.RefObject<HTMLInputElement | null>> = {
+        main: comfyWorkflowImportRef,
+        scene: sceneComfyWorkflowImportRef,
+        nsfw: nsfwComfyWorkflowImportRef
+    };
 
     useEffect(() => {
         const normalized = 规范化接口设置(settings);
@@ -226,18 +298,15 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const 当前NSFW后端 = form.功能模型占位.NSFW生图独立接口启用
         ? form.功能模型占位.NSFW生图后端类型
         : 当前后端;
-    const 普通使用默认ComfyUI工作流 = form.功能模型占位.使用默认ComfyUI工作流 !== false;
-    const 场景使用默认ComfyUI工作流 = form.功能模型占位.使用默认场景ComfyUI工作流 !== false;
-    const NSFW使用默认ComfyUI工作流 = form.功能模型占位.使用默认NSFWComfyUI工作流 !== false;
-    const 普通ComfyUI工作流显示值 = 普通使用默认ComfyUI工作流 ? 默认ComfyUI工作流JSON : form.功能模型占位.ComfyUI工作流JSON;
-    const 场景ComfyUI工作流显示值 = 场景使用默认ComfyUI工作流 ? 默认ComfyUI工作流JSON : form.功能模型占位.场景ComfyUI工作流JSON;
-    const NSFWComfyUI工作流显示值 = NSFW使用默认ComfyUI工作流 ? 默认NSFWComfyUI工作流JSON : form.功能模型占位.NSFWComfyUI工作流JSON;
-    const 文生图模型选项 = Array.from(new Set(
-        modelOptions.文生图模型使用模型
-            .concat(form.功能模型占位.文生图模型使用模型)
-            .map((item) => (item || '').trim())
-            .filter(Boolean)
-    ));
+    const 读取ComfyWorkflow使用默认 = (target: ComfyWorkflowTarget): boolean => (
+        form.功能模型占位[ComfyWorkflowTargetConfig[target].flagKey] !== false
+    );
+    const 读取ComfyWorkflow显示值 = (target: ComfyWorkflowTarget): string => {
+        const config = ComfyWorkflowTargetConfig[target];
+        return 读取ComfyWorkflow使用默认(target)
+            ? config.defaultWorkflow
+            : String(form.功能模型占位[config.workflowKey] || '');
+    };
     const 词组转化器模型选项 = Array.from(new Set(
         modelOptions.词组转化器使用模型
             .concat(form.功能模型占位.词组转化器使用模型, 主剧情解析模型)
@@ -250,14 +319,6 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
             .map((item) => (item || '').trim())
             .filter(Boolean)
     ));
-    const 场景文生图模型选项 = Array.from(new Set(
-        modelOptions.场景生图模型使用模型
-            .concat(form.功能模型占位.场景生图模型使用模型, form.功能模型占位.文生图模型使用模型)
-            .map((item) => (item || '').trim())
-            .filter(Boolean)
-    ));
-    const 可见页面 = useMemo(() => 基础页面选项, []);
-    const 是否强制启用词组转化器 = false;
     const artistPresets = useMemo(
         () => (Array.isArray(form.功能模型占位.画师串预设列表) ? form.功能模型占位.画师串预设列表 : [])
             .filter((item) => item && typeof item.id === 'string' && !item.id.startsWith('png_artist_')),
@@ -440,24 +501,14 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         }));
     };
 
-    const updateDefaultComfyWorkflowMode = (target: 'main' | 'scene' | 'nsfw', useDefault: boolean) => {
-        const flagKey = target === 'scene'
-            ? '使用默认场景ComfyUI工作流'
-            : target === 'nsfw'
-                ? '使用默认NSFWComfyUI工作流'
-                : '使用默认ComfyUI工作流';
-        const workflowKey = target === 'scene'
-            ? '场景ComfyUI工作流JSON'
-            : target === 'nsfw'
-                ? 'NSFWComfyUI工作流JSON'
-                : 'ComfyUI工作流JSON';
-        const fallbackWorkflow = target === 'nsfw' ? 默认NSFWComfyUI工作流JSON : 默认ComfyUI工作流JSON;
+    const updateDefaultComfyWorkflowMode = (target: ComfyWorkflowTarget, useDefault: boolean) => {
+        const { flagKey, workflowKey, defaultWorkflow } = ComfyWorkflowTargetConfig[target];
         setForm((prev) => ({
             ...prev,
             功能模型占位: {
                 ...prev.功能模型占位,
                 [flagKey]: useDefault,
-                [workflowKey]: useDefault ? '' : ((prev.功能模型占位 as any)[workflowKey] || fallbackWorkflow)
+                [workflowKey]: useDefault ? '' : ((prev.功能模型占位 as any)[workflowKey] || defaultWorkflow)
             } as 功能模型占位配置结构
         }));
     };
@@ -720,7 +771,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
 
     const handleImportComfyWorkflow = async (
         event: React.ChangeEvent<HTMLInputElement>,
-        target: 'main' | 'scene' | 'nsfw'
+        target: ComfyWorkflowTarget
     ) => {
         const file = event.target.files?.[0];
         event.target.value = '';
@@ -732,11 +783,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 ...prev,
                 功能模型占位: {
                     ...prev.功能模型占位,
-                    ...(target === 'scene'
-                        ? { 使用默认场景ComfyUI工作流: false, 场景ComfyUI工作流JSON: normalized }
-                        : target === 'nsfw'
-                            ? { 使用默认NSFWComfyUI工作流: false, NSFWComfyUI工作流JSON: normalized }
-                            : { 使用默认ComfyUI工作流: false, ComfyUI工作流JSON: normalized })
+                    ...构建ComfyWorkflow写入补丁(target, normalized)
                 } as 功能模型占位配置结构
             }));
             setMessage(`已导入 ${file.name}，并自动写入 ComfyUI 占位符`);
@@ -747,52 +794,37 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         }
     };
 
-    const applyComfyWorkflowModule = async (target: 'main' | 'scene' | 'nsfw', moduleId: string) => {
+    const applyComfyWorkflowModule = (target: ComfyWorkflowTarget, moduleId: string) => {
         if (!moduleId) return;
         const entry = comfyWorkflowModules.find((item) => item.id === moduleId);
         if (!entry) return;
-        setComfyWorkflowBusy(`${target}:${moduleId}`);
         try {
-            const module = await 下载创意工坊模块(entry);
-            const workflowJson = 提取ComfyUI工作流模块JSON(module);
+            const workflowJson = 提取ComfyUI工作流模块JSON(entry);
             setForm((prev) => ({
                 ...prev,
                 功能模型占位: {
                     ...prev.功能模型占位,
-                    ...(target === 'scene'
-                        ? { 使用默认场景ComfyUI工作流: false, 场景ComfyUI工作流JSON: workflowJson }
-                        : target === 'nsfw'
-                            ? { 使用默认NSFWComfyUI工作流: false, NSFWComfyUI工作流JSON: workflowJson }
-                            : { 使用默认ComfyUI工作流: false, ComfyUI工作流JSON: workflowJson })
+                    ...构建ComfyWorkflow写入补丁(target, workflowJson)
                 } as 功能模型占位配置结构
             }));
-            setMessage(`已切换到模式包工作流「${module.title}」。保存设置后生效。`);
+            setMessage(`已切换到模式包工作流「${entry.title}」。保存设置后生效。`);
             setShowSuccess(true);
         } catch (error: any) {
             setMessage(`应用模式包工作流失败：${error?.message || '未知错误'}`);
             setShowSuccess(false);
-        } finally {
-            setComfyWorkflowBusy('');
         }
     };
 
-    const saveCurrentComfyWorkflow = async (target: 'main' | 'scene' | 'nsfw') => {
-        const workflowJson = target === 'scene'
-            ? 场景ComfyUI工作流显示值
-            : target === 'nsfw'
-                ? NSFWComfyUI工作流显示值
-                : 普通ComfyUI工作流显示值;
-        const defaultUsing = target === 'scene'
-            ? 场景使用默认ComfyUI工作流
-            : target === 'nsfw'
-                ? NSFW使用默认ComfyUI工作流
-                : 普通使用默认ComfyUI工作流;
+    const saveCurrentComfyWorkflow = async (target: ComfyWorkflowTarget) => {
+        const workflowJson = 读取ComfyWorkflow显示值(target);
+        const defaultUsing = 读取ComfyWorkflow使用默认(target);
         if (defaultUsing) {
             setMessage('请先关闭“使用默认工作流”，再把当前自定义工作流保存到本地模式包。');
             setShowSuccess(false);
             return;
         }
-        const title = (window.prompt('给这个 ComfyUI 工作流起个名字（必填）', target === 'scene' ? '场景 ComfyUI 工作流' : target === 'nsfw' ? 'NSFW ComfyUI 工作流' : '普通 ComfyUI 工作流') || '').trim();
+        const targetConfig = ComfyWorkflowTargetConfig[target];
+        const title = (window.prompt('给这个 ComfyUI 工作流起个名字（必填）', targetConfig.promptTitle) || '').trim();
         if (!title) {
             setMessage('保存 ComfyUI 工作流前必须填写名称，方便在下拉框中识别。');
             setShowSuccess(false);
@@ -801,7 +833,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         const styleInput = (window.prompt([
             '选择工作流风格：请输入序号或直接写自定义风格。',
             ...ComfyUI工作流风格选项.map((style, index) => `${index + 1}. ${style}`)
-        ].join('\n'), target === 'nsfw' ? '19' : target === 'scene' ? '17' : '1') || '').trim();
+        ].join('\n'), targetConfig.stylePromptDefault) || '').trim();
         if (!styleInput) return;
         const styleIndex = Number(styleInput);
         const pickedStyle = Number.isInteger(styleIndex) && styleIndex >= 1 && styleIndex <= ComfyUI工作流风格选项.length
@@ -833,7 +865,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         }
     };
 
-    const renderComfyWorkflowWorkshopControls = (target: 'main' | 'scene' | 'nsfw', disabled = false) => {
+    const renderComfyWorkflowWorkshopControls = (target: ComfyWorkflowTarget, disabled = false) => {
         const scoped = comfyWorkflowModules.filter((entry) => {
             const scope = String((entry.payload as any)?.scope || 'all');
             return scope === 'all' || scope === target || (target === 'main' && scope === 'npc');
@@ -849,7 +881,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                 const style = String((entry.payload as any)?.style || '').trim();
                                 return { value: entry.id, label: `${entry.title}${style ? ` · ${style}` : ''}${entry.contributor ? ` · ${entry.contributor}` : ''}` };
                             })}
-                            onChange={(value) => void applyComfyWorkflowModule(target, value)}
+                            onChange={(value) => applyComfyWorkflowModule(target, value)}
                             placeholder={comfyWorkflowLoading ? '正在读取模式包工作流...' : scoped.length ? '选择本地或内置工作流' : '暂无可选模式包工作流'}
                             buttonClassName="bg-black/50 border-gray-600 py-2.5"
                             disabled={disabled || comfyWorkflowLoading || scoped.length <= 0 || Boolean(comfyWorkflowBusy)}
@@ -876,7 +908,64 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         );
     };
 
-    const 主文生图后端可直接套用到NSFW = true;
+    // ponytail: three ComfyUI editors share behavior; keep the differences in the target table.
+    const renderComfyWorkflowEditor = (
+        target: ComfyWorkflowTarget,
+        options: { disabled?: boolean; workshopDisabled?: boolean } = {}
+    ) => {
+        const config = ComfyWorkflowTargetConfig[target];
+        const useDefault = 读取ComfyWorkflow使用默认(target);
+        const disabled = Boolean(options.disabled);
+        const editorDisabled = disabled || useDefault;
+        const inputRef = comfyWorkflowImportRefs[target];
+        const editorTitleClass = target === 'main' ? 标签样式 : `text-sm font-bold ${config.toggleTextClass}`;
+
+        return (
+            <div className="space-y-2">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <label className={editorTitleClass}>{config.editorTitle}</label>
+                    <div className="flex flex-wrap gap-2">
+                        <label className={`inline-flex items-center gap-2 rounded-full border ${config.toggleBorderClass} bg-black/20 px-3 py-1.5 text-xs ${config.toggleTextClass}`}>
+                            <ToggleSwitch
+                                checked={useDefault}
+                                onChange={(next) => updateDefaultComfyWorkflowMode(target, next)}
+                                disabled={disabled}
+                                ariaLabel={config.toggleAria}
+                            />
+                            使用默认工作流
+                        </label>
+                        <GameButton
+                            onClick={() => inputRef.current?.click()}
+                            variant="secondary"
+                            className="px-4 py-2 text-xs"
+                            disabled={editorDisabled}
+                        >
+                            上传 API 文件
+                        </GameButton>
+                        <input
+                            ref={inputRef}
+                            type="file"
+                            accept="application/json,.json"
+                            onChange={(event) => void handleImportComfyWorkflow(event, target)}
+                            className="hidden"
+                        />
+                    </div>
+                </div>
+                {renderComfyWorkflowWorkshopControls(target, options.workshopDisabled)}
+                <textarea
+                    value={读取ComfyWorkflow显示值(target)}
+                    onChange={(event) => updatePlaceholder(config.workflowKey, event.target.value)}
+                    rows={config.rows}
+                    placeholder={config.placeholder}
+                    disabled={editorDisabled}
+                    className={`w-full rounded-md border-2 border-transparent bg-black/50 p-3 font-mono text-white outline-none transition-all ${config.focusClass} resize-y disabled:cursor-not-allowed disabled:opacity-60`}
+                />
+                <div className={`whitespace-pre-line rounded-xl border ${config.toggleBorderClass} bg-black/20 px-4 py-3 text-xs leading-6 ${config.toggleTextClass}`}>
+                    {config.note}
+                </div>
+            </div>
+        );
+    };
 
     const NSFW独立接口已有专用配置 = (feature: 功能模型占位配置结构): boolean => {
         return [
@@ -980,7 +1069,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
         setNsfwConnectionMessage('');
         setForm((prev) => {
             const feature = prev.功能模型占位;
-            const shouldAutoReuseMain = checked && 主文生图后端可直接套用到NSFW && !NSFW独立接口已有专用配置(feature);
+            const shouldAutoReuseMain = checked && !NSFW独立接口已有专用配置(feature);
             return {
                 ...prev,
                 功能模型占位: {
@@ -1134,10 +1223,6 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
 
     const fetchModelsFromCurrentConfig = async (key: 生图模型字段): Promise<string[] | null> => {
         const feature = form.功能模型占位;
-        if (key === '文生图模型使用模型' || key === '场景生图模型使用模型') {
-            setMessage('ComfyUI 生图不需要模型列表。');
-            return null;
-        }
         const customBaseUrl = key === 'PNG提炼使用模型'
                     ? ((feature.PNG提炼启用独立模型 ? feature.PNG提炼API地址 : '') || '').trim()
                     : ((feature.词组转化器启用独立模型 ? feature.词组转化器API地址 : '') || '').trim();
@@ -1274,15 +1359,13 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {主文生图后端可直接套用到NSFW && (
-                        <GameButton
-                            onClick={handleApplyMainImageBackendToNSFW}
-                            variant="secondary"
-                            className="px-3 py-2 text-xs"
-                        >
-                            套用主接口
-                        </GameButton>
-                    )}
+                    <GameButton
+                        onClick={handleApplyMainImageBackendToNSFW}
+                        variant="secondary"
+                        className="px-3 py-2 text-xs"
+                    >
+                        套用主接口
+                    </GameButton>
                     <ToggleSwitch
                         checked={form.功能模型占位.NSFW生图独立接口启用}
                         onChange={handleToggleNSFWIndependentImageApi}
@@ -1402,65 +1485,10 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 </div>
             )}
 
-            {图片后端需要模型选择(当前NSFW后端) ? (
-                <div className="space-y-2">
-                    <label className="text-sm font-bold text-rose-200">NSFW 模型名称</label>
-                    <input
-                        type="text"
-                        value={form.功能模型占位.NSFW生图模型使用模型}
-                        onChange={(e) => updatePlaceholder('NSFW生图模型使用模型', e.target.value)}
-                        placeholder="ComfyUI 不需要模型名称"
-                        disabled={!form.功能模型占位.NSFW生图独立接口启用}
-                        className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                </div>
-            ) : null}
-
-            {当前NSFW后端 === 'comfyui' ? (
-                <div className="space-y-2">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <label className="text-sm font-bold text-rose-200">NSFW ComfyUI Workflow JSON</label>
-                        <div className="flex flex-wrap gap-2">
-                            <label className="inline-flex items-center gap-2 rounded-full border border-rose-400/30 bg-black/20 px-3 py-1.5 text-xs text-rose-100">
-                                <ToggleSwitch
-                                    checked={NSFW使用默认ComfyUI工作流}
-                                    onChange={(next) => updateDefaultComfyWorkflowMode('nsfw', next)}
-                                    disabled={!form.功能模型占位.NSFW生图独立接口启用}
-                                    ariaLabel="切换 NSFW 默认 ComfyUI 工作流"
-                                />
-                                使用默认工作流
-                            </label>
-                            <GameButton
-                                onClick={() => nsfwComfyWorkflowImportRef.current?.click()}
-                                variant="secondary"
-                                className="px-4 py-2 text-xs"
-                                disabled={!form.功能模型占位.NSFW生图独立接口启用 || NSFW使用默认ComfyUI工作流}
-                            >
-                                上传 API 文件
-                            </GameButton>
-                            <input
-                                ref={nsfwComfyWorkflowImportRef}
-                                type="file"
-                                accept="application/json,.json"
-                                onChange={(event) => void handleImportComfyWorkflow(event, 'nsfw')}
-                                className="hidden"
-                            />
-                        </div>
-                        </div>
-                        {renderComfyWorkflowWorkshopControls('nsfw', !form.功能模型占位.NSFW生图独立接口启用)}
-                        <textarea
-                            value={NSFWComfyUI工作流显示值}
-                        onChange={(e) => updatePlaceholder('NSFWComfyUI工作流JSON', e.target.value)}
-                        rows={10}
-                        placeholder={'默认会使用私密部位专用的旧版 mix ComfyUI workflow。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__'}
-                        disabled={!form.功能模型占位.NSFW生图独立接口启用 || NSFW使用默认ComfyUI工作流}
-                        className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 font-mono text-white outline-none transition-all focus:border-rose-400 resize-y disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                    <div className="rounded-xl border border-rose-500/20 bg-black/20 px-4 py-3 text-xs leading-6 text-rose-100/80">
-                        留空时会自动使用私密部位专用的旧版 mix ComfyUI workflow，不再默认沿用主 workflow。支持占位符：{ComfyUI工作流占位提示}。
-                    </div>
-                </div>
-            ) : null}
+            {当前NSFW后端 === 'comfyui' ? renderComfyWorkflowEditor('nsfw', {
+                disabled: !form.功能模型占位.NSFW生图独立接口启用,
+                workshopDisabled: !form.功能模型占位.NSFW生图独立接口启用
+            }) : null}
         </div>
     );
 
@@ -1635,89 +1663,14 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
     const renderMainBackendDetailSettings = () => (
         <div className="space-y-5">
             <div className={卡片样式}>
-                {图片后端需要模型选择(当前后端) ? (
-                    <>
-                        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                            <div className="flex-1 space-y-2">
-                                <label className={标签样式}>模型名称</label>
-                                <InlineSelect
-                                    value={form.功能模型占位.文生图模型使用模型}
-                                    options={文生图模型选项.map((model) => ({ value: model, label: model }))}
-                                    onChange={(model) => updatePlaceholder('文生图模型使用模型', model)}
-                                    placeholder="请选择或输入模型名"
-                                    buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                                    panelClassName="max-w-full"
-                                />
-                            </div>
-                            <GameButton
-                                onClick={() => handleFetchModels('文生图模型使用模型', '文生图模型列表')}
-                                variant="secondary"
-                                className="px-4 py-2 text-xs md:min-w-[96px]"
-                                disabled={modelLoading.文生图模型使用模型}
-                            >
-                                {modelLoading.文生图模型使用模型 ? '...' : '获取列表'}
-                            </GameButton>
-                        </div>
-                        <input
-                            type="text"
-                            value={form.功能模型占位.文生图模型使用模型}
-                            onChange={(e) => updatePlaceholder('文生图模型使用模型', e.target.value)}
-                            placeholder="例如：ComfyUI 不需要模型名称"
-                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-fuchsia-400"
-                        />
-                    </>
-                ) : (
-                    <div className="rounded-xl border border-sky-500/20 bg-sky-950/10 px-4 py-3 text-sm text-sky-100">
-                        当前后端直接调用固定生图接口，不需要选择模型名称。
-                    </div>
-                )}
+                <div className="rounded-xl border border-sky-500/20 bg-sky-950/10 px-4 py-3 text-sm text-sky-100">
+                    当前后端直接调用固定生图接口，不需要选择模型名称。
+                </div>
             </div>
 
             {当前后端 === 'comfyui' && (
                 <div className={卡片样式}>
-                    <div className="space-y-2">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <label className={标签样式}>ComfyUI Workflow JSON</label>
-                            <div className="flex flex-wrap gap-2">
-                                <label className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/30 bg-black/20 px-3 py-1.5 text-xs text-fuchsia-100">
-                                    <ToggleSwitch
-                                        checked={普通使用默认ComfyUI工作流}
-                                        onChange={(next) => updateDefaultComfyWorkflowMode('main', next)}
-                                        ariaLabel="切换普通生图默认 ComfyUI 工作流"
-                                    />
-                                    使用默认工作流
-                                </label>
-                                <GameButton
-                                    onClick={() => comfyWorkflowImportRef.current?.click()}
-                                    variant="secondary"
-                                    className="px-4 py-2 text-xs"
-                                    disabled={普通使用默认ComfyUI工作流}
-                                >
-                                    上传 API 文件
-                                </GameButton>
-                                <input
-                                    ref={comfyWorkflowImportRef}
-                                    type="file"
-                                    accept="application/json,.json"
-                                    onChange={(event) => void handleImportComfyWorkflow(event, 'main')}
-                                    className="hidden"
-                                />
-                            </div>
-                        </div>
-                        {renderComfyWorkflowWorkshopControls('main')}
-                        <textarea
-                            value={普通ComfyUI工作流显示值}
-                            onChange={(e) => updatePlaceholder('ComfyUI工作流JSON', e.target.value)}
-                            rows={14}
-                            placeholder={'粘贴从 ComfyUI 导出的 API workflow JSON。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__'}
-                            disabled={普通使用默认ComfyUI工作流}
-                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 font-mono text-white outline-none transition-all focus:border-fuchsia-400 resize-y disabled:cursor-not-allowed disabled:opacity-60"
-                        />
-                    </div>
-                    <div className="rounded-xl border border-sky-500/20 bg-sky-950/10 px-4 py-3 text-xs leading-6 text-sky-100">
-                        纯原生 ComfyUI 需要 workflow JSON，提交到 <code>/prompt</code> 后再轮询 <code>/history/&#123;prompt_id&#125;</code>。
-                        支持占位符：{ComfyUI工作流占位提示}。上传 API 文件会自动替换常见提示词、尺寸和采样参数字段。
-                    </div>
+                    {renderComfyWorkflowEditor('main')}
                 </div>
             )}
 
@@ -1732,9 +1685,8 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                         <div className="text-base font-bold text-cyan-200">NPC 生图使用词组转化器</div>
                     </div>
                     <ToggleSwitch
-                        checked={是否强制启用词组转化器 ? true : form.功能模型占位.NPC生图使用词组转化器}
+                        checked={form.功能模型占位.NPC生图使用词组转化器}
                         onChange={(next) => updatePlaceholder('NPC生图使用词组转化器', next)}
-                        disabled={是否强制启用词组转化器}
                         ariaLabel="切换 NPC 生图词组转化器"
                     />
                 </div>
@@ -2188,88 +2140,12 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                                     </div>
                                 )}
 
-                                {图片后端需要模型选择(当前场景后端) ? (
-                                    <>
-                                        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                                            <div className="flex-1 space-y-2">
-                                                <label className="text-sm font-bold text-sky-200">场景模型名称</label>
-                                                <InlineSelect
-                                                    value={form.功能模型占位.场景生图模型使用模型}
-                                                    options={场景文生图模型选项.map((model) => ({ value: model, label: model }))}
-                                                    onChange={(model) => updatePlaceholder('场景生图模型使用模型', model)}
-                                                    placeholder="请选择或输入场景模型"
-                                                    buttonClassName="bg-black/50 border-gray-600 py-2.5"
-                                                    panelClassName="max-w-full"
-                                                />
-                                            </div>
-                                            <GameButton
-                                                onClick={() => handleFetchModels('场景生图模型使用模型', '场景模型列表')}
-                                                variant="secondary"
-                                                className="px-4 py-2 text-xs md:min-w-[96px]"
-                                                disabled={modelLoading.场景生图模型使用模型}
-                                            >
-                                                {modelLoading.场景生图模型使用模型 ? '...' : '获取列表'}
-                                            </GameButton>
-                                        </div>
-
-                                        <input
-                                            type="text"
-                                            value={form.功能模型占位.场景生图模型使用模型}
-                                            onChange={(e) => updatePlaceholder('场景生图模型使用模型', e.target.value)}
-                                            placeholder="例如：ComfyUI 不需要模型名称"
-                                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 text-white outline-none transition-all focus:border-sky-400"
-                                        />
-                                    </>
-                                ) : (
-                                    <div className="rounded-xl border border-sky-500/20 bg-sky-950/10 px-4 py-3 text-sm text-sky-100">
-                                        当前场景后端直接调用固定生图接口，不需要选择模型名称。
-                                    </div>
-                                )}
+                                <div className="rounded-xl border border-sky-500/20 bg-sky-950/10 px-4 py-3 text-sm text-sky-100">
+                                    当前场景后端直接调用固定生图接口，不需要选择模型名称。
+                                </div>
 
                                 {当前场景后端 === 'comfyui' && (
-                                    <div className="space-y-2">
-                                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                            <label className="text-sm font-bold text-sky-200">场景 ComfyUI Workflow JSON</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                <label className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-black/20 px-3 py-1.5 text-xs text-sky-100">
-                                                    <ToggleSwitch
-                                                        checked={场景使用默认ComfyUI工作流}
-                                                        onChange={(next) => updateDefaultComfyWorkflowMode('scene', next)}
-                                                        ariaLabel="切换场景默认 ComfyUI 工作流"
-                                                    />
-                                                    使用默认工作流
-                                                </label>
-                                                <GameButton
-                                                    onClick={() => sceneComfyWorkflowImportRef.current?.click()}
-                                                    variant="secondary"
-                                                    className="px-4 py-2 text-xs"
-                                                    disabled={场景使用默认ComfyUI工作流}
-                                                >
-                                                    上传 API 文件
-                                                </GameButton>
-                                                <input
-                                                    ref={sceneComfyWorkflowImportRef}
-                                                    type="file"
-                                                    accept="application/json,.json"
-                                                    onChange={(event) => void handleImportComfyWorkflow(event, 'scene')}
-                                                    className="hidden"
-                                                />
-                                            </div>
-                                        </div>
-                                        {renderComfyWorkflowWorkshopControls('scene')}
-                                        <textarea
-                                            value={场景ComfyUI工作流显示值}
-                                            onChange={(e) => updatePlaceholder('场景ComfyUI工作流JSON', e.target.value)}
-                                            rows={12}
-                                            placeholder={'可留空以沿用主文生图 ComfyUI workflow。\n可用占位符：__PROMPT__、__NEGATIVE_PROMPT__、__WIDTH__、__HEIGHT__'}
-                                            disabled={场景使用默认ComfyUI工作流}
-                                            className="w-full rounded-md border-2 border-transparent bg-black/50 p-3 font-mono text-white outline-none transition-all focus:border-sky-400 resize-y disabled:cursor-not-allowed disabled:opacity-60"
-                                        />
-                                        <div className="rounded-xl border border-sky-500/20 bg-sky-950/10 px-4 py-3 text-xs leading-6 text-sky-100">
-                                            场景独立接口使用原生 ComfyUI workflow；留空时，如果与主文生图后端同为 ComfyUI，会自动沿用主 workflow。
-                                            支持占位符：{ComfyUI工作流占位提示}。上传 API 文件会自动替换常见提示词、尺寸和采样参数字段。
-                                        </div>
-                                    </div>
+                                    renderComfyWorkflowEditor('scene')
                                 )}
                             </div>
                         )}
@@ -2544,7 +2420,7 @@ const ImageGenerationSettings: React.FC<Props> = ({ settings, onSave }) => {
                 </div>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-                    {可见页面.map((item) => (
+                    {基础页面选项.map((item) => (
                         <button
                             key={item.value}
                             type="button"

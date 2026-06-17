@@ -23,8 +23,6 @@ const 读文本 = (value: unknown, fallback = '') => (
 
 const 格式数值 = (value: unknown, fallback = 0) => 读数(value, fallback).toLocaleString('zh-CN');
 
-const 百分比 = (value: number) => `${Math.round(value * 100)}%`;
-
 const 规范化部位列表 = (value: unknown): string[] => {
     if (Array.isArray(value)) {
         return value

@@ -61,15 +61,10 @@ const 剧情相对根字段 = ['当前章节', '下一章预告', '历史卷宗'
 const 剧情规划相对根字段 = ['当前章目标', '当前章任务', '跨章延续事项', '待触发事件', '镜头规划', '换章规则'];
 const 女主规划相对根字段 = ['阶段推进', '女主条目', '女主互动事件', '女主镜头规划'];
 
-const 兼容值路径别名 = (rawPath: string): string => {
-    const path = (rawPath || '').trim();
-    if (!path) return '';
-    return path;
-};
-
 const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
 const 废弃环境字段 = new Set(['天气', '节日']);
-const 废弃命令根路径 = new Set(['战斗', '战斗态势', '玩家组织']);
+const 废弃命令根路径 = new Set(['战斗', '战斗态势']);
+const 废弃玩家组织字段 = new Set(['任务列表']);
 
 export const 是否废弃世界地图字段路径 = (normalizedKey: string): boolean => {
     const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
@@ -93,8 +88,15 @@ export const 是否废弃命令根路径 = (normalizedKey: string): boolean => {
     return 废弃命令根路径.has(root);
 };
 
+export const 是否废弃玩家组织字段路径 = (normalizedKey: string): boolean => {
+    const comparable = (normalizedKey || '').trim().replace(/^gameState\./, '');
+    const match = comparable.match(/^玩家组织(?:\.|\[|$)([^.\[]*)/u);
+    if (!match) return false;
+    return 废弃玩家组织字段.has(match[1] || '');
+};
+
 export const normalizeStateCommandKey = (rawKey: string): string => {
-    const key = 兼容值路径别名(rawKey);
+    const key = (rawKey || '').trim();
     if (!key) return '';
 
     if (key.startsWith('gameState.')) {
@@ -124,8 +126,6 @@ export const normalizeStateCommandKey = (rawKey: string): string => {
     }
     return key;
 };
-
-const normalizeStateValuePath = (rawPath: string): string => normalizeStateCommandKey(rawPath);
 
 const 提取根路径 = (normalizedKey: string): { root: 支持根路径类型; rest: string } | null => {
     for (const root of 根路径列表) {
@@ -257,7 +257,7 @@ const 应用路径命令 = (
 };
 
 export const readGameStateValueByPath = (stateLike: any, rawPath: string): any => {
-    const normalizedPath = normalizeStateValuePath(rawPath);
+    const normalizedPath = normalizeStateCommandKey(rawPath);
     if (!normalizedPath.startsWith('gameState.')) return undefined;
     const parsed = 提取根路径(normalizedPath);
     if (!parsed) return undefined;
@@ -304,6 +304,10 @@ export const applyStateCommand = (
     }
 
     if (是否废弃命令根路径(normalizedKey)) {
+        return result;
+    }
+
+    if (是否废弃玩家组织字段路径(normalizedKey)) {
         return result;
     }
 

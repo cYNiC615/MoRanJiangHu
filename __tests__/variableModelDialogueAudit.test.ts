@@ -16,14 +16,14 @@ describe('variable model dialogue NPC audit', () => {
             社交: [],
             玩家组织: {},
             任务列表: []
-        });
+        } as any);
 
         expect(prompt).toContain('本回合正文对白人物审计');
         expect(prompt).toContain('林婉儿');
         expect(prompt).toContain('push 社交');
         expect(prompt).toContain('完整 NPC 档案');
         expect(prompt).toContain('当前装备未确认的槽位写“无”');
-        expect(prompt).toContain('不得凭身份、性别、门派、境界');
+        expect(prompt).toContain('不得凭身份、性别、职业');
         expect(prompt).not.toContain('沈墨：本回合有独立对白框');
     });
 
@@ -46,11 +46,11 @@ describe('variable model dialogue NPC audit', () => {
             ],
             玩家组织: {},
             任务列表: []
-        });
+        } as any);
 
         expect(prompt).toContain('社交[0]');
         expect(prompt).toContain('性别');
-        expect(prompt).toContain('境界');
+        expect(prompt).toContain('当前装备');
         expect(prompt).toContain('剧情对话人物');
         expect(prompt).toContain('不能继续保留半残');
     });

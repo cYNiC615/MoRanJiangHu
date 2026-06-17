@@ -3,7 +3,7 @@
 
 import { 角色数据结构 } from './character';
 import { 环境信息结构 } from './environment';
-import { 生图目标类型, 生图筛选性别类型, 生图筛选重要性类型, 场景图片档案 } from './imageGeneration';
+import { 生图筛选性别类型, 生图筛选重要性类型, 场景图片档案 } from './imageGeneration';
 import { NPC结构 } from './social';
 import { 世界数据结构 } from './world';
 import { 任务结构 } from './task';
@@ -257,8 +257,6 @@ export interface 功能模型占位配置结构 {
     变量计算独立模型开关: boolean;
     规划分析功能启用: boolean;
     规划分析独立模型开关: boolean;
-    女主规划独立模型开关: boolean;
-    剧情规划独立模型开关: boolean;
     文章优化独立模型开关: boolean;
     剧情回忆使用模型: string;
     剧情回忆渠道ID?: string;
@@ -285,14 +283,6 @@ export interface 功能模型占位配置结构 {
     规划分析渠道ID?: string;
     规划分析API地址: string;
     规划分析API密钥: string;
-    女主规划使用模型: string;
-    女主规划渠道ID?: string;
-    女主规划API地址: string;
-    女主规划API密钥: string;
-    剧情规划使用模型: string;
-    剧情规划渠道ID?: string;
-    剧情规划API地址: string;
-    剧情规划API密钥: string;
     文章优化使用模型: string;
     文章优化渠道ID?: string;
     文章优化API地址: string;
@@ -455,7 +445,8 @@ export type 游戏难度 = 'relaxed' | 'easy' | 'normal' | 'hard' | 'extreme';
 export type 初始关系模板类型 = '独行少系' | '家族牵引' | '师门牵引' | '世家官门' | '青梅旧识' | '旧仇旧债';
 export type 关系侧重类型 = '亲情' | '友情' | '师门' | '情缘' | '利益' | '仇怨';
 export type 开局切入偏好类型 = '日常低压' | '在途起手' | '家宅起手' | '门派起手' | '风波前夜';
-export type 题材模式类型 = '西方奇幻' | '现代都市' | '末日丧尸' | '无限流';
+export type 当前题材模式类型 = '西方奇幻' | '现代都市' | '末日丧尸' | '无限流';
+export type 题材模式类型 = 当前题材模式类型 | '武侠' | '仙侠' | '灵气复苏' | '都市修仙';
 
 export type 酒馆预设消息角色类型 = 'system' | 'user' | 'assistant';
 
@@ -639,6 +630,8 @@ export interface OpeningRuntimeSnapshot {
     openingExtraRequirement?: string;
     openingExtraPrompt?: string;
     activeModuleExtraRules?: string;
+    worldConfig?: WorldGenConfig;
+    charData?: Partial<角色数据结构>;
     modeWorldbooks?: 世界书结构[];
     workshopSelection?: {
         selectedMode?: 题材模式类型 | '';
@@ -852,6 +845,7 @@ export interface 游戏设置结构 {
     启用男娘NSFW内容: boolean; // Gate femboy/male NSFW archive prompts, UI, and auto secret image generation
     启用亲密边界机制: boolean; // Require consent, privacy, relationship thresholds, and character agency for intimacy
     启用饱腹口渴系统: boolean; // Toggle hunger/thirst prompt injection and UI visibility
+    启用成长体系?: boolean; // Optional legacy growth-system display gate
     剧情风格: 剧情风格类型; // Story style injected as assistant context before COT
     NTL后宫档位: NTL后宫档位; // NTL-only tier selector
     启用酒馆预设模式: boolean; // Use SillyTavern preset prompt/order pipeline

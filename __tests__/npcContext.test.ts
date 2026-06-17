@@ -21,7 +21,7 @@ describe('npc context', () => {
                 当前血量: 30,
                 最大血量: 30
             }
-        ], {} as any);
+        ]);
 
         expect(result.在场数据块).toContain('队友状态');
         expect(result.在场数据块).not.toContain('战斗状态');

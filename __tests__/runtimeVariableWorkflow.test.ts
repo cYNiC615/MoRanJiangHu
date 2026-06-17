@@ -12,7 +12,7 @@ const 创建依赖 = (options?: { heroinePlanEnabled?: boolean }) => {
         剧情: {},
         剧情规划: {},
         女主剧情规划: undefined,
-        玩家组织: {},
+        玩家组织: { 名称: '铁栅安全点', 玩家贡献: 120, 累计贡献: 1500, 任务列表: [] },
         任务列表: [],
         记忆系统: {}
     };
@@ -30,8 +30,6 @@ const 创建依赖 = (options?: { heroinePlanEnabled?: boolean }) => {
         规范化女主剧情规划状态: (value: any) => value,
         规范化组织状态: (value: any) => value || {},
         规范化记忆系统: (value: any) => value || {},
-        环境时间转标准串: () => '',
-        获取开局配置: () => ({}),
         设置角色: (value: any) => { state.角色 = value; },
         设置环境: (value: any) => { state.环境 = value; },
         设置社交: (value: any) => { social = value; state.社交 = value; },
@@ -97,11 +95,22 @@ describe('运行时变量管理', () => {
         const workflow = 创建运行时变量工作流(deps);
 
         await workflow.updateRuntimeVariableSection('战斗' as any, { 是否战斗中: true });
-        await workflow.updateRuntimeVariableSection('玩家组织', { 名称: '旧组织' });
 
         expect('战斗' in getState()).toBe(false);
-        expect(getState().玩家组织).toEqual({});
         expect(performAutoSave).not.toHaveBeenCalled();
+    });
+
+    it('保存玩家组织分区时同步当前组织状态', async () => {
+        const { deps, getState, performAutoSave } = 创建依赖();
+        const workflow = 创建运行时变量工作流(deps);
+
+        await workflow.updateRuntimeVariableSection('玩家组织', { 名称: '新安全点', 玩家贡献: 180, 累计贡献: 1560, 任务列表: [] });
+
+        expect(getState().玩家组织).toEqual(expect.objectContaining({ 名称: '新安全点', 玩家贡献: 180 }));
+        expect(performAutoSave).toHaveBeenCalledWith(expect.objectContaining({
+            sect: expect.objectContaining({ 名称: '新安全点', 玩家贡献: 180 }),
+            force: true
+        }));
     });
 
     it('忽略已退役功能变量命令且不触发全量旧状态写回', async () => {
@@ -109,10 +118,21 @@ describe('运行时变量管理', () => {
         const workflow = 创建运行时变量工作流(deps);
 
         await workflow.applyRuntimeVariableCommand({ action: 'set', key: '战斗.是否战斗中', value: true } as any);
-        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '玩家组织.名称', value: '旧组织' } as any);
 
         expect('战斗' in getState()).toBe(false);
-        expect(getState().玩家组织).toEqual({});
         expect(performAutoSave).not.toHaveBeenCalled();
+    });
+
+    it('应用玩家组织变量命令时写回组织状态', async () => {
+        const { deps, getState, performAutoSave } = 创建依赖();
+        const workflow = 创建运行时变量工作流(deps);
+
+        await workflow.applyRuntimeVariableCommand({ action: 'set', key: '玩家组织.玩家贡献', value: 180 } as any);
+
+        expect(getState().玩家组织).toEqual(expect.objectContaining({ 玩家贡献: 180 }));
+        expect(performAutoSave).toHaveBeenCalledWith(expect.objectContaining({
+            sect: expect.objectContaining({ 玩家贡献: 180 }),
+            force: true
+        }));
     });
 });

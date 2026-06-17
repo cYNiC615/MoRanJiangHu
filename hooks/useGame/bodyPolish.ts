@@ -706,11 +706,12 @@ export const 执行正文润色 = async (
             }
         }
     }
-    if (!lengthCheck.ok) {
+    if (lengthCheck.ok === false) {
+        const lengthError = lengthCheck.error;
         return {
             response: baseResponse,
             applied: false,
-            error: lengthCheck.error,
+            error: lengthError,
             rawText: polishedResult.rawText
         };
     }

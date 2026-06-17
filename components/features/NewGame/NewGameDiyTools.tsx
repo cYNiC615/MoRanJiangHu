@@ -19,8 +19,6 @@ type Props = {
 };
 
 const panelClass = 'rounded-2xl border border-wuxia-gold/20 bg-black/25 p-4';
-const inputClass = 'w-full rounded border border-gray-700 bg-black/50 px-2 py-2 text-xs text-white outline-none focus:border-wuxia-gold';
-const textAreaClass = `${inputClass} min-h-[72px] resize-y`;
 const smallButtonClass = 'rounded border border-wuxia-gold/25 bg-wuxia-gold/10 px-3 py-1.5 text-xs text-wuxia-gold hover:bg-wuxia-gold/20 disabled:opacity-50';
 
 const buildWorldContext = (worldConfig: WorldGenConfig): string => [

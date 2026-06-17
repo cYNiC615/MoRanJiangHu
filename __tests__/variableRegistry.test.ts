@@ -27,7 +27,12 @@ const baseState = {
     },
     剧情: {},
     剧情规划: {},
-    玩家组织: {}
+    玩家组织: {
+        名称: '铁栅安全点',
+        玩家贡献: 120,
+        累计贡献: 1500,
+        任务列表: []
+    }
 };
 
 describe('variableRegistry', () => {
@@ -62,14 +67,15 @@ describe('variableRegistry', () => {
         expect(prompt).toContain('【变量路径登记表】');
         expect(prompt).toContain('- 角色.当前精力');
         expect(prompt).toContain('- 社交[0].记忆');
+        expect(prompt).toContain('- 玩家组织');
+        expect(prompt).toContain('- 玩家组织.玩家贡献');
         expect(prompt).not.toContain('- 战斗');
-        expect(prompt).not.toContain('- 玩家组织');
+        expect(prompt).not.toContain('- 玩家组织.任务列表');
     });
 
     it('blocks retired feature roots from variable commands', () => {
         [
             ['战斗.敌方', []],
-            ['玩家组织.名称', '旧组织'],
             ['战斗态势.主角.当前血量', 1]
         ].forEach(([key, value]) => {
             const result = 校验变量命令是否登记({
@@ -81,6 +87,23 @@ describe('variableRegistry', () => {
             expect(result.allowed, key as string).toBe(false);
             expect(result.reason, key as string).toBe('废弃功能根路径已退役');
         });
+    });
+
+    it('allows current player organization fields but keeps organization tasks on the global task list', () => {
+        expect(校验变量命令是否登记({
+            action: 'set',
+            key: '玩家组织.玩家贡献',
+            value: 180
+        }, baseState).allowed).toBe(true);
+
+        const result = 校验变量命令是否登记({
+            action: 'push',
+            key: '玩家组织.任务列表',
+            value: { 标题: '旧入口任务' }
+        }, baseState);
+
+        expect(result.allowed).toBe(false);
+        expect(result.reason).toBe('组织任务入口已迁移到全局任务列表');
     });
 
     it('allows important male NSFW profile fields to be added to social records', () => {
@@ -169,7 +192,7 @@ describe('variableRegistry', () => {
             baseState.剧情 as any,
             baseState.剧情规划 as any,
             undefined,
-            { 名称: '旧组织' } as any,
+            baseState.玩家组织 as any,
             baseState.任务列表 as any,
             '战斗.是否战斗中',
             true,
@@ -177,6 +200,40 @@ describe('variableRegistry', () => {
         );
 
         expect('battle' in result).toBe(false);
-        expect(result.sect).toEqual({ 名称: '旧组织' });
+        expect(result.sect).toEqual(baseState.玩家组织);
+    });
+
+    it('applies current player organization commands except the old organization task list', () => {
+        const updated = applyStateCommand(
+            baseState.角色 as any,
+            baseState.环境 as any,
+            baseState.社交 as any,
+            baseState.世界 as any,
+            baseState.剧情 as any,
+            baseState.剧情规划 as any,
+            undefined,
+            baseState.玩家组织 as any,
+            baseState.任务列表 as any,
+            '玩家组织.玩家贡献',
+            180,
+            'set'
+        );
+        expect(updated.sect.玩家贡献).toBe(180);
+
+        const blocked = applyStateCommand(
+            baseState.角色 as any,
+            baseState.环境 as any,
+            baseState.社交 as any,
+            baseState.世界 as any,
+            baseState.剧情 as any,
+            baseState.剧情规划 as any,
+            undefined,
+            baseState.玩家组织 as any,
+            baseState.任务列表 as any,
+            '玩家组织.任务列表',
+            [{ 标题: '旧入口任务' }],
+            'set'
+        );
+        expect(blocked.sect.任务列表).toEqual([]);
     });
 });

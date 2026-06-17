@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { 接口设置结构, 单接口配置结构, 功能模型占位配置结构 } from '../../../types';
 import GameButton from '../../ui/GameButton';
-import InlineSelect from '../../ui/InlineSelect';
 import ToggleSwitch from '../../ui/ToggleSwitch';
 import { 规范化接口设置 } from '../../../utils/apiConfig';
 import StageApiModelSelector from './StageApiModelSelector';
@@ -14,8 +13,6 @@ interface Props {
 
 const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFromMemory }) => {
     const [form, setForm] = useState<接口设置结构>(() => 规范化接口设置(settings));
-    const [modelOptions, setModelOptions] = useState<string[]>([]);
-    const [loadingModels, setLoadingModels] = useState(false);
     const [message, setMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
     const [memoryParsing, setMemoryParsing] = useState(false);
@@ -25,7 +22,6 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
     useEffect(() => {
         const normalized = 规范化接口设置(settings);
         setForm(normalized);
-        setModelOptions([]);
     }, [settings]);
 
     const activeConfig = useMemo<单接口配置结构 | null>(() => {
@@ -34,15 +30,10 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
         return selected || form.configs[0] || null;
     }, [form.activeConfigId, form.configs]);
 
-    const 地图生成模型 = (form.功能模型占位.地图生成使用模型 || '').trim();
-    const 地图生成API地址 = (form.功能模型占位.地图生成API地址 || '').trim();
-    const 地图生成API密钥 = (form.功能模型占位.地图生成API密钥 || '').trim();
     const 地图生成功能开启 = form.功能模型占位.地图生成功能启用 !== false;
     const 主剧情解析模型 = (form.功能模型占位.主剧情使用模型 || '').trim() || (activeConfig?.model || '').trim();
     const 自动更新独立开启 = Boolean(form.功能模型占位.地图自动更新独立模型开关);
     const 自动更新模型 = (form.功能模型占位.地图自动更新使用模型 || '').trim();
-    const 自动更新API地址 = (form.功能模型占位.地图自动更新API地址 || '').trim();
-    const 自动更新API密钥 = (form.功能模型占位.地图自动更新API密钥 || '').trim();
 
     const updatePlaceholder = <K extends keyof 功能模型占位配置结构>(key: K, value: 功能模型占位配置结构[K]) => {
         setForm((prev) => ({
@@ -52,56 +43,6 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                 [key]: value
             }
         }));
-    };
-
-    const fetchModelsFromCurrentConfig = async (): Promise<string[] | null> => {
-        const resolvedBaseUrl = 自动更新独立开启
-            ? (自动更新API地址 || activeConfig?.baseUrl || '')
-            : (地图生成API地址 || activeConfig?.baseUrl || '');
-        const resolvedApiKey = 自动更新独立开启
-            ? (自动更新API密钥 || activeConfig?.apiKey || '')
-            : (地图生成API密钥 || activeConfig?.apiKey || '');
-        if (!resolvedApiKey || !resolvedBaseUrl) {
-            setMessage('请先填写可用的 API Key 与 Base URL。');
-            return null;
-        }
-        try {
-            const base = resolvedBaseUrl.replace(/\/+$/, '');
-            const normalized = base.replace(/\/v1$/i, '');
-            const candidateUrls = Array.from(new Set([
-                `${normalized}/v1/models`,
-                `${normalized}/models`,
-                `${base}/models`
-            ]));
-            for (const url of candidateUrls) {
-                const res = await fetch(url, {
-                    headers: {
-                        Authorization: `Bearer ${resolvedApiKey}`
-                    }
-                });
-                if (!res.ok) continue;
-                const data = await res.json();
-                if (data && Array.isArray(data.data)) {
-                    return data.data.map((m: any) => m?.id).filter(Boolean);
-                }
-            }
-            setMessage('获取失败：返回格式错误。');
-            return null;
-        } catch (error: any) {
-            setMessage(`获取失败：${error.message}`);
-            return null;
-        }
-    };
-
-    const handleFetchModels = async () => {
-        setLoadingModels(true);
-        setMessage('');
-        const models = await fetchModelsFromCurrentConfig();
-        if (models) {
-            setModelOptions(models);
-            setMessage('地图生成模型列表获取成功。');
-        }
-        setLoadingModels(false);
     };
 
     const handleSave = () => {
@@ -141,15 +82,6 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
             setMemoryParsing(false);
         }
     };
-
-    const mapModelValue = 地图生成模型;
-    const mapModelDisplay = mapModelValue || (activeConfig?.model || '');
-    const autoMapModelDisplay = 自动更新独立开启 ? 自动更新模型 : 主剧情解析模型;
-    const selectOptions = Array.from(new Set(
-        [...modelOptions, mapModelValue, 自动更新模型, 主剧情解析模型, activeConfig?.model || '']
-            .map((item) => (item || '').trim())
-            .filter(Boolean)
-    ));
 
     return (
         <div className="space-y-6 text-sm animate-fadeIn">
@@ -254,7 +186,7 @@ const MapModelSettings: React.FC<Props> = ({ settings, onSave, onRegenerateMapFr
                     <div className="text-[11px] text-gray-500">留空则复用主剧情 API Key。</div>
                 </div>
 
-                {!mapModelValue && (
+                {!(form.功能模型占位.地图生成使用模型 || '').trim() && (
                     <div className="text-[11px] text-gray-400">
                         当前状态：复用主剧情接口（{activeConfig?.model || '未配置'}）。
                     </div>

@@ -47,7 +47,7 @@ import { 构建开局世界观生成提示词预览 } from '../../../utils/world
 import { normalizeWorldMapDraft } from '../../../utils/newGameDiy';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../../utils/apiConfig';
 import { 请求模型文本 } from '../../../services/ai/chatCompletionClient';
-import { 下载创意工坊模块, 列出创意工坊模块 } from '../../../services/creativeWorkshop';
+import { 列出创意工坊模块 } from '../../../services/creativeWorkshop';
 
 interface Props {
     onComplete: (
@@ -68,11 +68,6 @@ interface Props {
 
 const STEP_CONFIGS = [...新开局步骤定义列表];
 const STEPS = STEP_CONFIGS.map((item) => item.label);
-type 新开局步骤ID = typeof STEP_CONFIGS[number]['id'];
-const 查找新开局步骤索引 = (id: 新开局步骤ID): number => {
-    const index = STEP_CONFIGS.findIndex((item) => item.id === id);
-    return index >= 0 ? index : 0;
-};
 const 自定义天赋存储键 = 设置键.自定义天赋;
 const 自定义背景存储键 = 设置键.自定义背景;
 type 自定义开局预设元信息 = {
@@ -89,10 +84,9 @@ type 属性结构 = {
 };
 const 难度下拉选项 = 获取创意工坊难度选项() as Array<{ value: 游戏难度; label: string }>;
 const 世界版图下拉选项 = 获取创意工坊世界规模选项() as Array<{ value: WorldGenConfig['worldSize']; label: string }>;
-const 创意工坊类型标签: Record<创意工坊模块类型, string> = {
+const 模式包类型标签: Record<创意工坊模块类型, string> = {
     topic: '模式包',
     world_rules: '世界规则',
-    opening: '开局配置',
     ability: '能力体系',
     comfy_workflow: 'ComfyUI 工作流'
 };
@@ -266,11 +260,11 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [模式包背景列表, 设置模式包背景列表] = useState<背景结构[]>([]);
     const [模式包世界书列表, 设置模式包世界书列表] = useState<世界书结构[]>([]);
     const [自定义开局预设列表, 设置自定义开局预设列表] = useState<开局预设方案结构[]>([]);
-    const [创意工坊模块列表, 设置创意工坊模块列表] = useState<创意工坊模块条目[]>([]);
-    const [已选创意工坊模式, 设置已选创意工坊模式] = useState<题材模式类型 | ''>('');
-    const [已选创意工坊子项, 设置已选创意工坊子项] = useState<Partial<Record<创意工坊模块类型, string>>>({});
-    const [创意工坊注入状态, 设置创意工坊注入状态] = useState('');
-    const [创意工坊注入中, 设置创意工坊注入中] = useState(false);
+    const [模式包模块列表, 设置模式包模块列表] = useState<创意工坊模块条目[]>([]);
+    const [已选模式包模式, 设置已选模式包模式] = useState<题材模式类型 | ''>('');
+    const [已选模式包子项, 设置已选模式包子项] = useState<Partial<Record<创意工坊模块类型, string>>>({});
+    const [模式包注入状态, 设置模式包注入状态] = useState('');
+    const [模式包注入中, 设置模式包注入中] = useState(false);
     const [activeModuleExtraRules, setActiveModuleExtraRules] = useState('');
     // Custom Inputs
     const [customTalent, setCustomTalent] = useState<天赋结构>({ 名称: '', 描述: '', 效果: '' });
@@ -303,7 +297,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         const 描述 = raw?.描述?.trim() || '';
         const 效果 = raw?.效果?.trim() || '';
         if (!名称 || !描述 || !效果) return null;
-        return { 名称, 描述, 效果, 初始物品: raw.初始物品 };
+        return { ...raw, 名称, 描述, 效果 };
     };
     const 合并去重天赋 = (rawList: 天赋结构[]): 天赋结构[] => {
         const map = new Map<string, 天赋结构>();
@@ -326,10 +320,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const 当前题材预设背景 = useMemo(() => 获取题材预设背景(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前题材预设天赋 = useMemo(() => 获取题材预设天赋(openingConfig.题材模式), [openingConfig.题材模式]);
     const 恢复链有效模块键 = useMemo(
-        () => 创意工坊模块列表.some((item) => item.type !== 'topic')
-            ? new Set(创意工坊模块列表.map((item) => `${item.source || 'builtin'}:${item.id}`))
+        () => 模式包模块列表.some((item) => item.type !== 'topic')
+            ? new Set(模式包模块列表.map((item) => `${item.source || 'builtin'}:${item.id}`))
             : undefined,
-        [创意工坊模块列表]
+        [模式包模块列表]
     );
     const 当前题材预设背景名称集合 = useMemo(() => new Set(当前题材预设背景.map(item => item.名称)), [当前题材预设背景]);
     const 当前题材预设天赋名称集合 = useMemo(() => new Set(当前题材预设天赋.map(item => item.名称)), [当前题材预设天赋]);
@@ -757,8 +751,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         设置模式包背景列表(restored.模式包背景列表);
         设置模式包天赋列表(restored.模式包天赋列表);
         设置模式包世界书列表(restored.modeWorldbooks || []);
-        设置已选创意工坊模式(restored.workshopSelection?.selectedMode || '');
-        设置已选创意工坊子项(restored.workshopSelection?.selectedModules || {});
+        设置已选模式包模式(restored.workshopSelection?.selectedMode || '');
+        设置已选模式包子项(restored.workshopSelection?.selectedModules || {});
         if (!options?.保持当前步骤) setStep(1);
     };
     const 当前性别模式: '男' | '女' | '男娘' | '扶她' | '自定义' = ['男', '女', '男娘', '扶她'].includes(charGender.trim())
@@ -966,14 +960,14 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         return `${base}\n${extra}`;
     };
 
-    const 创意工坊模块键 = (entry: 创意工坊模块条目): string => `${entry.source || 'builtin'}:${entry.id}`;
+    const 模式包模块键 = (entry: 创意工坊模块条目): string => `${entry.source || 'builtin'}:${entry.id}`;
 
-    const 按键查找创意工坊模块 = (moduleKey: string): 创意工坊模块条目 | undefined => (
-        创意工坊模块列表.find((item) => 创意工坊模块键(item) === moduleKey)
+    const 按键查找模式包模块 = (moduleKey: string): 创意工坊模块条目 | undefined => (
+        模式包模块列表.find((item) => 模式包模块键(item) === moduleKey)
     );
 
-    const 按模式查找官方工坊模块 = (mode: 题材模式类型, type: 创意工坊模块类型): 创意工坊模块条目 | undefined => (
-        创意工坊模块列表.find((entry) => (
+    const 按模式查找官方模式包模块 = (mode: 题材模式类型, type: 创意工坊模块类型): 创意工坊模块条目 | undefined => (
+        模式包模块列表.find((entry) => (
             entry.source === 'builtin'
             && entry.type === type
             && entry.preset?.openingConfig?.题材模式 === mode
@@ -985,14 +979,14 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
         return 题材模式顺序.includes(mode as 题材模式类型) ? mode as 题材模式类型 : '';
     };
 
-    const 应用创意工坊模块到开局 = async (moduleKey: string) => {
-        设置创意工坊注入状态('');
+    const 应用模式包模块到开局 = (moduleKey: string) => {
+        设置模式包注入状态('');
         if (!moduleKey) return;
-        const entry = 按键查找创意工坊模块(moduleKey);
+        const entry = 按键查找模式包模块(moduleKey);
         if (!entry) return;
-        设置创意工坊注入中(true);
+        设置模式包注入中(true);
         try {
-            const module = await 下载创意工坊模块(entry);
+            const module = entry;
             const mode = 读取模块模式(module);
             if (mode) 更新题材模式(mode);
             const modeRuntimeProfile = 规范化模式运行时配置(
@@ -1104,34 +1098,34 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                 const extra = String(content).trim();
                 if (extra) setWorldConfig((prev) => ({ ...prev, worldExtraRequirement: 拼接额外要求(prev.worldExtraRequirement, extra) }));
             }
-            设置创意工坊注入状态(`已注入「${module.title}」的模式专属世界书、身份背景池和天赋池。可在后续步骤继续微调角色与开局要求。`);
+            设置模式包注入状态(`已注入「${module.title}」的模式专属世界书、身份背景池和天赋池。可在后续步骤继续微调角色与开局要求。`);
         } catch (error: any) {
-            设置创意工坊注入状态(`模式包预设注入失败：${error?.message || '未知错误'}`);
+            设置模式包注入状态(`模式包预设注入失败：${error?.message || '未知错误'}`);
         } finally {
-            设置创意工坊注入中(false);
+            设置模式包注入中(false);
         }
     };
 
-    const 选择创意工坊子项 = (type: 创意工坊模块类型, moduleKey: string) => {
-        设置已选创意工坊子项((prev) => ({ ...prev, [type]: moduleKey }));
-        void 应用创意工坊模块到开局(moduleKey);
+    const 选择模式包子项 = (type: 创意工坊模块类型, moduleKey: string) => {
+        设置已选模式包子项((prev) => ({ ...prev, [type]: moduleKey }));
+        应用模式包模块到开局(moduleKey);
     };
 
-    const 选择创意工坊模式 = (mode: 题材模式类型 | '') => {
-        设置已选创意工坊模式(mode);
+    const 选择模式包模式 = (mode: 题材模式类型 | '') => {
+        设置已选模式包模式(mode);
         if (!mode) {
-            设置已选创意工坊子项({});
+            设置已选模式包子项({});
             return;
         }
         更新题材模式(mode);
         const next: Partial<Record<创意工坊模块类型, string>> = {};
-        const entry = 按模式查找官方工坊模块(mode, 'topic');
+        const entry = 按模式查找官方模式包模块(mode, 'topic');
         if (entry) {
-            const key = 创意工坊模块键(entry);
+            const key = 模式包模块键(entry);
             next.topic = key;
-            void 应用创意工坊模块到开局(key);
+            应用模式包模块到开局(key);
         }
-        设置已选创意工坊子项(next);
+        设置已选模式包子项(next);
     };
 
     const 解析AI框架JSON = (raw: string): any => {
@@ -1322,7 +1316,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                     设置自定义开局预设列表(合并去重开局预设方案(savedStartPresets.map(item => 标准化开局预设方案(item)).filter(Boolean) as 开局预设方案结构[]));
                 }
                 if (Array.isArray(workshopModules)) {
-                    设置创意工坊模块列表(workshopModules.filter((item) => item.type === 'topic'));
+                    设置模式包模块列表(workshopModules.filter((item) => item.type === 'topic'));
                 }
             } catch (error) {
                 console.error('加载自定义身份/天赋/开局方案失败', error);
@@ -1513,14 +1507,13 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const 构建当前表单开局预设 = (meta?: Partial<自定义开局预设元信息> & { id?: string }): 开局预设方案结构 => {
         const effectiveOpeningConfig = 构建有效开局配置();
         const runtimeSnapshot = 构建开局运行时快照({
-            openingConfig: effectiveOpeningConfig,
             openingStreaming: effectiveOpeningStreaming,
             openingExtraRequirement: openingExtraRequirement.trim(),
             activeModuleExtraRules: activeModuleExtraRules.trim(),
             modeWorldbooks: 模式包世界书列表,
             workshopSelection: {
-                selectedMode: 已选创意工坊模式,
-                selectedModules: 已选创意工坊子项
+                selectedMode: 已选模式包模式,
+                selectedModules: 已选模式包子项
             },
             modeBackgrounds: 模式包背景列表,
             modeTalents: 模式包天赋列表
@@ -1843,34 +1836,34 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             <span className="text-[10px] text-emerald-200 font-mono tracking-[0.18em]">MODE PACK</span>
                                         </div>
                                         <InlineSelect
-                                            value={已选创意工坊模式}
+                                            value={已选模式包模式}
                                             options={[
                                                 { value: '', label: '不使用模式包' },
                                                 ...题材模式顺序.map((mode) => ({ value: mode, label: `${mode}模式` }))
                                             ]}
-                                            onChange={选择创意工坊模式}
-                                            disabled={创意工坊注入中 || 创意工坊模块列表.length <= 0}
+                                            onChange={选择模式包模式}
+                                            disabled={模式包注入中 || 模式包模块列表.length <= 0}
                                         />
                                         <div className="grid gap-3 md:grid-cols-2">
                                             {(() => {
                                                 const type: 创意工坊模块类型 = 'topic';
-                                                const selectedKey = 已选创意工坊子项[type] || '';
-                                                const selectedEntry = selectedKey ? 按键查找创意工坊模块(selectedKey) : null;
-                                                const options = 创意工坊模块列表.filter((entry) => entry.type === type);
+                                                const selectedKey = 已选模式包子项[type] || '';
+                                                const selectedEntry = selectedKey ? 按键查找模式包模块(selectedKey) : null;
+                                                const options = 模式包模块列表.filter((entry) => entry.type === type);
                                                 return (
                                                     <div className="rounded-xl border border-white/10 bg-black/25 p-3 space-y-2 md:col-span-2">
-                                                        <div className="text-[11px] font-bold text-emerald-200">{创意工坊类型标签[type]}</div>
+                                                        <div className="text-[11px] font-bold text-emerald-200">{模式包类型标签[type]}</div>
                                                         <InlineSelect
                                                             value={selectedKey}
                                                             options={[
                                                                 { value: '', label: '不使用模式包' },
                                                                 ...options.map((entry) => ({
-                                                                    value: 创意工坊模块键(entry),
+                                                                    value: 模式包模块键(entry),
                                                                     label: `${读取模块模式(entry) || '通用'} · ${entry.title}`
                                                                 }))
                                                             ]}
-                                                            onChange={(moduleKey) => 选择创意工坊子项(type, moduleKey)}
-                                                            disabled={创意工坊注入中 || options.length <= 0}
+                                                            onChange={(moduleKey) => 选择模式包子项(type, moduleKey)}
+                                                            disabled={模式包注入中 || options.length <= 0}
                                                         />
                                                         {selectedEntry && (
                                                             <div className="text-[11px] leading-5 text-gray-400">
@@ -1881,8 +1874,8 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                                 );
                                             })()}
                                         </div>
-                                        {创意工坊注入状态 && (
-                                            <div className={`text-[11px] ${创意工坊注入状态.includes('失败') ? 'text-red-300' : 'text-emerald-200'}`}>{创意工坊注入状态}</div>
+                                        {模式包注入状态 && (
+                                            <div className={`text-[11px] ${模式包注入状态.includes('失败') ? 'text-red-300' : 'text-emerald-200'}`}>{模式包注入状态}</div>
                                         )}
                                     </div>
 

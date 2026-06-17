@@ -1,7 +1,7 @@
-import type { GameResponse, TavernCommand, 世界数据结构, 环境信息结构, 接口设置结构, 世界书结构, 记忆系统结构 } from '../../types';
+import type { GameResponse, TavernCommand, 世界数据结构, 环境信息结构, 接口设置结构, 世界书结构, 记忆系统结构, 内置提示词条目结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取地图生成接口配置, 获取地图自动更新接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
-import { 获取内置世界书槽位内容 } from '../../utils/worldbook';
+import { 获取内置提示词槽位内容 } from '../../utils/builtinPrompts';
 import { 地图重生成系统提示词 } from '../../prompts/runtime/mapRegenerate';
 import { 地图重生成COT提示词 } from '../../prompts/runtime/mapRegenerateCot';
 import { 请求模型文本, 规范化文本补全消息链 } from '../../services/ai/chatCompletionClient';
@@ -34,6 +34,7 @@ type 地图更新请求参数 = {
     角色?: any;
     gameConfig?: any;
     记忆系统?: 记忆系统结构;
+    builtinPromptEntries?: 内置提示词条目结构[];
     worldbooks?: 世界书结构[];
     currentResponse?: GameResponse;
     stateBase?: {
@@ -333,8 +334,6 @@ export const 构建地图层级替换结果 = (
     }));
 };
 
-const 地图层级顺序表 = ['寰宇', '大地点', '中地点', '小地点', '区地点', '子地点'] as const;
-
 const 提取命令块 = (rawText: string): string => {
     const source = (rawText || '').trim();
     const withoutThinking = source
@@ -436,13 +435,13 @@ export const 生成地图更新 = async (
         记忆系统: params.记忆系统,
         currentResponse: params.currentResponse
     });
-    const cotPrompt = 获取内置世界书槽位内容({
-        books: params.worldbooks,
+    const cotPrompt = 获取内置提示词槽位内容({
+        entries: params.builtinPromptEntries,
         slotId: 'builtin_map_regenerate_cot',
         fallback: 地图重生成COT提示词
     });
-    const systemPrompt = 获取内置世界书槽位内容({
-        books: params.worldbooks,
+    const systemPrompt = 获取内置提示词槽位内容({
+        entries: params.builtinPromptEntries,
         slotId: 'builtin_map_regenerate_system_prompt',
         fallback: 地图重生成系统提示词
     });

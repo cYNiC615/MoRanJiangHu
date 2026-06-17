@@ -363,7 +363,6 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
         deps.主角生图进行中集合.add(secretKey);
         try {
             const npcWorkflow = await deps.加载NPC生图工作流();
-            const secretArchive = (player as any)?.图片档案?.香闺秘档部位档案?.[part];
             const description = (player as any)?.[`${part}描述`] || '';
             if (!description) {
                 deps.推送右下角提示({
@@ -373,8 +372,6 @@ export const 创建主角图片工作流 = (deps: 主角图片工作流依赖) =
                 });
                 return;
             }
-            const artist串 = deps.获取生图画师串预设(deps.apiConfig, 'npc');
-            const anchor = deps.读取主角角色锚点();
             const result = await npcWorkflow.执行NPC香闺秘档部位生图?.(
                 { ...player, 是否主要角色: true, 姓名: player.姓名 },
                 part,

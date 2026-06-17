@@ -518,27 +518,6 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
         });
     };
 
-    const 设置当前角色锚点 = async (anchorId: string) => {
-        if (!anchorId) return;
-        await deps.更新接口配置(config => ({
-            ...config,
-            功能模型占位: {
-                ...config.功能模型占位,
-                当前角色锚点ID: anchorId
-            }
-        }));
-    };
-
-    const 读取角色锚点 = (anchorId?: string): 角色锚点结构 | null => {
-        const feature = 规范化接口设置(deps.获取接口配置()).功能模型占位;
-        const list = Array.isArray(feature.角色锚点列表) ? feature.角色锚点列表 : [];
-        if (anchorId) {
-            return list.find((item) => item.id === anchorId) || null;
-        }
-        const currentId = (feature.当前角色锚点ID || '').trim();
-        return list.find((item) => item.id === currentId) || list[0] || null;
-    };
-
     const 按NPC读取角色锚点 = (npcId: string): 角色锚点结构 | null => {
         if (!npcId) return null;
         const feature = 规范化接口设置(deps.获取接口配置()).功能模型占位;
@@ -679,15 +658,12 @@ export const 创建图片预设工作流 = (deps: 图片预设工作流依赖) =
         savePngStylePreset: 保存PNG画风预设,
         deletePngStylePreset: 删除PNG画风预设,
         setCurrentPngStylePreset: 设置当前PNG画风预设,
-        getPngStylePreset: 读取PNG画风预设,
         getCurrentPngStylePreset: 获取当前PNG画风预设摘要,
         exportPngStylePresets: 导出PNG画风预设,
         importPngStylePresets: 导入PNG画风预设,
         parsePngStylePreset,
         saveCharacterAnchor: 保存角色锚点,
         deleteCharacterAnchor: 删除角色锚点,
-        setCurrentCharacterAnchor: 设置当前角色锚点,
-        getCharacterAnchor: 读取角色锚点,
         getCharacterAnchorByNpcId: 按NPC读取角色锚点,
         getPlayerCharacterAnchor: 读取主角角色锚点,
         getSceneCharacterAnchors: 提取场景角色锚点,

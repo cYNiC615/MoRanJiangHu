@@ -79,11 +79,6 @@ const parseModifier = (part: string): JudgmentModifier | null => {
     };
 };
 
-const parseNumericValue = (value: string): number | null => {
-    const match = value.match(/[+\-]?\d+(?:\.\d+)?/);
-    return match ? Number(match[0]) : null;
-};
-
 const parseBreakdownItem = (line: string): JudgmentBreakdownItem | null => {
     const normalized = line.trim().replace(/^[\-•·]\s*/, '').trim();
     const match = normalized.match(/^([^：:]+)[：:]\s*([+\-]?\d+(?:\.\d+)?)(?:\s*[(（](.*?)[)）])?/);

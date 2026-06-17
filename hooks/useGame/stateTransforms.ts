@@ -1,7 +1,7 @@
 import { 角色数据结构, 环境信息结构, 装备槽位 } from '../../types';
 import type { 背景开局货币 } from '../../types';
 import { normalizeCanonicalGameTime, 环境时间转标准串, 结构化时间转标准串 } from './timeUtils';
-import { 压缩图片资源字段, 图片资源记录含可恢复地址 } from '../../utils/imageAssets';
+import { 压缩图片资源字段 } from '../../utils/imageAssets';
 import { 自动装备最佳装备 } from '../../utils/equipmentActions';
 import { 规范化消耗品使用效果 } from '../../utils/itemEffects';
 import { 归一化六维到境界预算 } from '../../utils/attributeBudget';
@@ -16,12 +16,11 @@ import type { ModeRuntimeProfile, 题材模式类型 } from '../../models/system
 import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
 
 type 境界配置 = undefined;
-const 获取境界配置 = () => undefined;
-const 规范化境界显示文本共享 = (value: unknown, fallback = ''): string => (
+const 获取境界配置 = (_mode?: unknown, _runtimeProfile?: unknown) => undefined;
+const 规范化境界显示文本共享 = (value: unknown, fallback = '', _config?: 境界配置): string => (
     typeof value === 'string' && value.trim() ? value.trim() : fallback
 );
-const 获取境界层级 = () => 1;
-const 获取境界名称列表 = () => [] as string[];
+const 获取境界层级 = (_text?: unknown, _config?: 境界配置) => 1;
 
 const 深拷贝 = <T,>(data: T): T => JSON.parse(JSON.stringify(data)) as T;
 
@@ -338,7 +337,6 @@ const 标准化玩家BUFF列表 = (raw: any, options?: 玩家BUFF规范化选项
 };
 const 未命名物品正则 = /^(未命名|未知物品|未知|无名|杂物|物品|\?+|n\/a)$/i;
 const 秘籍残卷正则 = /残卷|残篇|残本|残页|残章/;
-const 任务唯一道具正则 = /任务|主线|支线|剧情|信物|令牌|手令|调兵令|密令|密函|钥匙|契约|凭证|腰牌|玉佩|印信|地图|残图/;
 const 无限流支线剧情资源正则 = /^[DCBAS]级支线剧情(?:凭证|卷轴|权限|结晶|碎片)?$/i;
 const 规范化非负数 = (value: unknown, fallback = 0): number => {
     const n = Number(value);
@@ -1191,36 +1189,6 @@ const 合并角色图片档案对象 = (leftRaw: any, rightRaw: any): any | unde
 const 规范化角色物品容器映射 = (rawRole?: any, options?: 玩家BUFF规范化选项): 角色数据结构 => {
     const 装备槽位列表: 装备槽位[] = ['头部', '胸部', '盔甲', '内衬', '腿部', '手部', '足部', '主武器', '副武器', '暗器', '背部', '腰部', '坐骑'];
     const 装备槽位集合 = new Set<string>(装备槽位列表);
-    const 槽位ID片段映射: Record<装备槽位, string> = {
-        头部: 'head',
-        胸部: 'chest',
-        盔甲: 'armor',
-        内衬: 'inner',
-        腿部: 'legs',
-        手部: 'hands',
-        足部: 'feet',
-        主武器: 'main_weapon',
-        副武器: 'off_weapon',
-        暗器: 'hidden_weapon',
-        背部: 'back',
-        腰部: 'waist',
-        坐骑: 'mount'
-    };
-    const 槽位类型映射: Record<装备槽位, '武器' | '防具' | '杂物'> = {
-        头部: '防具',
-        胸部: '防具',
-        盔甲: '防具',
-        内衬: '防具',
-        腿部: '防具',
-        手部: '防具',
-        足部: '防具',
-        主武器: '武器',
-        副武器: '武器',
-        暗器: '武器',
-        背部: '防具', // 修正：背部不再是容器，视为防具/挂件
-        腰部: '防具', // 修正：腰部不再是容器，视为防具/挂件
-        坐骑: '杂物'
-    };
 
     const role = 深拷贝(rawRole && typeof rawRole === 'object' ? rawRole : {}) as any;
     (role as any).姓名 = 规范化文本((role as any).姓名);
@@ -2175,22 +2143,6 @@ const 标准化NPC总结记忆 = (summaryRaw: any): Array<{
     return Array.from(unique.values()).sort((a, b) => a.开始索引 - b.开始索引);
 };
 
-const 合并字符串数组 = (a: any, b: any): string[] | undefined => {
-    const merged: string[] = [];
-    const seen = new Set<string>();
-    const push = (value: unknown) => {
-        if (typeof value !== 'string') return;
-        const text = value.trim();
-        if (!text) return;
-        if (seen.has(text)) return;
-        seen.add(text);
-        merged.push(text);
-    };
-    if (Array.isArray(a)) a.forEach(push);
-    if (Array.isArray(b)) b.forEach(push);
-    return merged.length > 0 ? merged : undefined;
-};
-
 const 默认NPC装备 = {
     主武器: '无',
     副武器: '无',
@@ -2800,20 +2752,6 @@ const 合并NPC图片档案对象 = (leftRaw: any, rightRaw: any): any | undefin
 };
 
 const NPC真实姓名最大长度 = 6;
-const NPC真实姓名最小长度 = 2;
-// 注意：以下两个姓名池已被 utils/templateNameBlacklist.ts 的「男性/中性模板姓名黑名单」取代。
-// 它们不再用于给 NPC 改名（选择男性或中性NPC姓名 当前无调用方），
-// 其中的名字（林砚舟/许明澈/顾长风 等）现在属于"被反复使用的模板名"，会被变量生成校验拦截。
-// 保留仅为兼容历史引用；如需新增默认名，请改用 templateNameBlacklist 之外的原创姓名。
-const 男性NPC真实姓名列表 = [
-    '顾长风', '沈砚', '陆怀安', '谢行舟', '裴景明', '温玄', '晏清河', '秦照夜',
-    '傅云峥', '宁远山', '赵平安', '林砚舟', '许明澈', '周临渊', '韩不疑', '唐问川',
-    '宋青崖', '叶归尘', '江听澜', '方知白', '洛怀瑾', '萧承影', '陈照微', '岑越'
-];
-const 中性NPC真实姓名列表 = [
-    '云照', '青棠', '闻溪', '桑宁', '辛夷', '乔霜', '尹舟', '郁离',
-    '楚衡', '姜行', '阮清', '奚白', '叶澄', '洛微', '祝宁', '温竹'
-];
 const 噪声NPC姓名片段正则 = /(?:轻声|低声|细语|小声|柔声|温声|沉声|冷声|厉声|压低|喃喃|喃语|嘀咕|说道|说着|问道|答道|开口|补充|解释|提醒|笑着|苦笑|皱眉|抬眼|抬头|看向|望向|回头|点头|摇头|叹息|擦净|将|把|并|却|已经|刚刚|没有|只能|只好|不得不|勉强|继续|仍旧|还是)/;
 const 噪声NPC姓名收尾正则 = /(?:地|着|了|道|问|说)$/;
 const 噪声NPC姓名完整短语正则 = /^(?:(?:他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人))?(?:只能|只好|只得|不得不|勉强|连忙|赶紧|急忙|仍旧|还是|却|并|但|又|便|就|再)?(?:强辩|辩解|解释|补充|提醒|回答|答话|应声|开口|说道|说着|问道|答道|低声|轻声|沉声|苦笑|皱眉|点头|摇头|叹息|看向|望向|回头|抬眼|抬头|擦净)$/;
@@ -2834,31 +2772,6 @@ const 是否噪声NPC姓名 = (value: unknown): boolean => {
     if (/^(?:自己|自身|本人|主角|玩家|他|她|它|你|我|他们|她们|对方|那人|此人|有人|众人).{1,10}$/.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
     if (name.length >= 4 && 噪声NPC姓名收尾正则.test(name) && 噪声NPC姓名片段正则.test(name)) return true;
     return false;
-};
-
-const 是否真实NPC姓名 = (value: unknown): boolean => {
-    const name = 规范化文本(value).replace(/\s+/g, '');
-    if (name.length < NPC真实姓名最小长度 || name.length > NPC真实姓名最大长度) return false;
-    if (!/^[\u4e00-\u9fa5]{2,4}$/u.test(name)) return false;
-    if (是否噪声NPC姓名(name)) return false;
-    if (/^(?:未知|无名|未命名|某人|路人|角色|人物|NPC|同门|随行者|队友|弟子|主神|系统|提示|公告)\d*$/u.test(name)) return false;
-    if (/(?:女子|女人|少女|姑娘|男子|男人|少年|老者|老人|太监|内侍|侍卫|护卫|弟子|同门|掌柜|管事|宫女|丫鬟|小厮|车夫)$/u.test(name)) return false;
-    return true;
-};
-
-const 选择男性或中性NPC姓名 = (npc: any, index: number, usedNames: Set<string>): string => {
-    const text = [npc?.id, npc?.姓名, npc?.性别, npc?.身份, npc?.简介, npc?.境界, index]
-        .map((value) => 规范化文本(value))
-        .join('|');
-    const pool = /女|女子|少女|姑娘|侍女|丫鬟|妇人|夫人/.test(text)
-        ? 中性NPC真实姓名列表
-        : (/男|男子|少年|老者|太监|内侍|侍卫|护卫|公子|汉子/.test(text) ? 男性NPC真实姓名列表 : 中性NPC真实姓名列表);
-    const start = 稳定区间整数(`${text}:real-name`, 0, Math.max(0, pool.length - 1));
-    for (let offset = 0; offset < pool.length; offset += 1) {
-        const candidate = pool[(start + offset) % pool.length];
-        if (candidate && !usedNames.has(candidate)) return candidate;
-    }
-    return `${pool[start] || '云照'}${usedNames.size + 1}`;
 };
 
 const 修复NPC真实姓名列表 = (list: any[], options?: { 保留非姓名库主要女性名?: boolean }): any[] => {

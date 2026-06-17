@@ -1,6 +1,5 @@
 import * as textAIService from '../../services/ai/text';
-import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 剧情系统结构, 女主剧情规划结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构 } from '../../types';
-import type { 当前可用接口结构 } from '../../utils/apiConfig';
+import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 剧情系统结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构, 世界书作用域 } from '../../types';
 import { 获取世界演变接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
@@ -312,7 +311,7 @@ export const 执行世界演变更新工作流 = async (
         检查世界演变中断(params?.signal);
         const worldEvolutionWorldbookParams = {
             books: deps.worldbooks,
-            scopes: ['world_evolution'],
+            scopes: ['world_evolution'] as 世界书作用域[],
             environment: worldEnv,
             world: worldState,
             history: deps.历史记录,

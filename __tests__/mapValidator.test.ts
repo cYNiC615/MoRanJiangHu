@@ -3,7 +3,6 @@ import {
     验证建筑空间,
     验证道路空间,
     验证人物空间,
-    验证层级一致性,
     验证并修复地图数据,
 } from '../utils/mapValidator';
 import type {
@@ -16,14 +15,14 @@ import type {
 const 创建测试层级 = (overrides?: Partial<地图层级结构>): 地图层级结构 => ({
     ID: 'layer-1',
     名称: '青云镇',
-    层级类型: '小地点',
+    层级: '小地点',
     描述: '一个小镇',
     归属: { 大地点: '中原', 中地点: '洛阳', 小地点: '青云镇' },
     父级ID: '',
     锚点坐标: { x: 14, y: 14 },
     网格宽度: 28,
     网格高度: 28,
-    边界四角: [{ x: 0, y: 0 }, { x: 28, y: 0 }, { x: 28, y: 28 }, { x: 0, y: 28 }],
+    边界四角坐标: [{ x: 0, y: 0 }, { x: 28, y: 0 }, { x: 28, y: 28 }, { x: 0, y: 28 }],
     建筑物ID列表: [],
     道路ID列表: [],
     人物ID列表: [],
@@ -140,8 +139,9 @@ describe('地图验证器 - 人物空间验证', () => {
         const person: 地图人物结构 = {
             ID: 'p1', 名称: '张三', 描述: '', 归属: { 大地点: '', 中地点: '', 小地点: '' },
             所在层级ID: 'layer-1', 坐标: { x: 14, y: 14 },
+            关联NPC: '', 是否当前玩家: false,
         };
-        const issues = 验证人物空间(person, layer, []);
+        const issues = 验证人物空间(person, layer);
         expect(issues).toHaveLength(0);
     });
 
@@ -150,8 +150,9 @@ describe('地图验证器 - 人物空间验证', () => {
         const person: 地图人物结构 = {
             ID: 'p1', 名称: '张三', 描述: '', 归属: { 大地点: '', 中地点: '', 小地点: '' },
             所在层级ID: 'layer-1', 坐标: { x: 0, y: 0 },
+            关联NPC: '', 是否当前玩家: false,
         };
-        const issues = 验证人物空间(person, layer, []);
+        const issues = 验证人物空间(person, layer);
         expect(issues.some((i) => i.类别 === '坐标无效')).toBe(true);
     });
 
@@ -160,8 +161,9 @@ describe('地图验证器 - 人物空间验证', () => {
         const person: 地图人物结构 = {
             ID: 'p1', 名称: '张三', 描述: '', 归属: { 大地点: '', 中地点: '', 小地点: '' },
             所在层级ID: 'layer-1', 坐标: { x: 50, y: 50 },
+            关联NPC: '', 是否当前玩家: false,
         };
-        const issues = 验证人物空间(person, layer, []);
+        const issues = 验证人物空间(person, layer);
         expect(issues.some((i) => i.类别 === '坐标越界')).toBe(true);
     });
 });
@@ -184,6 +186,7 @@ describe('地图验证器 - 验证并修复', () => {
         const person: 地图人物结构 = {
             ID: 'p1', 名称: '张三', 描述: '', 归属: { 大地点: '', 中地点: '', 小地点: '' },
             所在层级ID: 'layer-1', 坐标: { x: 0, y: 0 },
+            关联NPC: '', 是否当前玩家: false,
         };
         const result = 验证并修复地图数据([layer], [], [], [person]);
         expect(result.修复计数).toBeGreaterThan(0);

@@ -24,6 +24,7 @@ import { isDynamicImportFetchError, lazyImportWithReload } from './utils/lazyImp
 import { 获取题材界面文案 } from './utils/resourceLabels';
 import { 获取题材顶部时间显示格式 } from './utils/modeRuntimeProfile';
 import { 整理世界状态客户可见大事 } from './hooks/useGame/worldEvolutionUtils';
+import { 剧情规划值有可读内容 } from './hooks/useGame/storyState';
 import { 分配角色属性点, type 可分配六维属性键 } from './utils/characterAttributePoints';
 import { getDiagnosticLogs, recordDiagnosticLog, subscribeDiagnosticLogs } from './services/diagnosticLog';
 import './services/diagnosticLog';
@@ -61,9 +62,9 @@ type 物品自动生图近期结果 = {
     nextItem: 游戏物品;
 };
 
-type 本回合变化区域 = '角色' | '背包' | '装备' | '队伍' | '社交' | '地图' | '任务列表' | '世界' | '剧情' | '剧情规划' | '记忆系统';
+export type 本回合变化区域 = '角色' | '背包' | '装备' | '队伍' | '社交' | '地图' | '任务列表' | '世界' | '剧情' | '剧情规划' | '女主剧情规划' | '记忆系统';
 
-const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] => {
+export const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] => {
     const areas = new Set<本回合变化区域>();
     (Array.isArray(commands) ? commands : []).forEach((cmd) => {
         const key = typeof cmd?.key === 'string' ? cmd.key : '';
@@ -76,13 +77,24 @@ const 提取本回合变化区域 = (commands: any[]): 本回合变化区域[] =
         if (key.includes('队伍') || key.includes('是否队友')) areas.add('队伍');
         if (key.includes('任务列表')) areas.add('任务列表');
         if (key.includes('世界')) areas.add('世界');
-        if (key.includes('剧情规划') || key.includes('女主剧情规划')) {
-            areas.add('剧情规划');
+        if (key.includes('女主剧情规划')) {
+            if (剧情规划值有可读内容(cmd?.value)) areas.add('女主剧情规划');
+        } else if (key.includes('剧情规划')) {
+            if (剧情规划值有可读内容(cmd?.value)) areas.add('剧情规划');
         } else if (key.includes('剧情')) {
-            areas.add('剧情');
+            if (剧情规划值有可读内容(cmd?.value)) areas.add('剧情');
         }
         if (key.includes('记忆')) areas.add('记忆系统');
     });
+    return [...areas];
+};
+
+export const 提取结构化响应变化区域 = (structuredResponse: any, options?: { hasTasks?: boolean }): 本回合变化区域[] => {
+    const areas = new Set<本回合变化区域>(提取本回合变化区域(structuredResponse?.tavern_commands || []));
+    提取本回合变化区域(structuredResponse?.planning_analysis_commands || []).forEach((area) => areas.add(area));
+    if (options?.hasTasks === false) {
+        areas.delete('任务列表');
+    }
     return [...areas];
 };
 
@@ -619,17 +631,9 @@ const App: React.FC = () => {
     );
     const latestChangedSections = React.useMemo(() => {
         const structuredResponse = latestAssistantMessage?.structuredResponse;
-        const areas = new Set<本回合变化区域>(提取本回合变化区域(structuredResponse?.tavern_commands || []));
-        if (
-            structuredResponse?.planning_analysis_updated === true
-            || (Array.isArray(structuredResponse?.planning_analysis_commands) && structuredResponse.planning_analysis_commands.length > 0)
-        ) {
-            areas.add('剧情规划');
-        }
-        if (!Array.isArray(state.任务列表) || state.任务列表.length === 0) {
-            areas.delete('任务列表');
-        }
-        return Array.from(areas);
+        return 提取结构化响应变化区域(structuredResponse, {
+            hasTasks: Array.isArray(state.任务列表) && state.任务列表.length > 0
+        });
     }, [latestAssistantMessage, state.任务列表]);
     const itemImageSequence = React.useMemo(() => {
         const bagRecords = (Array.isArray(state.角色?.物品列表) ? state.角色.物品列表 : []).flatMap((item: any) => {

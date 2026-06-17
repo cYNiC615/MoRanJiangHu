@@ -165,11 +165,16 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             skipVariableModelCalibration?: boolean;
             preserveScrollPosition?: boolean;
             forceAutoSave?: boolean;
+            deferRollbackUntilAfterVariableCalibration?: boolean;
         }
     ) => {
         const replayPlayerInput = typeof options?.playerInput === 'string' ? options.playerInput : snapshot.玩家输入;
         const hasReplayUserInput = replayPlayerInput.trim().length > 0;
-        deps.回档到快照(snapshot, { 保留图片状态: true });
+        const deferRollback = options?.deferRollbackUntilAfterVariableCalibration === true
+            && !options?.skipVariableModelCalibration;
+        if (!deferRollback) {
+            deps.回档到快照(snapshot, { 保留图片状态: true });
+        }
 
         const worldEvolutionEnabled = deps.世界演变功能已开启();
         const baseState = {
@@ -193,6 +198,9 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             } catch (variableError) {
                 console.error('重解析回合的独立变量模型校准失败，已回退为原始解析命令 + 本地校准', variableError);
             }
+        }
+        if (deferRollback) {
+            deps.回档到快照(snapshot, { 保留图片状态: true });
         }
 
         const newState = deps.processResponseCommands(effectiveParsed, baseState);
@@ -436,7 +444,8 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             tailMessages: 提取回合尾随消息(deps.历史记录, latestAssistantIndex),
             inputTokens: target.inputTokens,
             responseDurationSec: target.responseDurationSec,
-            preserveSnapshot: true
+            preserveSnapshot: true,
+            deferRollbackUntilAfterVariableCalibration: true
         });
         return null;
     };

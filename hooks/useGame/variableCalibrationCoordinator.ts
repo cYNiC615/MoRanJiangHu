@@ -411,37 +411,51 @@ export const 创建变量校准协调器 = (deps: 变量生成工作流依赖) =
         playerInput: string;
         parsedResponse: GameResponse;
     }): Promise<GameResponse> => {
-        const worldEvolutionEnabled = deps.世界演变功能已开启();
-        const recentRounds = deps.收集最近变量生成上下文(
-            Array.isArray(params.snapshot?.回档前历史) ? params.snapshot.回档前历史 : [],
-            2
-        );
-        const isOpeningRound = (Array.isArray(params.snapshot?.回档前历史) ? params.snapshot.回档前历史.length : 0) <= 1;
-        const variableCalibration = await deps.执行变量模型校准工作流(
-            {
-                playerInput: params.playerInput,
-                parsedResponse: params.parsedResponse,
-                baseState: 构建基础状态(params.snapshot, deps.深拷贝),
-                promptPool: deps.prompts,
-                worldEvolutionEnabled,
-                builtinPromptEntries: deps.内置提示词列表,
-                worldbooks: deps.世界书列表,
-                openingConfig: deps.开局配置,
-                recentRounds,
-                isOpeningRound
-            },
-            {
-                apiConfig: deps.apiConfig,
-                gameConfig: deps.gameConfig
-            }
-        );
-        if (variableCalibration && (
-            variableCalibration.commands.length > 0
-            || variableCalibration.reports.length > 0
-        )) {
-            return deps.合并变量生成结果到响应(params.parsedResponse, variableCalibration);
+        if (deps.variableGenerationAbortControllerRef.current) {
+            deps.variableGenerationAbortControllerRef.current.abort();
         }
-        return params.parsedResponse;
+        const controller = new AbortController();
+        deps.variableGenerationAbortControllerRef.current = controller;
+        deps.set变量生成中(true);
+        try {
+            const worldEvolutionEnabled = deps.世界演变功能已开启();
+            const recentRounds = deps.收集最近变量生成上下文(
+                Array.isArray(params.snapshot?.回档前历史) ? params.snapshot.回档前历史 : [],
+                2
+            );
+            const isOpeningRound = (Array.isArray(params.snapshot?.回档前历史) ? params.snapshot.回档前历史.length : 0) <= 1;
+            const variableCalibration = await deps.执行变量模型校准工作流(
+                {
+                    playerInput: params.playerInput,
+                    parsedResponse: params.parsedResponse,
+                    baseState: 构建基础状态(params.snapshot, deps.深拷贝),
+                    promptPool: deps.prompts,
+                    worldEvolutionEnabled,
+                    builtinPromptEntries: deps.内置提示词列表,
+                    worldbooks: deps.世界书列表,
+                    openingConfig: deps.开局配置,
+                    signal: controller.signal,
+                    recentRounds,
+                    isOpeningRound
+                },
+                {
+                    apiConfig: deps.apiConfig,
+                    gameConfig: deps.gameConfig
+                }
+            );
+            if (variableCalibration && (
+                variableCalibration.commands.length > 0
+                || variableCalibration.reports.length > 0
+            )) {
+                return deps.合并变量生成结果到响应(params.parsedResponse, variableCalibration);
+            }
+            return params.parsedResponse;
+        } finally {
+            if (deps.variableGenerationAbortControllerRef.current === controller) {
+                deps.variableGenerationAbortControllerRef.current = null;
+            }
+            deps.set变量生成中(false);
+        }
     };
 
     return {

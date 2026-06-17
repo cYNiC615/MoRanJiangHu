@@ -3,6 +3,7 @@ import {
     格式化世界观BaseAmount,
     格式化角色金钱行,
     获取世界观简短货币汇率说明,
+    获取世界观货币卡片信息,
     获取世界观货币槽位,
     获取背包货币物品聚合列表,
     获取角色金钱BaseAmount,
@@ -29,6 +30,10 @@ describe('现代单一货币', () => {
         expect(获取世界观货币槽位()).toEqual([{ key: 'baseAmount', label: '元', fullLabel: '元' }]);
         expect(格式化世界观BaseAmount(5000)).toBe('5,000 元');
         expect(获取世界观简短货币汇率说明()).toBe('单一货币，无层级换算');
+        const walletCard = 获取世界观货币卡片信息(null, { 金钱: { baseAmount: 9876 } } as any);
+        expect(walletCard.summary).toBe('9,876 元');
+        expect(walletCard.exchangeHint).toBe('单位：元。');
+        expect(`${walletCard.summary}${walletCard.exchangeHint}`).not.toContain('baseAmount');
         expect(构建角色金钱显示快照({ baseAmount: 77 })).toMatchObject({
             baseAmount: 77,
             显示: '77 元',

@@ -1744,6 +1744,15 @@ export const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划
     };
 };
 
+export const 剧情规划值有可读内容 = (value: unknown): boolean => {
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (Array.isArray(value)) return value.some(剧情规划值有可读内容);
+    if (!value || typeof value !== 'object') return false;
+    return Object.values(value as Record<string, unknown>).some(剧情规划值有可读内容);
+};
+
+export const 女主剧情规划有可读内容 = 剧情规划值有可读内容;
+
 export const 创建开场基础状态 = (charData: 角色数据结构, worldConfig: WorldGenConfig, openingConfig?: OpeningConfig) => {
     const 玩家组织 = 创建开局组织状态(charData, openingConfig);
     const 角色基态 = 清洗无限流开局能力(深拷贝(charData), 玩家组织, openingConfig);

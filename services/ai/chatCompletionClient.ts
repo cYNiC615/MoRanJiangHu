@@ -617,6 +617,11 @@ export const 提取OpenAI完整文本 = (payload: any): string => {
     return '';
 };
 
+const OpenAI响应因最大输出截断 = (payload: any): boolean => {
+    const reason = payload?.choices?.[0]?.finish_reason ?? payload?.choices?.[0]?.finishReason;
+    return typeof reason === 'string' && reason.toLowerCase() === 'length';
+};
+
 export const 从Markdown图片中提取DataUrl = (text: string): string => {
     const source = (text || '').trim();
     if (!source) return '';
@@ -1287,6 +1292,9 @@ const 请求OpenAI家族文本 = async (
         if (!useStream) {
             const rawText = await response.text();
             const json = 解析可能是JSON字符串(rawText);
+            if (json && OpenAI响应因最大输出截断(json)) {
+                throw new 协议请求错误('模型输出达到 max_tokens 后被截断，本次响应不完整。请提高该接口 maxTokens 或切换更大输出预算模型后重试。');
+            }
             const content = json ? 提取OpenAI完整文本(json) : rawText;
             const finalText = (typeof content === 'string' ? content : '').trim();
             非流式回填流式回调(finalText, streamOptions);

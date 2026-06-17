@@ -92,10 +92,9 @@ export const 获取世界观货币卡片信息 = (
     character?: Partial<角色数据结构> | null
 ): 世界观货币卡片信息 => {
     void openingConfig;
-    void character;
     return {
         title: '货币',
-        summary: '现代单一货币：所有收入、消费和奖励都写入角色.金钱.baseAmount。',
+        summary: 格式化角色金钱行((character as any)?.金钱),
         exchangeHint: '单位：元。'
     };
 };

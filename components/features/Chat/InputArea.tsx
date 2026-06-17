@@ -100,6 +100,22 @@ type QueueProgressPayload = {
     elapsedMs?: number;
 };
 
+type 队列阶段重新生成操作 = 'retry-variable';
+
+export const 获取队列阶段重新生成操作 = (params: {
+    stageId: string;
+    phase?: string;
+    variableGenerationRunning?: boolean;
+    canRetryLatestVariableGeneration?: boolean;
+    hasRetryLatestVariableGeneration?: boolean;
+}): 队列阶段重新生成操作 | null => {
+    if (!params.phase || params.phase === 'start') return null;
+    if (params.variableGenerationRunning) return null;
+    if (params.stageId !== 'variable') return null;
+    if (!params.canRetryLatestVariableGeneration || !params.hasRetryLatestVariableGeneration) return null;
+    return 'retry-variable';
+};
+
 const QUEUE_DEBUG_EVENT_LIMIT = 160;
 
 const 获取性能时间 = (): number => (
@@ -878,6 +894,13 @@ const InputArea: React.FC<Props> = ({
                                         const rawExpanded = expandedRawStageId === stage.id;
                                         const commandExpanded = expandedCommandStageId === stage.id;
                                         const isVariableStage = stage.id === 'variable';
+                                        const retryAction = 获取队列阶段重新生成操作({
+                                            stageId: stage.id,
+                                            phase,
+                                            variableGenerationRunning,
+                                            canRetryLatestVariableGeneration,
+                                            hasRetryLatestVariableGeneration: Boolean(onRetryLatestVariableGeneration)
+                                        });
                                         const hidesModel = 队列阶段不调用AI(stage.progress);
                                         const elapsedText = 格式化队列耗时(stage.progress?.elapsedMs);
                                         return (
@@ -918,13 +941,11 @@ const InputArea: React.FC<Props> = ({
                                                                 取消生成
                                                             </button>
                                                         )}
-                                                        {phase !== 'start' && !variableGenerationRunning && stage.id !== 'opening-input' && stage.id !== 'opening-save' && (
+                                                        {retryAction && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    if (stage.id === 'story') {
-                                                                        void handleReroll();
-                                                                    } else if (isVariableStage && onRetryLatestVariableGeneration) {
+                                                                    if (retryAction === 'retry-variable') {
                                                                         void handleRetryVariableGeneration();
                                                                     }
                                                                 }}

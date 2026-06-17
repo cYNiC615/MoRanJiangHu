@@ -125,4 +125,24 @@ describe('chatCompletionClient Claude compatible message normalization', () => {
         expect(规范化流式连接错误提示(raw)).toContain('模型流式连接中途断开');
         expect(规范化流式连接错误提示(raw)).not.toContain('unexpected end of stream');
     });
+
+    it('rejects non-stream max-token truncation instead of returning partial text', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+            choices: [{
+                message: { content: '<命令>[{\"action\":\"set\"' },
+                finish_reason: 'length'
+            }]
+        }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' }
+        }));
+
+        await expect(请求模型文本(baseConfig, [{ role: 'user', content: 'ping' }], {
+            temperature: 0.7,
+            signal: undefined,
+            streamOptions: { stream: false },
+            errorDetailLimit: 500
+        })).rejects.toThrow(/max_tokens|截断/);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
 });

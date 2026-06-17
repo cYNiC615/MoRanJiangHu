@@ -1884,7 +1884,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             <div>
                                                 <div className="text-sm text-wuxia-gold font-bold">题材模式</div>
                                                 <div className="mt-1 text-[11px] leading-6 text-gray-400">
-                                                    {当前题材配置.hint} 题材会同步影响世界观、身份背景、天赋卷宗、地图版图、势力密度、市场入口和预设物品。
+                                                    {当前题材配置.hint} 题材会同步影响世界观、身份背景、天赋卷宗、地图版图、势力密度和预设物品。
                                                 </div>
                                             </div>
                                             <div className="text-[10px] text-wuxia-cyan font-mono tracking-[0.18em]">{当前题材配置.shortLabel}</div>
@@ -1894,22 +1894,10 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             options={题材模式选项.map((item) => ({ value: item.value, label: item.label }))}
                                             onChange={更新题材模式}
                                         />
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] leading-5">
-                                            <div className="rounded-xl border border-white/8 bg-black/30 p-3">
-                                                <div className="text-gray-500">市场入口</div>
-                                                <div className="mt-1 text-gray-200">{当前题材配置.marketName}</div>
-                                            </div>
+                                        <div className="grid grid-cols-1 gap-3 text-[11px] leading-5">
                                             <div className="rounded-xl border border-white/8 bg-black/30 p-3">
                                                 <div className="text-gray-500">{当前题材配置.densityLabel}</div>
                                                 <div className="mt-1 text-gray-200">{worldConfig.sectDensity}</div>
-                                            </div>
-                                            <div className="rounded-xl border border-white/8 bg-black/30 p-3">
-                                                <div className="text-gray-500">交易口径</div>
-                                                <div className="mt-1 text-gray-200 line-clamp-2">{当前题材配置.currencyPrompt}</div>
-                                            </div>
-                                            <div className="rounded-xl border border-white/8 bg-black/30 p-3 md:col-span-3">
-                                                <div className="text-gray-500">统一换算</div>
-                                                <div className="mt-1 text-gray-200">{当前题材配置.currencyExchangePrompt}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -2857,7 +2845,6 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <div className="rounded-2xl border border-wuxia-gold/20 bg-black/25 p-4 text-xs leading-6 text-gray-400">
                                         <div className="text-sm text-wuxia-gold font-bold">当前题材：{当前题材配置.label}</div>
                                         <div className="mt-1">{当前题材配置.hint}</div>
-                                        <div className="mt-2 text-gray-500">市场入口：{当前题材配置.marketName}；{当前题材配置.currencyPrompt}；{当前题材配置.currencyExchangePrompt}</div>
                                     </div>
                                     <div className="space-y-3">
                                         <label className="text-sm text-wuxia-cyan font-bold">开局切入偏好</label>

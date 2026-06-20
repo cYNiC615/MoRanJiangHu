@@ -48,6 +48,7 @@ import {
     世界书本体槽位,
     构建世界书注入文本
 } from '../../utils/worldbook';
+import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
 import { 获取内置提示词槽位内容, 获取剧情风格内置槽位 } from '../../utils/builtinPrompts';
 import {
     构建COT伪装提示词,
@@ -583,6 +584,10 @@ export const 执行开场剧情生成工作流 = async (
             女主剧情规划: deps.规范化女主剧情规划状态(contextData.女主剧情规划 ?? deps.女主剧情规划),
             开局配置: options?.开局配置
         };
+        const openingRuntimeWorldbooks = 构建运行时世界书解析结果({
+            openingConfig: options?.开局配置,
+            userWorldbooks: deps.worldbooks
+        }).books;
 
         const openingGameConfig = 规范化游戏设置(deps.gameConfig);
         const 开局独立阶段自动重试已启用 = deps.游戏设置启用自动重试(openingGameConfig);
@@ -1250,7 +1255,7 @@ export const 执行开场剧情生成工作流 = async (
                     const openingCurrentGameTime = 环境时间转标准串(simulatedOpeningState.环境) || '未知时间';
                     const openingVariableAudit = 构建开局变量生成审计重点();
                     const variableWorldbookExtra = 按功能开关过滤提示词内容(构建世界书注入文本({
-                        books: deps.worldbooks,
+                        books: openingRuntimeWorldbooks,
                         scopes: ['variable_calibration'],
                         environment: simulatedOpeningState.环境,
                         social: simulatedOpeningState.社交,
@@ -1279,7 +1284,7 @@ export const 执行开场剧情生成工作流 = async (
                             promptPool: openingPromptSnapshot,
                             worldEvolutionEnabled: false,
                             builtinPromptEntries: deps.builtinPromptEntries,
-                            worldbooks: deps.worldbooks,
+                            worldbooks: openingRuntimeWorldbooks,
                             signal: controller.signal,
                             extraPromptAppend: variableExtraPrompt,
                             openingConfig: options?.开局配置,
@@ -1426,7 +1431,7 @@ export const 执行开场剧情生成工作流 = async (
                         currentGameTime: 环境时间转标准串(simulatedOpeningState.环境) || '未知时间'
                     });
                     const worldbookExtra = 按功能开关过滤提示词内容(构建世界书注入文本({
-                        books: deps.worldbooks,
+                        books: openingRuntimeWorldbooks,
                         scopes: ['world_evolution'],
                         environment: simulatedOpeningState.环境,
                         world: simulatedOpeningState.世界,
@@ -1588,7 +1593,7 @@ export const 执行开场剧情生成工作流 = async (
                         角色: mapBaseState.角色,
                         gameConfig: openingGameConfig,
                         builtinPromptEntries: deps.builtinPromptEntries,
-                        worldbooks: deps.worldbooks,
+                        worldbooks: openingRuntimeWorldbooks,
                         currentResponse: mapContextResponse,
                         stateBase: mapBaseState,
                         signal: controller.signal
@@ -1669,7 +1674,7 @@ export const 执行开场剧情生成工作流 = async (
                     });
                     const planningAuditFocusText = 构建开局规划初始化审计重点({ heroineEnabled });
                     const planningWorldbookExtra = 按功能开关过滤提示词内容(构建世界书注入文本({
-                        books: deps.worldbooks,
+                        books: openingRuntimeWorldbooks,
                         scopes: heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'],
                         environment: simulatedOpeningState.环境,
                         social: simulatedOpeningState.社交,

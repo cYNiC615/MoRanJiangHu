@@ -25,7 +25,7 @@ import {
     内置提示词条目结构,
     世界书结构,
     世界书预设组结构,
-    世界书作用域
+    导演配置结构
 } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import * as dbService from '../services/dbService';
@@ -51,10 +51,7 @@ import { 执行正文润色 as 执行正文润色工作流 } from './useGame/bod
 import { 构建上下文快照数据 } from './useGame/contextSnapshot';
 import { 执行响应命令处理 } from './useGame/responseCommandProcessor';
 import { 创建会话生命周期工作流 } from './useGame/sessionLifecycleWorkflow';
-import {
-    构建系统提示词 as 构建系统提示词工作流,
-    type 运行时提示词状态
-} from './useGame/systemPromptBuilder';
+import type { 运行时提示词状态 } from './useGame/systemPromptBuilder';
 import {
     创建开场基础状态,
     创建开场命令基态,
@@ -96,6 +93,7 @@ import { 规范化游戏设置 } from '../utils/gameSettings';
 import { 规范化视觉设置 } from '../utils/visualSettings';
 import { 默认图片管理设置, 规范化图片管理设置 } from '../utils/imageManagerSettings';
 import { 规范化可选开局配置 } from '../utils/openingConfig';
+import { 规范化导演配置 } from '../utils/directorConfig';
 import { 修复开局伙伴社交列表 } from '../utils/openingCompanion';
 import { 构建文生图运行时额外提示词 } from '../prompts/runtime/nsfw';
 import { 构建题材生图额外要求 } from '../utils/topicImageGuidance';
@@ -112,11 +110,12 @@ import { 合并变量校准结果到响应 as 合并变量生成结果到响应 
 import { 获取图片展示地址, 图片资源记录含可恢复地址 } from '../utils/imageAssets';
 import { 设置键 } from '../utils/settingsSchema';
 import { countOpenAIChatMessagesTokens, countOpenAITextTokens } from '../utils/tokenEstimate';
-import { 执行游戏后台重计算 } from '../utils/gameHeavyWorkerClient';
 import { 保存NPC变量本地备份, 自动备份NPC变量 } from '../services/npcVariableBackup';
 import { 合并保留既有NPC列表 } from '../utils/npcRetentionGuard';
 import { 设置默认技艺运行时配置 } from './useGame/stateTransforms';
 import { 最新AI消息可继续变量生成 } from '../utils/chatRecovery';
+import { 规范化并同步社交导演状态, 过滤主角同名NPC } from './useGame/socialDirectorSync';
+import { 创建PromptRuntimeFacade } from './useGame/promptRuntimeFacade';
 
 const 加载图片AI服务 = () => import('../services/ai/image/runtime');
 const 加载NPC生图工作流 = () => import('./useGame/npcImageWorkflow');
@@ -352,6 +351,7 @@ export const useGame = () => {
         剧情规划, 设置剧情规划,
         女主剧情规划, 设置女主剧情规划,
         开局配置, 设置开局配置,
+        导演配置, 设置导演配置,
         游戏初始时间, 设置游戏初始时间,
         历史记录, 设置历史记录,
         记忆系统, 设置记忆系统,
@@ -367,6 +367,7 @@ export const useGame = () => {
         setShowTask,
         setShowStory,
         setShowHeroinePlan,
+        setShowDirectorConfig,
         setShowMemory,
         setShowSaveLoad,
         setActiveTab,
@@ -645,22 +646,26 @@ export const useGame = () => {
 
     /** 过滤社交列表中与主角同名的NPC条目 */
     const 应用同名NPC过滤 = (list: NPC结构[], playerName?: string): NPC结构[] => {
-        const key = typeof playerName === 'string' ? playerName.trim().replace(/\s+/g, '').toLowerCase() : '';
-        if (!key) return list;
-        return list.filter((npc: any) => {
-            const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
-            return !npcName || npcName !== key;
-        });
+        return 过滤主角同名NPC(list as any[], playerName) as NPC结构[];
     };
 
     const 应用并同步社交列表 = (
         nextSocial: NPC结构[],
         options?: { 静默NPC总结提示?: boolean }
     ): NPC结构[] => {
-        const normalized = 应用同名NPC过滤(规范化社交列表安全(nextSocial, { 合并同名: false }), 角色?.姓名);
+        const synced = 规范化并同步社交导演状态({
+            nextSocial: nextSocial as any[],
+            currentDirectorConfig: 导演配置,
+            playerName: 角色?.姓名,
+            normalizeSocialList: 规范化社交列表安全 as any
+        });
+        const normalized = synced.social as NPC结构[];
+        if (synced.directorChanged) {
+            设置导演配置(synced.directorConfig);
+        }
         设置社交(normalized);
         刷新NPC记忆总结队列(normalized, { 静默: options?.静默NPC总结提示 === true });
-        void performAutoSave({ social: normalized, history: 历史记录, force: true });
+        void performAutoSave({ social: normalized, directorConfig: synced.directorConfig, history: 历史记录, force: true });
         return normalized;
     };
 
@@ -1589,6 +1594,11 @@ export const useGame = () => {
             推送右下角提示(buildToast(monitor, matchedTask));
             return false;
         });
+    };
+    const 应用导演配置 = (value: Partial<导演配置结构> | null | undefined) => {
+        const normalized = 规范化导演配置(value, { openingConfig: 开局配置 });
+        设置导演配置(normalized);
+        void performAutoSave({ directorConfig: normalized, force: true });
     };
 
     useEffect(() => {
@@ -2623,24 +2633,15 @@ export const useGame = () => {
                 return keys.length > 0 && keys.every((key) => !known.has(key));
             });
         if (missing.length === 0) return;
-        let normalized = 规范化社交列表安全([...currentSocial, ...missing], { 合并同名: false });
-        // 过滤与主角同名的NPC条目，防止主角被NPC化
-        const playerNameKey = typeof 角色?.姓名 === 'string' ? 角色.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
-        if (playerNameKey) {
-            normalized = normalized.filter((npc: any) => {
-                const npcName = typeof npc?.姓名 === 'string' ? npc.姓名.trim().replace(/\s+/g, '').toLowerCase() : '';
-                return !npcName || npcName !== playerNameKey;
-            });
-        }
-        设置社交(normalized);
-        void performAutoSave({ social: normalized, history: 历史记录, force: true });
+        应用并同步社交列表([...currentSocial, ...missing], { 静默NPC总结提示: true });
         触发新增NPC自动生图(missing);
     }, [玩家组织, 社交, 历史记录]);
 
     const 应用开场基态 = (openingBase: ReturnType<typeof 创建开场基础状态>) => {
+        const openingBaseConfig = (openingBase as any)?.开局配置 || 开局配置;
         设置角色(规范化角色物品容器映射(openingBase.角色, {
             启用饱腹口渴系统: gameConfig?.启用饱腹口渴系统,
-            题材模式: 开局配置?.题材模式
+            题材模式: openingBaseConfig?.题材模式
         }));
         设置环境(规范化环境信息(openingBase.环境));
         设置游戏初始时间(openingBase.游戏初始时间 || '');
@@ -2652,48 +2653,24 @@ export const useGame = () => {
         设置剧情(规范化剧情状态(openingBase.剧情));
         设置剧情规划(规范化剧情规划状态(openingBase.剧情规划 || 创建空剧情规划()));
         设置女主剧情规划(openingBase.女主剧情规划);
+        设置导演配置(规范化导演配置(openingBaseConfig?.导演配置, { openingConfig: openingBaseConfig }));
         应用并同步记忆系统(创建空记忆系统(), { 静默总结提示: true });
         设置历史记录([]);
         清空变量生成上下文缓存();
         setWorldEvents([]);
     };
 
-    const 构建系统提示词 = (
-        promptPool: 提示词结构[],
-        memoryData: 记忆系统结构,
-        socialData: any[],
-        statePayload: any,
-        options?: {
-            禁用中期长期记忆?: boolean;
-            禁用短期记忆?: boolean;
-            禁用世界演变分流?: boolean;
-            禁用行动选项提示词?: boolean;
-            注入剧情推动协议?: boolean;
-            注入女主剧情规划协议?: boolean;
-            世界书作用域?: 世界书作用域[];
-            世界书附加文本?: string[];
-            openingConfig?: OpeningConfig;
-        }
-    ) => {
-        const payload = {
-            promptPool,
-            memoryData,
-            socialData,
-            statePayload,
-            gameConfig,
-            memoryConfig,
-            fallbackPlayerName: 角色?.姓名,
-            builtinPromptEntries: 内置提示词列表,
-            worldbooks: 世界书列表,
-            worldEvolutionEnabled: 世界演变功能已开启(),
-            options
-        };
-        return 执行游戏后台重计算(
-            'buildSystemPrompt',
-            payload,
-            () => 构建系统提示词工作流(payload)
-        );
-    };
+    const promptRuntimeFacade = 创建PromptRuntimeFacade({
+        获取导演配置: () => 导演配置,
+        获取游戏设置: () => gameConfig,
+        获取记忆配置: () => memoryConfig,
+        获取玩家姓名: () => 角色?.姓名,
+        获取内置提示词列表: () => 内置提示词列表,
+        获取世界书列表: () => 世界书列表,
+        世界演变功能已开启
+    });
+
+    const 构建系统提示词 = promptRuntimeFacade.构建系统提示词;
 
     const processResponseCommands = (
         response: GameResponse,
@@ -3052,7 +3029,8 @@ export const useGame = () => {
             剧情,
             剧情规划,
             女主剧情规划,
-            开局配置
+            开局配置,
+            导演配置
         ];
         const cached = 上下文快照缓存Ref.current;
         if (
@@ -3082,6 +3060,7 @@ export const useGame = () => {
             剧情规划,
             女主剧情规划,
             开局配置,
+            导演配置,
             规范化环境信息,
             规范化剧情状态,
             规范化剧情规划状态,
@@ -3284,6 +3263,7 @@ export const useGame = () => {
         女主剧情规划,
         记忆系统,
         openingConfig: 开局配置,
+        directorConfig: 导演配置,
         提示词池: prompts,
         游戏初始时间,
         gameConfig,
@@ -3301,6 +3281,7 @@ export const useGame = () => {
         规范化女主剧情规划状态,
         规范化记忆系统,
         规范化可选开局配置,
+        规范化导演配置,
         规范化记忆配置,
         规范化游戏设置,
         规范化视觉设置,
@@ -3350,6 +3331,7 @@ export const useGame = () => {
         设置剧情规划,
         设置女主剧情规划,
         设置开局配置,
+        设置导演配置,
         设置提示词池: setPrompts,
         设置历史记录,
         清空重Roll快照,
@@ -3363,13 +3345,25 @@ export const useGame = () => {
         读档后定位到最新回合: () => set聊天区强制置底令牌(prev => prev + 1)
     });
 
-    const {
-        handleStartNewGameWizard,
-        handleGenerateWorld,
-        handleReturnToHome,
-        handleQuickRestart
-    } = 创建会话生命周期工作流({
-        apiConfig,
+    const 设置会话角色锚点列表 = (value: any) => {
+        void updateApiConfig(config => ({
+            ...config,
+            功能模型占位: {
+                ...config.功能模型占位,
+                角色锚点列表: Array.isArray(value) ? value : []
+            }
+        }));
+    };
+    const 设置会话当前角色锚点ID = (value: any) => {
+        void updateApiConfig(config => ({
+            ...config,
+            功能模型占位: {
+                ...config.功能模型占位,
+                当前角色锚点ID: typeof value === 'string' ? value : ''
+            }
+        }));
+    };
+    const 开局会话StateFacade = {
         gameConfig,
         memoryConfig,
         view,
@@ -3390,18 +3384,10 @@ export const useGame = () => {
         世界书列表,
         loading,
         最近开局配置,
-        abortControllerRef,
-        ensurePromptsLoaded,
-        setView,
+        设置游戏设置: setGameConfig,
         setPrompts,
-        setLoading,
-        setShowSettings,
         设置历史记录,
         设置最近开局配置,
-        设置游戏设置: setGameConfig,
-        清空重Roll快照,
-        推入重Roll快照,
-        重置自动存档状态,
         设置角色,
         设置环境,
         设置游戏初始时间,
@@ -3413,13 +3399,15 @@ export const useGame = () => {
         设置剧情规划,
         设置女主剧情规划,
         设置开局配置,
-        设置开局主剧情进度: set开局主剧情进度,
-        设置开局文章优化进度: set开局文章优化进度,
-        设置开局变量生成进度: set开局变量生成进度,
-        设置开局世界演变进度: set开局世界演变进度,
-        设置开局规划进度: set开局规划进度,
-        设置开局地图更新进度: set开局地图更新进度,
-        setWorldEvents,
+        设置导演配置,
+        设置场景图片档案: 应用场景图片档案到状态,
+        设置角色锚点列表: 设置会话角色锚点列表,
+        设置当前角色锚点ID: 设置会话当前角色锚点ID
+    };
+    const 开局会话ServicesFacade = {
+        apiConfig,
+        abortControllerRef,
+        ensurePromptsLoaded,
         应用并同步记忆系统,
         清空变量生成上下文缓存,
         创建开场基础状态,
@@ -3432,13 +3420,13 @@ export const useGame = () => {
         创建空剧情规划,
         创建空记忆系统,
         应用开场基态,
-        追加系统消息,
         替换流式草稿为失败提示,
         记录变量生成上下文,
         深拷贝,
         performAutoSave,
         构建系统提示词,
         processResponseCommands,
+        规范化导演配置,
         规范化环境信息,
         规范化剧情状态,
         规范化剧情规划状态,
@@ -3457,8 +3445,27 @@ export const useGame = () => {
         计算回复耗时秒,
         文章优化功能已开启,
         执行正文润色,
+        提取新增NPC列表,
+        获取当前视觉设置快照: () => 规范化视觉设置(深拷贝(visualConfigRef.current || visualConfig)),
+        获取当前场景图片档案快照: () => 规范化场景图片档案(深拷贝(场景图片档案Ref.current || 场景图片档案))
+    };
+    const 开局会话EffectsFacade = {
+        setView,
+        setLoading,
+        setShowSettings,
+        清空重Roll快照,
+        推入重Roll快照,
+        重置自动存档状态,
+        设置开局主剧情进度: set开局主剧情进度,
+        设置开局文章优化进度: set开局文章优化进度,
+        设置开局变量生成进度: set开局变量生成进度,
+        设置开局世界演变进度: set开局世界演变进度,
+        设置开局规划进度: set开局规划进度,
+        设置开局地图更新进度: set开局地图更新进度,
+        setWorldEvents,
+        追加系统消息,
         触发新增NPC自动生图,
-        触发主角自动生图: (player) => {
+        触发主角自动生图: (player: 角色数据结构) => {
             const handler = 主角自动生图处理器Ref.current;
             if (typeof handler !== 'function') return;
             try {
@@ -3468,29 +3475,18 @@ export const useGame = () => {
             }
         },
         触发场景自动生图,
-        提取新增NPC列表,
-        获取当前视觉设置快照: () => 规范化视觉设置(深拷贝(visualConfigRef.current || visualConfig)),
-        获取当前场景图片档案快照: () => 规范化场景图片档案(深拷贝(场景图片档案Ref.current || 场景图片档案)),
-        设置场景图片档案: 应用场景图片档案到状态,
-        设置角色锚点列表: (value) => {
-            void updateApiConfig(config => ({
-                ...config,
-                功能模型占位: {
-                    ...config.功能模型占位,
-                    角色锚点列表: Array.isArray(value) ? value : []
-                }
-            }));
-        },
-        设置当前角色锚点ID: (value) => {
-            void updateApiConfig(config => ({
-                ...config,
-                功能模型占位: {
-                    ...config.功能模型占位,
-                    当前角色锚点ID: typeof value === 'string' ? value : ''
-                }
-            }));
-        },
         切换生图存档作用域
+    };
+
+    const {
+        handleStartNewGameWizard,
+        handleGenerateWorld,
+        handleReturnToHome,
+        handleQuickRestart
+    } = 创建会话生命周期工作流({
+        state: 开局会话StateFacade,
+        services: 开局会话ServicesFacade,
+        effects: 开局会话EffectsFacade
     });
 
     const {
@@ -3701,7 +3697,7 @@ export const useGame = () => {
             chatForceScrollToken: 聊天区强制置底令牌
         },
         setters: {
-            setShowSettings, setShowInventory, setShowEquipment, setShowSocial, setShowTeam, setShowWorld, setShowMap, setShowTask, setShowStory, setShowHeroinePlan, setShowMemory, setShowSaveLoad,
+            setShowSettings, setShowInventory, setShowEquipment, setShowSocial, setShowTeam, setShowWorld, setShowMap, setShowTask, setShowStory, setShowHeroinePlan, setShowDirectorConfig, setShowMemory, setShowSaveLoad,
             setActiveTab, setCurrentTheme,
             setCharacter: 设置角色,
             setWorld: 设置世界
@@ -3721,6 +3717,7 @@ export const useGame = () => {
             handleSaveGame, handleLoadGame, performAutoSave,
             updateHistoryItem,
             updateMemorySystem,
+            updateDirectorConfig: 应用导演配置,
             createNpcManually,
             updateNpcManually,
             deleteNpcManually,

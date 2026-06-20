@@ -11,6 +11,7 @@ export * from './models/story';
 export * from './models/storyPlan';
 export * from './models/heroinePlan';
 export * from './models/worldbook';
+export * from './models/director';
 
 // New types for the advanced chat system
 

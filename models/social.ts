@@ -1,6 +1,22 @@
 
 import type { NPC图片档案 } from './imageGeneration';
 
+export interface NPC行为档案结构 {
+    性格底色?: string;
+    核心欲望?: string;
+    当前agenda?: string;
+    防御机制?: string;
+    交流风格?: string;
+    情感需求?: string;
+    吸引点: string[];
+    戒备点: string[];
+    亲密阻力: string[];
+    边界与硬锁: string[];
+    后宫兼容路径?: string;
+    最近更新原因?: string;
+    更新时间?: string;
+}
+
 export type NPC性别 = '男' | '女' | '男娘' | '扶她';
 
 export interface NPC记忆 {
@@ -198,6 +214,9 @@ export interface NPC结构 {
     关系状态: string;
     对主角称呼?: string;
     简介: string;
+    社交档案版本?: number;
+    行为档案?: NPC行为档案结构;
+    角色种子ID?: string;
     核心性格特征?: string; // 一句话锚定角色主性格（用于关系演化）
     好感度突破条件?: string; // 下一阶段好感提升的触发条件
     关系突破条件?: string; // 关系状态升级/转折的触发条件

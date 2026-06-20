@@ -160,6 +160,7 @@ const MapModal = 创建可预加载懒组件('map-modal', () => import('./compon
 const TaskModal = 创建可预加载懒组件('task-modal', () => import('./components/features/Task/TaskModal'));
 const StoryModal = 创建可预加载懒组件('story-modal', () => import('./components/features/Story/StoryModal'));
 const HeroinePlanModal = 创建可预加载懒组件('heroine-plan-modal', () => import('./components/features/Story/HeroinePlanModal'));
+const DirectorConfigModal = 创建可预加载懒组件('director-config-modal', () => import('./components/features/Director/DirectorConfigModal'));
 const MemoryModal = 创建可预加载懒组件('memory-modal', () => import('./components/features/Memory/MemoryModal'));
 const MemorySummaryFlowModal = 创建可预加载懒组件('memory-summary-flow-modal', () => import('./components/features/Memory/MemorySummaryFlowModal'));
 const NpcMemorySummaryFlowModal = 创建可预加载懒组件('npc-memory-summary-flow-modal', () => import('./components/features/Memory/NpcMemorySummaryFlowModal'));
@@ -184,6 +185,7 @@ const 桌面轻量预热目标 = [
     TaskModal,
     StoryModal,
     HeroinePlanModal,
+    DirectorConfigModal,
     MemoryModal,
     SaveLoadModal
 ] as const;
@@ -415,6 +417,7 @@ const App: React.FC = () => {
         state.剧情,
         state.女主剧情规划,
         state.开局配置,
+        state.导演配置,
         meta.builtinPromptEntries,
         meta.worldbooks
     ]);
@@ -930,6 +933,7 @@ const App: React.FC = () => {
         state.showTask ? 'task' :
         state.showStory ? 'story' :
         state.showHeroinePlan ? 'plan' :
+        state.showDirectorConfig ? 'director' :
         state.showMemory ? 'memory' :
         showImageManager ? 'image_manager' :
         state.showSaveLoad.show ? (state.showSaveLoad.mode === 'save' ? 'save' : 'load') :
@@ -1002,6 +1006,7 @@ const App: React.FC = () => {
         setters.setShowTask(false);
         setters.setShowStory(false);
         setters.setShowHeroinePlan(false);
+        setters.setShowDirectorConfig(false);
         setters.setShowMemory(false);
         setShowImageManager(false);
         setters.setShowSaveLoad({ show: false, mode: 'save' });
@@ -1138,6 +1143,10 @@ const App: React.FC = () => {
     const openHeroinePlan = React.useCallback(() => {
         closeAllPanels();
         setters.setShowHeroinePlan(true);
+    }, [closeAllPanels, setters]);
+    const openDirectorConfig = React.useCallback(() => {
+        closeAllPanels();
+        setters.setShowDirectorConfig(true);
     }, [closeAllPanels, setters]);
     const openMemory = React.useCallback(() => {
         closeAllPanels();
@@ -1700,6 +1709,7 @@ const App: React.FC = () => {
                                 onOpenTask={openTask} 
                                 onOpenStory={openStory}
                                 onOpenHeroinePlan={openHeroinePlan}
+                                onOpenDirectorConfig={openDirectorConfig}
                                 onOpenMemory={openMemory}
                                 uiLabels={题材界面文案}
                                 onOpenImageManager={openImageManagerWithCheck}
@@ -1851,8 +1861,8 @@ const App: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="w-full text-center text-gray-700 font-mono tracking-widest text-transparent relative" style={{ fontSize: 'var(--ui-compact-mono-font-size, 12px)' }}>
-                                        <span className="absolute inset-0 flex items-center justify-center text-gray-700">江湖平静，暂时无大事发生...</span>
-                                        江湖平静，暂无大事发生...
+                                        <span className="absolute inset-0 flex items-center justify-center text-gray-700">世界暂时平静，暂无大事发生...</span>
+                                        世界暂时平静，暂无大事发生...
                                     </div>
                                 )}
                             </div>
@@ -2211,6 +2221,16 @@ const App: React.FC = () => {
                             <HeroinePlanModal
                                 plan={当前女主剧情规划}
                                 onClose={() => setters.setShowHeroinePlan(false)}
+                            />
+                        </懒加载边界>
+                    )}
+
+                    {state.showDirectorConfig && (
+                        <懒加载边界>
+                            <DirectorConfigModal
+                                config={state.导演配置}
+                                onSave={actions.updateDirectorConfig}
+                                onClose={() => setters.setShowDirectorConfig(false)}
                             />
                         </懒加载边界>
                     )}

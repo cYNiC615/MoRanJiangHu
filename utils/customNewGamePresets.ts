@@ -5,6 +5,7 @@ import { 获取题材预设背景, 获取题材预设天赋 } from '../data/pres
 import { 属性最大值, 属性最小值, 规范化可选开局配置 } from './openingConfig';
 import { 规范化模式运行时配置 } from './modeRuntimeProfile';
 import { normalizeRealmDraft, normalizeWorldMapDraft } from './newGameDiy';
+import { 补全开局运行时世界书快照 } from './runtimeWorldbooks';
 import { 规范化题材模式 } from './topicModeProfiles';
 
 export const 自定义开局预设存储键 = 'new_game_custom_start_presets';
@@ -321,7 +322,13 @@ const 校准工坊运行时恢复结果 = (params: {
     const topicEntry = selectedModules.topic ? 按键查找创意工坊模块(标准化文本(selectedModules.topic)) : undefined;
     const modeBackgrounds = topicEntry ? 提取模块背景列表(topicEntry) : 合并去重背景(snapshot?.modeBackgrounds || []);
     const modeTalents = topicEntry ? 提取模块天赋列表(topicEntry) : 合并去重天赋(snapshot?.modeTalents || []);
-    const modeWorldbooks = topicEntry ? 提取模块世界书列表(topicEntry) : 标准化世界书列表(snapshot?.modeWorldbooks);
+    const fallbackOpeningConfig = 补全开局运行时世界书快照(params.openingConfig);
+    const snapshotModeWorldbooks = 标准化世界书列表(snapshot?.modeWorldbooks);
+    const modeWorldbooks = topicEntry
+        ? 提取模块世界书列表(topicEntry)
+        : snapshotModeWorldbooks.length > 0
+            ? snapshotModeWorldbooks
+            : 标准化世界书列表(fallbackOpeningConfig?.runtimeSnapshot?.modeWorldbooks);
     const activeModuleExtraRules = topicEntry
         ? 构建模块额外规则文本(topicEntry, modeBackgrounds, modeTalents)
         : 标准化文本(snapshot?.activeModuleExtraRules ?? params.activeModuleExtraRules);

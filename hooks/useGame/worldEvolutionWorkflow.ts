@@ -17,6 +17,7 @@ import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
 import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
+import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
 
 export type 世界演变触发参数 = {
     来源?: 'manual' | 'auto_due' | 'story_dynamic' | 'story_dynamic_and_due';
@@ -314,8 +315,12 @@ export const 执行世界演变更新工作流 = async (
             构建玩家剧情倾向提示词(deps.开局配置, { stage: 'world_evolution' }),
             worldRuntimeGameConfig
         );
+        const runtimeWorldbooks = 构建运行时世界书解析结果({
+            openingConfig: deps.开局配置,
+            userWorldbooks: deps.worldbooks
+        });
         const worldEvolutionWorldbookParams = {
-            books: deps.worldbooks,
+            books: runtimeWorldbooks.books,
             scopes: ['world_evolution'] as 世界书作用域[],
             environment: worldEnv,
             world: worldState,
@@ -333,7 +338,7 @@ export const 执行世界演变更新工作流 = async (
                 worldRuntimeGameConfig
             ))
         ), {
-            worldbookCount: Array.isArray(deps.worldbooks) ? deps.worldbooks.length : 0
+            worldbookCount: runtimeWorldbooks.books.length
         });
         const worldExtraPrompt = [
             typeof worldRuntimeGameConfig.额外提示词 === 'string'

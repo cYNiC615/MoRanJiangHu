@@ -1,4 +1,4 @@
-import type { OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 提示词结构, 内置提示词条目结构, 世界书结构 } from '../../types';
+import type { OpeningConfig, 导演配置结构, 聊天记录结构, 记忆系统结构, 角色数据结构, 提示词结构, 内置提示词条目结构, 世界书结构 } from '../../types';
 import { 获取剧情回忆接口配置, 获取主剧情接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 规范化记忆配置, 规范化记忆系统 } from './memoryUtils';
@@ -50,6 +50,7 @@ type 构建上下文快照参数 = {
     剧情规划: any;
     女主剧情规划?: any;
     开局配置?: OpeningConfig;
+    导演配置?: 导演配置结构;
     规范化环境信息: (envLike?: any) => any;
     规范化剧情状态: (raw?: any) => any;
     规范化剧情规划状态: (raw?: any) => any;
@@ -88,7 +89,8 @@ export const 构建上下文快照数据 = async (params: 构建上下文快照�
             剧情: normalizedStory,
             剧情规划: normalizedStoryPlan,
             女主剧情规划: normalizedHeroinePlan,
-            开局配置: params.开局配置
+            开局配置: params.开局配置,
+            导演配置: params.导演配置
         },
         recallContextMode
             ? { 禁用中期长期记忆: true, 禁用短期记忆: true }

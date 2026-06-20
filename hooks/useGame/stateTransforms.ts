@@ -14,6 +14,7 @@ import { 合并子宫档案值, 标准化子宫档案值 } from '../../utils/rep
 import { 补齐自动丹药预设, 古风丹药预设名称集合, 生存补给预设名称集合 } from '../../utils/autoConsumables';
 import type { ModeRuntimeProfile, 题材模式类型 } from '../../models/system';
 import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
+import { 合并NPC行为档案, 规范化NPC行为档案 } from '../../utils/socialBehavior';
 
 type 境界配置 = undefined;
 const 获取境界配置 = (_mode?: unknown, _runtimeProfile?: unknown) => undefined;
@@ -2956,6 +2957,8 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     const 核心性格特征 = 取首个非空文本(npc?.核心性格特征);
     const 好感度突破条件 = 取首个非空文本(npc?.好感度突破条件);
     const 关系突破条件 = 取首个非空文本(npc?.关系突破条件);
+    const 行为档案 = 规范化NPC行为档案(npc);
+    const 角色种子ID = 取首个非空文本(npc?.角色种子ID, npc?.seedId);
     const 关系网变量 = 标准化关系网变量(npc?.关系网变量);
     const 生日 = 取首个非空文本(npc?.生日);
     const 对主角称呼 = 取首个非空文本(npc?.对主角称呼);
@@ -3071,6 +3074,9 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
         关系状态: 推断关系状态,
         ...(对主角称呼 ? { 对主角称呼 } : {}),
         简介: 推断简介,
+        社交档案版本: 2,
+        行为档案,
+        ...(角色种子ID ? { 角色种子ID } : {}),
         力量: 基础属性.力量,
         敏捷: 基础属性.敏捷,
         体质: 基础属性.体质,
@@ -3226,6 +3232,8 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         : mergedIntroBase;
     const mergedGender = 重算合并后NPC性别(leftRaw, rightRaw);
     const mergedIsMajor = Boolean(left?.是否主要角色) || Boolean(right?.是否主要角色);
+    const mergedBehaviorProfile = 合并NPC行为档案(left, right);
+    const mergedSeedId = 取更优文本(取字段文本(left, '角色种子ID'), 取字段文本(right, '角色种子ID'));
     const mergedArtifactArchive = 标准化名器档案(
         [...(Array.isArray(left?.名器档案) ? left.名器档案 : []), ...(Array.isArray(right?.名器档案) ? right.名器档案 : [])],
         { ...left, ...right, 性别: mergedGender, 是否主要角色: mergedIsMajor },
@@ -3268,6 +3276,9 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         关系状态: 取更优文本(取字段文本(left, '关系状态'), 取字段文本(right, '关系状态')) || '未知',
         对主角称呼: 取更优文本(取字段文本(left, '对主角称呼'), 取字段文本(right, '对主角称呼')),
         简介: mergedIntro,
+        社交档案版本: 2,
+        行为档案: mergedBehaviorProfile,
+        ...(mergedSeedId ? { 角色种子ID: mergedSeedId } : {}),
         力量: mergedBaseAttrs.力量,
         敏捷: mergedBaseAttrs.敏捷,
         体质: mergedBaseAttrs.体质,

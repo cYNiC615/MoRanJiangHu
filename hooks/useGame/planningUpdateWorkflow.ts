@@ -22,6 +22,8 @@ import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroun
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 import { 构建规划性别比例约束摘要 } from '../../prompts/runtime/planningAnalysis';
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
+import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
+import { 构建红颜规划候选结果, 过滤女主规划命令 } from '../../utils/socialBehavior';
 
 type 规划更新工作流依赖 = {
     apiConfig: any;
@@ -384,8 +386,12 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             构建玩家剧情倾向提示词(deps.开局配置, { stage: 'planning' }),
             normalizedGameConfig
         );
+        const runtimeWorldbooks = 构建运行时世界书解析结果({
+            openingConfig: deps.开局配置,
+            userWorldbooks: deps.worldbooks
+        });
         const planningWorldbookParams = {
-            books: Array.isArray(deps.worldbooks) ? deps.worldbooks : [],
+            books: runtimeWorldbooks.books,
             scopes: planningWorldbookScopes,
             environment: params.state.环境,
             social: params.state.社交,
@@ -404,7 +410,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 normalizedGameConfig
             ))
         ), {
-            worldbookCount: Array.isArray(deps.worldbooks) ? deps.worldbooks.length : 0,
+            worldbookCount: runtimeWorldbooks.books.length,
             auditFocusCount: auditFocus.length
         });
         const planningExtraPrompt = [
@@ -442,6 +448,10 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         const normalizedWorldPayload = deps.规范化世界状态(params.state.世界);
         const normalizedSocialPayload = deps.规范化社交列表(params.state.社交);
         const normalizedEnvPayload = deps.规范化环境信息(params.state.环境);
+        const heroineCandidateResult = heroineEnabled
+            ? 构建红颜规划候选结果(normalizedSocialPayload)
+            : 构建红颜规划候选结果([]);
+        const heroineCandidateText = heroineCandidateResult.summaryText;
         const worldJson = await probe.timeAsync('序列化世界载荷(worker)', () => 执行游戏后台重计算<string>(
             'stringifyTrimCultivation',
             { value: normalizedWorldPayload, gameConfig: normalizedGameConfig, space: 2 },
@@ -475,6 +485,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             worldJsonLength: worldJson.length,
             socialJsonLength: socialJson.length,
             envJsonLength: envJson.length,
+            heroineCandidateCount: heroineCandidateResult.candidateCount,
             extraPromptLength: planningExtraPrompt.length
         });
 
@@ -491,6 +502,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             currentPlanText,
             auditFocusText: auditFocus.length > 0 ? auditFocus.join('\n') : '常规回合固定审计',
             genderRatioConstraintText,
+            heroineCandidateText,
             heroineEnabled,
             ntlEnabled: normalizedGameConfig.剧情风格 === 'NTL后宫',
             extraPrompt: planningExtraPrompt,
@@ -513,9 +525,19 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
 
         const storyCommands = probe.time('过滤剧情补丁命令', () => 过滤规划补丁命令(result.commands, ['剧情', 'gameState.剧情']));
         const storyPlanCommands = probe.time('过滤剧情规划补丁命令', () => 过滤规划补丁命令(result.commands, activeStoryPlanTargets));
-        const heroinePlanCommands = heroineEnabled
+        const rawHeroinePlanCommands = heroineEnabled
             ? probe.time('过滤女主规划补丁命令', () => 过滤规划补丁命令(result.commands, activeHeroinePlanTargets))
             : [];
+        const heroineCommandGuard = heroineEnabled
+            ? probe.time('女主规划候选守门', () => 过滤女主规划命令(rawHeroinePlanCommands, heroineCandidateResult))
+            : { commands: [], rejectedReports: [] };
+        const heroinePlanCommands = heroineCommandGuard.commands;
+        if (heroineCommandGuard.rejectedReports.length > 0) {
+            probe.mark('女主规划候选守门拦截', {
+                rejectedCount: heroineCommandGuard.rejectedReports.length,
+                rejectedReports: heroineCommandGuard.rejectedReports
+            });
+        }
         const commands = [...storyCommands, ...storyPlanCommands, ...heroinePlanCommands];
         probe.mark('规划补丁命令过滤完成', {
             effectiveCommands: commands.length,
@@ -527,7 +549,10 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             probe.mark('跳过：无有效规划补丁');
             return {
                 updated: false,
-                message: result.reason || '规划分析未产生有效补丁，已跳过。',
+                message: [
+                    result.reason || '规划分析未产生有效补丁，已跳过。',
+                    ...heroineCommandGuard.rejectedReports
+                ].filter(Boolean).join('\n'),
                 rawText: result.rawText,
                 commands: [],
                 storyCommands: [],
@@ -592,7 +617,10 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         probe.mark('规划分析更新完成', { appliedCommands: commands.length });
         return {
             updated: true,
-            message: result.reason || `统一规划分析已应用 ${commands.length} 条补丁命令。`,
+            message: [
+                result.reason || `统一规划分析已应用 ${commands.length} 条补丁命令。`,
+                ...heroineCommandGuard.rejectedReports
+            ].filter(Boolean).join('\n'),
             rawText: result.rawText,
             commands,
             storyCommands,

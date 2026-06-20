@@ -18,6 +18,8 @@ import {
     获取创意工坊属性字段,
     获取创意工坊新开局步骤列表
 } from './workshopEngine';
+import { 规范化导演配置 } from './directorConfig';
+import { 补全开局运行时世界书快照 } from './runtimeWorldbooks';
 
 export const 新开局步骤定义列表 = 获取创意工坊新开局步骤列表();
 export const 新开局步骤列表 = 新开局步骤定义列表.map((step) => step.label);
@@ -405,6 +407,7 @@ export const 规范化开局生成性别列表 = (value: unknown): 开局生成�
 export const 默认开局配置 = (): OpeningConfig => ({
     ...创建主题默认开局配置(),
     modeRuntimeProfile: 构建官方模式运行时配置('现代都市'),
+    导演配置: 规范化导演配置(),
     允许生成性别: [...默认开局生成性别列表],
     生成性别锁定: false
 });
@@ -636,7 +639,7 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
     const 初始伙伴列表 = 规范化初始伙伴列表(raw?.初始伙伴列表, raw?.初始伙伴 ?? fallback.初始伙伴);
     const 第一初始伙伴 = 初始伙伴列表[0] || 规范化初始伙伴配置(raw?.初始伙伴 ?? fallback.初始伙伴);
 
-    return {
+    const normalized: OpeningConfig = {
         配置约束启用: raw?.配置约束启用 !== false,
         题材模式,
         modeRuntimeProfile: 规范化模式运行时配置(raw?.modeRuntimeProfile, 题材模式),
@@ -647,6 +650,7 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         开局生成组织: raw?.开局生成组织 === undefined ? fallback.开局生成组织 !== false : raw.开局生成组织 === true,
         开局生成成员: raw?.开局生成成员 === undefined ? fallback.开局生成成员 !== false : raw.开局生成成员 === true,
         玩家剧情倾向: 读取文本(raw?.玩家剧情倾向),
+        导演配置: 规范化导演配置(raw?.导演配置, { openingConfig: raw }),
         允许生成性别: 规范化开局生成性别列表(
             raw?.允许生成性别
             ?? raw?.modeRuntimeProfile?.opening?.allowedGeneratedGenders
@@ -656,6 +660,7 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         初始伙伴列表,
         初始伙伴: 第一初始伙伴
     };
+    return 补全开局运行时世界书快照(normalized);
 };
 
 export const 规范化可选开局配置 = (raw?: any): OpeningConfig | undefined => {

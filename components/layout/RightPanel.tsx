@@ -13,6 +13,7 @@ interface Props {
     onOpenTask: () => void;
     onOpenStory: () => void;
     onOpenHeroinePlan: () => void;
+    onOpenDirectorConfig?: () => void;
     onOpenMemory: () => void;
     onOpenImageManager?: () => void;
     uiLabels?: 题材界面文案;
@@ -40,6 +41,7 @@ const RightPanel: React.FC<Props> = ({
     onOpenTask,
     onOpenStory,
     onOpenHeroinePlan,
+    onOpenDirectorConfig,
     onOpenMemory,
     onOpenImageManager,
     uiLabels,
@@ -104,6 +106,7 @@ const RightPanel: React.FC<Props> = ({
     const systemItems = [
         { label: '保存进度', action: onSave },
         { label: '读取进度', action: onLoad },
+        ...(onOpenDirectorConfig ? [{ label: '导演配置', action: onOpenDirectorConfig }] : []),
         { label: titleLabel?.系统设置 || '江湖设置', action: onOpenSettings },
         ...(onReturnToHome ? [{
             label: returnHomeSaving ? '正在保存存档中' : '返回首页',

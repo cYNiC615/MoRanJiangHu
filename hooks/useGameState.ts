@@ -18,6 +18,7 @@ import {
     女主剧情规划结构,
     图片管理设置结构,
     OpeningConfig,
+    导演配置结构,
     玩家组织结构,
 } from '../types';
 import { 默认中期转长期提示词, 默认短期转中期提示词, 默认NPC记忆总结提示词 } from '../prompts/runtime/defaults';
@@ -30,6 +31,7 @@ import { 规范化视觉设置 } from '../utils/visualSettings';
 import { 默认图片管理设置, 规范化图片管理设置 } from '../utils/imageManagerSettings';
 import { 构建默认技艺 } from '../utils/skillDefaults';
 import { 确保角色金钱BaseAmount } from '../utils/currencyDisplay';
+import { 创建默认导演配置 } from '../utils/directorConfig';
 import {
     创建开场空白世界,
     创建开场空白剧情,
@@ -118,6 +120,7 @@ export const useGameState = () => {
     const [剧情规划, 设置剧情规划] = useState<剧情规划结构>(() => 创建空剧情规划状态());
     const [女主剧情规划, 设置女主剧情规划] = useState<女主剧情规划结构 | undefined>(() => 创建空女主剧情规划状态());
     const [开局配置, 设置开局配置] = useState<OpeningConfig | undefined>(undefined);
+    const [导演配置, 设置导演配置] = useState<导演配置结构>(() => 创建默认导演配置());
     const [游戏初始时间, 设置游戏初始时间] = useState('');
 
     // New Game State for Memory
@@ -145,6 +148,7 @@ export const useGameState = () => {
     const [showTask, setShowTask] = useState(false);
     const [showStory, setShowStory] = useState(false);
     const [showHeroinePlan, setShowHeroinePlan] = useState(false);
+    const [showDirectorConfig, setShowDirectorConfig] = useState(false);
     const [showMemory, setShowMemory] = useState(false);
     
     // Save/Load Modal
@@ -343,6 +347,7 @@ export const useGameState = () => {
         剧情规划, 设置剧情规划,
         女主剧情规划, 设置女主剧情规划,
         开局配置, 设置开局配置,
+        导演配置, 设置导演配置,
         游戏初始时间, 设置游戏初始时间,
         历史记录, 设置历史记录,
         记忆系统, 设置记忆系统, 
@@ -358,6 +363,7 @@ export const useGameState = () => {
         showTask, setShowTask,
         showStory, setShowStory,
         showHeroinePlan, setShowHeroinePlan,
+        showDirectorConfig, setShowDirectorConfig,
         showMemory, setShowMemory,
         showSaveLoad, setShowSaveLoad, // New
         activeTab, setActiveTab,

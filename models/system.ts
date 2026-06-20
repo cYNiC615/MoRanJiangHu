@@ -11,6 +11,7 @@ import { 剧情系统结构 } from './story';
 import { 剧情规划结构 } from './storyPlan';
 import { 女主剧情规划结构 } from './heroinePlan';
 import { 世界书结构 } from './worldbook';
+import { 导演配置结构 } from './director';
 import type { 玩家组织结构 } from './organization';
 
 type 背景初始物品快照 = {
@@ -620,6 +621,8 @@ export interface OpeningConfig {
     开局生成成员?: boolean;
     /** 存档级导演偏好：只作为剧情倾向注入提示词，不写入世界事实或剧情规划事实。 */
     玩家剧情倾向?: string;
+    /** 存档级导演配置，Phase 3.2 后新档优先写入这里；玩家剧情倾向字段保留兼容读取。 */
+    导演配置?: 导演配置结构;
     允许生成性别: 开局生成性别类型[];
     生成性别锁定?: boolean;
     初始伙伴列表?: 初始伙伴配置结构[];
@@ -956,6 +959,7 @@ export interface 存档结构 {
     // New Settings in Save
     记忆系统?: 记忆系统结构;
     openingConfig?: OpeningConfig;
+    导演配置?: 导演配置结构;
     游戏设置?: 游戏设置结构;
     /** Homebrew prompt snapshot for local save restore. */
     核心提示词快照?: {

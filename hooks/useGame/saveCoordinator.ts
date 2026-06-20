@@ -16,7 +16,8 @@ import type {
     游戏设置结构,
     场景图片档案,
     角色锚点结构,
-    OpeningConfig
+    OpeningConfig,
+    导演配置结构
 } from '../../types';
 import { 核心_世界观 } from '../../prompts/core/world';
 import { 设置键 } from '../../utils/settingsSchema';
@@ -42,6 +43,7 @@ export type 自动存档快照结构 = {
     heroinePlan?: 女主剧情规划结构;
     memory?: 记忆系统结构;
     openingConfig?: OpeningConfig;
+    directorConfig?: 导演配置结构;
     visualConfig?: 视觉设置结构;
     sceneImageArchive?: 场景图片档案;
     force?: boolean;
@@ -60,6 +62,7 @@ type 存档协调当前状态 = {
     女主剧情规划?: 女主剧情规划结构;
     记忆系统: 记忆系统结构;
     openingConfig?: OpeningConfig;
+    directorConfig: 导演配置结构;
     提示词池: 提示词结构[];
     游戏初始时间: string;
     gameConfig: 游戏设置结构;
@@ -83,6 +86,7 @@ type 存档协调依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化记忆系统: (raw?: any) => 记忆系统结构;
     规范化可选开局配置: (raw?: any) => OpeningConfig | undefined;
+    规范化导演配置: (raw?: any, options?: { openingConfig?: Partial<OpeningConfig> | null }) => 导演配置结构;
     规范化记忆配置: (raw?: Partial<记忆配置结构> | null) => 记忆配置结构;
     规范化游戏设置: (raw?: Partial<游戏设置结构> | null) => 游戏设置结构;
     规范化视觉设置: (raw?: Partial<视觉设置结构> | null) => 视觉设置结构;
@@ -117,6 +121,7 @@ type 存档协调依赖 = {
     设置剧情规划: (value: 剧情规划结构) => void;
     设置女主剧情规划: (value: 女主剧情规划结构 | undefined) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
+    设置导演配置: (value: 导演配置结构) => void;
     设置提示词池: (value: 提示词结构[]) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
     清空重Roll快照: () => void;
@@ -419,6 +424,7 @@ export const 创建存档数据 = (
     const heroinePlanSource = snapshot?.heroinePlan ?? currentState.女主剧情规划;
     const memorySource = snapshot?.memory ? snapshot.memory : deps.规范化记忆系统(currentState.记忆系统);
     const openingConfigSource = snapshot?.openingConfig ?? currentState.openingConfig;
+    const directorConfigSource = snapshot?.directorConfig ?? currentState.directorConfig;
     const socialSource = 修复开局伙伴社交列表(rawSocialSource, openingConfigSource, roleSource);
     const visualSource = snapshot?.visualConfig ? snapshot.visualConfig : currentState.visualConfig;
     const sceneImageArchiveSource = snapshot?.sceneImageArchive
@@ -468,6 +474,7 @@ export const 创建存档数据 = (
         女主剧情规划: deps.规范化女主剧情规划状态(heroinePlanSource ? deps.深拷贝(heroinePlanSource) : undefined),
         记忆系统: deps.规范化记忆系统(deps.深拷贝(memorySource)),
         openingConfig: deps.规范化可选开局配置(deps.深拷贝(openingConfigSource)),
+        导演配置: deps.规范化导演配置(deps.深拷贝(directorConfigSource), { openingConfig: openingConfigSource }),
         游戏设置: deps.深拷贝(currentState.gameConfig),
         记忆配置: deps.深拷贝(currentState.memoryConfig),
         视觉设置: deps.规范化视觉设置(deps.深拷贝(visualSource || {})),
@@ -663,7 +670,9 @@ export const 执行读取存档 = async (
     deps.设置剧情(loadedStory);
     deps.设置剧情规划(loadedStoryPlan);
     deps.设置女主剧情规划(loadedHeroinePlan);
-    deps.设置开局配置(deps.规范化可选开局配置(save.openingConfig));
+    const loadedOpeningConfig = deps.规范化可选开局配置(save.openingConfig);
+    deps.设置开局配置(loadedOpeningConfig);
+    deps.设置导演配置(deps.规范化导演配置((save as any).导演配置, { openingConfig: loadedOpeningConfig }));
     trace('storyPlans.set.done');
     const promptSnapshot = save.核心提示词快照 && typeof save.核心提示词快照 === 'object'
         ? save.核心提示词快照

@@ -18,7 +18,7 @@ type 世界生成选项 = {
     清空前端变量?: boolean;
 };
 
-type 世界生成工作流依赖 = {
+type 世界生成工作流依赖字段 = {
     apiConfig: any;
     gameConfig: any;
     prompts: 提示词结构[];
@@ -29,6 +29,8 @@ type 世界生成工作流依赖 = {
     setShowSettings: (value: boolean) => void;
     设置历史记录: (value: 聊天记录结构[] | ((prev: 聊天记录结构[]) => 聊天记录结构[])) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
+    设置导演配置: (value: any) => void;
+    规范化导演配置: (raw?: any, options?: { openingConfig?: Partial<OpeningConfig> | null }) => any;
     设置最近开局配置: (value: any) => void;
     清空重Roll快照: () => void;
     重置自动存档状态: () => void;
@@ -45,6 +47,27 @@ type 世界生成工作流依赖 = {
     ) => Promise<void>;
     追加系统消息: (message: string) => void;
     替换流式草稿为失败提示: (history: 聊天记录结构[], errorMessage: string) => 聊天记录结构[];
+};
+
+export type WorldGenerationStateFacade = Partial<世界生成工作流依赖字段>;
+export type WorldGenerationServicesFacade = Partial<世界生成工作流依赖字段>;
+export type WorldGenerationEffectsFacade = Partial<世界生成工作流依赖字段>;
+
+type 世界生成工作流依赖 = 世界生成工作流依赖字段 | {
+    state: WorldGenerationStateFacade;
+    services: WorldGenerationServicesFacade;
+    effects: WorldGenerationEffectsFacade;
+};
+
+const 展开世界生成工作流依赖 = (deps: 世界生成工作流依赖): 世界生成工作流依赖字段 => {
+    if ('state' in deps || 'services' in deps || 'effects' in deps) {
+        return {
+            ...(deps as any).state,
+            ...(deps as any).services,
+            ...(deps as any).effects
+        } as 世界生成工作流依赖字段;
+    }
+    return deps as 世界生成工作流依赖字段;
 };
 
 const 世界观阶段超时毫秒 = 300000;
@@ -75,7 +98,7 @@ const 开局阶段是否使用流式请求 = (apiConfig: 当前可用接口结�
 };
 
 const 创建开局流式历史更新器 = (
-    设置历史记录: 世界生成工作流依赖['设置历史记录']
+    设置历史记录: 世界生成工作流依赖字段['设置历史记录']
 ) => {
     let lastFlushAt = 0;
     let pendingContent = '';
@@ -212,8 +235,9 @@ export const 执行世界生成工作流 = async (
     _openingStreaming: boolean,
     openingExtraPrompt: string,
     options: 世界生成选项 | undefined,
-    deps: 世界生成工作流依赖
+    rawDeps: 世界生成工作流依赖
 ): Promise<void> => {
+    const deps = 展开世界生成工作流依赖(rawDeps);
     const 写入或插入提示词 = (
         promptPool: 提示词结构[],
         promptId: string,
@@ -266,10 +290,11 @@ export const 执行世界生成工作流 = async (
         openingExtraPrompt: normalizedOpeningExtraPrompt
     });
     deps.设置开局配置(normalizedOpeningConfig ? JSON.parse(JSON.stringify(normalizedOpeningConfig)) : undefined);
+    deps.设置导演配置(deps.规范化导演配置(normalizedOpeningConfig?.导演配置, { openingConfig: normalizedOpeningConfig }));
     deps.清空重Roll快照();
     deps.重置自动存档状态();
 
-    let openingBase = deps.创建开场基础状态(charData, worldConfig, openingConfig);
+    let openingBase = deps.创建开场基础状态(charData, worldConfig, normalizedOpeningConfig);
     let clearedOpeningBase = options?.清空前端变量
         ? deps.构建前端清空开场状态(openingBase)
         : null;
@@ -307,7 +332,7 @@ export const 执行世界生成工作流 = async (
         : null;
     try {
         const worldPromptSeed = 按功能开关过滤提示词内容(
-            构建世界观种子提示词(worldConfig, charData, openingConfig),
+            构建世界观种子提示词(worldConfig, charData, normalizedOpeningConfig),
             normalizedGameConfig
         );
         const difficulty = worldConfig.difficulty || 'normal';
@@ -351,7 +376,7 @@ export const 执行世界生成工作流 = async (
             difficulty,
             enabledDifficultyPrompts,
             normalizedWorldExtraRequirement,
-            openingConfig
+            normalizedOpeningConfig
         ), normalizedGameConfig);
         const worldGenerationExtraPrompt = 按功能开关过滤提示词内容([
             世界观生成COT提示词,
@@ -408,7 +433,7 @@ export const 执行世界生成工作流 = async (
                 worldGenerationCotPseudoPrompt,
                 {
                     启用成长体系,
-                    openingConfig,
+                    openingConfig: normalizedOpeningConfig,
                     signal
                 }
             ), { idleTimeout: openingRequestStreaming });
@@ -454,7 +479,7 @@ export const 执行世界生成工作流 = async (
             {
                 命令基态: deps.创建开场命令基态(openingBase),
                 开局额外要求: normalizedOpeningExtraPrompt,
-                开局配置: openingConfig
+                开局配置: normalizedOpeningConfig
             }
         );
         deps.setLoading(false);

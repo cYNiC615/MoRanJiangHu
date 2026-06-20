@@ -1789,7 +1789,8 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
         任务列表: 开局任务,
         剧情: 创建开场空白剧情(),
         剧情规划: 创建空剧情规划(),
-        女主剧情规划: undefined as 女主剧情规划结构 | undefined
+        女主剧情规划: undefined as 女主剧情规划结构 | undefined,
+        开局配置: openingConfig
     };
 };
 

@@ -18,6 +18,7 @@ import { 提取命中模板姓名黑名单, 构建模板姓名黑名单提示词
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
 import { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
+import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
 
 export { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 
@@ -528,11 +529,15 @@ export const 执行变量模型校准工作流 = async (
         构建玩家剧情倾向提示词(params.openingConfig, { stage: 'variable_calibration' }),
         runtimeGameConfig
     );
+    const runtimeWorldbooks = 构建运行时世界书解析结果({
+        openingConfig: params.openingConfig,
+        userWorldbooks: params.worldbooks
+    });
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
         playerStoryPreferencePrompt,
         按功能开关过滤提示词内容(构建世界书注入文本({
-            books: Array.isArray(params.worldbooks) ? params.worldbooks : [],
+            books: runtimeWorldbooks.books,
             scopes: ['variable_calibration'],
             environment: params.baseState.环境,
             social: params.baseState.社交,

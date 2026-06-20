@@ -52,7 +52,7 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, onClose }) => {
         return (
             <div className="fixed inset-0 bg-black/90 z-[200] hidden md:flex items-center justify-center p-4">
                 <div className="w-full max-w-3xl rounded-3xl border border-wuxia-gold/20 bg-black/90 p-8 text-center">
-                    <div className="text-2xl font-serif tracking-[0.35em] text-wuxia-gold">江湖卷宗</div>
+                    <div className="text-2xl font-serif tracking-[0.35em] text-wuxia-gold">剧情卷宗</div>
                     <div className="mt-6 text-gray-500">当前没有可展示的剧情卷宗。</div>
                     <button onClick={onClose} className="mt-6 rounded-full border border-gray-700 px-4 py-2 text-sm text-gray-300">关闭</button>
                 </div>
@@ -65,7 +65,7 @@ const StoryModal: React.FC<Props> = ({ story, storyPlan, onClose }) => {
             <div className="w-full max-w-7xl h-[90vh] rounded-3xl border border-wuxia-gold/20 bg-ink-black/95 overflow-hidden flex flex-col">
                 <div className="shrink-0 border-b border-wuxia-gold/10 bg-black/50 px-6 py-4 flex items-center justify-between">
                     <div>
-                        <div className="text-xl font-serif font-bold tracking-[0.35em] text-wuxia-gold">江湖卷宗</div>
+                        <div className="text-xl font-serif font-bold tracking-[0.35em] text-wuxia-gold">剧情卷宗</div>
                         <div className="mt-2 text-xs text-gray-400">
                             第 {当前章节.当前分解组} 组
                             <span className="mx-2 text-gray-600">|</span>

@@ -44,6 +44,8 @@ import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerS
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
 import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
+import { 构建导演配置注入文本 } from '../../utils/directorConfig';
+import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
 
 const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     const canonical = normalizeCanonicalGameTime(raw || '');
@@ -98,7 +100,7 @@ export type 系统提示词构建结果 = {
     contextPieces: 系统提示词上下文片段;
 };
 
-type 系统提示词构建参数 = {
+export type 系统提示词构建参数 = {
     promptPool: 提示词结构[];
     memoryData: 记忆系统结构;
     socialData: any[];
@@ -814,8 +816,18 @@ export const 构建系统提示词 = ({
     const openingConfig = options?.openingConfig
         || statePayload?.开局配置
         || statePayload?.openingConfig;
+    const effectiveOpeningConfig = openingConfig
+        ? {
+            ...openingConfig,
+            导演配置: statePayload?.导演配置 || openingConfig.导演配置
+        }
+        : openingConfig;
+    const runtimeWorldbooks = 构建运行时世界书解析结果({
+        openingConfig: effectiveOpeningConfig,
+        userWorldbooks: worldbooks
+    });
     const worldbookInjection = 构建世界书注入文本({
-        books: Array.isArray(worldbooks) ? worldbooks : [],
+        books: runtimeWorldbooks.books,
         scopes: activeWorldbookScopes,
         environment: statePayload?.环境,
         social: socialData,
@@ -827,7 +839,7 @@ export const 构建系统提示词 = ({
         normalizedGameConfig,
         {
             启用世界演变分流: options?.禁用世界演变分流 === true ? false : worldEvolutionEnabled,
-            openingConfig,
+            openingConfig: effectiveOpeningConfig,
             强制剧情COT提示词ID: options?.强制剧情COT提示词ID
         }
     );
@@ -989,8 +1001,8 @@ export const 构建系统提示词 = ({
         };
     };
     const 开局女主协议提示词 = (() => {
-        const 开局女主协议启用 = openingConfig?.启用女主剧情规划 !== undefined
-            ? openingConfig.启用女主剧情规划 === true
+        const 开局女主协议启用 = effectiveOpeningConfig?.启用女主剧情规划 !== undefined
+            ? effectiveOpeningConfig.启用女主剧情规划 === true
             : normalizedGameConfig.启用女主剧情规划 === true;
         if (options?.注入女主剧情规划协议 !== true || !开局女主协议启用) {
             return [] as Array<{ id: string; content: string }>;
@@ -1036,8 +1048,18 @@ export const 构建系统提示词 = ({
         渲染提示词文本(selectedPerspectivePrompt?.内容 || fallbackPerspectivePrompt?.内容 || '')
     );
     const difficultyPrompts = difficultyPromptSummary.trim();
-    const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(openingConfig));
-    const playerStoryPreferencePrompt = 按当前设置过滤提示词(构建玩家剧情倾向提示词(openingConfig, { stage: 'main' }));
+    const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(effectiveOpeningConfig));
+    const playerStoryPreferencePrompt = 按当前设置过滤提示词(构建玩家剧情倾向提示词(effectiveOpeningConfig, { stage: 'main' }));
+    const directorConfigPrompt = 按当前设置过滤提示词(构建导演配置注入文本(effectiveOpeningConfig?.导演配置, {
+        stage: 'main',
+        triggerTexts: [
+            ...(Array.isArray(options?.世界书附加文本) ? options?.世界书附加文本 : []),
+            statePayload?.环境?.大地点,
+            statePayload?.环境?.中地点,
+            statePayload?.环境?.小地点,
+            statePayload?.环境?.具体地点
+        ].filter(Boolean)
+    }));
     const otherPrompts = [
         ...otherPromptEntries.map(item => item.content),
         开局剧情推动协议内容,
@@ -1150,6 +1172,7 @@ export const 构建系统提示词 = ({
         构建模板姓名黑名单提示词(),
         genreModePrompt,
         playerStoryPreferencePrompt,
+        directorConfigPrompt,
         otherPrompts.trim()
     ].filter(Boolean).join('\n\n');
 
@@ -1162,8 +1185,8 @@ export const 构建系统提示词 = ({
     const contextMemory = options?.禁用中期长期记忆 ? '' : `${longMemory}\n${midMemory}`;
     const contextNPCData = npcContext.在场数据块;
     const contextStoryPlan = 构建剧情安排(statePayload);
-    const heroinePlanEnabled = openingConfig?.启用女主剧情规划 !== undefined
-        ? openingConfig.启用女主剧情规划 === true
+    const heroinePlanEnabled = effectiveOpeningConfig?.启用女主剧情规划 !== undefined
+        ? effectiveOpeningConfig.启用女主剧情规划 === true
         : normalizedGameConfig.启用女主剧情规划 === true;
     const contextHeroinePlan = heroinePlanEnabled
         ? 构建女主剧情规划文本(statePayload)

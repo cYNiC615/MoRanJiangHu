@@ -2961,7 +2961,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                     <div>
                                         <div className="text-sm text-gray-200">红颜规划</div>
-                                        <div className="text-[11px] text-gray-500 mt-1">控制是否主动生成红颜 NPC 和推进情感线；模式包可预设此项</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">控制是否启用红颜关系规划与情感线承接；模式包可预设此项</div>
                                     </div>
                                     <select
                                         value={openingConfig.启用女主剧情规划 === undefined ? '默认' : openingConfig.启用女主剧情规划 ? '启用' : '关闭'}

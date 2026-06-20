@@ -3,7 +3,8 @@ import type { OpeningConfig } from '../../types';
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
 export const 读取玩家剧情倾向 = (openingConfig?: OpeningConfig | null): string => (
-    读取文本(openingConfig?.玩家剧情倾向)
+    读取文本(openingConfig?.导演配置?.玩家剧情倾向)
+    || 读取文本(openingConfig?.玩家剧情倾向)
 );
 
 export const 构建玩家剧情倾向提示词 = (

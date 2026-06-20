@@ -9,6 +9,7 @@ import type {
     玩家组织结构,
     聊天记录结构,
     OpeningConfig,
+    导演配置结构,
     剧情规划结构,
     女主剧情规划结构,
     剧情系统结构,
@@ -35,6 +36,7 @@ type 存档编排工作流依赖 = {
     女主剧情规划?: 女主剧情规划结构;
     记忆系统: 记忆系统结构;
     openingConfig?: OpeningConfig;
+    directorConfig: 导演配置结构;
     提示词池: 提示词结构[];
     游戏初始时间: string;
     gameConfig: 游戏设置结构;
@@ -52,6 +54,7 @@ type 存档编排工作流依赖 = {
     规范化女主剧情规划状态: (raw?: any) => 女主剧情规划结构 | undefined;
     规范化记忆系统: (raw?: any) => 记忆系统结构;
     规范化可选开局配置: (raw?: any) => OpeningConfig | undefined;
+    规范化导演配置: (raw?: any, options?: { openingConfig?: Partial<OpeningConfig> | null }) => 导演配置结构;
     规范化记忆配置: (raw?: any) => any;
     规范化游戏设置: (raw?: any) => 游戏设置结构;
     规范化视觉设置: (raw?: any) => 视觉设置结构;
@@ -85,6 +88,7 @@ type 存档编排工作流依赖 = {
     设置剧情规划: (value: 剧情规划结构) => void;
     设置女主剧情规划: (value: 女主剧情规划结构 | undefined) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
+    设置导演配置: (value: 导演配置结构) => void;
     设置提示词池: (value: 提示词结构[]) => void;
     设置历史记录: (value: 聊天记录结构[]) => void;
     清空重Roll快照: () => void;
@@ -112,6 +116,7 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
         女主剧情规划: deps.女主剧情规划,
         记忆系统: deps.记忆系统,
         openingConfig: deps.openingConfig,
+        directorConfig: deps.directorConfig,
         提示词池: deps.提示词池,
         游戏初始时间: deps.游戏初始时间,
         gameConfig: deps.gameConfig,
@@ -135,6 +140,7 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
         规范化女主剧情规划状态: deps.规范化女主剧情规划状态,
         规范化记忆系统: deps.规范化记忆系统,
         规范化可选开局配置: deps.规范化可选开局配置,
+        规范化导演配置: deps.规范化导演配置,
         规范化记忆配置: deps.规范化记忆配置,
         规范化游戏设置: deps.规范化游戏设置,
         规范化视觉设置: deps.规范化视觉设置,
@@ -169,6 +175,7 @@ export const 创建存读档工作流 = (deps: 存档编排工作流依赖) => {
         设置剧情规划: deps.设置剧情规划,
         设置女主剧情规划: deps.设置女主剧情规划,
         设置开局配置: deps.设置开局配置,
+        设置导演配置: deps.设置导演配置,
         设置提示词池: deps.设置提示词池,
         设置历史记录: deps.设置历史记录,
         清空重Roll快照: deps.清空重Roll快照,

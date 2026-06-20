@@ -49,7 +49,7 @@ type 回合快照结构 = {
     回档前历史: any[];
 };
 
-type 会话生命周期依赖 = {
+type 会话生命周期依赖字段 = {
     apiConfig: any;
     gameConfig: any;
     设置游戏设置: (value: any) => void;
@@ -94,6 +94,8 @@ type 会话生命周期依赖 = {
     设置剧情规划: (value: any) => void;
     设置女主剧情规划: (value: any) => void;
     设置开局配置: (value: OpeningConfig | undefined) => void;
+    设置导演配置: (value: any) => void;
+    规范化导演配置: (raw?: any, options?: { openingConfig?: Partial<OpeningConfig> | null }) => any;
     设置开局文章优化进度: (value: any) => void;
     设置开局主剧情进度: (value: any) => void;
     设置开局变量生成进度: (value: any) => void;
@@ -154,7 +156,29 @@ type 会话生命周期依赖 = {
     切换生图存档作用域: () => void;
 };
 
-export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖) => {
+export type OpeningSessionStateFacade = Partial<会话生命周期依赖字段>;
+export type OpeningSessionServicesFacade = Partial<会话生命周期依赖字段>;
+export type OpeningSessionEffectsFacade = Partial<会话生命周期依赖字段>;
+
+type 会话生命周期依赖 = 会话生命周期依赖字段 | {
+    state: OpeningSessionStateFacade;
+    services: OpeningSessionServicesFacade;
+    effects: OpeningSessionEffectsFacade;
+};
+
+const 展开会话生命周期依赖 = (deps: 会话生命周期依赖): 会话生命周期依赖字段 => {
+    if ('state' in deps || 'services' in deps || 'effects' in deps) {
+        return {
+            ...(deps as any).state,
+            ...(deps as any).services,
+            ...(deps as any).effects
+        } as 会话生命周期依赖字段;
+    }
+    return deps as 会话生命周期依赖字段;
+};
+
+export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依赖) => {
+    const deps = 展开会话生命周期依赖(rawDeps);
     const 清空当前存档生图隔离态 = () => {
         deps.切换生图存档作用域();
         deps.设置场景图片档案({});
@@ -178,6 +202,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         deps.设置剧情规划(deps.创建空剧情规划());
         deps.设置女主剧情规划(undefined);
         deps.设置开局配置(undefined);
+        deps.设置导演配置(deps.规范化导演配置());
         deps.设置开局文章优化进度(null);
         deps.设置开局变量生成进度(null);
         deps.设置开局世界演变进度(null);
@@ -343,6 +368,8 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
                 setShowSettings: deps.setShowSettings,
                 设置历史记录: deps.设置历史记录,
                 设置开局配置: deps.设置开局配置,
+                设置导演配置: deps.设置导演配置,
+                规范化导演配置: deps.规范化导演配置,
                 设置最近开局配置: deps.设置最近开局配置,
                 清空重Roll快照: deps.清空重Roll快照,
                 重置自动存档状态: deps.重置自动存档状态,
@@ -361,6 +388,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         deps.重置自动存档状态();
         deps.设置最近开局配置(null);
         deps.设置开局配置(undefined);
+        deps.设置导演配置(deps.规范化导演配置());
         deps.setView('home');
         return true;
     };
@@ -401,6 +429,7 @@ export const 创建会话生命周期工作流 = (deps: 会话生命周期依赖
         const clearedCommandBase = deps.创建开场命令基态(openingBase);
         清空当前存档生图隔离态();
         deps.设置开局配置(openingConfig ? deps.深拷贝(openingConfig) : undefined);
+        deps.设置导演配置(deps.规范化导演配置(openingConfig?.导演配置, { openingConfig }));
         deps.应用开场基态(clearedOpeningBase);
         if (deps.view !== 'game') {
             deps.setView('game');

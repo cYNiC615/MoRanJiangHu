@@ -797,6 +797,7 @@ const 构建规划分析消息链 = (
         currentPlanText?: string;
         auditFocusText: string;
         genderRatioConstraintText?: string;
+        heroineCandidateText?: string;
         heroineEnabled?: boolean;
         ntlEnabled?: boolean;
         extraPrompt?: string;
@@ -818,6 +819,7 @@ const 构建规划分析消息链 = (
             currentPlanText: params.currentPlanText,
             auditFocusText: params.auditFocusText,
             genderRatioConstraintText: params.genderRatioConstraintText,
+            heroineCandidateText: params.heroineCandidateText,
             heroineEnabled: params.heroineEnabled === true
         })}`,
         normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
@@ -855,6 +857,7 @@ export const generatePlanningAnalysis = async (
         currentPlanText?: string;
         auditFocusText: string;
         genderRatioConstraintText?: string;
+        heroineCandidateText?: string;
         heroineEnabled?: boolean;
         ntlEnabled?: boolean;
         extraPrompt?: string;

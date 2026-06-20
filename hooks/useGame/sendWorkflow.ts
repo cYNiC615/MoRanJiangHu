@@ -17,6 +17,7 @@ import type { 自动存档快照结构 } from './saveCoordinator';
 import type { 世界演变触发参数, 世界演变执行结果 } from './worldEvolutionWorkflow';
 import type { 地图更新执行结果 } from './mapUpdateWorkflow';
 import { 生成地图更新 } from './mapUpdateWorkflow';
+import { 判定后处理调度请求 } from './postprocessScheduler';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
 
@@ -1982,22 +1983,35 @@ export const 执行主剧情发送工作流 = async (
                 const 变量生成后命令数 = Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0;
                 const mapGenerationEnabled = currentState.apiConfig?.功能模型占位?.地图生成功能启用 !== false;
                 const postprocessSignal = responseForExecution.postprocess_signal;
-                const postprocessSignalReliable = Boolean(postprocessSignal && !postprocessSignal.parseError);
                 const dynamicWorldHints = (Array.isArray(responseForExecution.dynamic_world) ? responseForExecution.dynamic_world : [])
                     .map(item => (item || '').trim())
                     .filter(Boolean);
-                const postprocessReasonHint = postprocessSignal?.reason?.trim()
+                const postprocessSchedule = 判定后处理调度请求({
+                    postprocessSignal,
+                    response: responseForExecution,
+                    state: simulatedState,
+                    previousState: currentState
+                });
+                const postprocessModelReasonHint = postprocessSignal?.reason?.trim()
                     ? `后处理信号：${postprocessSignal.reason.trim()}`
                     : '';
+                const worldStageLocalReasonHints = postprocessSchedule.worldReasons.map(reason => `本地世界演变规则：${reason}`);
+                const planningStageLocalReasonHints = postprocessSchedule.planningReasons.map(reason => `本地规划分析规则：${reason}`);
                 const worldStageDynamicHints = [
                     ...dynamicWorldHints,
-                    postprocessSignalReliable && postprocessSignal?.needsWorldEvolution && postprocessReasonHint ? postprocessReasonHint : ''
+                    postprocessSchedule.signalReliable && postprocessSignal?.needsWorldEvolution && postprocessModelReasonHint ? postprocessModelReasonHint : '',
+                    ...worldStageLocalReasonHints
                 ].filter(Boolean);
-                const worldStageRequested = !postprocessSignalReliable
-                    || postprocessSignal?.needsWorldEvolution === true
-                    || dynamicWorldHints.length > 0;
-                const planningStageRequested = !postprocessSignalReliable
-                    || postprocessSignal?.needsPlanningAnalysis === true;
+                const worldStageRequested = postprocessSchedule.worldStageRequested;
+                const planningStageRequested = postprocessSchedule.planningStageRequested;
+                const worldStageReasonText = [
+                    postprocessSchedule.signalReliable && postprocessSignal?.needsWorldEvolution ? postprocessModelReasonHint : '',
+                    ...worldStageLocalReasonHints
+                ].filter(Boolean).join('；');
+                const planningStageReasonText = [
+                    postprocessSchedule.signalReliable && postprocessSignal?.needsPlanningAnalysis ? postprocessModelReasonHint : '',
+                    ...planningStageLocalReasonHints
+                ].filter(Boolean).join('；');
                 const parallelStageEntries = [
                     { id: 'world', enabled: worldEvolutionSplitEnabled && worldStageRequested, config: 获取世界演变接口配置(currentState.apiConfig) },
                     { id: 'planning', enabled: planningFeatureEnabled && planningStageRequested, config: 获取规划分析接口配置(currentState.apiConfig) },
@@ -2030,7 +2044,7 @@ export const 执行主剧情发送工作流 = async (
                     if (!worldStageRequested) {
                         options?.onWorldEvolutionProgress?.({
                             phase: "skipped",
-                            text: "后处理信号判断本回合无需世界演变，已跳过。"
+                            text: "后处理信号与本地规则均未命中世界演变，已跳过。"
                         });
                         return null;
                     }
@@ -2042,7 +2056,7 @@ export const 执行主剧情发送工作流 = async (
                                 phase: "start",
                                 text: attempt > 1
                                     ? `正在重新执行动态世界更新...（第 ${attempt} 次手动重试）`
-                                    : (后处理三阶段可并行 ? "正在并行执行动态世界更新..." : "正在执行动态世界更新...")
+                                    : `${后处理三阶段可并行 ? "正在并行执行动态世界更新..." : "正在执行动态世界更新..."}${worldStageReasonText ? `（${worldStageReasonText}）` : ""}`
                             });
                         },
                         onAutoRetry: (attempt, maxAttempts, reason) => {
@@ -2115,7 +2129,7 @@ export const 执行主剧情发送工作流 = async (
                     if (!planningStageRequested) {
                         options?.onPlanningProgress?.({
                             phase: "skipped",
-                            text: "后处理信号判断本回合无需规划分析，已跳过。"
+                            text: "后处理信号与本地规则均未命中规划分析，已跳过。"
                         });
                         return null;
                     }
@@ -2128,7 +2142,7 @@ export const 执行主剧情发送工作流 = async (
                                 phase: "start",
                                 text: attempt > 1
                                     ? `正在重新分析并修订剧情规划...（第 ${attempt} 次手动重试）`
-                                    : (后处理三阶段可并行 ? "正在并行分析并修订剧情规划..." : "正在分析并修订剧情规划...")
+                                    : `${后处理三阶段可并行 ? "正在并行分析并修订剧情规划..." : "正在分析并修订剧情规划..."}${planningStageReasonText ? `（${planningStageReasonText}）` : ""}`
                             });
                         },
                         onAutoRetry: (attempt, maxAttempts, reason) => {

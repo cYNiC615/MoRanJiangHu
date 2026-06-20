@@ -2,7 +2,7 @@
 
 > 日期：2026-06-20
 >
-> 本文只记录当前状态和下一步方向。仍约束后续实现的设计决策见
+> 本文只记录当前状态和后续方向。仍约束后续实现的设计决策见
 > `docs/homebrew-phase3.2-modern-urban-decisions.md`。
 
 ## 当前状态
@@ -56,21 +56,24 @@ runtime worldbook resolver；无显式选择时注入现代都市 fallback，UI 
 `useGame.ts` 瘦身。后续若继续处理代码质量，应以拆 composer/controller 为目标，而不是继续在
 `useGame.ts` 内堆更多 facade 对象。
 
-## Phase 3 剩余规划
+## Phase 3 后续规划
 
-### Phase 3.2 剩余工作
+### Phase 3.2 完成状态
 
 Phase 3.2 代码工作已收口：runtime/director/seeds 分支和后处理调度最小规则已落地。
 本阶段不再继续扩张角色种子、社交 v2 或 useGame 重构范围。
 
-下一步：
+完成记录：
 
-- 跑当前分支的 focused tests、`npm run build` 和 `git diff --check`。
-- 修正验证中暴露的最小问题，然后 commit/push 当前分支。
+- Focused tests、`npm run build` 和 `git diff --check` 已通过。
+- 当前分支已提交并推送：`f6f4954 feat: close phase 3.2 postprocess scheduling`。
+
+后续接手：
+
 - Phase 3.3 接手角色种子、社交 v2 和红颜规划完整闭环。
 - Phase 3.4 接手手动 smoke、查漏补缺和 closeout。
 
-完成标准：
+收口标准：
 
 - 当前 runtime/director/seeds 分支验证通过并推送。
 - 后处理调度最小本地规则和 focused tests 保持通过。

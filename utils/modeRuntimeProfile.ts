@@ -319,8 +319,8 @@ const 物品默认值 = (mode: 题材模式类型) => {
     }
     if (mode === '现代都市') {
         return {
-            initialItemPool: ['手机', '笔记本电脑', '银行卡', '合同', '录音笔', '急救包'],
-            rewardItemPool: ['现金', '转账', '合同资源', '客户线索', '技能培训', '人情债'],
+            initialItemPool: ['租房合同', '实习证明', '兼职排班表', '社团活动证', '重要录音', '体检报告'],
+            rewardItemPool: ['现金', '转账记录', '面试机会', '课程名额', '客户线索', '人情承诺'],
             bannedItemKeywords: ['破境丹', '回气丹', '凝元丹', '辟谷丹', '灵石', '宗门法宝'],
             exclusiveItemTypes: ['电子设备', '证件', '合同', '工具', '药品', '生活用品'],
             resourceToggles: { food: false, water: false, ammo: false, medicine: true, fuel: false, batteries: true },
@@ -426,7 +426,7 @@ export const 构建官方模式运行时配置 = (
             mapPrompt: profile.mapPrompt
         },
         task: {
-            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
+            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的身份、处境、关系、资源压力与长期目标推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
             rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、属性点或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
@@ -439,7 +439,9 @@ export const 构建官方模式运行时配置 = (
                 ? ['互助', '物资合作', '冲突', '临时同行']
                 : profile.group === 'western_fantasy'
                     ? ['契约', '同伴', '委托', '阵营', '旧怨']
-                    : ['师门', '友情', '利益', '旧怨'],
+                    : profile.group === 'modern'
+                        ? ['同学', '同事', '邻里', '友情', '情感', '合作', '旧怨']
+                        : ['师门', '友情', '利益', '旧怨'],
             requiredMainCharacterFields: ['姓名', '性别', '年龄', '外貌', '性格', '身份', '位置', '关系', '性癖', '敏感点'],
             sexualityFallback: '按角色性格与经历生成明确偏好，不得写未知。',
             sensitivityFallback: '按角色身体/心理特征生成明确敏感点，不得写未知。',
@@ -464,7 +466,7 @@ export const 构建官方模式运行时配置 = (
             defaultTalents: profile.talentSuggestions,
             companionTemplate: `${organization.memberName}或同行者，能承接${profile.label}的第一幕冲突。`,
             cutInTemplates: ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'],
-            initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索'],
+            initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : profile.group === 'modern' ? ['确认眼前处境', '处理现实压力', '找到下一步关系牵引'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索'],
             allowedGeneratedGenders: [...默认开局生成性别列表],
             lockGeneratedGenders: false
         },
@@ -664,7 +666,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             mapPrompt: profile.mapPrompt
         },
         task: {
-            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
+            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的身份、处境、关系、资源压力与长期目标推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
             rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、属性点或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
@@ -677,7 +679,9 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
                 ? ['互助', '物资合作', '冲突', '临时同行']
                 : profile.group === 'western_fantasy'
                     ? ['契约', '同伴', '委托', '阵营', '旧怨']
-                    : ['师门', '友情', '利益', '旧怨'],
+                    : profile.group === 'modern'
+                        ? ['同学', '同事', '邻里', '友情', '情感', '合作', '旧怨']
+                        : ['师门', '友情', '利益', '旧怨'],
             requiredMainCharacterFields: ['姓名', '性别', '年龄', '外貌', '性格', '身份', '位置', '关系', '性癖', '敏感点'],
             sexualityFallback: '按角色性格与经历生成明确偏好，不得写未知。',
             sensitivityFallback: '按角色身体/心理特征生成明确敏感点，不得写未知。',
@@ -702,7 +706,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             defaultTalents: profile.talentSuggestions,
             companionTemplate: `${organization.memberName}或同行者，能承接${profile.label}的第一幕冲突。`,
             cutInTemplates: ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'],
-            initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索'],
+            initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : profile.group === 'modern' ? ['确认眼前处境', '处理现实压力', '找到下一步关系牵引'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索'],
             allowedGeneratedGenders: [...默认开局生成性别列表],
             lockGeneratedGenders: false
         },

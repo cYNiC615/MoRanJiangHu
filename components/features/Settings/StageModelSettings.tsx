@@ -132,7 +132,7 @@ const stageProfiles: Record<ProfileId, StageProfile> = {
     },
     planning_model: {
         title: '规划分析',
-        subtitle: '统一负责剧情规划与女主规划的每回合分析修订，失败时回退为主流程状态。',
+        subtitle: '统一负责剧情规划与红颜规划的每回合分析修订，失败时回退为主流程状态。',
         info: '',
         modelTitle: '规划分析',
         toggleLabel: '启用规划分析独立模型',

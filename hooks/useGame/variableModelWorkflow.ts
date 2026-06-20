@@ -17,6 +17,7 @@ import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNa
 import { 提取命中模板姓名黑名单, 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
 import { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
+import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 
 export { 检测NPC死亡判定风险命令 } from '../../utils/npcDeathGuard';
 
@@ -523,8 +524,13 @@ export const 执行变量模型校准工作流 = async (
         count: 100
     });
     const templateNameBlacklistPrompt = 构建模板姓名黑名单提示词();
+    const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
+        构建玩家剧情倾向提示词(params.openingConfig, { stage: 'variable_calibration' }),
+        runtimeGameConfig
+    );
     const mergedExtraPrompt = [
         runtimeExtraPrompt,
+        playerStoryPreferencePrompt,
         按功能开关过滤提示词内容(构建世界书注入文本({
             books: Array.isArray(params.worldbooks) ? params.worldbooks : [],
             scopes: ['variable_calibration'],

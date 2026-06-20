@@ -21,14 +21,28 @@ describe('本地模式包主题引擎', () => {
         expect(steps.map((step) => step.label)).toEqual(['世界观', '天赋背景', '角色基础', '开局伙伴', '开局配置', '确认生成']);
     });
 
-    it('默认世界、角色和开局配置由主题文件提供', () => {
-        const world = 创建主题默认世界配置('武侠');
+    it('默认世界、角色和开局配置由现代都市主题文件提供', () => {
+        const world = 创建主题默认世界配置();
         const role = 获取创意工坊角色默认值();
+        const opening = 创建主题默认开局配置();
+
+        expect(world.worldName).toBe('海川市');
+        expect(world.worldSize).toBe('弹丸之地');
+        expect(world.modeRuntimeProfile?.identity.baseMode).toBe('现代都市');
+        expect(role.appearance).toContain('黑发黑眸');
+        expect(opening.题材模式).toBe('现代都市');
+        expect(opening.开局生成组织).toBe(false);
+        expect(opening.开局生成成员).toBe(false);
+        expect(opening.初始伙伴?.enabled).toBe(false);
+        expect(opening.modeRuntimeProfile?.identity.baseMode).toBe('现代都市');
+    });
+
+    it('显式选择武侠时仍能生成旧题材配置', () => {
+        const world = 创建主题默认世界配置('武侠');
         const opening = 创建主题默认开局配置('武侠');
 
-        expect(world.worldName).toBe('太古界');
+        expect(world.worldName).toBe('墨澜江湖');
         expect(world.modeRuntimeProfile?.identity.baseMode).toBe('武侠');
-        expect(role.appearance).toContain('黑发黑眸');
         expect(opening.初始伙伴?.关系).toBe('自幼相识的同行伙伴');
         expect(opening.modeRuntimeProfile?.identity.baseMode).toBe('武侠');
     });
@@ -69,7 +83,7 @@ describe('本地模式包主题引擎', () => {
     it('workshopEngine 导出题材兼容访问函数', () => {
         expect(规范化题材模式('灵气修仙')).toBe('灵气复苏');
         expect(规范化题材模式('末世丧尸')).toBe('末日丧尸');
-        expect(规范化题材模式('不存在')).toBe('武侠');
+        expect(规范化题材模式('不存在')).toBe('现代都市');
 
         const merged = 合并题材世界默认值('无限流', { manualRealmPrompt: 'custom realm' });
         expect(merged.worldName).toBe('主神空间');

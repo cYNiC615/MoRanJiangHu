@@ -2,6 +2,7 @@ import type { OpeningConfig } from '../../types';
 import { 获取题材开局配置文案, 规范化开局生成性别列表 } from '../../utils/openingConfig';
 import { 获取题材模式配置, 题材是否仙侠 } from '../../utils/topicModeProfiles';
 import { 规范化模式运行时配置 } from '../../utils/modeRuntimeProfile';
+import { 构建玩家剧情倾向提示词 } from './playerStoryPreference';
 
 export const 是否仙侠开局模式 = (openingConfig?: OpeningConfig | null): boolean => (
     题材是否仙侠(openingConfig?.题材模式)
@@ -36,6 +37,7 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         : '无';
     const 允许生成性别 = 规范化开局生成性别列表(openingConfig.允许生成性别);
     const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式);
+    const 玩家剧情倾向提示词 = 构建玩家剧情倾向提示词(openingConfig, { stage: 'opening' });
     const blocks = [
         '【本次开局配置约束】',
         构建题材模式提示词(openingConfig),
@@ -44,12 +46,15 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         `- AI 生成角色性别硬约束：本次只允许新生成的 NPC、开局伙伴、组织成员、队友、路人、敌人与任务人物使用这些性别：${允许生成性别.join('、')}。不得生成未允许性别的新角色；不得用“未知性别/待定/不详”绕过限制。`,
         '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；不要额外扩写未允许性别的新原创角色。',
         `- 题材开局边界：${开局文案.promptBoundary}`,
-        `- 开局组织口径：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”；组织可以是公司、学校、社区、项目组、营地、队伍、公会、协会或其他当前题材合适的社会结构，不等同于旧门派系统。`,
+        openingConfig.开局生成组织 === true
+            ? `- 开局组织口径：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”；组织可以是公司、学校、社区、项目组、营地、队伍、公会、协会或其他当前题材合适的社会结构，不等同于旧门派系统。`
+            : '- 开局组织口径：本次不主动生成初始组织、归属结构或绑定团队；除非 world_prompt、玩家草稿、建档信息或最新输入明确要求，否则不要让主角开局就隶属于公司、学校、社团、团队、营地、公会、宗门或门派。',
         openingConfig.开局生成成员 === false
-            ? '- 开局成员名录：本次明确不生成同门/同道/队友名录变量；社交人物必须按剧情证据自然落位。'
+            ? '- 开局成员名录：本次明确不生成成员/联系人/队友名录变量；社交人物必须按剧情证据自然落位。'
             : `- 开局成员名录：允许生成与题材匹配的初始成员，界面语义为“${开局文案.memberTitle}”。`,
+        玩家剧情倾向提示词,
         '- 若开局偏好与建档、世界观存在冲突，以建档硬约束和 world_prompt 为上位，但仍应尽量保留关系侧重与切入偏好的方向。'
-    ];
+    ].filter(Boolean);
     if (openingExtraRequirement) {
         blocks.push(
             '',

@@ -23,6 +23,7 @@ import { 获取世界演变接口配置, 获取规划分析接口配置, 获取�
 import { 核心_开局思维链, 获取开局思维链提示词 } from '../../prompts/core/cotOpening';
 import { 获取开场初始化任务提示词 } from '../../prompts/runtime/opening';
 import { 构建开局配置提示词 } from '../../prompts/runtime/openingConfig';
+import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 import { 数值_世界演化 } from '../../prompts/stats/world';
 import { 构建字数要求提示词 } from '../../prompts/runtime/protocolDirectives';
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
@@ -1414,6 +1415,10 @@ export const 执行开场剧情生成工作流 = async (
                 },
                 run: async () => {
                     const worldCommandTexts = 构建带索引命令文本(responseForExecution.tavern_commands || []);
+                    const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
+                        构建玩家剧情倾向提示词(options?.开局配置, { stage: 'opening_world_evolution' }),
+                        openingGameConfig
+                    );
                     const worldInitContext = 构建开局世界演变初始化上下文({
                         openingBodyText,
                         openingPlanText,
@@ -1426,10 +1431,11 @@ export const 执行开场剧情生成工作流 = async (
                         environment: simulatedOpeningState.环境,
                         world: simulatedOpeningState.世界,
                         history: [],
-                        extraTexts: [openingBodyText, openingPlanText, ...worldCommandTexts]
+                        extraTexts: [openingBodyText, openingPlanText, playerStoryPreferencePrompt, ...worldCommandTexts]
                     }).combinedText, openingGameConfig);
                     const worldExtraPrompt = [
                         开局世界演变初始化附加提示词,
+                        playerStoryPreferencePrompt,
                         worldInitContext,
                         worldbookExtra,
                         openingTraditionalChinesePrompt
@@ -1669,11 +1675,16 @@ export const 执行开场剧情生成工作流 = async (
                         social: simulatedOpeningState.社交,
                         world: simulatedOpeningState.世界,
                         history: [],
-                        extraTexts: [openingBodyText, openingPlanText]
+                        extraTexts: [openingBodyText, openingPlanText, 构建玩家剧情倾向提示词(options?.开局配置, { stage: 'opening_planning' })]
                     }).combinedText, openingGameConfig);
+                    const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
+                        构建玩家剧情倾向提示词(options?.开局配置, { stage: 'opening_planning' }),
+                        openingGameConfig
+                    );
                     const genderRatioConstraintText = 构建规划性别比例约束摘要(options?.开局配置?.modeRuntimeProfile?.npc?.genderRatio);
                     const planningExtraPrompt = [
                         开局规划初始化附加提示词,
+                        playerStoryPreferencePrompt,
                         planningWorldbookExtra,
                         openingTraditionalChinesePrompt
                     ]

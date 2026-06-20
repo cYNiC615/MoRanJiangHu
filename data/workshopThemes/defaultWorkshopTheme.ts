@@ -76,7 +76,7 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
     id: 'official-moranjianghu',
     title: '墨色江湖默认主题',
     description: '内置武侠/仙侠/现代/末日/无限流等题材的新建存档主题。流程、基础字段、默认值和选项均由主题配置驱动。',
-    defaultMode: '武侠',
+    defaultMode: '现代都市',
     creationFlow: [
         { id: 'world', label: '世界观', description: '选择题材、世界规模、世界观草稿和本地模式包。', required: true },
         { id: 'backgrounds', label: '天赋背景', description: '选择或自定义长期身份背景与天赋。', required: true },
@@ -86,11 +86,11 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
         { id: 'confirm', label: '确认生成', description: '复核配置并开始生成。', required: true }
     ],
     worldDefaults: {
-        worldName: '太古界',
-        worldSize: '九州宏大',
-        dynastySetting: '群雄逐鹿，王朝末年',
-        sectDensity: '林立',
-        tianjiaoSetting: '大争之世，天骄并起',
+        worldName: '海川市',
+        worldSize: '弹丸之地',
+        dynastySetting: '现代城市由大学城、社区、商圈、写字楼、医院和交通网络构成，现实压力、人情关系和城市机会共同推进剧情。',
+        sectDensity: '稀少',
+        tianjiaoSetting: '优势来自学习能力、时间管理、信息差、人际分寸、心理韧性和现实资源调度，不默认出现宗门、修炼或超凡成长。',
         worldExtraRequirement: '',
         manualWorldPrompt: '',
         manualRealmPrompt: '',
@@ -105,7 +105,7 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
         personality: '外冷内热，谨慎克制，遇事先观察再出手。'
     },
     companionDefaults: {
-        enabled: true,
+        enabled: false,
         头像图片URL: '',
         图片档案: undefined,
         姓名: '',
@@ -125,12 +125,12 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
     },
     openingDefaults: {
         配置约束启用: true,
-        题材模式: '武侠',
-        初始关系模板: '师门牵引',
-        关系侧重: ['师门', '友情'],
+        题材模式: '现代都市',
+        初始关系模板: '独行少系',
+        关系侧重: ['友情', '情缘'],
         开局切入偏好: '日常低压',
-        开局生成组织: true,
-        开局生成成员: true,
+        开局生成组织: false,
+        开局生成成员: false,
         允许生成性别: ['男', '女', '男娘', '扶她'],
         生成性别锁定: false,
         初始伙伴: undefined

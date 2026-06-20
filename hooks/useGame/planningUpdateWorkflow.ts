@@ -21,6 +21,7 @@ import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
 import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 import { 构建规划性别比例约束摘要 } from '../../prompts/runtime/planningAnalysis';
+import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 
 type 规划更新工作流依赖 = {
     apiConfig: any;
@@ -379,6 +380,10 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         await 后台让出主线程();
         检查规划分析中断(params.signal);
         const planningWorldbookScopes: 世界书作用域[] = heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'];
+        const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
+            构建玩家剧情倾向提示词(deps.开局配置, { stage: 'planning' }),
+            normalizedGameConfig
+        );
         const planningWorldbookParams = {
             books: Array.isArray(deps.worldbooks) ? deps.worldbooks : [],
             scopes: planningWorldbookScopes,
@@ -386,7 +391,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             social: params.state.社交,
             world: params.state.世界,
             history: deps.历史记录,
-            extraTexts: [params.playerInput, latestBodyText, currentPlanText, ...auditFocus]
+            extraTexts: [params.playerInput, latestBodyText, currentPlanText, playerStoryPreferencePrompt, ...auditFocus]
         };
         const worldbookExtra = await probe.timeAsync('构建规划世界书注入(worker)', () => 执行游戏后台重计算<string>(
             'buildWorldbookText',
@@ -404,6 +409,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         });
         const planningExtraPrompt = [
             worldbookExtra,
+            playerStoryPreferencePrompt,
             获取繁体输出指令(normalizedGameConfig)
         ]
             .filter(Boolean)

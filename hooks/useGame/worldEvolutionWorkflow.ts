@@ -16,6 +16,7 @@ import { 提取响应规划文本 } from './thinkingContext';
 import { 创建工作流性能诊断 } from '../../utils/performanceDebug';
 import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroundScheduling';
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
+import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 
 export type 世界演变触发参数 = {
     来源?: 'manual' | 'auto_due' | 'story_dynamic' | 'story_dynamic_and_due';
@@ -309,13 +310,17 @@ export const 执行世界演变更新工作流 = async (
             dueHints: dueHints.length
         });
         检查世界演变中断(params?.signal);
+        const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
+            构建玩家剧情倾向提示词(deps.开局配置, { stage: 'world_evolution' }),
+            worldRuntimeGameConfig
+        );
         const worldEvolutionWorldbookParams = {
             books: deps.worldbooks,
             scopes: ['world_evolution'] as 世界书作用域[],
             environment: worldEnv,
             world: worldState,
             history: deps.历史记录,
-            extraTexts: [currentTurnPlanText, ...dynamicHints, ...dueHints]
+            extraTexts: [currentTurnPlanText, playerStoryPreferencePrompt, ...dynamicHints, ...dueHints]
         };
         const worldbookExtraPrompt = await probe.timeAsync('构建世界演变世界书注入(worker)', () => 执行游戏后台重计算<string>(
             'buildWorldbookText',
@@ -334,6 +339,7 @@ export const 执行世界演变更新工作流 = async (
             typeof worldRuntimeGameConfig.额外提示词 === 'string'
                 ? 按功能开关过滤提示词内容(worldRuntimeGameConfig.额外提示词.trim(), worldRuntimeGameConfig)
                 : '',
+            playerStoryPreferencePrompt,
             worldbookExtraPrompt,
             获取繁体输出指令(worldRuntimeGameConfig)
         ]

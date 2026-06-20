@@ -27,7 +27,7 @@ export class StoryResponseParseError extends Error {
 }
 
 const 转义正则片段 = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const 协议标签列表 = ['thinking', '角色名单', '剧情规划', '变量规划', '正文', '短期记忆', '命令', '行动选项', '动态世界', 'judge'] as const;
+const 协议标签列表 = ['thinking', '角色名单', '剧情规划', '变量规划', '正文', '短期记忆', '后处理信号', '命令', '行动选项', '动态世界', 'judge'] as const;
 const 协议标签集合 = new Set<string>(协议标签列表);
 const 协议固定必填标签 = ['正文', '短期记忆'] as const;
 const 默认解析选项: Required<StoryParseOptions> = {
@@ -47,7 +47,7 @@ const 规范化解析选项 = (options?: StoryParseOptions): Required<StoryParse
 });
 
 type 协议标签 = (typeof 协议标签列表)[number];
-type 可标题恢复标签 = Extract<协议标签, '剧情规划' | '变量规划' | '正文' | '短期记忆' | '命令' | '行动选项' | '动态世界'>;
+type 可标题恢复标签 = Extract<协议标签, '剧情规划' | '变量规划' | '正文' | '短期记忆' | '后处理信号' | '命令' | '行动选项' | '动态世界'>;
 
 const 协议标签别名映射: Record<string, 协议标签> = {
     thinking: 'thinking',
@@ -83,6 +83,12 @@ const 协议标签别名映射: Record<string, 协议标签> = {
     summary: '短期记忆',
     recap: '短期记忆',
     memo: '短期记忆',
+    后处理信号: '后处理信号',
+    后处理: '后处理信号',
+    postprocess: '后处理信号',
+    postprocesssignal: '后处理信号',
+    followupsignal: '后处理信号',
+    processingsignal: '后处理信号',
     命令: '命令',
     command: '命令',
     commands: '命令',
@@ -106,6 +112,7 @@ const 协议标题匹配规则: Record<可标题恢复标签, RegExp> = {
     变量规划: /^(?:【\s*)?(?:变量规划|var(?:iable)?\s*plan(?:ning)?)(?:\s*】)?\s*[:：]?\s*(.*)$/i,
     正文: /^(?:【\s*)?(?:正文|body|content|text|log|logs|story)(?:\s*】)?\s*[:：]?\s*(.*)$/i,
     短期记忆: /^(?:【\s*)?(?:短期记忆|short\s*term(?:\s*memory)?|summary|recap|memo)(?:\s*】)?\s*[:：]?\s*(.*)$/i,
+    后处理信号: /^(?:【\s*)?(?:后处理信号|后处理|post\s*process(?:\s*signal)?|follow\s*up\s*signal|processing\s*signal)(?:\s*】)?\s*[:：]?\s*(.*)$/i,
     命令: /^(?:【\s*)?(?:命令|commands?|cmd)(?:\s*】)?\s*[:：]?\s*(.*)$/i,
     行动选项: /^(?:【\s*)?(?:行动选项|action\s*options?|options?|choices?)(?:\s*】)?\s*[:：]?\s*(.*)$/i,
     动态世界: /^(?:【\s*)?(?:动态世界|dynamic\s*world|world\s*events?)(?:\s*】)?\s*[:：]?\s*(.*)$/i
@@ -138,6 +145,7 @@ const 提取标题区块内容 = (text: string): Partial<Record<可标题恢复�
         变量规划: [],
         正文: [],
         短期记忆: [],
+        后处理信号: [],
         命令: [],
         行动选项: [],
         动态世界: []
@@ -318,7 +326,7 @@ const 提取候选命令文本 = (text: string): string => {
 
 const 提取候选正文文本 = (text: string): string => {
     let stripped = (text || '').replace(/\r\n/g, '\n');
-    for (const tag of ['剧情规划', '变量规划', '短期记忆', '命令', '行动选项', '动态世界', 'judge']) {
+    for (const tag of ['剧情规划', '变量规划', '短期记忆', '后处理信号', '命令', '行动选项', '动态世界', 'judge']) {
         const escapedTag = 转义正则片段(tag);
         stripped = stripped.replace(new RegExp(`<\\s*${escapedTag}\\s*>[\\s\\S]*?<\\s*/\\s*${escapedTag}\\s*>`, 'gi'), '\n');
     }
@@ -336,7 +344,7 @@ const 提取候选正文文本 = (text: string): string => {
 
 const 清理正文残留协议内容 = (body: string): string => {
     let stripped = (body || '').replace(/\r\n/g, '\n');
-    for (const tag of ['剧情规划', '变量规划', '短期记忆', '命令', '行动选项', '动态世界']) {
+    for (const tag of ['剧情规划', '变量规划', '短期记忆', '后处理信号', '命令', '行动选项', '动态世界']) {
         const escapedTag = 转义正则片段(tag);
         stripped = stripped.replace(new RegExp(`<\\s*${escapedTag}\\s*>[\\s\\S]*?<\\s*/\\s*${escapedTag}\\s*>`, 'gi'), '\n');
     }
@@ -434,6 +442,9 @@ const 补全协议缺失区块 = (content: string): string => {
 
     text = 写入协议标签段(text, '正文', 正文候选, { 允许空内容: true });
     text = 写入协议标签段(text, '短期记忆', 短期候选, { 缺失时默认内容: '无' });
+    if (sections.后处理信号) {
+        text = 写入协议标签段(text, '后处理信号', sections.后处理信号, { 允许空内容: true });
+    }
     if (命令候选) {
         text = 写入协议标签段(text, '命令', 命令候选, { 允许空内容: true });
     }
@@ -737,7 +748,7 @@ const 是否判定类日志发送者 = (senderRaw: string): boolean => {
 
 const 正文冒号说话人排除集合 = new Set([
     '地点', '时间', '天气', '任务', '命令', '短期记忆', '中期记忆', '长期记忆', '即时记忆',
-    '剧情规划', '变量规划', '正文', '行动选项', '动态世界', '触发对象', '对象', '判定值',
+    '剧情规划', '变量规划', '正文', '行动选项', '动态世界', '后处理信号', '触发对象', '对象', '判定值',
     '难度', '胜方', '败方', '差值', '伤害值', '消耗', '剩余', '后果', '发现度',
     '基础', '环境', '状态', '幸运', '装备', '结果', '奖励', '获得', '失去'
 ]);
@@ -887,7 +898,7 @@ const 解析角色名单标签 = (tagContent: string): Set<string> => {
 
 const 提取残缺角色名单标签 = (text: string): string => {
     if (!text) return '';
-    const match = text.match(/<角色名单>\s*([\s\S]*?)(?:<\/(?:角色名单|正文|短期记忆|thinking|命令|动态世界|变量规划|剧情规划|行动选项|judge)\s*>|<(?:角色名单|正文|短期记忆|thinking|命令|动态世界|变量规划|剧情规划|行动选项|judge)\s*>|$)/i);
+    const match = text.match(/<角色名单>\s*([\s\S]*?)(?:<\/(?:角色名单|正文|短期记忆|后处理信号|thinking|命令|动态世界|变量规划|剧情规划|行动选项|judge)\s*>|<(?:角色名单|正文|短期记忆|后处理信号|thinking|命令|动态世界|变量规划|剧情规划|行动选项|judge)\s*>|$)/i);
     return match?.[1]?.trim() || '';
 };
 
@@ -1491,7 +1502,7 @@ export const 解析命令块 = (commandBlock: string): Array<{ action: 'add' | '
 const 解析行动选项块 = (optionsBlock: string): string[] => {
     const text = (optionsBlock || '').trim();
     if (!text) return [];
-    const 协议标签行正则 = /^<\s*\/?\s*(?:thinking|think|正文|短期记忆|变量规划|剧情规划|行动选项|命令|动态世界|judge)\s*[\]>]\s*$/i;
+    const 协议标签行正则 = /^<\s*\/?\s*(?:thinking|think|正文|短期记忆|后处理信号|变量规划|剧情规划|行动选项|命令|动态世界|judge)\s*[\]>]\s*$/i;
     return text
         .replace(/\r\n/g, '\n')
         .split('\n')
@@ -1515,6 +1526,51 @@ export const 解析动态世界块 = (dynamicBlock: string): string[] => {
         .filter(Boolean);
 };
 
+const 解析是否值 = (value: string): boolean | undefined => {
+    const text = (value || '').trim().toLowerCase();
+    if (!text) return undefined;
+    if (/^(是|需要|true|yes|y|1)\b/i.test(text)) return true;
+    if (/^(否|不需要|false|no|n|0)\b/i.test(text)) return false;
+    if (/是|需要|true|yes/i.test(text)) return true;
+    if (/否|不需要|false|no/i.test(text)) return false;
+    return undefined;
+};
+
+export const 解析后处理信号块 = (signalBlock: string): GameResponse['postprocess_signal'] | undefined => {
+    const rawText = (signalBlock || '').replace(/\r\n/g, '\n').trim();
+    if (!rawText) return undefined;
+    const lines = rawText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => line.replace(/^[-*]\s*/, '').replace(/^\d+[.)、]\s*/, '').trim());
+    const getLineValue = (patterns: RegExp[]): string => {
+        for (const line of lines) {
+            for (const pattern of patterns) {
+                const matched = line.match(pattern);
+                if (matched) return (matched[1] || '').trim();
+            }
+        }
+        return '';
+    };
+    const planningRaw = getLineValue([/^需要规划分析\s*[:：]\s*(.+)$/i, /^规划分析\s*[:：]\s*(.+)$/i, /^needs?\s*planning(?:\s*analysis)?\s*[:：]\s*(.+)$/i]);
+    const worldRaw = getLineValue([/^需要世界演变\s*[:：]\s*(.+)$/i, /^世界演变\s*[:：]\s*(.+)$/i, /^needs?\s*world(?:\s*evolution)?\s*[:：]\s*(.+)$/i]);
+    const reason = getLineValue([/^理由\s*[:：]\s*(.+)$/i, /^原因\s*[:：]\s*(.+)$/i, /^reason\s*[:：]\s*(.+)$/i])
+        || lines.filter(line => !/^(?:需要规划分析|规划分析|needs?\s*planning|需要世界演变|世界演变|needs?\s*world)\s*[:：]/i.test(line)).join('\n').trim();
+    const needsPlanningAnalysis = 解析是否值(planningRaw);
+    const needsWorldEvolution = 解析是否值(worldRaw);
+    const parseError = needsPlanningAnalysis === undefined || needsWorldEvolution === undefined
+        ? '后处理信号缺少可识别的是/否字段'
+        : '';
+    return {
+        needsPlanningAnalysis: needsPlanningAnalysis === true,
+        needsWorldEvolution: needsWorldEvolution === true,
+        reason,
+        rawText,
+        ...(parseError ? { parseError } : {})
+    };
+};
+
 const 解析标签协议响应 = (content: string, options?: Required<StoryParseOptions>, declaredNames?: Set<string>): GameResponse | null => {
     const text = (content || '').trim();
     if (!text) return null;
@@ -1530,6 +1586,7 @@ const 解析标签协议响应 = (content: string, options?: Required<StoryParse
     const commandBlock = 提取首个标签内容(textWithoutThinking, '命令') || titleSections.命令 || '';
     const actionOptionsBlock = 提取首个标签内容(textWithoutThinking, '行动选项') || titleSections.行动选项 || '';
     const dynamicWorldBlock = 提取首个标签内容(textWithoutThinking, '动态世界') || titleSections.动态世界 || '';
+    const postprocessSignalBlock = 提取首个标签内容(textWithoutThinking, '后处理信号') || titleSections.后处理信号 || '';
     const bodyJudgeExtraction = 提取正文中的Judge区块(清理正文残留协议内容(bodyBlock || ''));
     const fallbackJudgeBlocks = 提取标签内容列表(textWithoutThinking, 'judge', { 兼容错误闭合: true })
         .map(item => item.replace(/\r\n/g, '\n').trim())
@@ -1571,6 +1628,7 @@ const 解析标签协议响应 = (content: string, options?: Required<StoryParse
     const commands = 解析命令块(commandBlock);
     const actionOptions = 解析行动选项块(actionOptionsBlock);
     const dynamicWorld = 解析动态世界块(dynamicWorldBlock);
+    const postprocessSignal = 解析后处理信号块(postprocessSignalBlock);
     const explicitThinking = thinkingParts.map(item => item.trim()).filter(Boolean).join('\n\n').trim();
     const thinking = (thinkingSegment.thinking || explicitThinking || '').trim();
 
@@ -1588,6 +1646,7 @@ const 解析标签协议响应 = (content: string, options?: Required<StoryParse
         shortTerm: shortTerm || undefined,
         action_options: actionOptions.length > 0 ? actionOptions : undefined,
         dynamic_world: dynamicWorld.length > 0 ? dynamicWorld : undefined,
+        postprocess_signal: postprocessSignal,
         judge_blocks: judgeBlocks
     };
 };
@@ -1655,6 +1714,23 @@ const 归一化JSON结构响应 = (raw: any): GameResponse => {
         ? raw.tavern_commands
             .flatMap((item: any) => 标准化命令对象列表(item))
         : undefined;
+    const normalizedPostprocessSignal = (() => {
+        if (typeof raw?.postprocess_signal === 'string') {
+            return 解析后处理信号块(raw.postprocess_signal);
+        }
+        const source = raw?.postprocess_signal;
+        if (!source || typeof source !== 'object' || Array.isArray(source)) return undefined;
+        const reason = typeof source.reason === 'string' ? source.reason.trim() : '';
+        const rawText = typeof source.rawText === 'string' ? source.rawText.trim() : undefined;
+        const parseError = typeof source.parseError === 'string' ? source.parseError.trim() : undefined;
+        return {
+            needsPlanningAnalysis: source.needsPlanningAnalysis === true,
+            needsWorldEvolution: source.needsWorldEvolution === true,
+            reason,
+            ...(rawText ? { rawText } : {}),
+            ...(parseError ? { parseError } : {})
+        };
+    })();
 
     return {
         thinking_pre: typeof raw?.thinking_pre === 'string' ? raw.thinking_pre : undefined,
@@ -1690,6 +1766,7 @@ const 归一化JSON结构响应 = (raw: any): GameResponse => {
                 })
                 .filter((item: string) => item.trim().length > 0)
             : undefined,
+        postprocess_signal: normalizedPostprocessSignal,
         judge_blocks: Array.isArray(raw?.judge_blocks)
             ? raw.judge_blocks
                 .map((item: any) => {

@@ -1981,9 +1981,26 @@ export const 执行主剧情发送工作流 = async (
                 let mapUpdateResult: 地图更新执行结果 | null = null;
                 const 变量生成后命令数 = Array.isArray(responseForExecution.tavern_commands) ? responseForExecution.tavern_commands.length : 0;
                 const mapGenerationEnabled = currentState.apiConfig?.功能模型占位?.地图生成功能启用 !== false;
+                const postprocessSignal = responseForExecution.postprocess_signal;
+                const postprocessSignalReliable = Boolean(postprocessSignal && !postprocessSignal.parseError);
+                const dynamicWorldHints = (Array.isArray(responseForExecution.dynamic_world) ? responseForExecution.dynamic_world : [])
+                    .map(item => (item || '').trim())
+                    .filter(Boolean);
+                const postprocessReasonHint = postprocessSignal?.reason?.trim()
+                    ? `后处理信号：${postprocessSignal.reason.trim()}`
+                    : '';
+                const worldStageDynamicHints = [
+                    ...dynamicWorldHints,
+                    postprocessSignalReliable && postprocessSignal?.needsWorldEvolution && postprocessReasonHint ? postprocessReasonHint : ''
+                ].filter(Boolean);
+                const worldStageRequested = !postprocessSignalReliable
+                    || postprocessSignal?.needsWorldEvolution === true
+                    || dynamicWorldHints.length > 0;
+                const planningStageRequested = !postprocessSignalReliable
+                    || postprocessSignal?.needsPlanningAnalysis === true;
                 const parallelStageEntries = [
-                    { id: 'world', enabled: worldEvolutionSplitEnabled, config: 获取世界演变接口配置(currentState.apiConfig) },
-                    { id: 'planning', enabled: planningFeatureEnabled, config: 获取规划分析接口配置(currentState.apiConfig) },
+                    { id: 'world', enabled: worldEvolutionSplitEnabled && worldStageRequested, config: 获取世界演变接口配置(currentState.apiConfig) },
+                    { id: 'planning', enabled: planningFeatureEnabled && planningStageRequested, config: 获取规划分析接口配置(currentState.apiConfig) },
                     { id: 'map', enabled: mapGenerationEnabled, config: 获取地图自动更新接口配置(currentState.apiConfig) }
                 ].filter((item) => item.enabled && 接口配置是否可用(item.config));
                 const parallelChannelKeys = parallelStageEntries.map((item) => 获取队列阶段渠道键(item.config, activeApi)).filter(Boolean);
@@ -2007,6 +2024,13 @@ export const 执行主剧情发送工作流 = async (
                         options?.onWorldEvolutionProgress?.({
                             phase: "skipped",
                             text: "世界演变独立链路未启用，已跳过。"
+                        });
+                        return null;
+                    }
+                    if (!worldStageRequested) {
+                        options?.onWorldEvolutionProgress?.({
+                            phase: "skipped",
+                            text: "后处理信号判断本回合无需世界演变，已跳过。"
                         });
                         return null;
                     }
@@ -2034,7 +2058,7 @@ export const 执行主剧情发送工作流 = async (
                             };
                             const result = await deps.执行世界演变更新({
                                 来源: "story_dynamic",
-                                动态世界线索: [],
+                                动态世界线索: worldStageDynamicHints,
                                 applyCommands: false,
                                 currentResponse: worldContextResponse,
                                 stateBase: stateSnapshot,
@@ -2085,6 +2109,13 @@ export const 执行主剧情发送工作流 = async (
                         options?.onPlanningProgress?.({
                             phase: "skipped",
                             text: "规划分析功能未开启，已跳过本轮规划分析。"
+                        });
+                        return null;
+                    }
+                    if (!planningStageRequested) {
+                        options?.onPlanningProgress?.({
+                            phase: "skipped",
+                            text: "后处理信号判断本回合无需规划分析，已跳过。"
                         });
                         return null;
                     }

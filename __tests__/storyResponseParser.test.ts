@@ -3,6 +3,35 @@ import { parseStoryRawText, StoryResponseParseError } from '../services/ai/story
 import { 规范化可渲染对白日志 } from '../utils/dialogueLogNormalizer';
 
 describe('storyResponseParser', () => {
+    it('parses optional postprocess signal between short memory and actions', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】下课铃响，走廊里的人声一点点涌上来。',
+            '</正文>',
+            '<短期记忆>主角刚结束上午课程，准备处理兼职面试。</短期记忆>',
+            '<后处理信号>',
+            '需要规划分析：是',
+            '需要世界演变：否',
+            '理由：玩家选择改变主线推进方向，需要刷新章节罗盘，但还没有影响世界态势。',
+            '</后处理信号>',
+            '<行动选项>',
+            '去社团办公室找学姐确认活动名单',
+            '给兼职店长回电话约定面试时间',
+            '</行动选项>'
+        ].join('\n'));
+
+        expect(parsed.postprocess_signal).toMatchObject({
+            needsPlanningAnalysis: true,
+            needsWorldEvolution: false,
+            reason: '玩家选择改变主线推进方向，需要刷新章节罗盘，但还没有影响世界态势。'
+        });
+        expect(parsed.action_options).toEqual([
+            '去社团办公室找学姐确认活动名单',
+            '给兼职店长回电话约定面试时间'
+        ]);
+        expect(parsed.logs.map((item) => item.text).join('\n')).not.toContain('后处理信号');
+    });
+
     it('does not expose malformed closing action tag as a quick action', () => {
         const parsed = parseStoryRawText([
             '<正文>',

@@ -255,10 +255,10 @@ export const 获取题材开局配置文案 = (mode?: 题材模式类型, runtim
             relationHelper: '会优先影响初始现实社交网、职场/家庭/城市关系的情绪结构。',
             organizationEnabled: true,
             organizationTitle: '开局生成组织',
-            organizationDescription: '开启后第0回合会生成可承接的公司、学校、社区、项目组、门店或合作团队。',
+            organizationDescription: '默认关闭；开启后第0回合会生成可承接的公司、学校、社区、项目组、门店或合作团队。',
             memberTitle: '开局生成成员',
             memberDescription: '开启后生成联系人、同事、亲友、邻里、合作对象或组织成员名录。',
-            organizationOffHint: '',
+            organizationOffHint: '关闭时开局不主动给主角绑定公司、学校、社团或团队归属，只保留可自然接触的现实关系。',
             relationLabels: { 师门: '职场', 情缘: '情感', 利益: '合作', 仇怨: '矛盾' },
             cutInLabels: {
                 在途起手: { label: '通勤起手', hint: '开局落在通勤、出差、路口、地铁、网约车或城市移动途中。' },
@@ -403,8 +403,8 @@ export const 规范化开局生成性别列表 = (value: unknown): 开局生成�
 };
 
 export const 默认开局配置 = (): OpeningConfig => ({
-    ...创建主题默认开局配置('武侠'),
-    modeRuntimeProfile: 构建官方模式运行时配置('武侠'),
+    ...创建主题默认开局配置(),
+    modeRuntimeProfile: 构建官方模式运行时配置('现代都市'),
     允许生成性别: [...默认开局生成性别列表],
     生成性别锁定: false
 });
@@ -644,8 +644,9 @@ export const 规范化开局配置 = (raw?: any): OpeningConfig => {
         初始关系模板,
         关系侧重: 关系侧重.length > 0 ? 关系侧重 : fallback.关系侧重,
         开局切入偏好,
-        开局生成组织: raw?.开局生成组织 !== false,
-        开局生成成员: raw?.开局生成成员 !== false,
+        开局生成组织: raw?.开局生成组织 === undefined ? fallback.开局生成组织 !== false : raw.开局生成组织 === true,
+        开局生成成员: raw?.开局生成成员 === undefined ? fallback.开局生成成员 !== false : raw.开局生成成员 === true,
+        玩家剧情倾向: 读取文本(raw?.玩家剧情倾向),
         允许生成性别: 规范化开局生成性别列表(
             raw?.允许生成性别
             ?? raw?.modeRuntimeProfile?.opening?.allowedGeneratedGenders

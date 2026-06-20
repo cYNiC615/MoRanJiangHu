@@ -101,6 +101,34 @@ const 构建模式专属世界书 = (params: {
     }];
 };
 
+export const 构建题材模式世界书 = (
+    mode: keyof typeof 题材模式配置表,
+    runtimeProfile?: ModeRuntimeProfile
+): 世界书结构[] => {
+    const profile = 题材模式配置表[mode];
+    const modeRuntimeProfile = runtimeProfile
+        ? 规范化模式运行时配置(runtimeProfile, mode)
+        : 构建官方模式运行时配置(mode);
+    return 构建模式专属世界书({
+        id: `default-mode-${profile.value}`,
+        title: `${profile.label}默认世界书`,
+        description: `${profile.label}默认题材口径、世界规则和运行时配置。`,
+        topicPrompt: profile.promptLines.join('\n'),
+        worldRulesPrompt: profile.worldDefaults.worldExtraRequirement,
+        abilityPrompt: profile.manualRealmPrompt,
+        extraEntries: [
+            构建模式世界书条目(
+                `default-mode-${profile.value}-runtime-profile`,
+                '运行时模式配置',
+                渲染模式运行时配置世界书内容(modeRuntimeProfile),
+                'system_rule',
+                全流程模式世界书作用域,
+                104
+            )
+        ]
+    });
+};
+
 export const 从模式世界书提取提示词 = (books: 世界书结构[] | undefined): {
     manualWorldPrompt: string;
     worldExtraRequirement: string;
@@ -167,15 +195,15 @@ const 构建题材预设 = (
             配置约束启用: true,
             题材模式: mode,
             modeRuntimeProfile,
-            初始关系模板: mode === '末日丧尸' ? '独行少系' : mode === '现代都市' ? '世家官门' : '师门牵引',
-            关系侧重: mode === '末日丧尸' ? ['友情', '利益'] : ['师门', '友情'],
+            初始关系模板: mode === '末日丧尸' || mode === '现代都市' ? '独行少系' : '师门牵引',
+            关系侧重: mode === '末日丧尸' ? ['友情', '利益'] : mode === '现代都市' ? ['友情', '情缘'] : ['师门', '友情'],
             开局切入偏好: mode === '末日丧尸' ? '风波前夜' : mode === '现代都市' ? '日常低压' : '门派起手',
-            开局生成组织: true,
-            开局生成成员: true,
+            开局生成组织: mode !== '现代都市',
+            开局生成成员: mode !== '现代都市',
             允许生成性别: ['男', '女', '男娘', '扶她'],
             生成性别锁定: false,
             初始伙伴: {
-                enabled: true,
+                enabled: mode !== '现代都市',
                 姓名: '',
                 性别: '女',
                 年龄: 18,
@@ -209,7 +237,7 @@ const 题材默认角色: Record<keyof typeof 题材模式配置表, { 姓名: s
     西方奇幻: { 姓名: '莱恩', 背景: '冒险者学徒', 天赋: ['魔力亲和', '骑士誓言'], 开局补充: '第一幕从冒险者公会、边境酒馆、护送委托、魔物骚扰或地下城入口切入，不直接赠送神器。' },
     灵气复苏: { 姓名: '林澈', 背景: '大学生', 天赋: ['灵觉敏锐', '社区纽带'], 开局补充: '第一幕从校园、医院、研究点或异常封控现场切入，保留现代社会惯性。' },
     都市修仙: { 姓名: '许临安', 背景: '古玩店学徒', 天赋: ['灵觉敏锐', '市井耳目'], 开局补充: '第一幕从公司、家族、人脉债务或城市暗市切入，不要直接进入成熟宗门社会。' },
-    现代都市: { 姓名: '周行', 背景: '白领文职', 天赋: ['人情练达', '账房脑子'], 开局补充: '第一幕从现实工作、家庭、人情、商业或城市案件切入，不写成超凡常态。' },
+    现代都市: { 姓名: '周行', 背景: '普通大学生', 天赋: ['信息检索', '边界感'], 开局补充: '第一幕从校园、合租、兼职、社团、实习或现实人情压力切入，不写成超凡常态。' },
     末日丧尸: { 姓名: '陈砾', 背景: '维修工', 天赋: ['独行者', '守夜人'], 开局补充: '第一幕从安全屋、医院遗址、商超搜索或营地冲突切入。' },
     无限流: { 姓名: '周砚', 背景: '恐怖片影迷', 天赋: ['情报记忆', '恐惧抗性'], 开局补充: '第一幕从主神空间醒来、主神任务倒计时、队伍新人互相试探和第一次恐怖片任务切入。' }
 };

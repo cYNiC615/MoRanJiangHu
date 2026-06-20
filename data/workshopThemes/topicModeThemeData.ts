@@ -282,9 +282,9 @@ export const 题材模式配置表: Record<题材模式类型, 题材模式配�
         currencyExchangePrompt: 现代单一货币换算提示,
         mapPrompt: '世界版图应按城市行政区、社区、商圈、写字楼、学校、医院、城郊、交通站点和灰色渠道组织。',
         skillNames: ['急救', '驾驶', '维修', '调查', '谈判', '计算机', '经商', '鉴定'],
-        backgroundSuggestions: ['寒门子弟', '公司职员', '实习记者', '合租青年', '小店店主'],
-        talentSuggestions: ['账房脑子', '人情练达', '静心观微', '市井耳目', '稳扎稳打'],
-        presetItemKeywords: ['手机', '笔记本电脑', '银行卡', '合同', '录音笔', '急救包'],
+        backgroundSuggestions: ['普通大学生', '兼职打工', '家教兼职', '企业实习生', '合租青年', '社团成员'],
+        talentSuggestions: ['学习快', '时间管理', '信息检索', '观察细致', '表达清楚', '边界感'],
+        presetItemKeywords: ['租房合同', '实习证明', '兼职排班表', '社团活动证', '重要录音', '体检报告'],
         manualRealmPrompt: '成长体系：职业技能、人脉信用、资产管理、心理韧性和社会资源；不要常态化超凡力量。',
         promptBoundary: '现代都市开局不得生成古代门派、宗门、师门、同门、山门、藏经阁、古风组织贡献体系或江湖组织任务；兼容变量 `玩家组织` 只能承载公司、学校、社区、家庭、媒体、项目组、店铺、合作团队等现实社会结构。',
         promptLines: [
@@ -391,7 +391,7 @@ export const 规范化题材模式 = (mode?: unknown): 题材模式类型 => (
             ? '末日丧尸'
             : typeof mode === 'string' && Object.prototype.hasOwnProperty.call(题材模式配置表, mode)
                 ? mode as 题材模式类型
-                : '武侠'
+                : '现代都市'
 );
 
 export const 获取题材模式配置 = (mode?: unknown): 题材模式配置 => (

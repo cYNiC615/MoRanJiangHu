@@ -31,6 +31,7 @@ lerna-debug.log*
 
 # Generated reports, temp workspaces, and local analysis outputs
 /artifacts/
+/temp/
 /.tmp*/
 /clean_diff.txt
 /diff.txt

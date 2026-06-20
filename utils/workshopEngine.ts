@@ -11,6 +11,7 @@ import {
     type 创意工坊主题配置,
     type 创意工坊选项定义
 } from '../data/workshopThemes/defaultWorkshopTheme';
+import { 获取题材模式配置, 规范化题材模式 } from '../data/workshopThemes/topicModeThemeData';
 export {
     合并题材世界默认值,
     获取题材模式配置,
@@ -172,10 +173,14 @@ export const 创建主题默认世界配置 = (
     theme?: Partial<创意工坊主题配置> | null
 ): WorldGenConfig => {
     const resolved = 解析创意工坊主题配置(theme);
-    const baseMode = mode || resolved.defaultMode;
+    const baseMode = 规范化题材模式(mode || resolved.defaultMode);
+    const topicDefaults = 获取题材模式配置(baseMode).worldDefaults;
+    const worldDefaults = mode
+        ? { ...topicDefaults, manualWorldPrompt: '', manualRealmPrompt: '', difficulty: resolved.worldDefaults.difficulty }
+        : resolved.worldDefaults;
     return {
-        ...深拷贝(resolved.worldDefaults),
-        modeRuntimeProfile: resolved.worldDefaults.modeRuntimeProfile || 构建官方模式运行时配置(baseMode)
+        ...深拷贝(worldDefaults),
+        modeRuntimeProfile: 构建官方模式运行时配置(baseMode)
     };
 };
 

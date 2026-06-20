@@ -3,7 +3,7 @@ import GameButton from '../../ui/GameButton';
 import { 接口设置结构, OpeningConfig, WorldGenConfig, 角色数据结构, 天赋结构, 背景结构, 游戏难度, 初始伙伴配置结构, 世界书结构 } from '../../../types';
 import { 预设天赋, 预设背景, 获取题材预设天赋, 获取题材预设背景 } from '../../../data/presets';
 import type { 开局预设方案结构 } from '../../../data/newGamePresets';
-import { 从模式世界书提取提示词, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
+import { 从模式世界书提取提示词, 构建题材模式世界书, type 创意工坊模块条目, type 创意工坊模块类型, type 创意工坊世界细节生成配置 } from '../../../data/creativeWorkshopModules';
 import type { 题材模式类型 } from '../../../models/system';
 import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
@@ -84,6 +84,18 @@ type 属性结构 = {
 };
 const 难度下拉选项 = 获取创意工坊难度选项() as Array<{ value: 游戏难度; label: string }>;
 const 世界版图下拉选项 = 获取创意工坊世界规模选项() as Array<{ value: WorldGenConfig['worldSize']; label: string }>;
+const 获取题材世界版图选项 = (mode: 题材模式类型): Array<{ value: WorldGenConfig['worldSize']; label: string }> => {
+    if (mode !== '现代都市') return 世界版图下拉选项;
+    const modernLabels: Record<WorldGenConfig['worldSize'], string> = {
+        弹丸之地: '大学城',
+        九州宏大: '都市圈',
+        无尽位面: '跨城网络'
+    };
+    return 世界版图下拉选项.map((item) => ({
+        ...item,
+        label: modernLabels[item.value] || item.label
+    }));
+};
 const 模式包类型标签: Record<创意工坊模块类型, string> = {
     topic: '模式包',
     world_rules: '世界规则',
@@ -204,7 +216,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const effectiveOpeningStreaming = isStreamingDefault !== false;
 
     // --- State: World Config ---
-    const [worldConfig, setWorldConfig] = useState<WorldGenConfig>(() => 创建主题默认世界配置('武侠'));
+    const [worldConfig, setWorldConfig] = useState<WorldGenConfig>(() => 创建主题默认世界配置());
 
     // --- State: Character Config ---
     const [charName, setCharName] = useState('');
@@ -225,7 +237,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [stats, setStats] = useState<属性结构>(创建默认属性分配);
     const [openingConfig, setOpeningConfig] = useState<OpeningConfig>(默认开局配置);
     const [openingConfigEnabled, setOpeningConfigEnabled] = useState(true);
-    const [partnerEnabled, setPartnerEnabled] = useState(true);
+    const [partnerEnabled, setPartnerEnabled] = useState(false);
     const [partnerName, setPartnerName] = useState('');
     const [partnerGender, setPartnerGender] = useState('女');
     const [partnerAge, setPartnerAge] = useState(18);
@@ -238,13 +250,13 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const [partnerRelation, setPartnerRelation] = useState('自幼相识的同行伙伴');
     const [partnerNote, setPartnerNote] = useState('');
     const [partnerStats, setPartnerStats] = useState<属性结构>(创建默认属性分配);
-    const [partnerBackground, setPartnerBackground] = useState<背景结构>(预设背景[0]);
+    const [partnerBackground, setPartnerBackground] = useState<背景结构>(() => 获取题材预设背景('现代都市')[0] || 预设背景[0]);
     const [partnerTalents, setPartnerTalents] = useState<天赋结构[]>([]);
     const [partnerList, setPartnerList] = useState<初始伙伴配置结构[]>(() => [默认初始伙伴配置()]);
     const [activePartnerIndex, setActivePartnerIndex] = useState(0);
 
     // Talents & Background
-    const [selectedBackground, setSelectedBackground] = useState<背景结构>(预设背景[0]);
+    const [selectedBackground, setSelectedBackground] = useState<背景结构>(() => 获取题材预设背景('现代都市')[0] || 预设背景[0]);
     const [出身选择模式, set出身选择模式] = useState<'抽卡' | '列表'>('抽卡');
     const [出身抽卡名称列表, set出身抽卡名称列表] = useState<string[]>([]);
     const [出身抽卡轮次, set出身抽卡轮次] = useState(1);
@@ -784,6 +796,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     const stepProgress = ((step + 1) / STEPS.length) * 100;
     const currentStepLabel = STEPS[step] || '创建';
     const 当前题材配置 = useMemo(() => 获取题材模式配置(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前世界版图下拉选项 = useMemo(() => 获取题材世界版图选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前难度设定 = useMemo(() => 获取题材化难度设定(worldConfig.difficulty, openingConfig.题材模式), [worldConfig.difficulty, openingConfig.题材模式]);
     const 出身剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 出身已重Roll次数);
     const 天赋剩余重Roll次数 = Math.max(0, 当前难度设定.天赋重Roll次数 - 天赋已重Roll次数);
@@ -1506,11 +1519,18 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
     const 构建当前表单开局预设 = (meta?: Partial<自定义开局预设元信息> & { id?: string }): 开局预设方案结构 => {
         const effectiveOpeningConfig = 构建有效开局配置();
+        const shouldInjectDefaultModernWorldbook = effectiveOpeningConfig?.题材模式 === '现代都市'
+            && 模式包世界书列表.length <= 0
+            && !已选模式包模式
+            && Object.keys(已选模式包子项 || {}).length <= 0;
+        const effectiveModeWorldbooks = shouldInjectDefaultModernWorldbook
+            ? 构建题材模式世界书('现代都市', effectiveOpeningConfig?.modeRuntimeProfile)
+            : 模式包世界书列表;
         const runtimeSnapshot = 构建开局运行时快照({
             openingStreaming: effectiveOpeningStreaming,
             openingExtraRequirement: openingExtraRequirement.trim(),
             activeModuleExtraRules: activeModuleExtraRules.trim(),
-            modeWorldbooks: 模式包世界书列表,
+            modeWorldbooks: effectiveModeWorldbooks,
             workshopSelection: {
                 selectedMode: 已选模式包模式,
                 selectedModules: 已选模式包子项
@@ -1956,7 +1976,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                             <label className="text-sm text-wuxia-cyan font-bold">{当前题材配置.worldSizeLabel}</label>
                                             <InlineSelect
                                                 value={worldConfig.worldSize}
-                                                options={世界版图下拉选项}
+                                                options={当前世界版图下拉选项}
                                                 onChange={(worldSize) => setWorldConfig({ ...worldConfig, worldSize })}
                                             />
                                             <div className="text-[11px] text-gray-500 leading-5">{当前题材配置.worldSizeHint}</div>
@@ -2900,6 +2920,22 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                         <div>
+                                            <div className="text-sm text-gray-200">{当前开局配置文案.organizationTitle}</div>
+                                            <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.organizationDescription}</div>
+                                            {openingConfig.开局生成组织 === false && 当前开局配置文案.organizationOffHint && (
+                                                <div className="mt-2 text-[11px] text-gray-500">{当前开局配置文案.organizationOffHint}</div>
+                                            )}
+                                        </div>
+                                        <开关按钮
+                                            checked={openingConfig.开局生成组织 === true}
+                                            label={openingConfig.开局生成组织 === true ? '生成' : '不生成'}
+                                            onToggle={() => {
+                                                setOpeningConfig((prev) => ({ ...prev, 开局生成组织: prev.开局生成组织 !== true }));
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
+                                        <div>
                                             <div className="text-sm text-gray-200">{当前开局配置文案.memberTitle}</div>
                                             <div className="text-[11px] text-gray-500 mt-1">{当前开局配置文案.memberDescription}</div>
                                         </div>
@@ -2912,10 +2948,20 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                         />
                                     </div>
                                 </div>
+                                <div className="mt-6 space-y-2">
+                                    <label className="text-sm text-wuxia-cyan font-bold">玩家剧情倾向</label>
+                                    <textarea
+                                        value={openingConfig.玩家剧情倾向 || ''}
+                                        onChange={(e) => setOpeningConfig((prev) => ({ ...prev, 玩家剧情倾向: e.target.value }))}
+                                        placeholder="例如：想从合租、兼职和校园社团慢慢展开关系。"
+                                        className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none"
+                                    />
+                                    <div className="text-[11px] text-gray-500 leading-5">作为本存档导演偏好注入开局、主剧情和规划类提示词；不会当作世界事实写入。</div>
+                                </div>
                                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                     <div>
-                                        <div className="text-sm text-gray-200">女主剧情规划</div>
-                                        <div className="text-[11px] text-gray-500 mt-1">控制是否主动生成女主 NPC 和推进情感线；模式包可预设此项</div>
+                                        <div className="text-sm text-gray-200">红颜规划</div>
+                                        <div className="text-[11px] text-gray-500 mt-1">控制是否主动生成红颜 NPC 和推进情感线；模式包可预设此项</div>
                                     </div>
                                     <select
                                         value={openingConfig.启用女主剧情规划 === undefined ? '默认' : openingConfig.启用女主剧情规划 ? '启用' : '关闭'}

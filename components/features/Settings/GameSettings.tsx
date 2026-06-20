@@ -553,13 +553,13 @@ const GameSettings: React.FC<Props> = ({ settings, onSave }) => {
             <div className="space-y-3 rounded-md border border-wuxia-gold/20 bg-black/30 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="text-sm text-wuxia-cyan font-bold">女主剧情规划</div>
-                        <div className="text-xs text-gray-400 mt-1">开启后保留女主规划状态，并启用每回合独立规划分析链路；主剧情只读取状态，不再直接维护女主规划提示词。</div>
+                        <div className="text-sm text-wuxia-cyan font-bold">红颜规划</div>
+                        <div className="text-xs text-gray-400 mt-1">开启后保留红颜规划状态，并启用每回合独立规划分析链路；主剧情只读取状态，不再直接维护红颜规划提示词。</div>
                     </div>
                     <ToggleSwitch
                         checked={form.启用女主剧情规划 === true}
                         onChange={(next) => 实时应用更新({ 启用女主剧情规划: next })}
-                        ariaLabel="切换女主剧情规划"
+                        ariaLabel="切换红颜规划"
                     />
                 </div>
             </div>

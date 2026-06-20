@@ -45,7 +45,7 @@ const 分区列表: Array<{ key: 变量根键; label: string; description: strin
     { key: '世界', label: '世界', description: '活跃NPC、事件、势力、江湖史册等。' },
     { key: '地图系统', label: '地图系统', description: '地图层级、建筑、道路、人物等空间数据。' },
     { key: '剧情', label: '剧情', description: '章节、剧情规划、关键剧情变量组。' },
-    { key: '女主剧情规划', label: '女主剧情规划', description: '女主排期与推进指引。' },
+    { key: '女主剧情规划', label: '红颜规划', description: '红颜排期与推进指引。' },
     { key: '任务列表', label: '任务列表', description: '全部任务条目。' },
     { key: '记忆系统', label: '记忆系统', description: '回忆档案、即时/短期/中期/长期记忆。' }
 ];

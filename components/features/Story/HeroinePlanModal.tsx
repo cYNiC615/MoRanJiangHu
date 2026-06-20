@@ -80,7 +80,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, onClose }) => {
                         <div>
                             <div className="text-rose-400 font-serif font-bold text-2xl tracking-[0.4em] drop-shadow-[0_0_15px_rgba(225,29,72,0.3)]">红颜卷宗</div>
                             <div className="mt-1 flex items-center gap-3 text-xs text-gray-400 font-medium tracking-wider">
-                                <span className="text-rose-300/70">女主规划</span>
+                                <span className="text-rose-300/70">红颜规划</span>
                                 <span className="w-1 h-1 rounded-full bg-gray-600"></span>
                                 <span>当前阶段：<span className="text-gray-200">{主阶段?.阶段名 || '未定'}</span></span>
                             </div>
@@ -102,14 +102,14 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, onClose }) => {
                                 <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-gray-500 font-serif gap-6">
                                     <div className="text-6xl opacity-20 mb-4">🌸</div>
                                     <span className="text-xl tracking-[0.3em] font-bold text-rose-900/50">红颜未定 羁绊未生</span>
-                                    <span className="text-xs tracking-wider">当前无女主剧情规划数据。</span>
+                                    <span className="text-xs tracking-wider">当前无红颜规划数据。</span>
                                 </div>
                             ) : (
                                 <>
                                     {/* Stats Grid */}
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
-                                            { label: '女主条目', count: 女主条目.length, color: 'text-rose-400', border: 'border-rose-900/30' },
+                                            { label: '红颜条目', count: 女主条目.length, color: 'text-rose-400', border: 'border-rose-900/30' },
                                             { label: '互动事件', count: 女主互动事件.length, color: 'text-amber-400', border: 'border-amber-900/30' },
                                             { label: '镜头规划', count: 女主镜头规划.length, color: 'text-purple-400', border: 'border-purple-900/30' },
                                             { label: '阶段推进', count: 阶段推进.length, color: 'text-cyan-400', border: 'border-cyan-900/30' },
@@ -220,7 +220,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, onClose }) => {
                                                 <div>
                                                     <div className="text-2xl font-serif font-bold text-amber-300 drop-shadow-md">{item?.事件名 || `事件 ${idx + 1}`}</div>
                                                     <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                                        <div className="bg-rose-950/30 px-3 py-1.5 rounded-lg border border-rose-900/30 text-rose-300">{item?.女主姓名 || '未知女主'}</div>
+                                                        <div className="bg-rose-950/30 px-3 py-1.5 rounded-lg border border-rose-900/30 text-rose-300">{item?.女主姓名 || '未知红颜'}</div>
                                                         <div className="bg-black/50 px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400">计划触发：{item?.计划触发时间 || '未设定'}</div>
                                                     </div>
                                                 </div>
@@ -263,7 +263,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, onClose }) => {
                                                         <div className="text-2xl font-serif font-bold text-purple-300 drop-shadow-md">{item?.镜头标题 || `镜头 ${idx + 1}`}</div>
                                                     </div>
                                                     <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                                        <div className="bg-rose-950/30 px-3 py-1.5 rounded-lg border border-rose-900/30 text-rose-300">{item?.女主姓名 || '未知女主'}</div>
+                                                        <div className="bg-rose-950/30 px-3 py-1.5 rounded-lg border border-rose-900/30 text-rose-300">{item?.女主姓名 || '未知红颜'}</div>
                                                         <div className="bg-black/50 px-3 py-1.5 rounded-lg border border-gray-800 text-gray-400">触发时间：{item?.触发时间 || '未设定'}</div>
                                                     </div>
                                                 </div>

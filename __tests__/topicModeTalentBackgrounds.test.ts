@@ -33,6 +33,39 @@ describe('topic mode talent and background presets', () => {
         }
     });
 
+    it('现代都市默认池是普通现实身份，不预置通用随身物品', () => {
+        const talents = 获取题材预设天赋('现代都市');
+        const backgrounds = 获取题材预设背景('现代都市');
+        const talentNames = talents.map((item) => item.名称);
+        const backgroundNames = backgrounds.map((item) => item.名称);
+
+        expect(talents).toHaveLength(12);
+        expect(backgrounds).toHaveLength(10);
+        expect(backgroundNames).toEqual([
+            '普通大学生',
+            '兼职打工',
+            '家教兼职',
+            '企业实习生',
+            '合租青年',
+            '社团成员',
+            '夜校学生',
+            '自由接单者',
+            '社区志愿者',
+            '小店店员'
+        ]);
+        expect(talentNames).toContain('信息检索');
+        expect(talentNames).toContain('边界感');
+        expect(backgroundNames).not.toContain('公司职员');
+        expect(backgroundNames).not.toContain('小店店主');
+        expect(backgroundNames).not.toContain('基层公务员');
+
+        for (const background of backgrounds) {
+            expect(background.初始物品 || [], background.名称).toEqual([]);
+            expect(background.可选初始物品 || [], background.名称).toEqual([]);
+            expect(background.开局货币, background.名称).toBeUndefined();
+        }
+    });
+
     it('西方奇幻天赋卷宗不直接混入武侠默认天赋名', () => {
         const talentNames = 获取题材预设天赋('西方奇幻').map((item) => item.名称);
 

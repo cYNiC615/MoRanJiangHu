@@ -1,6 +1,6 @@
 # Homebrew Detailed Feature Map
 
-> 日期：2026-06-18
+> 日期：2026-06-20
 >
 > Phase 2.5 已正式完成。本文只记录当前保留功能边界、下一步入口和手动 smoke
 > 待处理项。主阶段边界见
@@ -15,11 +15,11 @@
 - 世界/地图/时间、角色、社交/NPC、女主/后宫规划、任务、背包、装备和图片管理都是后续迭代对象，后续重构不得改变当前玩法语义。
 - 文生图后端以 ComfyUI 为当前边界；图片管理、角色/NPC/玩家/场景/秘密/物品图片链路继续保留。
 - 诊断/开发工具、Cloudflare/Worker、CNB、脚本和测试只围绕当前本地/API/图片代理辅助价值存在。
-- Phase 3 从现代都市默认化、手动 smoke 待处理项和具体 bugfix intake 开始，不再继续扩张 Phase 2.5。
+- Phase 3 从现代都市默认化、手动 smoke 待处理项和具体 bugfix intake 开始，不再继续扩张 Phase 2.5；Phase 3.1 第一轮现代都市默认化已落地，Phase 3.2 当前决策与剩余工作见 `docs/homebrew-phase3.2-modern-urban-decisions.md` 和 `docs/homebrew-phase3.2-modern-urban-implementation-status.md`。
 
 ## 当前手动 Smoke 状态
 
-- Pre-Phase3 bugfix baseline 已完成；下一步可进入 Phase 3 小切片功能迭代。
+- Pre-Phase3 bugfix baseline 已完成；Phase 3.1 第一轮已完成默认题材 fallback、现代都市小核心池、默认无组织/无初始伙伴、玩家剧情倾向注入、`<后处理信号>` 解析基础、现代主线牵引和红颜规划可见命名。Phase 3.2 继续处理默认现代 runtime/prompt 正确性、后处理调度规则、B-lite/红颜规划 v2、角色种子池和活跃路径 copy 审计。
 - 已修：新建游戏世界观选择界面不再展示“市场入口”、交易口径、统一换算等市场说明块。
 - 已修：随身装备和随身物品货币卡片显示具体金额与玩家可读单位，不再暴露 `baseAmount`。
 - 已修：队列“重新生成”按钮只在变量生成确有可执行重试入口时显示，未实现阶段级重放的队列阶段不再展示假按钮；变量续跑会先完成变量模型重解析，再用快照重建回合，避免开局正文在等待模型期间被先清空。

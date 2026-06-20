@@ -33,6 +33,14 @@ export interface JudgmentThoughtBlock {
     isNsfw?: boolean;
 }
 
+export interface PostprocessSignal {
+    needsPlanningAnalysis: boolean;
+    needsWorldEvolution: boolean;
+    reason: string;
+    rawText?: string;
+    parseError?: string;
+}
+
 export interface GameResponse {
     logs: GameLog[];
     thinking_pre?: string;
@@ -56,6 +64,7 @@ export interface GameResponse {
     shortTerm?: string;
     action_options?: string[]; // Quick actions for the user
     dynamic_world?: string[]; // Hints for world-evolution model
+    postprocess_signal?: PostprocessSignal; // Optional model signal for follow-up planning/world stages
     declaredSpeakers?: string[]; // Names declared via <角色名单> tag
     judge_blocks?: JudgmentThoughtBlock[];
     body_optimized?: boolean;

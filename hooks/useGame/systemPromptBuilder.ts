@@ -40,6 +40,7 @@ import {
     规范化世界状态
 } from './storyState';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
+import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 import { 构建女性姓名候选提示词, 收集女性姓名候选已用名 } from '../../utils/femaleNameCandidatePrompt';
 import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBlacklist';
 import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
@@ -1036,6 +1037,7 @@ export const 构建系统提示词 = ({
     );
     const difficultyPrompts = difficultyPromptSummary.trim();
     const genreModePrompt = 按当前设置过滤提示词(构建题材模式提示词(openingConfig));
+    const playerStoryPreferencePrompt = 按当前设置过滤提示词(构建玩家剧情倾向提示词(openingConfig, { stage: 'main' }));
     const otherPrompts = [
         ...otherPromptEntries.map(item => item.content),
         开局剧情推动协议内容,
@@ -1147,6 +1149,7 @@ export const 构建系统提示词 = ({
         }),
         构建模板姓名黑名单提示词(),
         genreModePrompt,
+        playerStoryPreferencePrompt,
         otherPrompts.trim()
     ].filter(Boolean).join('\n\n');
 

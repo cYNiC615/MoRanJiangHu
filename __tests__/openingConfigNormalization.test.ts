@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { 获取题材预设天赋, 获取题材预设背景 } from '../data/presets';
-import { 获取题材开局配置文案, 规范化开局配置 } from '../utils/openingConfig';
+import { 获取题材开局配置文案, 默认开局配置, 规范化开局配置 } from '../utils/openingConfig';
 import { 构建官方模式运行时配置 } from '../utils/modeRuntimeProfile';
 import { 构建开局配置提示词 } from '../prompts/runtime/openingConfig';
 import { 题材模式顺序 } from '../utils/topicModeProfiles';
 
 describe('开局配置题材边界', () => {
+    it('默认开局配置使用现代都市且不主动生成组织成员', () => {
+        const config = 默认开局配置();
+        const normalized = 规范化开局配置({});
+
+        expect(config.题材模式).toBe('现代都市');
+        expect(config.开局生成组织).toBe(false);
+        expect(config.开局生成成员).toBe(false);
+        expect(config.初始伙伴?.enabled).toBe(false);
+        expect(config.modeRuntimeProfile?.identity.baseMode).toBe('现代都市');
+        expect(normalized.题材模式).toBe('现代都市');
+        expect(normalized.开局生成组织).toBe(false);
+        expect(normalized.开局生成成员).toBe(false);
+    });
+
     it('末日丧尸会保留营地和队友生成开关', () => {
         const config = 规范化开局配置({
             题材模式: '末日丧尸',
@@ -52,8 +66,13 @@ describe('开局配置题材边界', () => {
         expect(copy.organizationDescription).toContain('公司');
     });
 
-    it('每个题材都有 30 个官方背景和 30 个官方天赋', () => {
+    it('现代都市默认池保持小而普通，其他题材保留 30 个官方背景和天赋', () => {
         题材模式顺序.forEach((mode) => {
+            if (mode === '现代都市') {
+                expect(获取题材预设背景(mode), mode).toHaveLength(10);
+                expect(获取题材预设天赋(mode), mode).toHaveLength(12);
+                return;
+            }
             expect(获取题材预设背景(mode), mode).toHaveLength(30);
             expect(获取题材预设天赋(mode), mode).toHaveLength(30);
         });
@@ -103,5 +122,20 @@ describe('开局配置题材边界', () => {
         expect(prompt).toContain('只允许新生成的 NPC');
         expect(prompt).toContain('女');
         expect(prompt).toContain('主角性别以玩家建档为准');
+    });
+
+    it('现代都市默认提示词不主动生成组织，并把玩家剧情倾向作为导演偏好注入', () => {
+        const config = 规范化开局配置({
+            题材模式: '现代都市',
+            玩家剧情倾向: '想从合租、兼职和校园社团慢慢展开关系。'
+        });
+        const prompt = 构建开局配置提示词(config);
+
+        expect(config.玩家剧情倾向).toBe('想从合租、兼职和校园社团慢慢展开关系。');
+        expect(prompt).toContain('开局组织口径：本次不主动生成初始组织');
+        expect(prompt).toContain('玩家剧情倾向');
+        expect(prompt).toContain('导演偏好');
+        expect(prompt).toContain('不是世界事实');
+        expect(prompt).toContain('合租、兼职和校园社团');
     });
 });

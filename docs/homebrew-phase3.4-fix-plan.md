@@ -24,21 +24,30 @@
 - 地图更新已低频化；现代地图 prompt 已清理旧武侠母板；现代世界基底默认根改为 `现实世界`，孤立空 `诸天万界` 根会被兼容清理，非空旧地图不自动删除。
 - 新游戏第六步确认页已改为顶部起始的滚动安全布局，避免超高内容被 `h-full + justify-center` 截掉顶部。
 - 现代时间法则、默认文风、文章优化、COT / format / runtime copy 已完成第一轮现代中性收口。
+- Context routing 已新增 `core_world_summary`：开局生成完整 `core_world` 后会用主剧情 API 摘要并写入摘要槽，主剧情默认读取摘要，摘要缺失时回退完整世界观；世界演变、开局生成和后台规划仍可读取完整世界观。
+- Runtime NSFW extra prompt 已改为 `disabled / beacon / intimacy / explicit` 分层：普通日常只注入轻信标，暧昧/私密/高关系场景注入亲密推进与边界，明确成人场景才注入完整显式规则。
+- NSFW 世界书注入已接入层级路由：非 explicit 层压制完整名器/显式身体类条目并记录压制数量，explicit 层仍按作用域和关键词命中。
+- 变量生成普通日常不再因 NSFW 总开关强制补私密/名器/子宫类档案；亲密或 explicit 层才启用完整私密档案审计。
+- 默认写作文风已去掉古风小说参考、常驻显式成人词库和固定现代道具清单；相邻写作守门与文章优化提示清理了普通现代默认旧锚点。
+- 主剧情 payload 诊断已补充 `worldPromptSource`、`nsfwPromptLevel`、`suppressedWorldbookCount`。
 - 本轮 focused tests、`git diff --check` 和 `npm run build` 已通过。
 
 ## 未完成队列
 
-1. 规划分析 / 开局规划亲密世界书收口
-   - 普通日常、开局规划、无亲密语义场景不得常驻完整名器/后庭/臀部类大表。
-   - 只允许短规则边界或摘要进入普通规划链路；完整条目由明确亲密/NSFW 场景触发。
-   - 继续保留红颜候选守门：未登场 seed 不得直接变成红颜规划候选。
+1. 地图摘要后续方案
+   - 本轮不实现地图摘要；后续 Phase 重构地图功能时，再从六层地图树生成确定性结构摘要。
+   - 摘要应突出当前大/中/小/区/子地点的独特关系、核心地点、边界和可拼接信息，避免在不了解外部地图时把当前地图硬拼成复杂大地图。
 
-2. Runtime NSFW extra prompt 边界讨论
-   - 普通 SFW 主剧情是否继续携带 runtime NSFW extra prompt 先不改实现。
-   - 待确认方向：只在明确亲密/NSFW 场景触发，或至少避免作为独立 user message 常驻普通日常回合。
+2. 手动 smoke 后调参项
+   - 观察 NSFW 层级触发是否过于保守或过于主动；如有误触发，再调整本地触发词和导演偏好摘要边界。
+   - 观察世界观摘要是否漏掉本局独特规则/势力/冲突；如漏，再调整摘要提示和确定性 fallback 关键词。
 
 ## 验证记录
 
+- `npx vitest run __tests__/nsfwImageGeneration.test.ts __tests__/worldPromptSummary.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/variableModelPrompts.test.ts __tests__/storyLengthValidation.test.ts --pool=threads`
+- `npx vitest run __tests__/modernPromptGuardrails.test.ts __tests__/nsfwImageGeneration.test.ts __tests__/variableModelPrompts.test.ts __tests__/phase32RuntimeWorldbooks.test.ts`
+- `npx vitest run __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/autoConsumables.test.ts __tests__/worldPromptSummary.test.ts __tests__/storyLengthValidation.test.ts`
+- `npx vitest run __tests__/directorConfigAndSeeds.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/socialBehaviorLite.test.ts __tests__/variableRegistry.test.ts __tests__/dbServiceDirectorConfig.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/postprocessScheduler.test.ts __tests__/storyLengthValidation.test.ts __tests__/variableModelPrompts.test.ts __tests__/mapUpdateWorkflow.test.ts __tests__/rightPanelModal.test.ts __tests__/newGameWizardCopy.test.ts`
 - `npx vitest run __tests__/modernPromptGuardrails.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/autoConsumables.test.ts`
 - `npx vitest run __tests__/directorConfigAndSeeds.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/socialBehaviorLite.test.ts __tests__/variableRegistry.test.ts __tests__/dbServiceDirectorConfig.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/postprocessScheduler.test.ts __tests__/storyLengthValidation.test.ts __tests__/variableModelPrompts.test.ts __tests__/mapUpdateWorkflow.test.ts __tests__/rightPanelModal.test.ts __tests__/newGameWizardCopy.test.ts`
 - `npx vitest run __tests__/worldGenerationParser.test.ts __tests__/modernUrbanDefaults.test.ts`

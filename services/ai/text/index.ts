@@ -14,6 +14,7 @@ export {
     generatePlanningAnalysis,
     解析世界观提示词内容,
     generateWorldFoundationData,
+    generateWorldPromptSummary,
     generateStoryResponse,
     generateVariableCalibrationUpdate,
     generateWorldData,

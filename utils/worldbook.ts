@@ -28,6 +28,7 @@ import { 世界演变系统提示词 } from '../prompts/runtime/worldEvolution';
 import { 世界演变COT提示词 } from '../prompts/runtime/worldEvolutionCot';
 import { 变量校准COT提示词 } from '../prompts/runtime/variableCot';
 import { 核心_世界观 } from '../prompts/core/world';
+import { 核心_世界观摘要 } from '../prompts/core/worldSummary';
 import { 核心_输出格式 } from '../prompts/core/format';
 import { 核心_思维链, } from '../prompts/core/cot';
 import { 核心_思维链_女主规划版, 核心_思维链_NTL女主规划版 } from '../prompts/core/cotHeroine';
@@ -37,6 +38,7 @@ import { 构建变量模型系统提示词, 构建变量模型用户附加规则
 import { 写作_风格 } from '../prompts/writing/style';
 import { 写作_避免极端情绪 } from '../prompts/writing/emotionGuard';
 import { 写作_防止说话 } from '../prompts/writing/noControl';
+import type { NSFW提示层级 } from '../prompts/runtime/nsfw';
 
 export const 世界书存储键 = 'extra_worldbooks';
 export const 世界书预设组存储键 = 'worldbook_preset_groups';
@@ -127,6 +129,7 @@ const 条目形态标签映射: Record<世界书条目形态, string> = {
 export const 世界书本体槽位 = {
     主剧情AI角色声明: 'builtin_slot_main_ai_role',
     主剧情世界观: 'builtin_slot_main_world_prompt',
+    主剧情世界观摘要: 'builtin_slot_main_world_summary',
     主剧情输出协议: 'builtin_slot_main_output_protocol',
     写作文风: 'builtin_slot_writing_style',
     写作避免极端情绪: 'builtin_slot_writing_emotion_guard',
@@ -458,6 +461,15 @@ export const 创建内置预设世界书 = (): 世界书结构 => {
                 类型: 'world_lore',
                 作用域: ['main'],
                 内容: 核心_世界观.内容
+            }),
+            创建内置预设条目({
+                id: 世界书本体槽位.主剧情世界观摘要,
+                内置槽位: 世界书本体槽位.主剧情世界观摘要,
+                标题: '主剧情 · 世界观摘要本体',
+                内置分类: '主剧情',
+                类型: 'world_lore',
+                作用域: ['main'],
+                内容: 核心_世界观摘要.内容
             }),
             创建内置预设条目({
                 id: 世界书本体槽位.主剧情输出协议,
@@ -1190,6 +1202,7 @@ type 世界书命中参数 = {
     world?: any;
     extraTexts?: string[];
     maxChars?: number;
+    nsfwPromptLevel?: NSFW提示层级;
 };
 
 const 时间串转序数 = (value?: string): number | null => {
@@ -1210,7 +1223,21 @@ const 时间线命中 = (entry: 世界书条目结构, currentTimeText: string):
     return true;
 };
 
-export const 选择生效世界书条目 = ({
+const 条目疑似显式NSFW = (entry: 世界书条目结构): boolean => {
+    const text = [
+        entry.标题,
+        entry.内容,
+        ...(Array.isArray(entry.关键词) ? entry.关键词 : [])
+    ].map(读取文本).join('\n');
+    return /(名器|小穴|屁穴|后穴|肉棒|阴茎|龟头|阴蒂|蜜液|精液|子宫|乳头|肛交|性交|性爱|性器|胸部名器|固定机制效果表|失贞|破处)/.test(text);
+};
+
+const 世界书NSFW层级允许 = (entry: 世界书条目结构, level?: NSFW提示层级): boolean => {
+    if (!条目疑似显式NSFW(entry)) return true;
+    return level === 'explicit';
+};
+
+const 选择生效世界书条目明细 = ({
     books,
     scopes,
     environment,
@@ -1218,8 +1245,9 @@ export const 选择生效世界书条目 = ({
     history,
     world,
     extraTexts,
-    maxChars
-}: 世界书命中参数): 世界书条目结构[] => {
+    maxChars,
+    nsfwPromptLevel
+}: 世界书命中参数): { selectedEntries: 世界书条目结构[]; suppressedEntries: 世界书条目结构[] } => {
     const activeScopes = Array.isArray(scopes) && scopes.length > 0 ? scopes : 默认作用域;
     const currentTimeText = 环境时间转标准串(environment) || 读取文本(environment?.时间).trim();
     const corpus = [
@@ -1234,6 +1262,7 @@ export const 选择生效世界书条目 = ({
         : Math.max(...activeScopes.map((scope) => 世界书预算映射[scope] || 0));
 
     const selected: 世界书条目结构[] = [];
+    const suppressed: 世界书条目结构[] = [];
     let totalChars = 0;
 
     扁平化世界书条目(books).forEach((entry) => {
@@ -1245,6 +1274,10 @@ export const 选择生效世界书条目 = ({
             if (keywords.length <= 0) return;
             if (!keywords.some((keyword) => corpus.includes(keyword))) return;
         }
+        if (!世界书NSFW层级允许(entry, nsfwPromptLevel)) {
+            suppressed.push(entry);
+            return;
+        }
         const estimated = `${entry.标题}\n${entry.内容}`.length;
         const shouldApplyBudget = Boolean(maxChars) || entry.注入模式 === 'match_any';
         if (shouldApplyBudget && budget > 0 && selected.length > 0 && totalChars + estimated > budget) return;
@@ -1252,7 +1285,11 @@ export const 选择生效世界书条目 = ({
         totalChars += estimated;
     });
 
-    return selected;
+    return { selectedEntries: selected, suppressedEntries: suppressed };
+};
+
+export const 选择生效世界书条目 = (params: 世界书命中参数): 世界书条目结构[] => {
+    return 选择生效世界书条目明细(params).selectedEntries;
 };
 
 const 类型标题映射: Record<世界书类型, string> = {
@@ -1275,13 +1312,15 @@ const 构建分组文本 = (label: string, entries: 世界书条目结构[]): st
 
 export const 构建世界书注入文本 = (params: 世界书命中参数): {
     selectedEntries: 世界书条目结构[];
+    suppressedEntries: 世界书条目结构[];
+    suppressedEntryCount: number;
     worldLoreText: string;
     systemRuleText: string;
     commandRuleText: string;
     outputRuleText: string;
     combinedText: string;
 } => {
-    const selectedEntries = 选择生效世界书条目(params);
+    const { selectedEntries, suppressedEntries } = 选择生效世界书条目明细(params);
     const grouped = {
         world_lore: selectedEntries.filter((entry) => entry.类型 === 'world_lore'),
         system_rule: selectedEntries.filter((entry) => entry.类型 === 'system_rule'),
@@ -1296,6 +1335,8 @@ export const 构建世界书注入文本 = (params: 世界书命中参数): {
 
     return {
         selectedEntries,
+        suppressedEntries,
+        suppressedEntryCount: suppressedEntries.length,
         worldLoreText,
         systemRuleText,
         commandRuleText,

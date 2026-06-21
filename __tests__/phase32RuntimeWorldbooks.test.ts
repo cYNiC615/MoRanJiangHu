@@ -78,6 +78,32 @@ describe('Phase 3.2 runtime worldbook resolver', () => {
         const source = readFileSync(resolve(process.cwd(), 'hooks/useGame/variableModelWorkflow.ts'), 'utf8');
 
         expect(source).not.toContain('名器世界书触发词');
-        expect(source).toContain('extraTexts: [params.playerInput]');
+        expect(source).toContain('extraTexts: [params.playerInput, responseBodyText]');
+    });
+
+    it('非 explicit NSFW 层级会压制名器世界书 always 条目', () => {
+        const mingqiBooks = JSON.parse(readFileSync(resolve(process.cwd(), 'public/worldbook-presets/mingqi-core.json'), 'utf8'));
+        const injected = 构建世界书注入文本({
+            books: mingqiBooks,
+            scopes: ['main'],
+            nsfwPromptLevel: 'beacon',
+            extraTexts: ['今天去学校旁边吃早餐，顺路买了咖啡。']
+        });
+
+        expect(injected.combinedText).not.toMatch(/名器|小穴|阴蒂|蜜液|子宫/u);
+        expect(injected.suppressedEntryCount).toBeGreaterThan(0);
+    });
+
+    it('explicit NSFW 层级允许名器世界书按关键词命中', () => {
+        const mingqiBooks = JSON.parse(readFileSync(resolve(process.cwd(), 'public/worldbook-presets/mingqi-core.json'), 'utf8'));
+        const injected = 构建世界书注入文本({
+            books: mingqiBooks,
+            scopes: ['main'],
+            nsfwPromptLevel: 'explicit',
+            extraTexts: ['她明确同意后，亲密场景进入小穴、阴蒂和蜜液描写。']
+        });
+
+        expect(injected.combinedText).toMatch(/名器|小穴|阴蒂|蜜液/u);
+        expect(injected.suppressedEntryCount).toBe(0);
     });
 });

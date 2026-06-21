@@ -110,6 +110,71 @@ describe('variableModel prompts', () => {
         expect(gapLine).not.toContain('子宫档案');
     });
 
+    it('普通日常层级不强制补齐女性主要角色私密/名器/子宫档案', () => {
+        const audit = 构建社交档案完整性审计提示([{
+            姓名: '林知夏',
+            性别: '女',
+            是否主要角色: true,
+            身份: '合租室友',
+            简介: '新闻系研究生。',
+            关系状态: '熟悉',
+            记忆: ['一起整理过厨房。'],
+            当前装备: { 上装: '白色衬衫' },
+            天赋列表: [],
+            背包: [],
+            BUFF: [],
+            DEBUFF: [],
+            技艺: [],
+            出身背景: '普通家庭',
+            力量: 5,
+            敏捷: 5,
+            体质: 5,
+            攻击力: 5,
+            防御力: 5,
+            当前血量: 100,
+            最大血量: 100,
+            当前精力: 50,
+            最大精力: 50,
+            头部当前血量: 100,
+            头部最大血量: 100,
+            头部状态: '正常',
+            胸部当前血量: 100,
+            胸部最大血量: 100,
+            胸部状态: '正常',
+            腹部当前血量: 100,
+            腹部最大血量: 100,
+            腹部状态: '正常',
+            左手当前血量: 100,
+            左手最大血量: 100,
+            左手状态: '正常',
+            右手当前血量: 100,
+            右手最大血量: 100,
+            右手状态: '正常',
+            左腿当前血量: 100,
+            左腿最大血量: 100,
+            左腿状态: '正常',
+            右腿当前血量: 100,
+            右腿最大血量: 100,
+            右腿状态: '正常'
+        } as any], { nsfwPromptLevel: 'beacon' as any });
+
+        expect(audit).not.toMatch(/胸部描述|小穴描述|屁穴描述|名器档案|性癖|敏感点|子宫档案|是否处女|失贞档案|首次亲密记录/u);
+    });
+
+    it('亲密层级会恢复女性主要角色私密档案审计', () => {
+        const audit = 构建社交档案完整性审计提示([{
+            姓名: '林知夏',
+            性别: '女',
+            是否主要角色: true,
+            身份: '合租室友',
+            简介: '新闻系研究生。',
+            关系状态: '暧昧',
+            记忆: ['两人已经开始单独约会。']
+        } as any], { nsfwPromptLevel: 'intimacy' as any });
+
+        expect(audit).toMatch(/胸部描述|小穴描述|名器档案|子宫档案/u);
+    });
+
     it('variable calibration service injects extra prompt only through the task prompt builder', () => {
         const source = readFileSync(resolve(process.cwd(), 'services/ai/storyTasks.ts'), 'utf8');
         const start = source.indexOf('export const generateVariableCalibrationUpdate');

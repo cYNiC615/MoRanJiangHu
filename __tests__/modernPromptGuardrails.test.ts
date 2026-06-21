@@ -14,7 +14,11 @@ import { 构建女主主COT内容 } from '../prompts/core/cotHeroine';
 import { 获取开局思维链提示词 } from '../prompts/core/cotOpening';
 import { 核心_判定思维链 } from '../prompts/core/cotJudge';
 import { 核心_时间推进法则 } from '../prompts/core/timeProgress';
+import { 核心_世界观摘要 } from '../prompts/core/worldSummary';
 import { 写作_风格 } from '../prompts/writing/style';
+import { 写作_避免极端情绪 } from '../prompts/writing/emotionGuard';
+import { 写作_防止说话 } from '../prompts/writing/noControl';
+import { 写作_防全知 } from '../prompts/writing/antiOmniscient';
 import { 默认文章优化提示词 } from '../prompts/runtime/defaults';
 import { 数值_世界演化 } from '../prompts/stats/world';
 import { 数值_NPC参考 } from '../prompts/stats/npc';
@@ -314,6 +318,33 @@ describe('modern urban prompt guardrails', () => {
 
         expect(combined).not.toMatch(/雪中悍刀行|世子很凶|娱乐春秋|江湖压迫|朝堂气势|不能滑成现代段子|武侠\/古风|古法换算/u);
         expect(combined).toMatch(/现代都市|现实压力|组织|能力边界|社会边界/u);
+    });
+
+    it('默认写作文风只保留成人轻信标，不常驻显式成人词汇表或古风小说参考', () => {
+        const content = 写作_风格.内容;
+
+        expect(content).toContain('题材优先');
+        expect(content).toContain('不是固定道具清单');
+        expect(content).toMatch(/成年人自愿亲密|成人内容/u);
+        expect(content).not.toMatch(/参考.*古风|古言|武侠小说|古风小说/u);
+        expect(content).not.toMatch(/肉棒|龟头|阴茎|小穴|阴蒂|蜜液|精液|穴口|臀缝/u);
+        expect(content).not.toMatch(/手机.*门禁.*地铁.*监控/u);
+    });
+
+    it('活跃写作守门提示不携带普通现代默认旧锚点', () => {
+        const combined = [
+            写作_风格.内容,
+            写作_避免极端情绪.内容,
+            写作_防止说话.内容,
+            写作_防全知.内容
+        ].join('\n');
+
+        expect(combined).not.toMatch(/传功|拔剑|江湖传言|茶馆议论|术法追踪|命牌|血引/u);
+    });
+
+    it('内置提示词包含独立世界观摘要槽位', () => {
+        expect(核心_世界观摘要.id).toBe('core_world_summary');
+        expect(核心_世界观摘要.内容).toContain('开局后此处会被替换为本局世界观摘要');
     });
 
     it('现代运行时配置摘要不暴露旧成长体系 copy', () => {

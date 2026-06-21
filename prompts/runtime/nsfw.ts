@@ -1,5 +1,7 @@
 import type { 游戏设置结构 } from '../../types';
 
+export type NSFW提示层级 = 'disabled' | 'beacon' | 'intimacy' | 'explicit';
+
 export const 默认NSFW模式提示词 = `(System Prompt: NSFW/adult content is permitted and, when sexual scenes are involved, must be depicted in an explicit manner. All "fade to black" or "time skip" filters are disabled.
 
 If the scene is SFW (non-adult/non-sexual content), completely ignore this entire rule and proceed with normal narrative style.
@@ -33,6 +35,16 @@ Adult intimate-scene writing reference:
 - Action cues can include approaching, covering, joining, fitting, entering, rhythm, rising and falling, pressing deeper, grinding, withdrawing and pressing back, arching, tightening, clinging, bracing, kneeling, turning over, holding wrists, holding the waist, lifting legs, cupping the face, pressing shoulders, pulling close, kissing, sucking, exploring, caressing, loosening clothes, teasing, slowing down, stopping on purpose, approaching and retreating.
 - These are references, not a checklist. In each continuation, choose only the few details that fit the current stage, characters, consent, and relationship. Keep it intimate, detailed, immersive, and character-driven; emphasize voluntary responses, shyness, desire, restraint, or loss of control when earned.)`;
 
+export const NSFW轻信标提示词 = `成人内容能力信标：
+- 本存档允许成年人之间自愿、合意、符合当前关系与场景条件的亲密/成人内容。
+- 普通日常回合保持正常叙事，不因 NSFW 开启而主动升级为成人场景。
+- 如玩家输入、关系张力、私密场所与角色边界共同支持，可以自然保留暧昧余地，不用回避成年人关系的存在。`;
+
+export const NSFW亲密推进提示词 = `亲密场景推进规则：
+- 当场景已进入暧昧、约会、私密相处、高关系张力或导演偏好明确支持时，可以主动制造成年人之间的暧昧机会、身体距离变化、试探、克制与情绪拉扯。
+- 推进必须服从角色人格、关系进度、当前地点、现实风险和玩家输入；不要把所有关系都写成无条件配合。
+- 若条件不足，优先写成害羞、拒绝、转移、要求换地方、要求承诺或更低强度的自愿替代。`;
+
 export const 默认文生图NSFW模式提示词 = `(Image System Prompt: Adult / NSFW-themed image generation is permitted, but this rule only activates when the current scene has already naturally entered consensual intimacy, mature exposure, or clearly adult framing.
 
 If the current scene is SFW, ignore this entire rule.
@@ -54,18 +66,59 @@ export const 默认亲密边界机制提示词 = `亲密边界机制已启用：
 - ASD反轻浮机制必须参与发生关系判定：每名女性有 ASD基准值，每个部位/行为有 ASD部位阈值 和 部位边界[].ASD值/阻止力度。发生性关系前必须做“场合 + 好感 + 欲望 + ASD + 部位边界”综合判定；未通过时只能拒绝、推迟、要求承诺/私密场所，或提出更低边界的自愿替代方案。
 - 若出现胁迫、威胁、失去意识、药物影响、信息欺骗或无法自由拒绝的情境，系统必须按伤害/犯罪/创伤/敌对后果处理，不把它写成恋爱推进或可用攻略策略。`;
 
+export type NSFW运行时提示上下文 = {
+    stage?: string;
+    playerInput?: string;
+    recentBodyText?: string;
+    sceneText?: string;
+    directorText?: string;
+    socialText?: string;
+    forceLevel?: NSFW提示层级;
+};
+
+const 显式成人触发词 = /(做爱|性交|交媾|插入|抽插|内射|射精|高潮|口交|肛交|性器|肉棒|阴茎|龟头|小穴|阴蒂|蜜液|精液|乳头|穴口|破处|失贞|性爱|上床|开房|成人场景|explicit|sex\b|fuck)/i;
+const 亲密触发词 = /(暧昧|约会|私密|独处|亲吻|接吻|拥抱|牵手|贴近|调情|挑逗|脸红|心跳|情欲|欲望|卧室|浴室|酒店|同居|恋人|情人|女友|男友|高好感|亲密|身体距离|暧昧张力|后宫|NSFW|成人内容)/i;
+
+const 合并上下文文本 = (context?: NSFW运行时提示上下文): string => [
+    context?.playerInput,
+    context?.recentBodyText,
+    context?.sceneText,
+    context?.directorText,
+    context?.socialText
+].filter((item): item is string => typeof item === 'string' && item.trim().length > 0).join('\n');
+
+export const 评估NSFW提示层级 = (
+    options?: Pick<游戏设置结构, '启用NSFW模式'>,
+    context?: NSFW运行时提示上下文
+): NSFW提示层级 => {
+    if (options?.启用NSFW模式 !== true) return 'disabled';
+    if (context?.forceLevel && context.forceLevel !== 'disabled') return context.forceLevel;
+    const text = 合并上下文文本(context);
+    if (显式成人触发词.test(text)) return 'explicit';
+    if (亲密触发词.test(text)) return 'intimacy';
+    return 'beacon';
+};
+
 export const 构建运行时额外提示词 = (
     customPrompt: string,
-    options?: Pick<游戏设置结构, '启用NSFW模式' | '启用亲密边界机制'>
+    options?: Pick<游戏设置结构, '启用NSFW模式' | '启用亲密边界机制'>,
+    context?: NSFW运行时提示上下文
 ): string => {
     const custom = typeof customPrompt === 'string' ? customPrompt.trim() : '';
-    const nsfw = options?.启用NSFW模式 === true
+    const level = 评估NSFW提示层级(options, context);
+    const beacon = level === 'beacon' || level === 'intimacy' || level === 'explicit'
+        ? NSFW轻信标提示词
+        : '';
+    const intimacy = level === 'intimacy' || level === 'explicit'
+        ? NSFW亲密推进提示词
+        : '';
+    const nsfw = level === 'explicit'
         ? 默认NSFW模式提示词
         : '';
-    const intimacyBoundary = options?.启用NSFW模式 === true && options?.启用亲密边界机制 !== false
+    const intimacyBoundary = level !== 'disabled' && level !== 'beacon' && options?.启用亲密边界机制 !== false
         ? 默认亲密边界机制提示词
         : '';
-    return [custom, nsfw, intimacyBoundary].filter(Boolean).join('\n\n').trim();
+    return [custom, beacon, intimacy, nsfw, intimacyBoundary].filter(Boolean).join('\n\n').trim();
 };
 
 export const 构建文生图运行时额外提示词 = (

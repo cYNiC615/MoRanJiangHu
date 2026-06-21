@@ -5,7 +5,7 @@ import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { normalizeStateCommandKey, 是否废弃命令根路径, 是否废弃玩家组织字段路径 } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
-import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
+import { 构建运行时额外提示词, 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
 import {
     构建变量相关规则提示词
 } from '../../prompts/runtime/variableCalibrationReference';
@@ -321,10 +321,11 @@ const 判断是否主要男性NPC = (npc: any, options?: { femboyNsfwEnabled?: b
 
 export const 构建社交档案完整性审计提示 = (
     socialRaw: unknown,
-    options?: { femboyNsfwEnabled?: boolean; xianxiaMode?: boolean }
+    options?: { femboyNsfwEnabled?: boolean; xianxiaMode?: boolean; nsfwPromptLevel?: NSFW提示层级 }
 ): string => {
     if (!Array.isArray(socialRaw) || socialRaw.length <= 0) return '';
     const femboyNsfwEnabled = options?.femboyNsfwEnabled === true;
+    const 启用私密档案审计 = options?.nsfwPromptLevel === 'intimacy' || options?.nsfwPromptLevel === 'explicit';
 
     const auditLines: string[] = [];
     socialRaw.forEach((npc: any, index: number) => {
@@ -350,18 +351,20 @@ export const 构建社交档案完整性审计提示 = (
             if (文本疑似占位(npc?.外貌描写)) 重要女性缺口.push('外貌描写');
             if (文本疑似占位(npc?.身材描写)) 重要女性缺口.push('身材描写');
             if (文本疑似占位(npc?.衣着风格)) 重要女性缺口.push('衣着风格');
-            if (私密字段缺少名器锚点(npc?.胸部描述)) 重要女性缺口.push('胸部描述(需名器名称或无名器结论)');
-            if (私密字段缺少名器锚点(npc?.小穴描述)) 重要女性缺口.push('小穴描述(需名器名称或无名器结论)');
-            if (私密字段缺少名器锚点(npc?.屁穴描述)) 重要女性缺口.push('屁穴描述(需名器名称或无名器结论)');
-            if (名器档案不完整(npc?.名器档案)) 重要女性缺口.push('名器档案(胸部/小穴/屁穴结构化效果)');
-            if (文本疑似占位(npc?.性癖)) 重要女性缺口.push('性癖');
-            if (文本疑似占位(npc?.敏感点)) 重要女性缺口.push('敏感点');
-            if (!npc?.子宫 || 文本疑似占位(npc?.子宫?.状态) || 文本疑似占位(npc?.子宫?.宫口状态)) {
-                重要女性缺口.push('子宫档案');
+            if (启用私密档案审计) {
+                if (私密字段缺少名器锚点(npc?.胸部描述)) 重要女性缺口.push('胸部描述(需名器名称或无名器结论)');
+                if (私密字段缺少名器锚点(npc?.小穴描述)) 重要女性缺口.push('小穴描述(需名器名称或无名器结论)');
+                if (私密字段缺少名器锚点(npc?.屁穴描述)) 重要女性缺口.push('屁穴描述(需名器名称或无名器结论)');
+                if (名器档案不完整(npc?.名器档案)) 重要女性缺口.push('名器档案(胸部/小穴/屁穴结构化效果)');
+                if (文本疑似占位(npc?.性癖)) 重要女性缺口.push('性癖');
+                if (文本疑似占位(npc?.敏感点)) 重要女性缺口.push('敏感点');
+                if (!npc?.子宫 || 文本疑似占位(npc?.子宫?.状态) || 文本疑似占位(npc?.子宫?.宫口状态)) {
+                    重要女性缺口.push('子宫档案');
+                }
+                if (typeof npc?.是否处女 !== 'boolean') 重要女性缺口.push('是否处女');
+                if (!npc?.失贞档案 || typeof npc?.失贞档案?.是否失贞 !== 'boolean') 重要女性缺口.push('失贞档案');
+                if (!Array.isArray(npc?.首次亲密记录)) 重要女性缺口.push('首次亲密记录');
             }
-            if (typeof npc?.是否处女 !== 'boolean') 重要女性缺口.push('是否处女');
-            if (!npc?.失贞档案 || typeof npc?.失贞档案?.是否失贞 !== 'boolean') 重要女性缺口.push('失贞档案');
-            if (!Array.isArray(npc?.首次亲密记录)) 重要女性缺口.push('首次亲密记录');
         }
         if (判断是否主要男性NPC(npc, { femboyNsfwEnabled })) {
             if (文本疑似占位(npc?.生日)) 重要男性缺口.push('生日');
@@ -370,13 +373,15 @@ export const 构建社交档案完整性审计提示 = (
             if (文本疑似占位(npc?.外貌描写)) 重要男性缺口.push('外貌描写');
             if (文本疑似占位(npc?.身材描写)) 重要男性缺口.push('身材描写');
             if (文本疑似占位(npc?.衣着风格)) 重要男性缺口.push('衣着风格');
-            if (文本疑似占位(npc?.男娘设定)) 重要男性缺口.push('男娘设定');
-            if (文本疑似占位(npc?.扶她设定)) 重要男性缺口.push('扶她设定');
-            if (文本疑似占位(npc?.肉棒描述)) 重要男性缺口.push('肉棒描述');
-            if (文本疑似占位(npc?.屁穴描述)) 重要男性缺口.push('屁穴描述');
-            if (文本疑似占位(npc?.性癖)) 重要男性缺口.push('性癖');
-            if (文本疑似占位(npc?.敏感点)) 重要男性缺口.push('敏感点');
-            if (!Array.isArray(npc?.首次亲密记录)) 重要男性缺口.push('首次亲密记录');
+            if (启用私密档案审计) {
+                if (文本疑似占位(npc?.男娘设定)) 重要男性缺口.push('男娘设定');
+                if (文本疑似占位(npc?.扶她设定)) 重要男性缺口.push('扶她设定');
+                if (文本疑似占位(npc?.肉棒描述)) 重要男性缺口.push('肉棒描述');
+                if (文本疑似占位(npc?.屁穴描述)) 重要男性缺口.push('屁穴描述');
+                if (文本疑似占位(npc?.性癖)) 重要男性缺口.push('性癖');
+                if (文本疑似占位(npc?.敏感点)) 重要男性缺口.push('敏感点');
+                if (!Array.isArray(npc?.首次亲密记录)) 重要男性缺口.push('首次亲密记录');
+            }
         }
 
         const allMissing = [...通用缺口, ...重要女性缺口, ...重要男性缺口];
@@ -400,16 +405,24 @@ export const 构建社交档案完整性审计提示 = (
         visibleLines.push(`- 其余还有 ${remainingCount} 个 NPC 档案存在待补齐项，本回合同样需要顺带复核。`);
     }
 
+    const privateArchiveGuidance = 启用私密档案审计
+        ? [
+            '- 对”女性 + 主要角色”的 NPC：身材描写、衣着风格、胸部描述、小穴描述、屁穴描述、性癖、敏感点与子宫档案属于长期常态档案——已有值则默认保留沿用，不得为了”补齐”而改写已有真值。仅当本回合正文明确坐实质变事件（初次关系、破处、身体改造、重伤留痕、明确换装、名器进化等）时才改写对应字段。新 NPC 首次建档时必须填写完整。生日与对主角称呼在首次建档后同样默认保留沿用。`胸部描述 / 小穴描述 / 屁穴描述`必须分别写成”名器名称或无名器结论：具体档案描述”；不要只写泛化形容词，也不要把名器判定只放在正文或记忆里。',
+            '- `小穴描述`优先使用名器录的小穴名器名称，`屁穴描述`优先使用后庭篇名器名称，`胸部描述`若无胸乳类名器条目则写“无对应名器：...”并补足常态档案。',
+            '- 同步维护 `名器档案`：至少胸部/小穴/屁穴三条，名称和三处描述一致；若已启用名器世界书，效果字段必须从对应“固定机制效果表”复制，AI 只负责选择名器，不自行生成品质、修正、标签或说明。',
+            femboyNsfwEnabled
+                ? '- 对"男性/男娘/扶她 + 主要角色"的 NPC，在 NSFW 模式与"男娘 / 扶她相关 NSFW 内容"总开关同时开启时，也要维护长期私密档案：`男娘设定 / 扶她设定 / 肉棒描述 / 屁穴描述 / 性癖 / 敏感点`。若角色被设定为男娘或扶她，对应设定要写清性别表达、身体结构、衣着取向、身份边界与对外呈现；若不是，也要写明稳定否定说明或普通男性设定，避免空字段。'
+                : ''
+        ]
+        : [
+            '- 普通日常层级只复核身份、关系、记忆、外貌、衣着、称呼与现实状态等通用档案；成人向档案仅在亲密层级、明确成人场景、正文已坐实长期关系事实或新建长期亲密对象时审计。'
+        ];
+
     return [
         '【当前社交档案完整性审计】',
         '- 每回合变量更新都要复核现有 `社交` 档案是否存在结构缺口、占位值或关键字段遗漏，不只看本回合新登场人物。',
         '- 若本回合正文、`<变量规划>`、当前状态与既有档案真值已经足以支撑缺项，就同步补齐；不要继续保留半残对象。',
-        '- 对”女性 + 主要角色”的 NPC：身材描写、衣着风格、胸部描述、小穴描述、屁穴描述、性癖、敏感点与子宫档案属于长期常态档案——已有值则默认保留沿用，不得为了”补齐”而改写已有真值。仅当本回合正文明确坐实质变事件（初次关系、破处、身体改造、重伤留痕、明确换装、名器进化等）时才改写对应字段。新 NPC 首次建档时必须填写完整。生日与对主角称呼在首次建档后同样默认保留沿用。`胸部描述 / 小穴描述 / 屁穴描述`必须分别写成”名器名称或无名器结论：具体档案描述”；不要只写泛化形容词，也不要把名器判定只放在正文或记忆里。',
-        '- `小穴描述`优先使用名器录的小穴名器名称，`屁穴描述`优先使用后庭篇名器名称，`胸部描述`若无胸乳类名器条目则写“无对应名器：...”并补足常态档案。',
-        '- 同步维护 `名器档案`：至少胸部/小穴/屁穴三条，名称和三处描述一致；若已启用名器世界书，效果字段必须从对应“固定机制效果表”复制，AI 只负责选择名器，不自行生成品质、修正、标签或说明。',
-        femboyNsfwEnabled
-            ? '- 对"男性/男娘/扶她 + 主要角色"的 NPC，在 NSFW 模式与"男娘 / 扶她相关 NSFW 内容"总开关同时开启时，也要维护长期私密档案：`男娘设定 / 扶她设定 / 肉棒描述 / 屁穴描述 / 性癖 / 敏感点`。若角色被设定为男娘或扶她，对应设定要写清性别表达、身体结构、衣着取向、身份边界与对外呈现；若不是，也要写明稳定否定说明或普通男性设定，避免空字段。'
-            : '',
+        ...privateArchiveGuidance,
         '- 注意 NPC 的 `对主角称呼`、`身份` 应与 `性别` 一致：男性→用"公子/大哥/师父"等男性称谓；女性→用"姑娘/姐姐/小姐"等女性称谓；男娘→偏女性称谓为主但可允许男性称谓；扶她→默认女性称谓，但着装偏男性时不否认男性称谓。',
         '',
         ...visibleLines
@@ -488,13 +501,31 @@ export const 执行变量模型校准工作流 = async (
     const variableApi = 获取变量计算接口配置(deps.apiConfig);
     if (!接口配置是否可用(variableApi)) return null;
 
+    const responseBodyText = Array.isArray(params.parsedResponse?.logs)
+        ? params.parsedResponse.logs.map((log: any) => 读取文本(log?.content)).filter(Boolean).join('\n')
+        : '';
+    const nsfwPromptLevel = 评估NSFW提示层级(runtimeGameConfig, {
+        stage: 'variable_calibration',
+        playerInput: params.playerInput,
+        recentBodyText: responseBodyText,
+        sceneText: JSON.stringify(params.baseState?.环境 || {}),
+        socialText: JSON.stringify((Array.isArray(params.baseState?.社交) ? params.baseState.社交 : []).slice(0, 8))
+    });
     const runtimeExtraPrompt = 按功能开关过滤提示词内容(
-        构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig),
+        构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig, {
+            stage: 'variable_calibration',
+            playerInput: params.playerInput,
+            recentBodyText: responseBodyText,
+            sceneText: JSON.stringify(params.baseState?.环境 || {}),
+            socialText: JSON.stringify((Array.isArray(params.baseState?.社交) ? params.baseState.社交 : []).slice(0, 8)),
+            forceLevel: nsfwPromptLevel
+        }),
         runtimeGameConfig
     );
     const socialCompletenessAuditPrompt = 构建社交档案完整性审计提示(params.baseState.社交, {
         femboyNsfwEnabled: 启用男娘NSFW内容,
-        xianxiaMode: false
+        xianxiaMode: false,
+        nsfwPromptLevel
     });
     const dialogueNpcAuditPrompt = 构建正文对白人物审计提示(params.parsedResponse, params.baseState, {
         xianxiaMode: false
@@ -531,7 +562,8 @@ export const 执行变量模型校准工作流 = async (
             scopes: ['variable_calibration'],
             environment: params.baseState.环境,
             social: params.baseState.社交,
-            extraTexts: [params.playerInput]
+            extraTexts: [params.playerInput, responseBodyText],
+            nsfwPromptLevel
         }).combinedText, runtimeGameConfig),
         dialogueNpcAuditPrompt,
         socialCompletenessAuditPrompt,

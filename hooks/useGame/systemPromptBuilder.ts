@@ -46,6 +46,7 @@ import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBl
 import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
 import { 构建导演配置注入文本 } from '../../utils/directorConfig';
 import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
+import { 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
 
 const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     const canonical = normalizeCanonicalGameTime(raw || '');
@@ -71,6 +72,9 @@ export type 运行时提示词状态 = {
 export type 系统提示词上下文片段 = {
     AI角色声明: string;
     worldPrompt: string;
+    worldPromptSource?: 'summary' | 'full_fallback';
+    nsfwPromptLevel?: NSFW提示层级;
+    suppressedWorldbookCount?: number;
     地图建筑状态: string;
     otherPrompts: string;
     题材模式提示词: string;
@@ -125,6 +129,24 @@ export type 系统提示词构建参数 = {
         世界书附加文本?: string[];
         openingConfig?: OpeningConfig;
         强制剧情COT提示词ID?: string;
+    };
+};
+
+const 世界观摘要占位模式 = /开局后此处会被替换为本局世界观摘要|世界观摘要暂缺/;
+
+export const 选择主剧情世界观提示词 = (
+    prompts: Array<Pick<提示词结构, 'id' | '内容' | '启用'>>
+): { content: string; source: 'summary' | 'full_fallback' } => {
+    const enabledPrompts = prompts.filter((prompt) => prompt.启用 !== false);
+    const summaryPrompt = enabledPrompts.find((prompt) => prompt.id === 'core_world_summary');
+    const summaryContent = (summaryPrompt?.内容 || '').trim();
+    if (summaryPrompt && summaryContent && !世界观摘要占位模式.test(summaryContent)) {
+        return { content: summaryContent, source: 'summary' };
+    }
+    const fullPrompt = enabledPrompts.find((prompt) => prompt.id === 'core_world');
+    return {
+        content: (fullPrompt?.内容 || '').trim(),
+        source: 'full_fallback'
     };
 };
 
@@ -283,6 +305,7 @@ const 剥离真实模式专项审计 = (content: string): string => {
 };
 
 const 主剧情剥离提示词ID = new Set([
+    'core_world_summary',
     'core_story',
     'core_heroine_plan',
     'core_heroine_plan_ntl',
@@ -829,13 +852,28 @@ export const 构建系统提示词 = ({
         openingConfig: effectiveOpeningConfig,
         userWorldbooks: worldbooks
     });
+    const nsfwPromptLevel = 评估NSFW提示层级(normalizedGameConfig, {
+        stage: 'main',
+        playerInput: Array.isArray(options?.世界书附加文本) ? options.世界书附加文本.join('\n') : '',
+        sceneText: [
+            statePayload?.环境?.大地点,
+            statePayload?.环境?.中地点,
+            statePayload?.环境?.小地点,
+            statePayload?.环境?.区地点,
+            statePayload?.环境?.具体地点,
+            statePayload?.环境?.场景描述
+        ].filter(Boolean).join('\n'),
+        directorText: JSON.stringify(effectiveOpeningConfig?.导演配置 || {}),
+        socialText: JSON.stringify((Array.isArray(socialData) ? socialData : []).slice(0, 8))
+    });
     const worldbookInjection = 构建世界书注入文本({
         books: runtimeWorldbooks.books,
         scopes: activeWorldbookScopes,
         environment: statePayload?.环境,
         social: socialData,
         world: statePayload?.世界,
-        extraTexts: options?.世界书附加文本
+        extraTexts: options?.世界书附加文本,
+        nsfwPromptLevel
     });
     const { promptPool: effectivePromptPool, selectedCotPromptIds } = 构建运行时提示词池(
         promptPool,
@@ -866,6 +904,7 @@ export const 构建系统提示词 = ({
     const 读取主剧情内置槽位覆盖 = (promptId: string, fallbackContent: string): string => {
         switch (promptId) {
             case 'core_world':
+            case 'core_world_summary':
                 return fallbackContent;
             case 'core_format':
                 return 获取内置提示词槽位内容({
@@ -967,9 +1006,9 @@ export const 构建系统提示词 = ({
     };
 
     const enabledPrompts = effectivePromptPool.filter(p => p.启用);
-    const worldPromptSource = enabledPrompts.find(p => p.id === 'core_world');
+    const selectedWorldPrompt = 选择主剧情世界观提示词(enabledPrompts);
     const worldPrompt = 按当前设置过滤提示词([
-        渲染提示词文本(worldPromptSource?.内容 || ''),
+        渲染提示词文本(selectedWorldPrompt.content),
         worldbookInjection.worldLoreText
     ]
         .filter(Boolean)
@@ -1028,6 +1067,7 @@ export const 构建系统提示词 = ({
         .map(p => ({ id: p.id, content: 应用写作设置(p.id, 渲染提示词文本(读取主剧情内置槽位覆盖(p.id, p.内容))) }));
     const otherPromptEntries = enabledPrompts
         .filter(p => p.id !== 'core_world'
+            && p.id !== 'core_world_summary'
             && p.id !== 'core_action_options'
             && p.id !== 'core_format'
             && p.id !== 'core_story'
@@ -1105,8 +1145,8 @@ export const 构建系统提示词 = ({
         if (!(content || '').trim()) return;
         实际发送提示词ID.add(id);
     };
-    if (worldPromptSource) {
-        标记提示词发送(worldPromptSource.id, worldPrompt);
+    if (worldPrompt.trim()) {
+        标记提示词发送(selectedWorldPrompt.source === 'summary' ? 'core_world_summary' : 'core_world', worldPrompt);
     }
     if (writeReqPrompt) {
         标记提示词发送(writeReqPrompt.id, writeReqContent);
@@ -1233,6 +1273,9 @@ export const 构建系统提示词 = ({
         contextPieces: {
             AI角色声明: ai角色声明,
             worldPrompt: worldPrompt.trim(),
+            worldPromptSource: selectedWorldPrompt.source,
+            nsfwPromptLevel,
+            suppressedWorldbookCount: worldbookInjection.suppressedEntryCount,
             地图建筑状态: contextMapAndBuilding,
             otherPrompts: otherPrompts.trim(),
             题材模式提示词: genreModePrompt.trim(),

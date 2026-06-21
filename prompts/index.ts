@@ -7,6 +7,7 @@ import { 核心_核心规则 } from './core/rules';
 import { 核心_数据格式 } from './core/data';
 import { 核心_记忆法则 } from './core/memory'; 
 import { 核心_世界观 } from './core/world'; // New
+import { 核心_世界观摘要 } from './core/worldSummary';
 import { 核心_思维链 } from './core/cot';   // New
 import { 核心_判定思维链 } from './core/cotJudge';
 import { 核心_古代现实基本逻辑 } from './core/ancientRealism';
@@ -40,6 +41,7 @@ import { 写作_防全知 } from './writing/antiOmniscient';
 export const 默认提示词: 提示词结构[] = [
     // Core
     核心_世界观, // Added
+    核心_世界观摘要,
     核心_古代现实基本逻辑,
     核心_输出格式,
     核心_核心规则,

@@ -16,7 +16,7 @@ import {
 } from './promptRuntime';
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
 import { 构建真实世界模式提示词 } from '../../prompts/runtime/realWorldMode';
-import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
+import { 构建运行时额外提示词, 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
 import { 获取DeepSeek主剧情兼容提示词 } from '../../prompts/runtime/deepseekMode';
 import {
     世界书本体槽位
@@ -36,6 +36,9 @@ export type 有序消息 = {
 type 主剧情上下文片段 = {
     AI角色声明: string;
     worldPrompt: string;
+    worldPromptSource?: 'summary' | 'full_fallback';
+    nsfwPromptLevel?: NSFW提示层级;
+    suppressedWorldbookCount?: number;
     地图建筑状态: string;
     离场NPC档案: string;
     otherPrompts: string;
@@ -82,6 +85,9 @@ export type 主剧情消息条目 = {
 export type 主剧情请求Payload诊断 = {
     tavernPresetModeEnabled: boolean;
     assemblyBranch: 'tavern_preset' | 'native_ordered_segments';
+    worldPromptSource: 'summary' | 'full_fallback';
+    nsfwPromptLevel: NSFW提示层级;
+    suppressedWorldbookCount: number;
     orderedMessageCount: number;
     orderedRoleSequence: 有序消息角色[];
     payloadSegments: Array<{
@@ -194,12 +200,30 @@ export const 构建主剧情请求参数 = (
             params.builtContext.contextPieces.AI角色声明
         )
         : '';
+    const recentScriptText = formatHistoryToScript(params.updatedContextHistory);
+    const evaluatedNsfwPromptLevel = params.builtContext.contextPieces.nsfwPromptLevel || 评估NSFW提示层级(runtimeGameConfig, {
+        stage: 'main',
+        playerInput: params.sendInput,
+        recentBodyText: recentScriptText,
+        sceneText: params.builtContext.contextPieces.环境状态,
+        directorText: params.builtContext.contextPieces.导演配置提示词 || '',
+        socialText: params.builtContext.contextPieces.在场NPC档案 || ''
+    });
+    const runtimeNsfwContext = {
+        stage: 'main',
+        playerInput: params.sendInput,
+        recentBodyText: recentScriptText,
+        sceneText: params.builtContext.contextPieces.环境状态,
+        directorText: params.builtContext.contextPieces.导演配置提示词 || '',
+        socialText: params.builtContext.contextPieces.在场NPC档案 || '',
+        forceLevel: evaluatedNsfwPromptLevel
+    };
     const normalizedRuntimeExtraPrompt = !tavernPresetModeEnabled
-        ? 构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig)
+        ? 构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig, runtimeNsfwContext)
         : '';
-    const tavernRuntimeExtraPrompt = 构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig);
+    const tavernRuntimeExtraPrompt = 构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig, runtimeNsfwContext);
     const recallScriptAppend = params.recallTag ? `\n\n【剧情回忆】\n${params.recallTag}` : '';
-    const scriptSectionText = `【即时剧情回顾】\n${formatHistoryToScript(params.updatedContextHistory) || '暂无'}${recallScriptAppend}`;
+    const scriptSectionText = `【即时剧情回顾】\n${recentScriptText || '暂无'}${recallScriptAppend}`;
     const latestUserInputAsModel = 包装繁体任务提示([
         '以下是用户最新输入内容：',
         `<用户输入>${params.sendInput}</用户输入>`
@@ -374,6 +398,9 @@ export const 构建主剧情请求参数 = (
     const diagnostics: 主剧情请求Payload诊断 = {
         tavernPresetModeEnabled,
         assemblyBranch: tavernPresetModeEnabled ? 'tavern_preset' : 'native_ordered_segments',
+        worldPromptSource: params.builtContext.contextPieces.worldPromptSource || 'full_fallback',
+        nsfwPromptLevel: evaluatedNsfwPromptLevel,
+        suppressedWorldbookCount: params.builtContext.contextPieces.suppressedWorldbookCount || 0,
         orderedMessageCount: orderedMessages.length,
         orderedRoleSequence: orderedMessages.map((message) => message.role),
         payloadSegments: messageEntries.map((entry) => ({

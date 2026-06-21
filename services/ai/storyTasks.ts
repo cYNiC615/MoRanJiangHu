@@ -3,6 +3,7 @@ import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 翻译连接测试错误 } from './imageGenerationDiagnostics';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import { 构建世界观生成消息链 } from '../../prompts/runtime/worldGeneration';
+import { 构建世界观摘要提示词, 提取世界观摘要内容, 生成世界观确定性摘要 } from '../../prompts/runtime/worldSummary';
 import { 构建世界演变系统提示词, 构建世界演变用户提示词 } from '../../prompts/runtime/worldEvolution';
 import {
     构建变量模型身份提示词,
@@ -357,6 +358,32 @@ export const generateWorldFoundationData = async (
     });
 
     return 解析世界观生成结果(rawText);
+};
+
+export const generateWorldPromptSummary = async (
+    worldPrompt: string,
+    apiConfig: 当前可用接口结构,
+    signal?: AbortSignal
+): Promise<string> => {
+    if (!apiConfig.apiKey) throw new Error('Missing API Key');
+    const fallback = 生成世界观确定性摘要(worldPrompt);
+    const messages = 规范化文本补全消息链([
+        {
+            role: 'system' as const,
+            content: '你是世界观摘要压缩器。只输出可长期引用的本局独特设定摘要，不写普通现代生活常识。'
+        },
+        {
+            role: 'user' as const,
+            content: 构建世界观摘要提示词(worldPrompt)
+        }
+    ], { 保留System: true, 合并同角色: false });
+    const rawText = await 请求模型文本(apiConfig, messages, {
+        temperature: 0.2,
+        signal,
+        errorDetailLimit: Number.POSITIVE_INFINITY
+    });
+    const parsed = 提取世界观摘要内容(rawText);
+    return parsed || fallback;
 };
 
 export const 解析世界观生成结果 = (content: string): WorldFoundationResult => {

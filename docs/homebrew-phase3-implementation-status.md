@@ -129,7 +129,12 @@ Phase 3.4 不做新功能，负责手动 smoke、修小问题、文档 closeout 
 - 主剧情 payload 改为分段 assembly：题材模式、玩家剧情倾向、导演配置、运行时状态、输出契约和 `turn_directives` 分离；Tavern 与非 Tavern 路径共享同一语义来源，字数、人称、重试和免责声明只从最终硬约束分段注入。
 - 导演配置和角色种子入口摘要进入真实主剧情 payload；世界演变和规划分析已改为使用“开局配置 + 顶层导演配置覆盖”的有效运行时配置，确保右侧导演配置新改内容也进入后处理边界；规划链路仍只把正式 `社交[]` 候选作为红颜规划候选。
 - 变量生成去掉重复 extra prompt 注入，补充虚构本地 RPG 状态同步框架，普通 `子宫.状态 = "正常"` / `宫口状态 = "闭合"` 不再被审计为每回合补档缺口。
-- 亲密/NSFW 世界书第一轮收口：变量生成不再因 NSFW 总开关强制命中完整名器表；规划/开局链路仍需继续按场景语义收口完整名器类世界书。
+- Context routing 第二轮收口：新增 `core_world_summary` 提示词槽，开局完整世界观生成后会用主剧情 API 生成摘要并写入摘要槽；主剧情 `world_prompt` 默认读取摘要，摘要缺失时回退 `core_world`，世界演变、开局生成和后台规划仍保留完整世界观读取能力。
+- Runtime NSFW extra prompt 改为 `disabled / beacon / intimacy / explicit` 分层：普通日常只带成人内容能力轻信标，暧昧/私密/高关系场景加入亲密推进和边界，明确成人场景才注入完整显式规则。
+- NSFW 世界书第一轮路由收口：`构建世界书注入文本` 支持 `nsfwPromptLevel`，非 explicit 层压制完整名器/显式身体表并返回 `suppressedEntryCount`；explicit 层仍按作用域和关键词命中。
+- 变量生成普通日常不再因 NSFW 总开关强制补私密/名器/子宫类档案；亲密或 explicit 层才启用完整私密档案审计，既有私密字段默认保留。
+- 默认写作文风和文章优化提示去掉常驻显式成人词汇表、古风小说参考和固定现代道具清单；相邻活跃写作守门清理 `传功 / 拔剑 / 江湖传言 / 术法追踪 / 命牌 / 血引` 等旧锚点。
+- 主剧情 payload 诊断补充 `worldPromptSource`、`nsfwPromptLevel`、`suppressedWorldbookCount`，继续只记录结构摘要，不记录完整 prompt 内容。
 - 普通现代随身物继续 prompt-only 收口，例外物品和明确金额现金仍允许落档。
 - 角色种子 UI 的 `默认发展方向` 改为固定选择，默认仍为 `红颜/后宫对象`，旧字符串兼容读取。
 - 地图自动更新改为默认低频：没有稳定新地点时不发起 AI 地图请求；现代地图 prompt 清理旧武侠母板，同名不同父级地点按父级路径区分。
@@ -145,13 +150,18 @@ Phase 3.4 不做新功能，负责手动 smoke、修小问题、文档 closeout 
 
 Smoke 后新增待办：
 
-- 规划分析和开局规划继续收口亲密世界书：普通日常不常驻完整名器/后庭/臀部类大表；完整条目等待明确亲密语义触发。
-- Runtime NSFW extra prompt 边界先进入讨论项；普通 SFW 主剧情是否继续携带独立 runtime NSFW user message 本轮暂不改实现。
+- NSFW 分层触发需要手动 smoke 观察：普通日常是否足够轻，暧昧/私密场景是否足够主动，explicit 触发是否只在明确成人场景出现。
+- 世界观摘要需要手动 payload 复查：摘要应保留本局独特规则、势力、禁忌、资源、冲突和社会结构，不常驻普通现代生活废话。
+- 地图摘要暂不实现；后续 Phase 重构地图功能时，再从六层地图树生成确定性摘要，避免不了解外部地图时把当前地图硬拼进复杂大地图。
 
 当前仍不做浏览器自动化测试；需要 UI smoke 时只启动本地服务器，由玩家手动确认。
 
 本轮验证已通过：
 
+- `npx vitest run __tests__/nsfwImageGeneration.test.ts __tests__/worldPromptSummary.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/variableModelPrompts.test.ts __tests__/storyLengthValidation.test.ts --pool=threads`
+- `npx vitest run __tests__/modernPromptGuardrails.test.ts __tests__/nsfwImageGeneration.test.ts __tests__/variableModelPrompts.test.ts __tests__/phase32RuntimeWorldbooks.test.ts`
+- `npx vitest run __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/autoConsumables.test.ts __tests__/worldPromptSummary.test.ts __tests__/storyLengthValidation.test.ts`
+- `npx vitest run __tests__/directorConfigAndSeeds.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/socialBehaviorLite.test.ts __tests__/variableRegistry.test.ts __tests__/dbServiceDirectorConfig.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/postprocessScheduler.test.ts __tests__/storyLengthValidation.test.ts __tests__/variableModelPrompts.test.ts __tests__/mapUpdateWorkflow.test.ts __tests__/rightPanelModal.test.ts __tests__/newGameWizardCopy.test.ts`
 - `npx vitest run __tests__/modernPromptGuardrails.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/autoConsumables.test.ts`
 - `npx vitest run __tests__/directorConfigAndSeeds.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/socialBehaviorLite.test.ts __tests__/variableRegistry.test.ts __tests__/dbServiceDirectorConfig.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/postprocessScheduler.test.ts __tests__/storyLengthValidation.test.ts __tests__/variableModelPrompts.test.ts __tests__/mapUpdateWorkflow.test.ts __tests__/rightPanelModal.test.ts __tests__/newGameWizardCopy.test.ts`
 - `npx vitest run __tests__/worldGenerationParser.test.ts __tests__/modernUrbanDefaults.test.ts`
@@ -186,7 +196,8 @@ Smoke 后新增待办：
 
 Smoke 后复查新增 prompt 待办中，现代运行时 copy、默认文风、时间推进法则和 COT / format 旧词已完成第一轮收口。
 世界观生成已补上导演/角色种子弱约束边界，输出契约不再同时要求“只输出 `<世界观>`”和“追加 `<世界基底>`”，难度摘要也已改为现代风险/资源/日常压力口径。
-仍待处理的是：开局规划普通日常仍会注入完整亲密/NSFW 名器类世界书；普通 SFW 主剧情的 runtime NSFW extra prompt 边界需要先讨论后再决定实现。
+Context routing 第二轮已完成：主剧情默认使用 `core_world_summary`，NSFW runtime extra prompt 和世界书注入按 `disabled / beacon / intimacy / explicit` 分层，普通日常不再常驻完整显式成人规则或名器表。
+仍待后续 Phase 处理的是地图摘要与地图功能重构；本轮只记录方案，不改地图链路。
 
 首回合主剧情 payload 复查修正了一个链路判断：在酒馆预设开关关闭时，最终 API body 的
 短 message 形态仍可来自非 Tavern 主剧情链路。原因是本地分段 assembly 先生成多段 ordered messages，

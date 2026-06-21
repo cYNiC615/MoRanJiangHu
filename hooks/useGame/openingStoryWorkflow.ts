@@ -28,7 +28,7 @@ import { 数值_世界演化 } from '../../prompts/stats/world';
 import { 构建字数要求提示词 } from '../../prompts/runtime/protocolDirectives';
 import { 构建剧情风格助手提示词 } from '../../prompts/runtime/storyStyles';
 import { 构建真实世界模式提示词 } from '../../prompts/runtime/realWorldMode';
-import { 构建运行时额外提示词 } from '../../prompts/runtime/nsfw';
+import { 构建运行时额外提示词, 评估NSFW提示层级 } from '../../prompts/runtime/nsfw';
 import { 获取DeepSeek主剧情兼容提示词 } from '../../prompts/runtime/deepseekMode';
 import { 包装繁体任务提示, 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { 构建世界演变COT提示词, 世界演变COT伪装历史消息提示词 } from '../../prompts/runtime/worldEvolutionCot';
@@ -769,14 +769,28 @@ export const 执行开场剧情生成工作流 = async (
             .filter(Boolean)
             .join('\n\n')
             .trim();
-        const openingNormalizedExtraPrompt = !openingTavernPresetModeEnabled
-            ? 按功能开关过滤提示词内容(
-                构建运行时额外提示词(openingGameConfig.额外提示词 || '', openingGameConfig),
-                openingGameConfig
-            )
-            : '';
         const openingCustomExtraPrompt = typeof options?.开局额外要求 === 'string'
             ? options.开局额外要求.trim()
+            : '';
+        const openingNsfwPromptLevel = openingContext.contextPieces.nsfwPromptLevel || 评估NSFW提示层级(openingGameConfig, {
+            stage: 'opening',
+            playerInput: openingCustomExtraPrompt,
+            sceneText: openingContext.contextPieces.环境状态,
+            directorText: openingContext.contextPieces.导演配置提示词 || '',
+            socialText: openingContext.contextPieces.在场NPC档案 || ''
+        });
+        const openingNormalizedExtraPrompt = !openingTavernPresetModeEnabled
+            ? 按功能开关过滤提示词内容(
+                构建运行时额外提示词(openingGameConfig.额外提示词 || '', openingGameConfig, {
+                    stage: 'opening',
+                    playerInput: openingCustomExtraPrompt,
+                    sceneText: openingContext.contextPieces.环境状态,
+                    directorText: openingContext.contextPieces.导演配置提示词 || '',
+                    socialText: openingContext.contextPieces.在场NPC档案 || '',
+                    forceLevel: openingNsfwPromptLevel
+                }),
+                openingGameConfig
+            )
             : '';
         const openingCombinedExtraPrompt = [
             openingNormalizedExtraPrompt,

@@ -516,6 +516,65 @@ describe('主剧情正文字数校验', () => {
         }));
     });
 
+    it('主剧情 assembly diagnostics 记录世界观摘要来源、NSFW 层级和被压制世界书数量', () => {
+        const builtContext: 主剧情系统上下文 = {
+            shortMemoryContext: '',
+            contextPieces: {
+                AI角色声明: '你是墨染江湖叙事模型。',
+                worldPrompt: '【世界观摘要】镜湖市存在地下媒体同盟。',
+                地图建筑状态: '',
+                离场NPC档案: '',
+                otherPrompts: '',
+                难度设置提示词: '',
+                叙事人称提示词: '',
+                字数设置提示词: '',
+                长期记忆: '',
+                中期记忆: '',
+                在场NPC档案: '',
+                剧情安排: '',
+                女主剧情规划状态: '',
+                世界状态: '',
+                环境状态: '',
+                角色状态: '',
+                任务状态: '',
+                COT提示词: '',
+                格式提示词: '<正文>...</正文>',
+                字数要求提示词: 构建字数要求提示词(1200),
+                免责声明输出提示词: '',
+                输出协议提示词: '',
+                ...( {
+                    worldPromptSource: 'summary',
+                    nsfwPromptLevel: 'beacon',
+                    suppressedWorldbookCount: 3
+                } as any)
+            }
+        };
+
+        const result = 构建主剧情请求参数({
+            gameConfig: {
+                ...默认游戏设置,
+                启用GPT模式: true,
+                主剧情消息模式: 'GPT',
+                启用NSFW模式: true
+            },
+            apiConfig: {
+                apiKey: 'test-key',
+                baseUrl: 'https://example.test/v1',
+                model: 'gemini-test'
+            } as any,
+            builtContext,
+            updatedContextHistory: [],
+            updatedMemSys: {} as any,
+            sendInput: '去便利店买水。'
+        });
+
+        expect(result.diagnostics).toMatchObject({
+            worldPromptSource: 'summary',
+            nsfwPromptLevel: 'beacon',
+            suppressedWorldbookCount: 3
+        });
+    });
+
     it('主剧情 service diagnostics 记录 runtime 注入与 provider 兼容修正后的 role 序列', () => {
         const beforeRuntime = [
             { role: 'system' as const, content: '系统提示' },

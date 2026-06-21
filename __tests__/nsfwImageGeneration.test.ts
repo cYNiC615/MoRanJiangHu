@@ -12,6 +12,9 @@ import type { 接口设置结构 } from '../models/system';
 import {
     构建运行时额外提示词,
     构建文生图运行时额外提示词,
+    NSFW轻信标提示词,
+    NSFW亲密推进提示词,
+    评估NSFW提示层级,
     默认NSFW模式提示词,
     默认文生图NSFW模式提示词,
     默认亲密边界机制提示词
@@ -117,22 +120,35 @@ describe('ComfyUI NSFW image config', () => {
 });
 
 describe('NSFW prompt generation', () => {
-    it('构建运行时额外提示词 returns NSFW prompt when enabled', () => {
-        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: true });
-        expect(result).toContain('NSFW');
-        expect(result).toContain('肉棒');
-        expect(result).toContain('小穴');
-        expect(result).toContain('action + senses + body reaction + psychological change + relationship tension');
-        expect(result).toContain('invitation/approach');
-        expect(result).toContain('afterglow');
-        expect(result).toContain('ASD反轻浮机制');
-        expect(result).toContain('ASD部位阈值');
+    it('普通日常只注入 NSFW 轻信标，不常驻完整显式规则', () => {
+        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: true }, {
+            stage: 'main',
+            playerInput: '今天上午去学校旁边的便利店买早餐。'
+        });
+        expect(评估NSFW提示层级({ 启用NSFW模式: true }, { playerInput: '去便利店买早餐' })).toBe('beacon');
+        expect(result).toContain(NSFW轻信标提示词);
+        expect(result).not.toContain(默认NSFW模式提示词);
+        expect(result).not.toContain('肉棒');
+        expect(result).not.toContain('小穴');
+        expect(result).not.toContain('action + senses + body reaction + psychological change + relationship tension');
+        expect(result).not.toContain('ASD部位阈值');
     });
 
-    it('构建运行时额外提示词 combines custom prompt with NSFW', () => {
-        const result = 构建运行时额外提示词('custom instruction', { 启用NSFW模式: true, 启用亲密边界机制: true });
+    it('暧昧/私密上下文注入亲密推进层，但不进入完整显式词库', () => {
+        const result = 构建运行时额外提示词('custom instruction', { 启用NSFW模式: true, 启用亲密边界机制: true }, {
+            stage: 'main',
+            playerInput: '晚上和林知夏单独约会后送她回到合租卧室门口。',
+            sceneText: '私密、安全、二人独处'
+        });
+        expect(评估NSFW提示层级({ 启用NSFW模式: true }, {
+            playerInput: '和她单独约会，气氛暧昧',
+            sceneText: '私密空间'
+        })).toBe('intimacy');
         expect(result).toContain('custom instruction');
-        expect(result).toContain('NSFW');
+        expect(result).toContain(NSFW亲密推进提示词);
+        expect(result).toContain(默认亲密边界机制提示词);
+        expect(result).not.toContain(默认NSFW模式提示词);
+        expect(result).not.toContain('肉棒');
     });
 
     it('构建运行时额外提示词 returns only custom prompt when NSFW disabled', () => {
@@ -155,15 +171,23 @@ describe('NSFW prompt generation', () => {
         expect(result).toContain('adult');
     });
 
-    it('构建运行时额外提示词 handles empty custom prompt', () => {
-        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: true });
+    it('明确成人输入才注入完整显式 NSFW 规则', () => {
+        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: true }, {
+            stage: 'main',
+            playerInput: '她同意后，两人在卧室里开始做爱。'
+        });
+        expect(评估NSFW提示层级({ 启用NSFW模式: true }, { playerInput: '两人在卧室里开始做爱' })).toBe('explicit');
         expect(result).toContain(默认NSFW模式提示词);
         expect(result).toContain(默认亲密边界机制提示词);
+        expect(result).toContain('肉棒');
+        expect(result).toContain('afterglow');
     });
 
     it('构建运行时额外提示词 allows disabling intimacy boundary rules', () => {
-        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: false });
-        expect(result).toBe(默认NSFW模式提示词);
+        const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: false }, {
+            playerInput: '她同意后，两人在卧室里开始做爱。'
+        });
+        expect(result).toContain(默认NSFW模式提示词);
         expect(result).not.toContain('ASD反轻浮机制');
     });
 });

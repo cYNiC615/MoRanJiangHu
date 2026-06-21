@@ -14,6 +14,8 @@ import { 构建开局运行时快照 } from '../../utils/customNewGamePresets';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import { 合并世界基底到开场状态 } from './storyState';
 import { 构建有效导演开局配置, 构建世界生成导演种子弱约束提示词 } from '../../utils/directorConfig';
+import { 核心_世界观摘要 } from '../../prompts/core/worldSummary';
+import { 生成世界观确定性摘要 } from '../../prompts/runtime/worldSummary';
 
 type 世界生成选项 = {
     清空前端变量?: boolean;
@@ -72,6 +74,7 @@ const 展开世界生成工作流依赖 = (deps: 世界生成工作流依赖): �
 };
 
 const 世界观阶段超时毫秒 = 300000;
+const 世界观摘要阶段超时毫秒 = 90000;
 const 开局流式预览最小间隔毫秒 = 700;
 export const 选择开局境界体系来源 = (params: {
     启用成长体系: boolean;
@@ -443,6 +446,17 @@ export const 执行世界生成工作流 = async (
         开局流式历史更新器?.停止();
 
         const worldPromptContent = generatedWorldResult.worldPrompt?.trim() || worldPromptSeed;
+        let worldPromptSummaryContent = 生成世界观确定性摘要(worldPromptContent);
+        try {
+            worldPromptSummaryContent = await 执行带超时('AI 摘要世界观', 世界观摘要阶段超时毫秒, (signal) => (
+                textAIService.generateWorldPromptSummary(worldPromptContent, currentApi, signal)
+            ));
+        } catch (summaryError: any) {
+            recordDiagnosticLog('warn', ['世界观摘要生成失败，使用确定性摘要', {
+                message: summaryError?.message || '',
+                name: summaryError?.name || typeof summaryError
+            }]);
+        }
         if (generatedWorldResult.mapLayers.length > 0 || generatedWorldResult.factions.length > 0) {
             openingBase = 合并世界基底到开场状态(openingBase, generatedWorldResult, normalizedOpeningConfig);
             if (clearedOpeningBase) {
@@ -456,6 +470,12 @@ export const 执行世界生成工作流 = async (
             'core_world',
             updatedPrompts.find((prompt) => prompt.id === 'core_world') || updatedPrompts[0],
             worldPromptContent
+        );
+        finalPrompts = 写入或插入提示词(
+            finalPrompts,
+            'core_world_summary',
+            finalPrompts.find((prompt) => prompt.id === 'core_world_summary') || 核心_世界观摘要,
+            worldPromptSummaryContent
         );
         deps.setPrompts(finalPrompts);
         await dbService.保存设置(设置键.提示词池, finalPrompts);

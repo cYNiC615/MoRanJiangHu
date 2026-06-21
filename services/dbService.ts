@@ -274,7 +274,7 @@ const 构建存档摘要记录 = (save: Partial<存档结构> | null | undefined
     };
 };
 
-const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
+export const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
     if (!raw || typeof raw !== 'object') return null;
     if (!raw.角色数据 || typeof raw.角色数据 !== 'object') return null;
     if (!raw.环境信息 || typeof raw.环境信息 !== 'object') return null;
@@ -301,6 +301,7 @@ const 清洗导入存档 = (raw: any): Omit<存档结构, 'id'> | null => {
         女主剧情规划: raw.女主剧情规划 && typeof raw.女主剧情规划 === 'object' ? 深拷贝(raw.女主剧情规划) : undefined,
         记忆系统: raw.记忆系统 && typeof raw.记忆系统 === 'object' ? 深拷贝(raw.记忆系统) : undefined,
         openingConfig: raw.openingConfig && typeof raw.openingConfig === 'object' ? 深拷贝(raw.openingConfig) : undefined,
+        导演配置: raw.导演配置 && typeof raw.导演配置 === 'object' ? 深拷贝(raw.导演配置) : undefined,
         游戏设置: raw.游戏设置 && typeof raw.游戏设置 === 'object' ? 深拷贝(raw.游戏设置) : undefined,
         记忆配置: raw.记忆配置 && typeof raw.记忆配置 === 'object' ? 深拷贝(raw.记忆配置) : undefined,
         视觉设置: raw.视觉设置 && typeof raw.视觉设置 === 'object' ? 深拷贝(raw.视觉设置) : undefined,

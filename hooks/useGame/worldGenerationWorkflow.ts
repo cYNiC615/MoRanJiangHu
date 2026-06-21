@@ -3,8 +3,8 @@ import * as dbService from '../../services/dbService';
 import type { OpeningConfig, WorldGenConfig, 角色数据结构, 提示词结构, 聊天记录结构 } from '../../types';
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 获取主剧情接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
-import { 构建世界观种子提示词, 构建世界生成任务上下文提示词 } from '../../prompts/runtime/worldSetup';
-import { 世界观生成COT提示词, 世界观生成COT伪装历史消息提示词 } from '../../prompts/runtime/worldGenerationCot';
+import { 构建世界观种子提示词, 构建世界生成任务上下文提示词, 构建世界观难度摘要 } from '../../prompts/runtime/worldSetup';
+import { 获取世界观生成COT提示词, 世界观生成COT伪装历史消息提示词 } from '../../prompts/runtime/worldGenerationCot';
 import { 设置键 } from '../../utils/settingsSchema';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
@@ -361,10 +361,7 @@ export const 执行世界生成工作流 = async (
             return prompt;
         });
 
-        const enabledDifficultyPrompts = updatedPromptsBase
-            .filter(prompt => prompt.类型 === "难度设定" && prompt.启用)
-            .map(prompt => 按功能开关过滤提示词内容(`【${prompt.标题}】\n${prompt.内容}`, normalizedGameConfig))
-            .join("\n\n");
+        const worldDifficultySummary = 构建世界观难度摘要(updatedPromptsBase);
         const worldGenerationCotPseudoPrompt = 世界观生成COT伪装历史消息提示词;
 
         const updatedPrompts = updatedPromptsBase;
@@ -374,12 +371,12 @@ export const 执行世界生成工作流 = async (
         const worldGenerationContext = 按功能开关过滤提示词内容(构建世界生成任务上下文提示词(
             worldPromptSeed,
             difficulty,
-            enabledDifficultyPrompts,
+            worldDifficultySummary,
             normalizedWorldExtraRequirement,
             normalizedOpeningConfig
         ), normalizedGameConfig);
         const worldGenerationExtraPrompt = 按功能开关过滤提示词内容([
-            世界观生成COT提示词,
+            获取世界观生成COT提示词(normalizedOpeningConfig),
             normalizedWorldExtraRequirement ? `【玩家世界观草稿与细化要求】\n${normalizedWorldExtraRequirement}\n- 必须优先保留玩家已写明的事实、地名、势力、时代、规则和禁忌。\n- 生成时只补全缺口、细化因果、补齐长期运行结构，不得推翻、绕开或替换玩家草稿。` : '',
             获取繁体输出指令(normalizedGameConfig)
         ]

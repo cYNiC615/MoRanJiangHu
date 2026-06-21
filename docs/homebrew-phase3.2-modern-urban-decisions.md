@@ -4,7 +4,7 @@
 >
 > 本文只记录仍会约束后续实现的决策。已经完整落地的实现细节不在这里展开；
 > 当前实现状态和后续阶段见
-> `docs/homebrew-phase3.2-modern-urban-implementation-status.md`。
+> `docs/homebrew-phase3-implementation-status.md`。
 
 ## Phase 3.2 边界
 

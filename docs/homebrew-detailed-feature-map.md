@@ -15,7 +15,7 @@
 - 世界/地图/时间、角色、社交/NPC、女主/后宫规划、任务、背包、装备和图片管理都是后续迭代对象，后续重构不得改变当前玩法语义。
 - 文生图后端以 ComfyUI 为当前边界；图片管理、角色/NPC/玩家/场景/秘密/物品图片链路继续保留。
 - 诊断/开发工具、Cloudflare/Worker、CNB、脚本和测试只围绕当前本地/API/图片代理辅助价值存在。
-- Phase 3 从现代都市默认化、手动 smoke 待处理项和具体 bugfix intake 开始，不再继续扩张 Phase 2.5；Phase 3.1 第一轮现代都市默认化已落地，Phase 3.2 当前决策与完成状态见 `docs/homebrew-phase3.2-modern-urban-decisions.md` 和 `docs/homebrew-phase3.2-modern-urban-implementation-status.md`。
+- Phase 3 从现代都市默认化、手动 smoke 待处理项和具体 bugfix intake 开始，不再继续扩张 Phase 2.5；Phase 3.1 第一轮现代都市默认化已落地，Phase 3.2 当前决策见 `docs/homebrew-phase3.2-modern-urban-decisions.md`，Phase 3 整体完成状态见 `docs/homebrew-phase3-implementation-status.md`。
 
 ## 当前手动 Smoke 状态
 

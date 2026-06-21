@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
     构建导演配置注入文本,
+    删除未转正角色种子,
+    设置角色种子暂停状态,
     同步角色种子转正并回写社交,
     同步角色种子转正状态,
     规范化导演配置
@@ -121,5 +123,188 @@ describe('Phase 3.2 director config and role seeds', () => {
             seedId: 'seed-roommate',
             状态: '未引入'
         }));
+    });
+
+    it('同步转正拒绝禁用或暂停的角色种子ID，并清除 AI 写入的无效链接', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [
+                {
+                    id: 'seed-disabled',
+                    名称: '许南枝',
+                    性别: '女',
+                    是否启用: false,
+                    入口摘要: '暂停使用的同学'
+                },
+                {
+                    id: 'seed-paused',
+                    名称: '白棠',
+                    性别: '女',
+                    是否启用: true,
+                    入口摘要: '运行时暂停的邻居'
+                }
+            ],
+            角色种子运行时状态: [
+                { seedId: 'seed-disabled', 状态: '未引入' },
+                { seedId: 'seed-paused', 状态: '暂停' }
+            ]
+        });
+
+        const result = 同步角色种子转正并回写社交(config, [
+            { id: 'npc_disabled', 姓名: '许南枝', 性别: '女', 角色种子ID: 'seed-disabled' },
+            { id: 'npc_paused', 姓名: '白棠', 性别: '女', seedId: 'seed-paused' }
+        ]);
+
+        expect(result.socialList[0].角色种子ID).toBeUndefined();
+        expect(result.socialList[1].seedId).toBeUndefined();
+        expect(result.linkedSeedIds).toEqual([]);
+        expect(result.directorConfig.角色种子运行时状态).toEqual([
+            expect.objectContaining({ seedId: 'seed-disabled', 状态: '未引入' }),
+            expect.objectContaining({ seedId: 'seed-paused', 状态: '暂停' })
+        ]);
+    });
+
+    it('暂停和恢复未转正种子时同步定义启用状态与运行时状态', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [{
+                id: 'seed-roommate',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '合租室友'
+            }],
+            角色种子运行时状态: [{ seedId: 'seed-roommate', 状态: '未引入' }]
+        });
+
+        const paused = 设置角色种子暂停状态(config, 'seed-roommate', true);
+        expect(paused.角色种子定义[0].是否启用).toBe(false);
+        expect(paused.角色种子运行时状态[0].状态).toBe('暂停');
+        expect(构建导演配置注入文本(paused)).not.toContain('林知夏');
+
+        const resumed = 设置角色种子暂停状态(paused, 'seed-roommate', false);
+        expect(resumed.角色种子定义[0].是否启用).toBe(true);
+        expect(resumed.角色种子运行时状态[0].状态).toBe('未引入');
+        expect(构建导演配置注入文本(resumed)).toContain('林知夏');
+    });
+
+    it('暂停和恢复已引入但未转正种子时保留已引入状态', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [{
+                id: 'seed-roommate',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '合租室友'
+            }],
+            角色种子运行时状态: [{ seedId: 'seed-roommate', 状态: '已引入' }]
+        });
+
+        const paused = 设置角色种子暂停状态(config, 'seed-roommate', true);
+        expect(paused.角色种子定义[0].是否启用).toBe(false);
+        expect(paused.角色种子运行时状态[0].状态).toBe('已引入');
+        expect(构建导演配置注入文本(paused)).not.toContain('林知夏');
+
+        const resumed = 设置角色种子暂停状态(paused, 'seed-roommate', false);
+        expect(resumed.角色种子定义[0].是否启用).toBe(true);
+        expect(resumed.角色种子运行时状态[0].状态).toBe('已引入');
+        expect(构建导演配置注入文本(resumed)).toContain('林知夏');
+    });
+
+    it('已转正种子不可被游戏内删除，未转正或暂停种子可以删除', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [
+                { id: 'seed-linked', 名称: '林知夏', 性别: '女', 是否启用: true, 入口摘要: '已转正室友' },
+                { id: 'seed-future', 名称: '许南枝', 性别: '女', 是否启用: true, 入口摘要: '未来同学' }
+            ],
+            角色种子运行时状态: [
+                { seedId: 'seed-linked', 状态: '已转正', linkedNpcId: 'npc_lin_zhixia', linkedNpcName: '林知夏' },
+                { seedId: 'seed-future', 状态: '未引入' }
+            ]
+        });
+
+        const afterLinkedDelete = 删除未转正角色种子(config, 'seed-linked');
+        expect(afterLinkedDelete.角色种子定义.map((seed) => seed.id)).toEqual(['seed-linked', 'seed-future']);
+
+        const afterFutureDelete = 删除未转正角色种子(afterLinkedDelete, 'seed-future');
+        expect(afterFutureDelete.角色种子定义.map((seed) => seed.id)).toEqual(['seed-linked']);
+        expect(afterFutureDelete.角色种子运行时状态.map((state) => state.seedId)).toEqual(['seed-linked']);
+    });
+
+    it('已转正种子对应 NPC 消失时降为已引入并清除 linkedNpcId', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [{
+                id: 'seed-roommate',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '合租室友'
+            }],
+            角色种子运行时状态: [{
+                seedId: 'seed-roommate',
+                状态: '已转正',
+                linkedNpcId: 'npc_lin_zhixia',
+                linkedNpcName: '林知夏'
+            }]
+        });
+
+        const next = 同步角色种子转正状态(config, []);
+        expect(next.角色种子运行时状态[0]).toMatchObject({
+            seedId: 'seed-roommate',
+            状态: '已引入'
+        });
+        expect(next.角色种子运行时状态[0].linkedNpcId).toBeUndefined();
+    });
+
+    it('NPC 改名或合并后按角色种子ID刷新 linkedNpcId 和 linkedNpcName', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [{
+                id: 'seed-roommate',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '合租室友'
+            }],
+            角色种子运行时状态: [{
+                seedId: 'seed-roommate',
+                状态: '已转正',
+                linkedNpcId: 'npc_old',
+                linkedNpcName: '林知夏'
+            }]
+        });
+
+        const next = 同步角色种子转正状态(config, [{
+            id: 'npc_merged',
+            姓名: '林知夏（化名许枝）',
+            性别: '女',
+            角色种子ID: 'seed-roommate'
+        }]);
+
+        expect(next.角色种子运行时状态[0]).toMatchObject({
+            seedId: 'seed-roommate',
+            状态: '已转正',
+            linkedNpcId: 'npc_merged',
+            linkedNpcName: '林知夏（化名许枝）'
+        });
+    });
+
+    it('同一角色种子ID重复落到多个 NPC 时只保留第一个有效链接', () => {
+        const config = 规范化导演配置({
+            角色种子定义: [{
+                id: 'seed-roommate',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '合租室友'
+            }],
+            角色种子运行时状态: [{ seedId: 'seed-roommate', 状态: '未引入' }]
+        });
+
+        const result = 同步角色种子转正并回写社交(config, [
+            { id: 'npc_primary', 姓名: '林知夏', 性别: '女', 角色种子ID: 'seed-roommate' },
+            { id: 'npc_duplicate', 姓名: '另一个林知夏', 性别: '女', 角色种子ID: 'seed-roommate' }
+        ]);
+
+        expect(result.directorConfig.角色种子运行时状态[0].linkedNpcId).toBe('npc_primary');
+        expect(result.socialList[0].角色种子ID).toBe('seed-roommate');
+        expect(result.socialList[1].角色种子ID).toBeUndefined();
     });
 });

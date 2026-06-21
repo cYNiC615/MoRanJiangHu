@@ -2,7 +2,7 @@ import { GameResponse, TavernCommand, 内置提示词条目结构 } from '../../
 import type { 当前可用接口结构 } from '../../utils/apiConfig';
 import { 翻译连接测试错误 } from './imageGenerationDiagnostics';
 import { parseJsonWithRepair } from '../../utils/jsonRepair';
-import { 获取世界观生成系统提示词, 构建世界观生成用户提示词 } from '../../prompts/runtime/worldGeneration';
+import { 构建世界观生成消息链 } from '../../prompts/runtime/worldGeneration';
 import { 构建世界演变系统提示词, 构建世界演变用户提示词 } from '../../prompts/runtime/worldEvolution';
 import {
     构建变量模型身份提示词,
@@ -251,24 +251,14 @@ export const generateWorldData = async (
 ): Promise<string> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
-    const normalizedExtraPrompt = (extraPrompt || '').trim();
-    const normalizedCotPseudoPrompt = (cotPseudoHistoryPrompt || '').trim();
-    const genSystemPrompt = 获取世界观生成系统提示词(config, config?.openingConfig);
-    const genUserPrompt = [
-        构建世界观生成用户提示词(worldContext, charData, config, config?.openingConfig),
-        normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
-    ].filter(Boolean).join('\n\n');
-
-    const messagesRaw: 通用消息[] = [
-        { role: 'system', content: genSystemPrompt }
-    ];
-    if (normalizedExtraPrompt) {
-        messagesRaw.push({ role: 'user', content: `【额外要求提示词】\n${normalizedExtraPrompt}` });
-    }
-    messagesRaw.push({ role: 'user', content: genUserPrompt });
-    if (normalizedCotPseudoPrompt) {
-        messagesRaw.push({ role: 'assistant', content: normalizedCotPseudoPrompt });
-    }
+    const messagesRaw: 通用消息[] = 构建世界观生成消息链({
+        worldContext,
+        charData,
+        extraPrompt,
+        cotPseudoHistoryPrompt,
+        config,
+        openingConfig: config?.openingConfig
+    });
     const messages = 规范化文本补全消息链(messagesRaw, { 保留System: true, 合并同角色: false });
 
     const rawText = await 请求模型文本(apiConfig, messages, {
@@ -291,28 +281,18 @@ export const generateWorldFoundationData = async (
 ): Promise<WorldFoundationResult> => {
     if (!apiConfig.apiKey) throw new Error('Missing API Key');
 
-    const normalizedExtraPrompt = (extraPrompt || '').trim();
-    const normalizedCotPseudoPrompt = (cotPseudoHistoryPrompt || '').trim();
     const foundationConfig = {
         ...config,
         生成世界基底: true
     };
-    const genSystemPrompt = 获取世界观生成系统提示词(foundationConfig, config?.openingConfig);
-    const genUserPrompt = [
-        构建世界观生成用户提示词(worldContext, charData, foundationConfig, config?.openingConfig),
-        normalizedExtraPrompt ? `【最终输出附加要求】\n${normalizedExtraPrompt}` : ''
-    ].filter(Boolean).join('\n\n');
-
-    const messagesRaw: 通用消息[] = [
-        { role: 'system', content: genSystemPrompt }
-    ];
-    if (normalizedExtraPrompt) {
-        messagesRaw.push({ role: 'user', content: `【额外要求提示词】\n${normalizedExtraPrompt}` });
-    }
-    messagesRaw.push({ role: 'user', content: genUserPrompt });
-    if (normalizedCotPseudoPrompt) {
-        messagesRaw.push({ role: 'assistant', content: normalizedCotPseudoPrompt });
-    }
+    const messagesRaw: 通用消息[] = 构建世界观生成消息链({
+        worldContext,
+        charData,
+        extraPrompt,
+        cotPseudoHistoryPrompt,
+        config: foundationConfig,
+        openingConfig: config?.openingConfig
+    });
     const messages = 规范化文本补全消息链(messagesRaw, { 保留System: true, 合并同角色: false });
 
     const rawText = await 请求模型文本(apiConfig, messages, {

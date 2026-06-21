@@ -9,6 +9,7 @@ import { OrnateBorder } from '../../ui/decorations/OrnateBorder';
 import InlineSelect from '../../ui/InlineSelect';
 import NewGameDiyTools from './NewGameDiyTools';
 import GeneratedGenderSelector from './GeneratedGenderSelector';
+import RoleSeedEditor from '../Director/RoleSeedEditor';
 import * as dbService from '../../../services/dbService';
 import { 合并去重开局预设方案, 标准化开局预设方案, 生成自定义开局预设ID, 自定义开局预设存储键, 构建开局运行时快照, 构建预设表单恢复结果, 构建预设直开恢复结果, 获取快速重开运行时恢复参数 } from '../../../utils/customNewGamePresets';
 import {
@@ -2952,11 +2953,28 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <label className="text-sm text-wuxia-cyan font-bold">玩家剧情倾向</label>
                                     <textarea
                                         value={openingConfig.玩家剧情倾向 || ''}
-                                        onChange={(e) => setOpeningConfig((prev) => ({ ...prev, 玩家剧情倾向: e.target.value }))}
+                                        onChange={(e) => setOpeningConfig((prev) => ({
+                                            ...prev,
+                                            玩家剧情倾向: e.target.value,
+                                            导演配置: prev.导演配置 ? { ...prev.导演配置, 玩家剧情倾向: e.target.value } : prev.导演配置
+                                        }))}
                                         placeholder="例如：想从合租、兼职和校园社团慢慢展开关系。"
                                         className="w-full h-24 bg-black/50 border-2 border-transparent focus:border-wuxia-gold p-3 text-white outline-none rounded-md transition-all resize-none"
                                     />
                                     <div className="text-[11px] text-gray-500 leading-5">作为本存档导演偏好注入开局、主剧情和规划类提示词；不会当作世界事实写入。</div>
+                                </div>
+                                <div className="mt-4 rounded-lg border border-gray-800 bg-black/25 p-4">
+                                    <RoleSeedEditor
+                                        compact
+                                        config={openingConfig.导演配置}
+                                        onChange={(导演配置) => setOpeningConfig((prev) => ({
+                                            ...prev,
+                                            导演配置: {
+                                                ...导演配置,
+                                                玩家剧情倾向: 导演配置.玩家剧情倾向 || prev.玩家剧情倾向
+                                            }
+                                        }))}
+                                    />
                                 </div>
                                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-gray-800 bg-black/25 px-4 py-4">
                                     <div>

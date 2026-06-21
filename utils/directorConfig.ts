@@ -117,6 +117,75 @@ const 读取状态 = (config: 导演配置结构, seedId: string): 角色种子�
     config.角色种子运行时状态.find((state) => state.seedId === seedId)?.状态 || '未引入'
 );
 
+const 状态相同 = (left?: 角色种子运行时状态结构, right?: 角色种子运行时状态结构): boolean => (
+    JSON.stringify(left || null) === JSON.stringify(right || null)
+);
+
+const 角色种子状态列表按定义排序 = (
+    config: 导演配置结构,
+    statesBySeed: Map<string, 角色种子运行时状态结构>
+): 角色种子运行时状态结构[] => (
+    config.角色种子定义.map((seed) => statesBySeed.get(seed.id) || { seedId: seed.id, 状态: seed.是否启用 ? '未引入' : '暂停' })
+);
+
+const 角色种子可转正 = (seed: 角色种子定义结构, state?: 角色种子运行时状态结构): boolean => (
+    seed.是否启用 !== false && state?.状态 !== '暂停'
+);
+
+const 计算暂停切换后状态 = (current: 角色种子运行时状态结构 | undefined, paused: boolean): 角色种子状态类型 => {
+    const currentStatus = current?.状态 || '未引入';
+    if (paused) {
+        return currentStatus === '已引入' ? '已引入' : '暂停';
+    }
+    return currentStatus === '暂停' ? '未引入' : currentStatus;
+};
+
+export const 设置角色种子暂停状态 = (
+    rawConfig: Partial<导演配置结构> | null | undefined,
+    seedId: string,
+    paused: boolean
+): 导演配置结构 => {
+    const config = 规范化导演配置(rawConfig);
+    const normalizedSeedId = 读取文本(seedId);
+    if (!normalizedSeedId || !config.角色种子定义.some((seed) => seed.id === normalizedSeedId)) return config;
+    const currentState = config.角色种子运行时状态.find((state) => state.seedId === normalizedSeedId);
+    if (currentState?.状态 === '已转正') return config;
+
+    const nextDefinitions = config.角色种子定义.map((seed) => (
+        seed.id === normalizedSeedId
+            ? { ...seed, 是否启用: !paused }
+            : seed
+    ));
+    const statesBySeed = new Map(config.角色种子运行时状态.map((state) => [state.seedId, { ...state }]));
+    const baseState = statesBySeed.get(normalizedSeedId) || { seedId: normalizedSeedId, 状态: '未引入' as 角色种子状态类型 };
+    statesBySeed.set(normalizedSeedId, {
+        seedId: normalizedSeedId,
+        状态: 计算暂停切换后状态(baseState, paused),
+        ...(baseState.更新时间 ? { 更新时间: baseState.更新时间 } : {})
+    });
+    return 规范化导演配置({
+        ...config,
+        角色种子定义: nextDefinitions,
+        角色种子运行时状态: 角色种子状态列表按定义排序({ ...config, 角色种子定义: nextDefinitions }, statesBySeed)
+    });
+};
+
+export const 删除未转正角色种子 = (
+    rawConfig: Partial<导演配置结构> | null | undefined,
+    seedId: string
+): 导演配置结构 => {
+    const config = 规范化导演配置(rawConfig);
+    const normalizedSeedId = 读取文本(seedId);
+    if (!normalizedSeedId) return config;
+    const currentState = config.角色种子运行时状态.find((state) => state.seedId === normalizedSeedId);
+    if (currentState?.状态 === '已转正') return config;
+    return 规范化导演配置({
+        ...config,
+        角色种子定义: config.角色种子定义.filter((seed) => seed.id !== normalizedSeedId),
+        角色种子运行时状态: config.角色种子运行时状态.filter((state) => state.seedId !== normalizedSeedId)
+    });
+};
+
 export const 构建导演配置注入文本 = (
     rawConfig?: 导演配置结构,
     options?: { stage?: 'opening' | 'main' | 'planning' | 'heroine_plan'; triggerTexts?: string[]; maxExpandedCards?: number }
@@ -160,6 +229,17 @@ const 读取NPC角色种子ID = (npc: Partial<NPC结构> & Record<string, any>):
     读取文本(npc?.角色种子ID ?? npc?.seedId)
 );
 
+const 读取NPCID = (npc: Partial<NPC结构> & Record<string, any>): string => (
+    读取文本(npc?.id ?? npc?.ID)
+);
+
+const 清除NPC种子链接字段 = <T extends Partial<NPC结构> & Record<string, any>>(npc: T): T => {
+    const next = { ...npc };
+    delete next.角色种子ID;
+    delete next.seedId;
+    return next;
+};
+
 export type 角色种子转正同步结果 = {
     socialList: Array<Partial<NPC结构> & Record<string, any>>;
     directorConfig: 导演配置结构;
@@ -173,7 +253,7 @@ export const 同步角色种子转正并回写社交 = (
 ): 角色种子转正同步结果 => {
     const config = 规范化导演配置(rawConfig);
     const inputSocialList = Array.isArray(socialList) ? socialList : [];
-    if (config.角色种子定义.length <= 0 || inputSocialList.length <= 0) {
+    if (config.角色种子定义.length <= 0) {
         return {
             socialList: inputSocialList,
             directorConfig: config,
@@ -185,38 +265,61 @@ export const 同步角色种子转正并回写社交 = (
     const currentStates = new Map(config.角色种子运行时状态.map((state) => [state.seedId, { ...state }]));
     const linkedSeedIds: string[] = [];
     const linkedSeedIdSet = new Set<string>();
+    const firstLinkedNpcBySeed = new Map<string, Partial<NPC结构> & Record<string, any>>();
     let changed = false;
     const nextSocialList = inputSocialList.map((npc) => {
         const seedId = 读取NPC角色种子ID(npc);
-        const name = 读取文本(npc?.姓名);
         const seed = seedId ? seedsById.get(seedId) : undefined;
-        if (!seed || seed.是否启用 === false) return npc;
-        const previous = currentStates.get(seed.id);
-        const nextState = {
-            ...previous,
-            seedId: seed.id,
-            状态: '已转正',
-            linkedNpcId: 读取文本(npc?.id) || previous?.linkedNpcId,
-            linkedNpcName: name || previous?.linkedNpcName || seed.名称
-        };
-        if (JSON.stringify(previous) !== JSON.stringify(nextState)) {
+        if (!seed) return npc;
+        if (!角色种子可转正(seed, currentStates.get(seed.id))) {
             changed = true;
+            return 清除NPC种子链接字段(npc);
         }
-        currentStates.set(seed.id, nextState);
-        if (!linkedSeedIdSet.has(seed.id)) {
-            linkedSeedIdSet.add(seed.id);
-            linkedSeedIds.push(seed.id);
+        if (firstLinkedNpcBySeed.has(seed.id)) {
+            changed = true;
+            return 清除NPC种子链接字段(npc);
         }
+        firstLinkedNpcBySeed.set(seed.id, npc);
         if (npc.角色种子ID === seed.id) return npc;
         changed = true;
         return { ...npc, 角色种子ID: seed.id };
+    });
+
+    config.角色种子定义.forEach((seed) => {
+        const previous = currentStates.get(seed.id) || { seedId: seed.id, 状态: seed.是否启用 ? '未引入' : '暂停' };
+        const linkedNpc = firstLinkedNpcBySeed.get(seed.id);
+        if (linkedNpc) {
+            const nextState: 角色种子运行时状态结构 = {
+                seedId: seed.id,
+                状态: '已转正',
+                linkedNpcId: 读取NPCID(linkedNpc) || previous.linkedNpcId,
+                linkedNpcName: 读取文本(linkedNpc?.姓名) || previous.linkedNpcName || seed.名称,
+                ...(previous.更新时间 ? { 更新时间: previous.更新时间 } : {})
+            };
+            if (!状态相同(previous, nextState)) changed = true;
+            currentStates.set(seed.id, nextState);
+            if (!linkedSeedIdSet.has(seed.id)) {
+                linkedSeedIdSet.add(seed.id);
+                linkedSeedIds.push(seed.id);
+            }
+            return;
+        }
+        if (previous.状态 === '已转正') {
+            const nextState: 角色种子运行时状态结构 = {
+                seedId: seed.id,
+                状态: '已引入',
+                ...(previous.更新时间 ? { 更新时间: previous.更新时间 } : {})
+            };
+            if (!状态相同(previous, nextState)) changed = true;
+            currentStates.set(seed.id, nextState);
+        }
     });
 
     return {
         socialList: nextSocialList,
         directorConfig: {
             ...config,
-            角色种子运行时状态: config.角色种子定义.map((seed) => currentStates.get(seed.id) || { seedId: seed.id, 状态: '未引入' })
+            角色种子运行时状态: 角色种子状态列表按定义排序(config, currentStates)
         },
         changed,
         linkedSeedIds

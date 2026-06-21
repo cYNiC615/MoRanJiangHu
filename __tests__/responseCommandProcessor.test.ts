@@ -544,6 +544,71 @@ describe('responseCommandProcessor female relationship target major role fallbac
         expect((result.女主剧情规划 as any)?.现状).toBe('旧规划');
     });
 
+    it('allows heroine planning commands only when they target an established candidate', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([{
+            id: 'npc_su_wanqing',
+            姓名: '苏晚晴',
+            性别: '女',
+            是否主要角色: true,
+            关系状态: '暧昧',
+            行为档案: { 当前agenda: '确认主角是否会兑现约定' }
+        }], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [{ sender: '旁白', text: '苏晚晴本回合仍是明确承接对象。' }],
+            tavern_commands: [
+                {
+                    action: 'set',
+                    key: '女主剧情规划.女主条目',
+                    value: [{ 女主姓名: '苏晚晴', 当前关系状态: '暧昧推进' }]
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false, heroinePlanEnabled: true });
+
+        expect((result.女主剧情规划 as any)?.女主条目?.[0]?.女主姓名).toBe('苏晚晴');
+    });
+
+    it('rejects heroine planning commands when the candidate list is empty', () => {
+        const state = 构建基础状态();
+        state.女主剧情规划 = { 现状: '旧规划' } as any;
+
+        const result = 执行响应命令处理({
+            logs: [{ sender: '旁白', text: '本回合没有已登场女性重要角色。' }],
+            tavern_commands: [
+                {
+                    action: 'set',
+                    key: '女主剧情规划.女主条目',
+                    value: [{ 女主姓名: '空白女性', 当前关系状态: '补位' }]
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false, heroinePlanEnabled: true });
+
+        expect(result.女主剧情规划).toEqual({ 现状: '旧规划' });
+    });
+
+    it('rejects heroine planning commands when the target is not a red planning candidate', () => {
+        const state = 构建基础状态();
+        state.女主剧情规划 = { 现状: '旧规划' } as any;
+        state.社交 = 规范化社交列表([
+            { id: 'npc_male_friend', 姓名: '周明', 性别: '男', 是否主要角色: true, 关系状态: '好友' },
+            { id: 'npc_minor_female', 姓名: '陈晓雨', 性别: '女', 是否主要角色: false, 关系状态: '同学' }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [{ sender: '旁白', text: '周明与陈晓雨都不应进入红颜规划补位。' }],
+            tavern_commands: [
+                {
+                    action: 'set',
+                    key: '女主剧情规划.女主条目',
+                    value: [{ 女主姓名: '周明', 当前关系状态: '误入' }]
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false, heroinePlanEnabled: true });
+
+        expect(result.女主剧情规划).toEqual({ 现状: '旧规划' });
+    });
+
     it('marks an existing female NPC as major when relationship is established by story fact', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '五月初二 夜' } as any;

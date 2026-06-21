@@ -16,6 +16,7 @@ import { 姓名含已知中文姓氏 } from '../../utils/chineseName';
 import { 合并保留既有NPC列表, 命令存在社交删除风险 } from '../../utils/npcRetentionGuard';
 import { 提取NPC死亡风险命令索引, 状态效果是死亡判定 } from '../../utils/npcDeathGuard';
 import { 构建体内射精记录, 推进社交孕产状态, 规范化孕产时间 } from '../../utils/reproduction';
+import { 构建红颜规划候选结果, 是女主剧情规划命令, 过滤女主规划命令 } from '../../utils/socialBehavior';
 
 const 占位开局时间 = '1:01:01:00:00';
 
@@ -43,13 +44,6 @@ const 是否游戏初始时间命令 = (rawKey: string): boolean => {
     if (normalizedKey === 'gameState.游戏初始时间') return true;
     const trimmed = (rawKey || '').trim();
     return trimmed === '游戏初始时间' || trimmed === 'gameState.游戏初始时间';
-};
-
-const 是否女主规划命令 = (rawKey: string): boolean => {
-    const normalizedKey = normalizeStateCommandKey(rawKey || '');
-    return normalizedKey === 'gameState.女主剧情规划'
-        || normalizedKey.startsWith('gameState.女主剧情规划.')
-        || normalizedKey.startsWith('gameState.女主剧情规划[');
 };
 
 const 是否时间回退或异常重置 = (oldTime: unknown, newValue: unknown): boolean => {
@@ -1179,7 +1173,7 @@ export const 执行响应命令处理 = (
         const deathRiskCommandIndices = 提取NPC死亡风险命令索引(response.tavern_commands, socialBuffer);
         response.tavern_commands.forEach((cmd, commandIndex) => {
             if (deathRiskCommandIndices.has(commandIndex)) return;
-            const safeCmd = 净化新增社交命令(
+            let safeCmd = 净化新增社交命令(
                 净化社交姓名命令(
                     sanitizeInventoryCommand(
                         净化社交生理命令(
@@ -1200,7 +1194,14 @@ export const 执行响应命令处理 = (
                 charBuffer?.姓名
             );
             if (!safeCmd) return;
-            if (!heroinePlanEnabled && 是否女主规划命令(safeCmd.key)) return;
+            if (!heroinePlanEnabled && 是女主剧情规划命令(safeCmd)) return;
+            if (heroinePlanEnabled && 是女主剧情规划命令(safeCmd)) {
+                const heroineGuard = 过滤女主规划命令([safeCmd], 构建红颜规划候选结果(
+                    deps.规范化社交列表(socialBuffer, { 合并同名: false })
+                ));
+                if (heroineGuard.commands.length <= 0) return;
+                safeCmd = heroineGuard.commands[0];
+            }
             if (命令存在社交删除风险(safeCmd, socialBuffer)) return;
             if (是否游戏初始时间命令(safeCmd.key)) {
                 return;

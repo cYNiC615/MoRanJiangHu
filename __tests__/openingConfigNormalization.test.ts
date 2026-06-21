@@ -138,4 +138,33 @@ describe('开局配置题材边界', () => {
         expect(prompt).toContain('不是世界事实');
         expect(prompt).toContain('合租、兼职和校园社团');
     });
+
+    it('新建游戏开局配置保留首批角色种子并初始化运行时状态', () => {
+        const config = 规范化开局配置({
+            题材模式: '现代都市',
+            玩家剧情倾向: '慢热校园合租。',
+            导演配置: {
+                角色种子定义: [{
+                    id: 'seed-roommate',
+                    名称: '林知夏',
+                    性别: '女',
+                    是否启用: true,
+                    入口摘要: '合租室友，表面疏离。',
+                    完整设定: '新闻系研究生，亲密阻力来自家庭债务。',
+                    关系入口标签: ['合租']
+                }]
+            }
+        });
+
+        expect(config.导演配置?.玩家剧情倾向).toBe('慢热校园合租。');
+        expect(config.导演配置?.角色种子定义).toHaveLength(1);
+        expect(config.导演配置?.角色种子定义[0]).toMatchObject({
+            id: 'seed-roommate',
+            名称: '林知夏',
+            入口摘要: '合租室友，表面疏离。'
+        });
+        expect(config.导演配置?.角色种子运行时状态).toEqual([
+            { seedId: 'seed-roommate', 状态: '未引入' }
+        ]);
+    });
 });

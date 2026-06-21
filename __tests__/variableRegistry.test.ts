@@ -153,6 +153,21 @@ describe('variableRegistry', () => {
         });
     });
 
+    it('allows variable generation to repair social v2 behavior profile and role seed links', () => {
+        [
+            ['社交[0].角色种子ID', 'seed_aqing'],
+            ['社交[0].社交档案版本', 2],
+            ['社交[0].行为档案.当前agenda', '确认主角是否兑现旧约'],
+            ['社交[0].行为档案.边界与硬锁', ['不接受被公开羞辱']]
+        ].forEach(([key, value]) => {
+            expect(校验变量命令是否登记({
+                action: 'set',
+                key: key as string,
+                value
+            }, baseState).allowed, key as string).toBe(true);
+        });
+    });
+
     it('blocks writes to deprecated coordinate map fields', () => {
         const result = 校验变量命令是否登记({
             action: 'push',

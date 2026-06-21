@@ -23,7 +23,7 @@ import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 import { 构建规划性别比例约束摘要 } from '../../prompts/runtime/planningAnalysis';
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
-import { 构建红颜规划候选结果, 过滤女主规划命令 } from '../../utils/socialBehavior';
+import { 构建规划社交上下文, 构建红颜规划候选结果, 过滤女主规划命令 } from '../../utils/socialBehavior';
 
 type 规划更新工作流依赖 = {
     apiConfig: any;
@@ -447,6 +447,11 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         ));
         const normalizedWorldPayload = deps.规范化世界状态(params.state.世界);
         const normalizedSocialPayload = deps.规范化社交列表(params.state.社交);
+        const planningSocialPayload = 构建规划社交上下文(normalizedSocialPayload, {
+            maxInScene: 8,
+            maxOffscreenImportant: 12,
+            maxSummaryChars: 220
+        });
         const normalizedEnvPayload = deps.规范化环境信息(params.state.环境);
         const heroineCandidateResult = heroineEnabled
             ? 构建红颜规划候选结果(normalizedSocialPayload)
@@ -461,11 +466,11 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
                 2
             ))
         ));
-        const socialJson = await probe.timeAsync('序列化社交载荷(worker)', () => 执行游戏后台重计算<string>(
+        const socialJson = await probe.timeAsync('序列化社交摘要载荷(worker)', () => 执行游戏后台重计算<string>(
             'stringifyTrimCultivation',
-            { value: normalizedSocialPayload, gameConfig: normalizedGameConfig, space: 2 },
+            { value: planningSocialPayload, gameConfig: normalizedGameConfig, space: 2 },
             () => 后台分段执行(() => JSON.stringify(
-                裁剪成长体系上下文数据(normalizedSocialPayload, normalizedGameConfig),
+                裁剪成长体系上下文数据(planningSocialPayload, normalizedGameConfig),
                 null,
                 2
             ))

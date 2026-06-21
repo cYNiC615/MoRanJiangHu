@@ -90,7 +90,7 @@ export const 默认创意工坊主题配置: 创意工坊主题配置 = {
         worldSize: '弹丸之地',
         dynastySetting: '现代城市由大学城、社区、商圈、写字楼、医院和交通网络构成，现实压力、人情关系和城市机会共同推进剧情。',
         sectDensity: '稀少',
-        tianjiaoSetting: '优势来自学习能力、时间管理、信息差、人际分寸、心理韧性和现实资源调度，不默认出现宗门、修炼或超凡成长。',
+        tianjiaoSetting: '优势来自学习能力、时间管理、信息差、人际分寸、心理韧性和现实资源调度，不默认出现超常能力体系。',
         worldExtraRequirement: '',
         manualWorldPrompt: '',
         manualRealmPrompt: '',

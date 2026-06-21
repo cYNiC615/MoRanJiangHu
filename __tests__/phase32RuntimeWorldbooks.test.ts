@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { 构建世界书注入文本 } from '../utils/worldbook';
 import { 规范化开局配置 } from '../utils/openingConfig';
 import { 构建运行时世界书解析结果, 补全开局运行时世界书快照 } from '../utils/runtimeWorldbooks';
@@ -70,5 +72,12 @@ describe('Phase 3.2 runtime worldbook resolver', () => {
         expect(explicitWuxia.runtimeSnapshot?.modeWorldbooks?.some((book) => book.id.includes('现代都市'))).not.toBe(true);
         expect(explicitSelection.runtimeSnapshot?.modeWorldbooks?.some((book) => book.id.includes('现代都市'))).not.toBe(true);
         expect(explicitSelection.runtimeSnapshot?.workshopSelection?.selectedMode).toBe('武侠');
+    });
+
+    it('变量生成不会为普通日常常驻注入完整名器世界书触发词', () => {
+        const source = readFileSync(resolve(process.cwd(), 'hooks/useGame/variableModelWorkflow.ts'), 'utf8');
+
+        expect(source).not.toContain('名器世界书触发词');
+        expect(source).toContain('extraTexts: [params.playerInput]');
     });
 });

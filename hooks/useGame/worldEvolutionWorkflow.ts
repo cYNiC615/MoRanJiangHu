@@ -1,5 +1,5 @@
 import * as textAIService from '../../services/ai/text';
-import type { GameResponse, OpeningConfig, 接口设置结构, 提示词结构, 剧情系统结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构, 世界书作用域 } from '../../types';
+import type { GameResponse, OpeningConfig, 导演配置结构, 接口设置结构, 提示词结构, 剧情系统结构, 记忆系统结构, 聊天记录结构, 环境信息结构, 世界数据结构, 世界书结构, 世界书作用域 } from '../../types';
 import { 获取世界演变接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
@@ -18,6 +18,7 @@ import { 后台分段执行, 后台让出主线程 } from '../../utils/backgroun
 import { 执行游戏后台重计算 } from '../../utils/gameHeavyWorkerClient';
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
+import { 构建有效导演开局配置, 构建导演配置注入文本 } from '../../utils/directorConfig';
 
 export type 世界演变触发参数 = {
     来源?: 'manual' | 'auto_due' | 'story_dynamic' | 'story_dynamic_and_due';
@@ -51,6 +52,7 @@ type 世界演变依赖 = {
     历史记录: 聊天记录结构[];
     prompts: 提示词结构[];
     开局配置?: OpeningConfig;
+    导演配置?: 导演配置结构;
     worldbooks: 世界书结构[];
     世界演变进行中Ref: { current: boolean };
     世界演变去重签名Ref: { current: string };
@@ -311,12 +313,21 @@ export const 执行世界演变更新工作流 = async (
             dueHints: dueHints.length
         });
         检查世界演变中断(params?.signal);
+        const effectiveOpeningConfig = 构建有效导演开局配置(deps.开局配置, deps.导演配置);
         const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
-            构建玩家剧情倾向提示词(deps.开局配置, { stage: 'world_evolution' }),
+            构建玩家剧情倾向提示词(effectiveOpeningConfig as OpeningConfig | undefined, { stage: 'world_evolution' }),
+            worldRuntimeGameConfig
+        );
+        const directorConfigPrompt = 按功能开关过滤提示词内容(
+            构建导演配置注入文本(effectiveOpeningConfig?.导演配置, {
+                stage: 'world_evolution',
+                triggerTexts: [currentTurnBody, currentTurnPlanText, ...dynamicHints, ...dueHints],
+                includeExpandedCards: false
+            }),
             worldRuntimeGameConfig
         );
         const runtimeWorldbooks = 构建运行时世界书解析结果({
-            openingConfig: deps.开局配置,
+            openingConfig: effectiveOpeningConfig || deps.开局配置,
             userWorldbooks: deps.worldbooks
         });
         const worldEvolutionWorldbookParams = {
@@ -325,7 +336,7 @@ export const 执行世界演变更新工作流 = async (
             environment: worldEnv,
             world: worldState,
             history: deps.历史记录,
-            extraTexts: [currentTurnPlanText, playerStoryPreferencePrompt, ...dynamicHints, ...dueHints]
+            extraTexts: [currentTurnPlanText, playerStoryPreferencePrompt, directorConfigPrompt, ...dynamicHints, ...dueHints]
         };
         const worldbookExtraPrompt = await probe.timeAsync('构建世界演变世界书注入(worker)', () => 执行游戏后台重计算<string>(
             'buildWorldbookText',
@@ -345,6 +356,7 @@ export const 执行世界演变更新工作流 = async (
                 ? 按功能开关过滤提示词内容(worldRuntimeGameConfig.额外提示词.trim(), worldRuntimeGameConfig)
                 : '',
             playerStoryPreferencePrompt,
+            directorConfigPrompt,
             worldbookExtraPrompt,
             获取繁体输出指令(worldRuntimeGameConfig)
         ]

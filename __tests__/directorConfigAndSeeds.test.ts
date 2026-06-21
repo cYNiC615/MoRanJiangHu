@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
+    构建有效导演开局配置,
     构建导演配置注入文本,
     删除未转正角色种子,
     设置角色种子暂停状态,
@@ -9,6 +12,76 @@ import {
 } from '../utils/directorConfig';
 
 describe('Phase 3.2 director config and role seeds', () => {
+    it('后处理使用顶层导演配置覆盖开局快照里的旧导演配置', () => {
+        const openingConfig = {
+            题材模式: '现代都市',
+            玩家剧情倾向: '旧开局倾向。',
+            导演配置: {
+                玩家剧情倾向: '旧导演倾向。',
+                角色种子定义: [{
+                    id: 'seed-old',
+                    名称: '旧种子',
+                    性别: '女',
+                    是否启用: true,
+                    入口摘要: '旧摘要'
+                }],
+                角色种子运行时状态: [{ seedId: 'seed-old', 状态: '未引入' }]
+            }
+        } as any;
+        const runtimeDirectorConfig = 规范化导演配置({
+            玩家剧情倾向: '游戏内新导演倾向。',
+            角色种子定义: [{
+                id: 'seed-new',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '游戏内新增室友种子'
+            }],
+            角色种子运行时状态: [{ seedId: 'seed-new', 状态: '未引入' }]
+        });
+
+        const effective = 构建有效导演开局配置(openingConfig, runtimeDirectorConfig);
+        const prompt = 构建导演配置注入文本(effective?.导演配置);
+
+        expect(effective?.题材模式).toBe('现代都市');
+        expect(effective?.导演配置?.玩家剧情倾向).toBe('游戏内新导演倾向。');
+        expect(prompt).toContain('角色种子ID：seed-new');
+        expect(prompt).not.toContain('seed-old');
+    });
+
+    it('角色种子编辑器用固定选项维护默认发展方向', () => {
+        const source = readFileSync(resolve(process.cwd(), 'components/features/Director/RoleSeedEditor.tsx'), 'utf8');
+
+        expect(source).toContain('默认发展方向选项');
+        expect(source).toContain('<select');
+        expect(source).toContain('红颜/后宫对象');
+        expect(source).toContain('非红颜/普通配角');
+        expect(source).not.toContain('placeholder="默认发展方向"');
+    });
+
+    it('世界演变和规划分析后处理接入导演种子摘要边界', () => {
+        const worldEvolutionSource = readFileSync(resolve(process.cwd(), 'hooks/useGame/worldEvolutionWorkflow.ts'), 'utf8');
+        const planningSource = readFileSync(resolve(process.cwd(), 'hooks/useGame/planningUpdateWorkflow.ts'), 'utf8');
+
+        expect(worldEvolutionSource).toContain('构建导演配置注入文本');
+        expect(worldEvolutionSource).toContain('构建有效导演开局配置');
+        expect(worldEvolutionSource).toContain("stage: 'world_evolution'");
+        expect(worldEvolutionSource).toContain('includeExpandedCards: false');
+        expect(planningSource).toContain('构建导演配置注入文本');
+        expect(planningSource).toContain('构建有效导演开局配置');
+        expect(planningSource).toContain("stage: 'planning'");
+        expect(planningSource).toContain('directorConfigPrompt');
+    });
+
+    it('初始世界生成接入导演种子弱约束摘要，不把完整卡片作为世界事实', () => {
+        const worldGenerationSource = readFileSync(resolve(process.cwd(), 'hooks/useGame/worldGenerationWorkflow.ts'), 'utf8');
+
+        expect(worldGenerationSource).toContain('构建有效导演开局配置');
+        expect(worldGenerationSource).toContain('构建世界生成导演种子弱约束提示词');
+        expect(worldGenerationSource).toContain('worldGenerationDirectorSeedPrompt');
+        expect(worldGenerationSource).not.toContain("stage: 'opening'");
+    });
+
     it('从旧 openingConfig 玩家剧情倾向迁移到导演配置，但不把种子当作既定事实', () => {
         const config = 规范化导演配置(undefined, {
             openingConfig: { 玩家剧情倾向: '慢热校园合租，偏后宫推进。' } as any

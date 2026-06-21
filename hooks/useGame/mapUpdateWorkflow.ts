@@ -67,6 +67,50 @@ const 提取响应正文 = (response?: GameResponse): string => (
         .trim()
 );
 
+const 动态位置短语正则 = /^(路上|途中|门口|外面|附近|旁边|里面|这里|那里|家教路上|回家路上|上班路上|下班路上)$/u;
+
+const 稳定地点后缀正则 = /(公寓|小区|社区|学校|大学|学院|公司|集团|医院|诊所|商场|商圈|便利店|咖啡馆|图书馆|办公室|教室|宿舍|卧室|客厅|厨房|餐厅|车站|地铁站|派出所|工作室|门店|住宅楼|写字楼|楼|室|房间|家)$/u;
+
+const 提取疑似稳定地点 = (text: string): string[] => {
+    const source = (text || '').replace(/\r\n/g, '\n');
+    const result: string[] = [];
+    const seen = new Set<string>();
+    const regex = /(?:来到|进入|抵达|到达|前往|搬进|走进|回到|住进|约在|约到)(?:了|那间|那家|那个|这间|这家|这个|一家|一间)?([\u4e00-\u9fa5A-Za-z0-9·]{2,24}?)(?=[，。！？、\s]|$)/gu;
+    let match: RegExpExecArray | null = null;
+    while ((match = regex.exec(source)) !== null) {
+        const name = 取文本(match[1]).replace(/^(了|到|在)/u, '');
+        if (!name || 动态位置短语正则.test(name)) continue;
+        if (!稳定地点后缀正则.test(name)) continue;
+        if (seen.has(name)) continue;
+        seen.add(name);
+        result.push(name);
+    }
+    return result.slice(0, 8);
+};
+
+export const 判定地图自动更新需求 = (params: {
+    mode: 地图更新模式;
+    环境?: any;
+    世界?: any;
+    currentResponse?: GameResponse;
+}): { needed: boolean; reasons: string[] } => {
+    if (params.mode === 'memory_regenerate') {
+        return { needed: true, reasons: ['旧存档地图重建'] };
+    }
+    const layers = Array.isArray(params.世界?.地图层级) ? params.世界.地图层级 : [];
+    if (layers.length <= 0) {
+        return { needed: true, reasons: ['开局空地图需要种子路径'] };
+    }
+    const body = 提取响应正文(params.currentResponse);
+    const stableCandidates = 提取疑似稳定地点(body);
+    const existingNames = new Set(layers.map((layer: any) => 取文本(layer?.名称)).filter(Boolean));
+    const newCandidates = stableCandidates.filter((name) => !existingNames.has(name));
+    if (newCandidates.length > 0) {
+        return { needed: true, reasons: [`发现稳定新地点：${newCandidates.join('、')}`] };
+    }
+    return { needed: false, reasons: ['无稳定新地点，跳过地图自动更新'] };
+};
+
 const 限长文本 = (value: unknown, maxLength: number): string => {
     const text = 取文本(value);
     if (!text || text.length <= maxLength) return text;
@@ -191,9 +235,9 @@ export const 构建地图更新用户提示词 = (params: {
             memoryText || '暂无可用回忆。',
             '',
             '请从回忆库中提取所有可长期抵达或反复出现的地点，并重建完整地点层级树。要求：',
-            '1. 根节点必须是 层级:"寰宇" 名称:"诸天万界"。',
+            '1. 根节点优先使用当前题材的最大现实范围，例如 层级:"寰宇" 名称:"现实世界"。',
             '2. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
-            '3. 大地点=世界/大陆/秘境大世界；中地点=大洲/区域；小地点=城镇/山门/村庄；区地点=建筑/地标/街区；子地点=房间/院落/室内空间。',
+            '3. 大地点=城市/都市圈；中地点=大学城/行政区/产业园；小地点=社区/学校/公司园区/商圈；区地点=建筑/地标/街区；子地点=房间/室内空间。',
             '4. 这是全量重建任务：旧地图会在写入前被删除，绝对不要为了保留旧数据而复制旧层级；只写回忆库和当前状态能支持的地点。',
             '5. 不要生成坐标、道路、建筑列表、地图人物等旧字段。地图层级节点也不要写 `在场人物` 字段——人物显示由社交档案里的 NPC 位置（`当前位置`/`位置路径`/`具体地点`）驱动，与地图层级无关。',
             '6. 地点若能判断势力控制或势力影响，必须补充 控制势力 / 势力影响 / 势力标签；看不出势力时不要硬编。',
@@ -227,21 +271,22 @@ export const 构建地图更新用户提示词 = (params: {
         isOpeningEmptyMap
             ? '1. 开局种子地图不得输出“无”；若地点信息不足，也要用当前地点、正文里的仓库/营地/街区/房间线索补齐可用节点。'
             : '1. 只在本回合正文明确确认了新的可长期抵达地点、建筑、地标、房间、秘境、区域或新世界时，才输出新增地图命令。',
-        '2. 若已有地图层级中已经存在同名地点，不要重复 push。',
+        '2. 同父级下名称唯一；同名房间或店铺可在不同父级下并存，不要按全树名称强行合并。',
         '3. 地图层级只能是：寰宇、大地点、中地点、小地点、区地点、子地点。',
         '4. 区地点=建筑/地标；子地点=建筑内房间。环境.具体地点不是层级名。',
         '5. 父级ID优先填写已有节点 ID；若只能确定父级名称，也可以填写父级名称，系统会自动解析。',
-        '6. 地点必须尽量体现势力分布：若正文、当前位置、已知势力版图能判断控制方或影响方，push 对象里写入 控制势力 / 势力影响 / 势力标签；描述里也要用一句话说明势力痕迹。',
+        '6. 只有正文、当前位置或已知组织明确显示管理方、控制方、组织归属或势力影响时，才写入 控制势力 / 势力影响 / 势力标签；普通住处、学校教室、公司工位、社区门口不要为了组织感硬编势力。',
         '7. 禁止输出旧地图坐标字段：世界.地图、世界.建筑、世界.地图建筑、世界.地图道路、世界.地图人物。',
         '8. 同一个角色只能有一个最细叶子位置；不要把同一人同时写入多个层级。地图层级的显示由社交档案里 NPC 的 `当前位置`/`位置路径`/`具体地点` 字段驱动，地图层级节点本身不要写 `在场人物` 字段。',
-        isOpeningEmptyMap ? '9. 开局空地图必须输出 push 命令，不得输出“无”。' : '9. 若无新增或修复需求，<命令> 输出“无”。',
+        '9. 动态位置短语默认不是地图节点，例如：路上、途中、门口、外面、附近、家教路上；除非正文明确它是可反复访问的固定地点。',
+        isOpeningEmptyMap ? '10. 开局空地图必须输出 push 命令，不得输出“无”。' : '10. 若无新增或修复需求，<命令> 输出“无”。',
         traditionalChinesePrompt,
         '',
         '【输出格式】',
         '<thinking>简短审计是否有新地点</thinking>',
         '<说明>- 写明新增/跳过原因</说明>',
         '<命令>',
-        'push 世界.地图层级 = {"名称":"悦来客栈","层级":"区地点","父级ID":"DT-004","描述":"洛阳城内可住宿与打探消息的客栈，受本地帮会与商旅势力共同影响。","控制势力":"洛阳商会","势力影响":"商会收取保护费，本地帮会暗中巡看。","势力标签":["商会","帮会"]}',
+        'push 世界.地图层级 = {"名称":"镜湖便利店","层级":"区地点","父级ID":"DT-004","描述":"合租公寓楼下可反复到访的小型便利店。"}',
         '</命令>'
     ].join('\n');
 };
@@ -289,16 +334,18 @@ export const 构建地图层级替换结果 = (
         }))
         .filter((node) => node.名称);
     if (!normalizedNodes.some((node) => node.层级 === '寰宇')) {
-        normalizedNodes.unshift({ 名称: '诸天万界', 层级: '寰宇', 父级ID: '', 描述: '诸天万界交汇之地', 控制势力: '', 势力影响: '', 势力标签: [] });
+        normalizedNodes.unshift({ 名称: '现实世界', 层级: '寰宇', 父级ID: '', 描述: '现代都市现实世界', 控制势力: '', 势力影响: '', 势力标签: [] });
     }
 
     const existingLayers = Array.isArray(currentWorld?.地图层级) ? currentWorld.地图层级 : [];
     const oldNameToId = new Map<string, string>();
+    const oldPathToId = new Map<string, string>();
     const usedIds = new Set<string>();
     existingLayers.forEach((layer: any) => {
         const name = 取文本(layer?.名称);
         const id = 取文本(layer?.ID);
         if (name && id) oldNameToId.set(name, id);
+        if (name && id) oldPathToId.set(`${取文本(layer?.父级ID)}::${name}`, id);
         if (id) usedIds.add(id);
     });
     let seq = existingLayers
@@ -316,16 +363,34 @@ export const 构建地图层级替换结果 = (
         usedIds.add(id);
         return id;
     };
-    const nameToId = new Map<string, string>();
+    const nameToIds = new Map<string, string[]>();
+    const result: any[] = [];
     normalizedNodes.forEach((node) => {
-        if (!nameToId.has(node.名称)) nameToId.set(node.名称, oldNameToId.get(node.名称) || nextId());
+        const parentId = node.父级ID
+            ? (oldNameToId.get(node.父级ID) || nameToIds.get(node.父级ID)?.[0] || node.父级ID)
+            : '';
+        const id = oldPathToId.get(`${parentId}::${node.名称}`) || nextId();
+        const ids = nameToIds.get(node.名称) || [];
+        ids.push(id);
+        nameToIds.set(node.名称, ids);
+        result.push({
+            ID: id,
+            名称: node.名称,
+            层级: node.层级,
+            父级ID: parentId,
+            描述: node.描述,
+            控制势力: node.控制势力,
+            势力影响: node.势力影响,
+            势力标签: node.势力标签,
+            归属: { 大地点: '', 中地点: '', 小地点: '' }
+        });
     });
 
-    return normalizedNodes.map((node) => ({
-        ID: nameToId.get(node.名称) || nextId(),
+    return result.map((node) => ({
+        ID: node.ID,
         名称: node.名称,
         层级: node.层级,
-        父级ID: node.父级ID ? (nameToId.get(node.父级ID) || oldNameToId.get(node.父级ID) || node.父级ID) : '',
+        父级ID: node.父级ID,
         描述: node.描述,
         控制势力: node.控制势力,
         势力影响: node.势力影响,
@@ -363,8 +428,8 @@ export const 解析地图自动更新命令 = (rawText: string, currentWorld?: a
     const block = 提取命令块(rawText);
     if (!block || /^无$/i.test(block.trim())) return [];
     const existingLayers = Array.isArray(currentWorld?.地图层级) ? currentWorld.地图层级 : [];
-    const existingNames = new Set(existingLayers.map((layer: any) => 取文本(layer?.名称)).filter(Boolean));
     const idByName = new Map(existingLayers.map((layer: any) => [取文本(layer?.名称), 取文本(layer?.ID)] as const).filter(([name]) => Boolean(name)));
+    const existingByParentAndName = new Set(existingLayers.map((layer: any) => `${取文本(layer?.父级ID)}::${取文本(layer?.名称)}`).filter((key) => !key.endsWith('::')));
     const result: TavernCommand[] = [];
     block.split(/\n+/).forEach((line) => {
         const trimmed = line.trim().replace(/^[\-*]\s*/, '');
@@ -379,15 +444,17 @@ export const 解析地图自动更新命令 = (rawText: string, currentWorld?: a
         if (action === 'push') {
             if (!value || typeof value !== 'object' || Array.isArray(value)) return;
             const name = 取文本((value as any).名称);
-            if (!name || existingNames.has(name)) return;
+            if (!name) return;
             const parent = 取文本((value as any).父级ID);
+            const resolvedParent = parent ? (idByName.get(parent) || parent) : '';
+            if (existingByParentAndName.has(`${resolvedParent}::${name}`)) return;
             result.push({
                 action,
                 key: '世界.地图层级',
                 value: {
                     名称: name,
                     层级: 规范化层级((value as any).层级),
-                    父级ID: parent ? (idByName.get(parent) || parent) : '',
+                    父级ID: resolvedParent,
                     描述: 取文本((value as any).描述)
                 }
             });

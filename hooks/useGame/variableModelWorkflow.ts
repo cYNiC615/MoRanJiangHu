@@ -262,7 +262,7 @@ const 文本疑似占位 = (value: unknown): boolean => {
     if (!text) return true;
     const normalized = text.replace(/\s+/g, '');
     if (/未知|不详|待补充|待后续|待完善|未提供|未填写|暂无/.test(normalized)) return true;
-    return /^(普通|正常|略)$/.test(normalized);
+    return /^(普通|略)$/.test(normalized);
 };
 
 const 私密字段缺少名器锚点 = (value: unknown): boolean => {
@@ -319,7 +319,7 @@ const 判断是否主要男性NPC = (npc: any, options?: { femboyNsfwEnabled?: b
     && npc?.是否主要角色 === true
 );
 
-const 构建社交档案完整性审计提示 = (
+export const 构建社交档案完整性审计提示 = (
     socialRaw: unknown,
     options?: { femboyNsfwEnabled?: boolean; xianxiaMode?: boolean }
 ): string => {
@@ -416,18 +416,6 @@ const 构建社交档案完整性审计提示 = (
     ].join('\n');
 };
 
-const 名器世界书触发词 = [
-    '名器',
-    '名器录',
-    '初次判定',
-    '索引表',
-    '名器概率表',
-    '臀部名器',
-    '索引表-臀部',
-    '后庭名器',
-    '索引表-后庭'
-].join('\n');
-
 const 序列化命令去重键 = (cmd: TavernCommand): string => {
     let valueText = 'null';
     try {
@@ -511,7 +499,9 @@ export const 执行变量模型校准工作流 = async (
     const dialogueNpcAuditPrompt = 构建正文对白人物审计提示(params.parsedResponse, params.baseState, {
         xianxiaMode: false
     });
-    const variableRegistryPrompt = 构建变量路径登记提示(params.baseState as any);
+    const variableRegistryPrompt = 构建变量路径登记提示(
+        裁剪成长体系上下文数据(params.baseState as any, runtimeGameConfig) as Record<string, any>
+    );
     const femaleNameCandidatePrompt = 构建女性姓名候选提示词({
         usedNames: 收集女性姓名候选已用名(params.baseState),
         seed: [
@@ -541,10 +531,7 @@ export const 执行变量模型校准工作流 = async (
             scopes: ['variable_calibration'],
             environment: params.baseState.环境,
             social: params.baseState.社交,
-            extraTexts: [
-                params.playerInput,
-                runtimeGameConfig.启用NSFW模式 === true ? 名器世界书触发词 : ''
-            ]
+            extraTexts: [params.playerInput]
         }).combinedText, runtimeGameConfig),
         dialogueNpcAuditPrompt,
         socialCompletenessAuditPrompt,

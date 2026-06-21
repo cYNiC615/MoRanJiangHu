@@ -92,7 +92,70 @@ const 规范化地图层级名称 = (value: any): any => {
     return 地图层级集合.has(text) ? text : '区地点';
 };
 
-const 规范化世界基底地图层级 = (rawLayers: any[]): any[] => {
+const 是现代都市开局 = (openingConfig?: OpeningConfig | null): boolean => (
+    获取题材模式配置(openingConfig?.题材模式).value === '现代都市'
+);
+
+const 取世界基底默认寰宇节点 = (openingConfig?: OpeningConfig | null) => (
+    是现代都市开局(openingConfig)
+        ? {
+            名称: '现实世界',
+            层级: '寰宇',
+            父级ID: '',
+            描述: '现代现实世界与本地城市生活所在的基础空间。',
+            控制势力: '',
+            势力影响: '',
+            势力标签: []
+        }
+        : {
+            名称: '诸天万界',
+            层级: '寰宇',
+            父级ID: '',
+            描述: '诸天万界交汇之地',
+            控制势力: '',
+            势力影响: '',
+            势力标签: []
+        }
+);
+
+const 地图节点引用键 = (layer: any): string[] => [
+    取文本(layer?.ID || layer?.id),
+    取文本(layer?.名称 || layer?.name)
+].filter(Boolean);
+
+const 地图节点有有效描述 = (layer: any): boolean => (
+    [
+        layer?.描述,
+        layer?.description,
+        layer?.控制势力,
+        layer?.势力影响,
+        layer?.叙事核心
+    ].some((value) => 取文本(value).length > 0)
+    || 取字符串数组(layer?.势力标签).length > 0
+);
+
+export const 清理空占位地图根节点 = (rawLayers: any[]): any[] => {
+    const layers = Array.isArray(rawLayers) ? rawLayers : [];
+    const removableKeys = new Set<string>();
+    layers.forEach((layer) => {
+        const name = 取文本(layer?.名称 || layer?.name);
+        const level = 规范化地图层级名称(layer?.层级 || layer?.level);
+        if (name !== '诸天万界' || level !== '寰宇' || 地图节点有有效描述(layer)) return;
+        const keys = 地图节点引用键(layer);
+        const hasChildren = layers.some((candidate) => {
+            if (candidate === layer) return false;
+            const parent = 取文本(candidate?.父级ID || candidate?.parentId || candidate?.parent || candidate?.上级地点);
+            return parent && keys.includes(parent);
+        });
+        if (!hasChildren) {
+            keys.forEach((key) => removableKeys.add(key));
+        }
+    });
+    if (removableKeys.size <= 0) return layers;
+    return layers.filter((layer) => !地图节点引用键(layer).some((key) => removableKeys.has(key)));
+};
+
+const 规范化世界基底地图层级 = (rawLayers: any[], openingConfig?: OpeningConfig | null): any[] => {
     const normalized = (Array.isArray(rawLayers) ? rawLayers : [])
         .map((layer) => ({
             名称: 取文本(layer?.名称 || layer?.name),
@@ -105,15 +168,7 @@ const 规范化世界基底地图层级 = (rawLayers: any[]): any[] => {
         }))
         .filter((layer) => layer.名称);
     if (!normalized.some((layer) => layer.层级 === '寰宇')) {
-        normalized.unshift({
-            名称: '诸天万界',
-            层级: '寰宇',
-            父级ID: '',
-            描述: '诸天万界交汇之地',
-            控制势力: '',
-            势力影响: '',
-            势力标签: []
-        });
+        normalized.unshift(取世界基底默认寰宇节点(openingConfig));
     }
 
     let seq = 0;
@@ -126,7 +181,7 @@ const 规范化世界基底地图层级 = (rawLayers: any[]): any[] => {
         if (!nameToId.has(layer.名称)) nameToId.set(layer.名称, nextId());
     });
 
-    return normalized.map((layer) => ({
+    return 清理空占位地图根节点(normalized.map((layer) => ({
         ID: nameToId.get(layer.名称) || nextId(),
         名称: layer.名称,
         层级: layer.层级,
@@ -136,7 +191,7 @@ const 规范化世界基底地图层级 = (rawLayers: any[]): any[] => {
         势力影响: layer.势力影响,
         势力标签: layer.势力标签,
         归属: { 大地点: '', 中地点: '', 小地点: '' }
-    }));
+    })));
 };
 
 const 势力类型集合 = new Set(['门派', '家族', '商会', '镖局', '官府', '帮派', '散修联盟', '其他']);
@@ -185,10 +240,11 @@ const 规范化世界基底势力列表 = (rawFactions: any[]): any[] => {
 
 export const 合并世界基底到开场状态 = <T extends { 世界?: 世界数据结构 }>(
     openingBase: T,
-    foundation?: Pick<WorldFoundationResult, 'mapLayers' | 'factions'> | null
+    foundation?: Pick<WorldFoundationResult, 'mapLayers' | 'factions'> | null,
+    openingConfig?: OpeningConfig | null
 ): T => {
     if (!foundation) return openingBase;
-    const mapLayers = 规范化世界基底地图层级(foundation.mapLayers || []);
+    const mapLayers = 规范化世界基底地图层级(foundation.mapLayers || [], openingConfig);
     const factions = 规范化世界基底势力列表(foundation.factions || []);
     if (mapLayers.length <= 0 && factions.length <= 0) return openingBase;
     const currentWorld = openingBase.世界 || 创建开场空白世界();
@@ -1778,7 +1834,9 @@ export const 创建开场基础状态 = (charData: 角色数据结构, worldConf
     if (地图草稿层级.length > 0) {
         世界.地图层级 = 地图草稿层级 as any;
     }
-    const 开局任务 = [创建开局主线任务(玩家组织, openingConfig)];
+    const 开局任务 = openingConfig?.题材模式 === '现代都市'
+        ? []
+        : [创建开局主线任务(玩家组织, openingConfig)];
     return {
         角色,
         环境: 创建开场空白环境(),

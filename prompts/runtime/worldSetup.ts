@@ -67,16 +67,16 @@ export const 构建世界观难度摘要 = (promptPool: 提示词结构[]): stri
     const checkPrompt = enabled.find((prompt) => prompt?.id?.startsWith('diff_check_'));
     const lines = [
         '【当前世界观生成难度摘要】',
-        '- 本摘要只用于世界母本阶段，约束资源压力、失败代价、风险生态与生存压力；不携带完整判定、数值或生理协议。'
+        '- 本摘要只用于世界母本阶段，约束资源压力、失败代价、风险生态与日常压力；不携带完整判定、数值或细则协议。'
     ];
     if (gamePrompt) {
-        lines.push(`- ${gamePrompt.标题 || '游戏难度'}：${提取提示词定位(gamePrompt.内容) || '保持本阶段整体资源压力、失败代价与风险生态尺度。'}`);
+        lines.push(`- ${(gamePrompt.标题 || '游戏难度').replace(/游戏难度/u, '综合难度')}：${提取提示词定位(gamePrompt.内容).replace(/江湖/u, '城市') || '保持本阶段整体资源压力、失败代价与风险生态尺度。'}`);
     }
     if (checkPrompt) {
-        lines.push(`- ${checkPrompt.标题 || '判定难度'}：${提取提示词定位(checkPrompt.内容) || '只提炼成功窗口、失败压力与冒进风险，不在世界观阶段展开公式。'}`);
+        lines.push(`- ${(checkPrompt.标题 || '判定难度').replace(/判定难度/u, '判定窗口')}：${提取提示词定位(checkPrompt.内容).replace(/江湖/u, '城市') || '只提炼成功窗口、失败压力与冒进风险，不在世界观阶段展开公式。'}`);
     }
     if (physiologyPrompt) {
-        lines.push(`- ${physiologyPrompt.标题 || '生理难度'}：${提取提示词定位(physiologyPrompt.内容) || '只提炼恢复、疲劳、伤病和日常压力的背景口径。'}`);
+        lines.push(`- ${(physiologyPrompt.标题 || '日常压力').replace(/生理难度/u, '日常压力')}：${提取提示词定位(physiologyPrompt.内容).replace(/生理/u, '日常').replace(/江湖/u, '城市') || '只提炼恢复、疲劳、伤病和日常压力的背景口径。'}`);
     }
     return lines.join('\n').trim();
 };
@@ -256,7 +256,8 @@ export const 构建世界生成任务上下文提示词 = (
     difficulty: string,
     worldDifficultySummary: string,
     worldExtraRequirement: string = '',
-    openingConfig?: OpeningConfig | null
+    openingConfig?: OpeningConfig | null,
+    directorSeedPrompt: string = ''
 ): string => `
 ${worldPromptSeed}
 
@@ -271,6 +272,8 @@ ${构建世界观题材提示词(openingConfig)}
 ${worldDifficultySummary || '未提供'}
 - 难度摘要在此阶段只用于约束“世界风险生态、资源稀缺度、社会压力、成长难度背景”。
 - 不要在此阶段直接输出数值变量、命令或初始化结果。
+
+${directorSeedPrompt.trim() || ''}
 
 【玩家世界观草稿与细化要求（优先约束 world_prompt）】
 ${worldExtraRequirement.trim() || '无'}

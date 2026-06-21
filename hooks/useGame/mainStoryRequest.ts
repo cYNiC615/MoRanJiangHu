@@ -39,9 +39,15 @@ type 主剧情上下文片段 = {
     地图建筑状态: string;
     离场NPC档案: string;
     otherPrompts: string;
+    题材模式提示词?: string;
+    玩家剧情倾向提示词?: string;
+    导演配置提示词?: string;
     难度设置提示词: string;
     叙事人称提示词: string;
+    人称硬约束提示词?: string;
     字数设置提示词: string;
+    重试格式要求提示词?: string;
+    协议重试要求提示词?: string;
     长期记忆: string;
     中期记忆: string;
     在场NPC档案: string;
@@ -69,7 +75,22 @@ export type 主剧情消息条目 = {
     category: string;
     role: 有序消息角色;
     content: string;
+    charCount: number;
     prefix?: boolean;
+};
+
+export type 主剧情请求Payload诊断 = {
+    tavernPresetModeEnabled: boolean;
+    assemblyBranch: 'tavern_preset' | 'native_ordered_segments';
+    orderedMessageCount: number;
+    orderedRoleSequence: 有序消息角色[];
+    payloadSegments: Array<{
+        id: string;
+        category: string;
+        role: 有序消息角色;
+        charCount: number;
+        prefix?: boolean;
+    }>;
 };
 
 export type 主剧情请求构建结果 = {
@@ -88,6 +109,7 @@ export type 主剧情请求构建结果 = {
     messageEntries: 主剧情消息条目[];
     orderedMessages: 有序消息[];
     extraPromptForService: string;
+    diagnostics: 主剧情请求Payload诊断;
 };
 
 const 角色标题前缀映射: Record<有序消息角色, string> = {
@@ -101,6 +123,25 @@ const 角色分类映射: Record<有序消息角色, string> = {
     user: '用户',
     assistant: '助手'
 };
+
+const 剥离标签块 = (content: string, tagName: string): string => {
+    const escaped = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return (content || '')
+        .replace(new RegExp(`<\\s*${escaped}\\s*>[\\s\\S]*?<\\s*/\\s*${escaped}\\s*>`, 'gi'), '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+};
+
+const 构建本回合硬约束提示词 = (pieces: 主剧情上下文片段): string => [
+    pieces.字数要求提示词,
+    pieces.人称硬约束提示词,
+    pieces.重试格式要求提示词,
+    pieces.协议重试要求提示词,
+    pieces.免责声明输出提示词
+]
+    .map((item) => (item || '').trim())
+    .filter(Boolean)
+    .join('\n\n');
 
 export const 构建主剧情请求参数 = (
     params: {
@@ -170,8 +211,16 @@ export const 构建主剧情请求参数 = (
         runtimeGameConfig
     );
     const messageEntries: 主剧情消息条目[] = [];
+    const turnDirectivesPrompt = 构建本回合硬约束提示词(params.builtContext.contextPieces);
 
     if (tavernPresetModeEnabled) {
+        const tavernContext: 主剧情系统上下文 = {
+            ...params.builtContext,
+            contextPieces: {
+                ...params.builtContext.contextPieces,
+                字数设置提示词: 剥离标签块(params.builtContext.contextPieces.字数设置提示词, '字数')
+            }
+        };
         const tavernOutputProtocolPrompt = (() => {
             const source = outputProtocolPrompt.trim();
             const formatPrompt = params.builtContext.contextPieces.格式提示词.trim();
@@ -185,19 +234,21 @@ export const 构建主剧情请求参数 = (
         })();
         const tavernMessages = 构建酒馆预设消息链({
             config: runtimeGameConfig,
-            context: params.builtContext,
+            context: tavernContext,
             chatHistory: params.updatedContextHistory,
             latestUserInput: latestUserInputForTavern,
             playerName: params.playerRole?.姓名 || '',
             playerRole: params.playerRole,
             worldbookExtraTexts: [
+                params.builtContext.contextPieces.题材模式提示词 || '',
+                params.builtContext.contextPieces.玩家剧情倾向提示词 || '',
+                params.builtContext.contextPieces.导演配置提示词 || '',
                 styleAssistantPrompt,
                 realWorldModePrompt,
                 deepSeekModePrompt,
                 traditionalChinesePrompt,
-                lengthRequirementPrompt,
+                turnDirectivesPrompt,
                 tavernRuntimeExtraPrompt,
-                disclaimerRequirementPrompt || '',
                 tavernOutputProtocolPrompt
             ]
         });
@@ -210,7 +261,8 @@ export const 构建主剧情请求参数 = (
                 title: `酒馆${角色标题前缀映射[role] || '消息'} ${index + 1}`,
                 category: `酒馆${角色分类映射[role] || ''}`,
                 role,
-                content: trimmed
+                content: trimmed,
+                charCount: trimmed.length
             });
         });
     } else {
@@ -233,18 +285,23 @@ export const 构建主剧情请求参数 = (
                 category,
                 role: normalizedRole,
                 content: normalizedContent,
+                charCount: normalizedContent.length,
                 ...(options?.prefix === true ? { prefix: true } : {})
             });
         };
+        const writingRequirementPrompt = 剥离标签块(params.builtContext.contextPieces.字数设置提示词, '字数');
 
         pushEntry('ai_role', 'AI角色声明', '系统', 'system', params.builtContext.contextPieces.AI角色声明);
         pushEntry('world_prompt', '世界观提示词', '系统', 'system', params.builtContext.contextPieces.worldPrompt);
         pushEntry('world_map', '地图与空间锚点', '系统', 'system', params.builtContext.contextPieces.地图建筑状态);
         pushEntry('npc_away', '以下为不在场角色', '系统', 'system', params.builtContext.contextPieces.离场NPC档案);
+        pushEntry('topic_mode', '题材模式', '系统', 'system', params.builtContext.contextPieces.题材模式提示词 || '');
+        pushEntry('player_preference', '玩家剧情倾向', '系统', 'system', params.builtContext.contextPieces.玩家剧情倾向提示词 || '');
+        pushEntry('director_config', '导演配置与角色种子', '系统', 'system', params.builtContext.contextPieces.导演配置提示词 || '');
         pushEntry('other_prompts', '叙事/规则提示词', '系统', 'system', params.builtContext.contextPieces.otherPrompts);
         pushEntry('difficulty_prompts', '难度设置提示词', '系统', 'system', params.builtContext.contextPieces.难度设置提示词);
         pushEntry('perspective_prompt', '叙事人称提示词', '系统', 'system', params.builtContext.contextPieces.叙事人称提示词);
-        pushEntry('length_prompt', '字数要求提示词', '系统', 'system', params.builtContext.contextPieces.字数设置提示词);
+        pushEntry('writing_requirements', '写作要求提示词', '系统', 'system', writingRequirementPrompt);
         pushEntry('memory_long', '长期记忆', '记忆', 'system', params.builtContext.contextPieces.长期记忆);
         pushEntry('memory_mid', '中期记忆', '记忆', 'system', params.builtContext.contextPieces.中期记忆);
         pushEntry('story_plan', '剧情安排', '系统', 'system', params.builtContext.contextPieces.剧情安排);
@@ -262,15 +319,14 @@ export const 构建主剧情请求参数 = (
         pushEntry('deepseek_mode', 'DeepSeek兼容模式', '系统', 'system', deepSeekModePrompt);
         pushEntry('traditional_chinese', '繁体中文输出要求', '系统', 'system', traditionalChinesePrompt);
         pushEntry('extra_prompt', '额外要求提示词', '用户', 'user', normalizedRuntimeExtraPrompt);
-        pushEntry('disclaimer_requirement', '免责声明输出要求', '用户', 'user', disclaimerRequirementPrompt || '');
         pushEntry('format_prompt', '输出格式提示词', '系统', 'system', params.builtContext.contextPieces.格式提示词);
         pushEntry('cot_core', 'COT提示词', '系统', 'system', params.builtContext.contextPieces.COT提示词);
         pushEntry(
-            'length_requirement_final',
-            '本回合硬性字数要求',
+            'turn_directives',
+            '本回合硬性要求',
             '用户',
             'user',
-            lengthRequirementPrompt
+            turnDirectivesPrompt
         );
         if (!runtimeGptMode) {
             pushEntry(
@@ -315,6 +371,19 @@ export const 构建主剧情请求参数 = (
         content: entry.content,
         ...(entry.prefix === true ? { prefix: true } : {})
     }));
+    const diagnostics: 主剧情请求Payload诊断 = {
+        tavernPresetModeEnabled,
+        assemblyBranch: tavernPresetModeEnabled ? 'tavern_preset' : 'native_ordered_segments',
+        orderedMessageCount: orderedMessages.length,
+        orderedRoleSequence: orderedMessages.map((message) => message.role),
+        payloadSegments: messageEntries.map((entry) => ({
+            id: entry.id,
+            category: entry.category,
+            role: entry.role,
+            charCount: entry.charCount,
+            ...(entry.prefix === true ? { prefix: true } : {})
+        }))
+    };
 
     return {
         runtimeGameConfig,
@@ -333,7 +402,8 @@ export const 构建主剧情请求参数 = (
         orderedMessages,
         extraPromptForService: tavernPresetModeEnabled
             ? ''
-            : normalizedRuntimeExtraPrompt
+            : normalizedRuntimeExtraPrompt,
+        diagnostics
     };
 };
 

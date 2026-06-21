@@ -3013,7 +3013,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
 
                     {/* STEP 6: CONFIRMATION */}
                     {step === 5 && (
-                        <div className="h-full flex flex-col items-center justify-center animate-fadeIn space-y-8">
+                        <div className="min-h-full flex flex-col items-center justify-start animate-fadeIn space-y-8 py-6">
                             <div className="text-center">
                                 <h2 className="text-3xl font-serif font-black text-wuxia-gold mb-2" style={{ fontFamily: 'var(--ui-页面标题-font-family, inherit)', fontSize: 'var(--ui-页面标题-font-size, 32px)' }}>天道既定</h2>
                                 <p className="text-gray-400 text-sm" style={{ fontFamily: 'var(--ui-辅助文本-font-family, inherit)', fontSize: 'var(--ui-辅助文本-font-size, 12px)' }}>一切准备就绪，即将推演这方世界。</p>

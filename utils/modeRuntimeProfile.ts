@@ -429,7 +429,7 @@ export const 构建官方模式运行时配置 = (
             mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的身份、处境、关系、资源压力与长期目标推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
-            rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、属性点或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
+            rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、可分配点数或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、可分配点数或能力成长。'
         },
         npc: {
             defaultIdentityPool: organization.memberAliases,
@@ -669,7 +669,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
             mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的身份、处境、关系、资源压力与长期目标推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
-            rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、属性点或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、属性点或境界变化。'
+            rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、可分配点数或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、可分配点数或能力成长。'
         },
         npc: {
             defaultIdentityPool: organization.memberAliases,
@@ -719,7 +719,7 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
 };
 
 export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeProfile): string => ([
-    `题材身份：${profile.identity.displayName}（继承 ${profile.identity.baseMode}；现代=${profile.identity.isModern ? '是' : '否'}；修炼=${profile.identity.usesCultivation ? '是' : '否'}；生存=${profile.identity.isSurvival ? '是' : '否'}）`,
+    `题材身份：${profile.identity.displayName}（继承 ${profile.identity.baseMode}；现代=${profile.identity.isModern ? '是' : '否'}；特殊成长=${profile.identity.usesCultivation ? '是' : '否'}；生存=${profile.identity.isSurvival ? '是' : '否'}）`,
     `经济系统：市场=${profile.economy.marketName}；行为=${profile.economy.marketVerb}；货币=${profile.economy.accountingUnit}；规则=${profile.economy.exchangeRules}`,
     `时间系统：显示=${profile.time.displayFormat}；历法=${profile.time.calendarName}；叙事=${profile.time.narrativeStyle}；时段=${profile.time.dayPeriodNames.join('、')}；允许=${profile.time.allowedTimeTerms.join('、') || '无'}；禁用=${profile.time.bannedTimeTerms.join('、') || '无'}；推进=${profile.time.progressionPrompt}`,
     `组织系统：组织=${profile.organization.organizationName}；成员=${profile.organization.memberName}；贡献=${profile.organization.contributionName}；等级=${profile.organization.rankNames.join('、')}`,

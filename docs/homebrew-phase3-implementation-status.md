@@ -1,6 +1,6 @@
 # Homebrew Phase 3 Implementation Status
 
-> 日期：2026-06-20
+> 日期：2026-06-21
 >
 > 本文只记录当前状态和后续方向。仍约束后续实现的设计决策见
 > `docs/homebrew-phase3.2-modern-urban-decisions.md`。
@@ -15,11 +15,12 @@ runtime worldbook resolver；无显式选择时注入现代都市 fallback，UI 
 或每轮势力互动。世界生成固定 JSON 示例已改成 `"势力列表": []`，势力对象只作为
 有学校、公司、社团、利益集团、治安机构等明确组织证据时的示例。
 
-现代默认世界观生成 payload 已完成 Phase 3.4 前收口：现代都市直接使用现代母板，不再先注入
+现代默认世界观生成 payload 已完成 Phase 3.4 第一轮收口：现代都市直接使用现代母板，不再先注入
 旧题材母板再追加替换规则；`<世界观生成思考协议>` 保留但按题材获取，真实请求和预览共用同一
 消息链拼装 helper；世界观阶段只注入短难度摘要，不再注入完整游戏/判定/生理难度协议。普通手机、
 钱包、银行卡、钥匙、笔记本电脑和普通衣物按 prompt-only 规则处理为生活背景，不进入背包或装备栏；
 剧情证据、任务道具、工作配发、加密数据、损坏状态、可交付物和明确金额现金仍可作为可追踪物品落地。
+Smoke payload 复查后，世界观生成又完成了导演/seed 弱约束接入、输出标签契约统一和难度摘要现代化。
 
 存档级 `导演配置` 已落地，包含 `玩家剧情倾向`、`角色种子定义[]` 和
 `角色种子运行时状态[]`。旧 `OpeningConfig.玩家剧情倾向` 保留兼容读取，新存档优先写入
@@ -118,16 +119,56 @@ Phase 3.3 已完成角色种子和社交 v2 / 红颜规划完整闭环。实现�
 ### Phase 3.4 Smoke 与查漏补缺
 
 Phase 3.4 不做新功能，负责手动 smoke、修小问题、文档 closeout 和记忆更新。
+当前 smoke / payload 审查暴露的问题已新起修复队列记录在
+`docs/homebrew-phase3.4-fix-plan.md`；该文档现在只保留简化后的完成摘要和下一轮迭代队列。
+
+本轮 Phase 3.4 修复已完成代码收口：
+
+- 现代默认主剧情、变量生成和地图 prompt 不再主动暴露旧 `境界 / 内力 / 修炼` 成长字段；运行时模式配置摘要已把 `修炼=否` 改为 `特殊成长=否`，奖励展示文案不再使用 `属性点或境界变化`。
+- 现代默认开局移除了本地空泛任务 fallback，避免 prompt 指令型任务显示给玩家。
+- 主剧情 payload 改为分段 assembly：题材模式、玩家剧情倾向、导演配置、运行时状态、输出契约和 `turn_directives` 分离；Tavern 与非 Tavern 路径共享同一语义来源，字数、人称、重试和免责声明只从最终硬约束分段注入。
+- 导演配置和角色种子入口摘要进入真实主剧情 payload；世界演变和规划分析已改为使用“开局配置 + 顶层导演配置覆盖”的有效运行时配置，确保右侧导演配置新改内容也进入后处理边界；规划链路仍只把正式 `社交[]` 候选作为红颜规划候选。
+- 变量生成去掉重复 extra prompt 注入，补充虚构本地 RPG 状态同步框架，普通 `子宫.状态 = "正常"` / `宫口状态 = "闭合"` 不再被审计为每回合补档缺口。
+- 亲密/NSFW 世界书第一轮收口：变量生成不再因 NSFW 总开关强制命中完整名器表；规划/开局链路仍需继续按场景语义收口完整名器类世界书。
+- 普通现代随身物继续 prompt-only 收口，例外物品和明确金额现金仍允许落档。
+- 角色种子 UI 的 `默认发展方向` 改为固定选择，默认仍为 `红颜/后宫对象`，旧字符串兼容读取。
+- 地图自动更新改为默认低频：没有稳定新地点时不发起 AI 地图请求；现代地图 prompt 清理旧武侠母板，同名不同父级地点按父级路径区分。
+- 右侧功能页恢复为原 modal 直接弹窗，移除桌面右侧伸出详情栏容器和 CSS override。
+- 主剧情请求诊断增加 payload 分段摘要，记录 id、role、category 和字符数，不记录完整正文。
+- `<时间推进法则>` 改为现代时间口径，不再注入古法换算表；默认 `write_style` 和文章优化 prompt 已替换为现代都市中性叙事参考。
+- 主剧情、女主、开局、判定、润色 COT 与输出格式完成第一轮现代中性措辞收口，默认现代真实 payload 可见的 `武力梯度 / 招式 / 礼法 / 武侠能力 / 境界推进 / 门派与任务初始化` 等旧词已移除。
+- 初始世界生成已接入导演偏好和未转正角色种子弱约束；该摘要只影响世界容纳度、职业/关系入口和地点氛围，不强制角色登场，不把 seed ID、完整角色卡或未登场事实写入 `<世界观>`。
+- 世界观生成输出契约已统一：需要世界基底时明确 `<世界观>` 后接 `<世界基底>`；不需要世界基底时只输出 `<世界观>`。世界观阶段难度摘要已从旧武侠/生理协议口径改成资源压力、失败代价、风险生态和日常压力摘要。
+- 主剧情 payload 诊断已补强：请求开始日志记录 Tavern 开关、实际 assembly 分支和安全分段摘要；service 结果记录 runtime requirements 注入前后 message 数与 role 序列、provider protocol，以及 DeepSeek/Claude 兼容归一化后的结构变化。
+- 现代地图状态已收口：现代世界基底缺根时默认补 `现实世界`，孤立空 `诸天万界` 根会被兼容清理，非空旧地图不自动改名或删除；通用地图 schema 不再把寰宇名称固定为 `诸天万界`。
+- 新游戏第六步确认页已改为顶部起始的滚动安全布局，避免超高内容被 `h-full + justify-center` 截掉顶部。
+
+Smoke 后新增待办：
+
+- 规划分析和开局规划继续收口亲密世界书：普通日常不常驻完整名器/后庭/臀部类大表；完整条目等待明确亲密语义触发。
+- Runtime NSFW extra prompt 边界先进入讨论项；普通 SFW 主剧情是否继续携带独立 runtime NSFW user message 本轮暂不改实现。
+
+当前仍不做浏览器自动化测试；需要 UI smoke 时只启动本地服务器，由玩家手动确认。
+
+本轮验证已通过：
+
+- `npx vitest run __tests__/modernPromptGuardrails.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/autoConsumables.test.ts`
+- `npx vitest run __tests__/directorConfigAndSeeds.test.ts __tests__/openingConfigNormalization.test.ts __tests__/responseCommandProcessor.test.ts __tests__/socialBehaviorLite.test.ts __tests__/variableRegistry.test.ts __tests__/dbServiceDirectorConfig.test.ts __tests__/phase32RuntimeWorldbooks.test.ts __tests__/postprocessScheduler.test.ts __tests__/storyLengthValidation.test.ts __tests__/variableModelPrompts.test.ts __tests__/mapUpdateWorkflow.test.ts __tests__/rightPanelModal.test.ts __tests__/newGameWizardCopy.test.ts`
+- `npx vitest run __tests__/worldGenerationParser.test.ts __tests__/modernUrbanDefaults.test.ts`
+- `git diff --check`
+- `npm run build`
 
 建议 smoke：
 
 - 默认现代新档：不选题材/模式包时走现代 runtime worldbook fallback。
 - 导演配置：剧情倾向和角色种子能创建、保存、读档恢复。
-- 角色种子：摘要常驻、命中展开、转正后防重复。
+- 角色种子：摘要常驻、命中展开、转正后防重复；右侧导演配置新改 seed/倾向应同时进入主剧情、规划分析和世界演变。
 - 社交 v2 / 红颜规划：女性重要角色有行为档案，空候选不点亮/不生成空规划。
 - 后处理队列：信号为否但本地规则命中时能触发对应后处理，并显示原因。
 - 活跃 copy：默认现代路径不出现明显旧门派/组织强制口径。
-- Prompt payload：世界观生成预览与真实请求不重复注入 COT / extraPrompt，世界观阶段只出现短难度摘要。
+- Prompt payload：世界观生成预览与真实请求不重复注入 COT / extraPrompt；继续确认题材模式不重复、难度摘要无旧武侠措辞、输出标签不冲突。
+- 开局规划 payload：普通现代日常不注入完整亲密名器表；配置 seed/director 时只出现受限摘要和必要 ID。
+- 首回合主剧情 payload：酒馆预设关闭时诊断应明确显示非 Tavern 分支；现代默认 system / COT / format 不再带旧武侠文风锚点。
 - 物品落地：普通手机、钱包、银行卡、钥匙、笔记本电脑和普通衣物不默认进入背包；证据、任务、工作配发或明确现金金额例外仍可追踪。
 
 查漏补缺原则：
@@ -140,8 +181,20 @@ Phase 3.4 不做新功能，负责手动 smoke、修小问题、文档 closeout 
 
 已修复 smoke 前发现的 prompt payload 问题：现代都市世界观生成不再携带默认旧题材 system 母板；
 `extraPrompt` 在世界观请求中只作为 `【最终输出附加要求】` 注入一次；预览和真实请求共用
-`构建世界观生成消息链`；`构建世界观难度摘要` 只提炼资源压力、失败代价、风险生态和生存压力。
+`构建世界观生成消息链`；`构建世界观难度摘要` 只提炼资源压力、失败代价、风险生态和日常压力。
 本轮没有改 Prompt 协议标签名、IndexedDB schema 或本地状态删除逻辑。
+
+Smoke 后复查新增 prompt 待办中，现代运行时 copy、默认文风、时间推进法则和 COT / format 旧词已完成第一轮收口。
+世界观生成已补上导演/角色种子弱约束边界，输出契约不再同时要求“只输出 `<世界观>`”和“追加 `<世界基底>`”，难度摘要也已改为现代风险/资源/日常压力口径。
+仍待处理的是：开局规划普通日常仍会注入完整亲密/NSFW 名器类世界书；普通 SFW 主剧情的 runtime NSFW extra prompt 边界需要先讨论后再决定实现。
+
+首回合主剧情 payload 复查修正了一个链路判断：在酒馆预设开关关闭时，最终 API body 的
+短 message 形态仍可来自非 Tavern 主剧情链路。原因是本地分段 assembly 先生成多段 ordered messages，
+provider 兼容层随后可能合并连续同角色 message。现在诊断会同时记录实际 assembly 分支、
+runtime requirements 注入前后结构和 provider 兼容归一化后的 role 序列，避免仅凭最终 role 序列误判 Tavern。
+已审 payload 的主要滑坡根因不是 Tavern，而是默认现代主剧情旧 `write_style` 锚点
+以及 COT / format / opening / stats prompt 中可见的旧体系措辞；这些已完成第一轮现代中性收口。
+`无界叙事官·玄霄` 暂记为低优先级观察项，本轮不改。
 
 普通现代随身物采用 prompt-only 收口：开局初始化、开局变量生成和常规变量生成都明确将普通手机、
 钱包、银行卡、钥匙、笔记本电脑、普通衣物视作生活背景，不默认写入 `角色.物品列表` 或装备栏。

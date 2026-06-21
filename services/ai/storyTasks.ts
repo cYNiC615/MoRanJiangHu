@@ -25,6 +25,8 @@ import { 世界书本体槽位 } from '../../utils/worldbook';
 import { 获取内置提示词槽位内容 } from '../../utils/builtinPrompts';
 import {
     type 通用消息,
+    type 文本请求最终消息诊断,
+    构建文本请求最终消息诊断,
     规范化文本补全消息链,
     请求模型文本,
     替换COT伪装身份占位
@@ -45,6 +47,7 @@ export interface ConnectionTestResult {
 export interface StoryResponseResult {
     response: GameResponse;
     rawText: string;
+    diagnostics?: StoryRequestMessageDiagnostics;
 }
 
 export interface WorldEvolutionResult {
@@ -92,6 +95,7 @@ export interface StoryRequestOptions {
     styleAssistantPrompt?: string;
     outputProtocolPrompt?: string;
     lengthRequirementPrompt?: string;
+    runtimeTurnDirectivePrompt?: string;
     disclaimerRequirementPrompt?: string;
     validateTagCompleteness?: boolean;
     enableTagRepair?: boolean;
@@ -104,6 +108,57 @@ export interface StoryRequestOptions {
     stripReasoning?: boolean;
     prefixMode?: boolean;
 }
+
+type 消息阶段诊断 = {
+    messageCount: number;
+    roleSequence: Array<通用消息['role']>;
+    prefixIndexes: number[];
+};
+
+export type StoryRequestMessageDiagnostics = {
+    providerProtocol: 文本请求最终消息诊断['providerProtocol'];
+    supplier: string;
+    runtimeRequirementsInjected: boolean;
+    beforeRuntimeRequirements: 消息阶段诊断;
+    afterRuntimeRequirements: 消息阶段诊断;
+    providerNormalized: 文本请求最终消息诊断['providerNormalized'];
+};
+
+const 构建消息阶段诊断 = (messages: 通用消息[]): 消息阶段诊断 => ({
+    messageCount: messages.length,
+    roleSequence: messages.map((message) => message.role),
+    prefixIndexes: messages
+        .map((message, index) => (message.prefix === true ? index : -1))
+        .filter((index) => index >= 0)
+});
+
+const 消息结构签名 = (messages: 通用消息[]): Array<{ role: 通用消息['role']; chars: number; prefix?: boolean }> => (
+    messages.map((message) => ({
+        role: message.role,
+        chars: typeof message.content === 'string' ? message.content.length : 0,
+        ...(message.prefix === true ? { prefix: true } : {})
+    }))
+);
+
+const 消息结构相同 = (left: 通用消息[], right: 通用消息[]): boolean => (
+    JSON.stringify(消息结构签名(left)) === JSON.stringify(消息结构签名(right))
+);
+
+export const 构建故事请求消息诊断 = (params: {
+    apiConfig: 当前可用接口结构;
+    beforeRuntimeRequirements: 通用消息[];
+    afterRuntimeRequirements: 通用消息[];
+}): StoryRequestMessageDiagnostics => {
+    const finalDiagnostics = 构建文本请求最终消息诊断(params.apiConfig, params.afterRuntimeRequirements);
+    return {
+        providerProtocol: finalDiagnostics.providerProtocol,
+        supplier: finalDiagnostics.supplier,
+        runtimeRequirementsInjected: !消息结构相同(params.beforeRuntimeRequirements, params.afterRuntimeRequirements),
+        beforeRuntimeRequirements: 构建消息阶段诊断(params.beforeRuntimeRequirements),
+        afterRuntimeRequirements: 构建消息阶段诊断(params.afterRuntimeRequirements),
+        providerNormalized: finalDiagnostics.providerNormalized
+    };
+};
 
 export interface WorldStreamOptions {
     stream?: boolean;
@@ -705,16 +760,13 @@ export const generateVariableCalibrationUpdate = async (
         fallback: 构建变量模型用户附加规则提示词()
     });
     const normalizedVariableExtraPrompt = (extraPrompt || '').trim();
-    const taskPrompt = [
-        构建变量模型任务提示词({
-            stateJson: params.stateJson,
-            response: params.response,
-            extraPrompt,
-            isOpeningRound: params.isOpeningRound === true,
-            openingTaskContext: params.openingTaskContext
-        }),
-        normalizedVariableExtraPrompt ? `【最终输出附加要求】\n${normalizedVariableExtraPrompt}` : ''
-    ].filter(Boolean).join('\n\n');
+    const taskPrompt = 构建变量模型任务提示词({
+        stateJson: params.stateJson,
+        response: params.response,
+        extraPrompt: normalizedVariableExtraPrompt,
+        isOpeningRound: params.isOpeningRound === true,
+        openingTaskContext: params.openingTaskContext
+    });
     const variableCotPrompt = 获取内置提示词槽位内容({
         entries: params.builtinPromptEntries,
         slotId: 世界书本体槽位.变量模型COT,
@@ -1070,28 +1122,42 @@ export const generateStoryResponse = async (
         const lengthRequirementPrompt = typeof requestOptions?.lengthRequirementPrompt === 'string'
             ? requestOptions.lengthRequirementPrompt.trim()
             : '';
+        const runtimeTurnDirectivePrompt = typeof requestOptions?.runtimeTurnDirectivePrompt === 'string'
+            ? requestOptions.runtimeTurnDirectivePrompt.trim()
+            : '';
         const messagesWithRuntimeRequirements = (() => {
-            if (!lengthRequirementPrompt) return orderedMessages;
-            if (orderedMessages.some((message) => message.content.includes(lengthRequirementPrompt))) {
-                return orderedMessages;
+            const runtimeMessages: 通用消息[] = [];
+            if (lengthRequirementPrompt && !orderedMessages.some((message) => message.content.includes(lengthRequirementPrompt))) {
+                runtimeMessages.push({
+                    role: 'user' as const,
+                    content: lengthRequirementPrompt
+                });
             }
-            const lengthMessage = {
-                role: 'user' as const,
-                content: lengthRequirementPrompt
-            };
+            if (runtimeTurnDirectivePrompt && !orderedMessages.some((message) => message.content.includes(runtimeTurnDirectivePrompt))) {
+                runtimeMessages.push({
+                    role: 'user' as const,
+                    content: runtimeTurnDirectivePrompt
+                });
+            }
+            if (runtimeMessages.length <= 0) return orderedMessages;
             const tail = orderedMessages[orderedMessages.length - 1];
             if (tail?.role === 'assistant' && tail.prefix === true) {
                 return [
                     ...orderedMessages.slice(0, -1),
-                    lengthMessage,
+                    ...runtimeMessages,
                     tail
                 ];
             }
             return [
                 ...orderedMessages,
-                lengthMessage
+                ...runtimeMessages
             ];
         })();
+        const requestDiagnostics = 构建故事请求消息诊断({
+            apiConfig,
+            beforeRuntimeRequirements: orderedMessages,
+            afterRuntimeRequirements: messagesWithRuntimeRequirements
+        });
 
         const rawText = await 请求模型文本(apiConfig, messagesWithRuntimeRequirements, {
             temperature: 0.7,
@@ -1103,7 +1169,10 @@ export const generateStoryResponse = async (
             stripReasoning: requestOptions?.stripReasoning,
             prefixMode: requestOptions?.prefixMode
         });
-        return 解析或修复故事响应(rawText, apiConfig, signal, requestOptions);
+        return {
+            ...(await 解析或修复故事响应(rawText, apiConfig, signal, requestOptions)),
+            diagnostics: requestDiagnostics
+        };
     }
 
     const normalizedSystemPrompt = typeof systemPrompt === 'string' ? systemPrompt.trim() : '';

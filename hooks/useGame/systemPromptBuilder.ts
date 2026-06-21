@@ -73,6 +73,9 @@ export type 系统提示词上下文片段 = {
     worldPrompt: string;
     地图建筑状态: string;
     otherPrompts: string;
+    题材模式提示词: string;
+    玩家剧情倾向提示词: string;
+    导演配置提示词: string;
     难度设置提示词: string;
     叙事人称提示词: string;
     字数设置提示词: string;
@@ -1232,6 +1235,9 @@ export const 构建系统提示词 = ({
             worldPrompt: worldPrompt.trim(),
             地图建筑状态: contextMapAndBuilding,
             otherPrompts: otherPrompts.trim(),
+            题材模式提示词: genreModePrompt.trim(),
+            玩家剧情倾向提示词: playerStoryPreferencePrompt.trim(),
+            导演配置提示词: directorConfigPrompt.trim(),
             难度设置提示词: difficultyPrompts.trim(),
             叙事人称提示词: activePerspectiveContent.trim(),
             字数设置提示词: writeReqContent.trim(),

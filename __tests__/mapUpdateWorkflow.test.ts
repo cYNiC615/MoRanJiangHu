@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { 解析地图自动更新命令, 构建地图层级替换结果 } from '../hooks/useGame/mapUpdateWorkflow';
+import {
+    解析地图自动更新命令,
+    构建地图层级替换结果,
+    构建地图更新用户提示词,
+    判定地图自动更新需求
+} from '../hooks/useGame/mapUpdateWorkflow';
 
 describe('地图自动更新解析', () => {
     it('兼容模型返回思考块加地点树 JSON 的全量同步格式', () => {
@@ -80,5 +85,66 @@ describe('构建地图层级替换结果 — 不保留「在场人物」', () =>
         expect(inn.控制势力).toBe('商会');
         expect(inn.势力标签).toEqual(['商会', '帮会']);
         expect(inn).not.toHaveProperty('在场人物');
+    });
+
+    it('现代自动更新提示词不再携带旧武侠地图母板', () => {
+        const prompt = 构建地图更新用户提示词({
+            mode: 'auto_incremental',
+            环境: { 大地点: '镜湖市', 中地点: '大学城', 小地点: '合租公寓', 具体地点: '客厅' },
+            世界: { 地图层级: [{ ID: 'DT-001', 名称: '现实世界', 层级: '寰宇', 父级ID: '' }] },
+            currentResponse: { logs: [{ sender: '旁白', text: '他在客厅喝水，没有去新地点。' }] } as any
+        });
+
+        expect(prompt).not.toMatch(/诸天万界|九州大陆|洛阳城|华山派|悦来客栈|帮会|门派/u);
+        expect(prompt).toMatch(/现实世界|镜湖市|大学城|合租公寓|写字楼|医院|社区|商圈/u);
+        expect(prompt).toContain('同父级下名称唯一');
+        expect(prompt).toContain('动态位置短语');
+    });
+
+    it('同名地点在不同父级下不会被自动更新解析错误合并', () => {
+        const currentWorld = {
+            地图层级: [
+                { ID: 'DT-001', 名称: '现实世界', 层级: '寰宇', 父级ID: '' },
+                { ID: 'DT-002', 名称: '镜湖市', 层级: '大地点', 父级ID: 'DT-001' },
+                { ID: 'DT-003', 名称: '合租公寓', 层级: '区地点', 父级ID: 'DT-002' },
+                { ID: 'DT-004', 名称: '卧室', 层级: '子地点', 父级ID: 'DT-003' },
+                { ID: 'DT-005', 名称: '远洲科技', 层级: '区地点', 父级ID: 'DT-002' }
+            ]
+        };
+        const rawText = [
+            '<命令>',
+            'push 世界.地图层级 = {"名称":"卧室","层级":"子地点","父级ID":"远洲科技","描述":"值班休息室旁的临时卧室。"}',
+            '</命令>'
+        ].join('\n');
+
+        const commands = 解析地图自动更新命令(rawText, currentWorld);
+
+        expect(commands).toHaveLength(1);
+        expect(commands[0].value).toMatchObject({
+            名称: '卧室',
+            父级ID: 'DT-005'
+        });
+    });
+
+    it('默认现代日常无稳定新地点时跳过地图模型请求', () => {
+        const decision = 判定地图自动更新需求({
+            mode: 'auto_incremental',
+            环境: { 大地点: '镜湖市', 中地点: '大学城', 小地点: '合租公寓', 具体地点: '客厅' },
+            世界: {
+                地图层级: [
+                    { ID: 'DT-001', 名称: '现实世界', 层级: '寰宇', 父级ID: '' },
+                    { ID: 'DT-002', 名称: '镜湖市', 层级: '大地点', 父级ID: 'DT-001' },
+                    { ID: 'DT-003', 名称: '大学城', 层级: '中地点', 父级ID: 'DT-002' },
+                    { ID: 'DT-004', 名称: '合租公寓', 层级: '区地点', 父级ID: 'DT-003' },
+                    { ID: 'DT-005', 名称: '客厅', 层级: '子地点', 父级ID: 'DT-004' }
+                ]
+            },
+            currentResponse: {
+                logs: [{ sender: '旁白', text: '他在家教路上给室友发了消息，随后回到客厅。' }]
+            } as any
+        });
+
+        expect(decision.needed).toBe(false);
+        expect(decision.reasons.join('\n')).toContain('无稳定新地点');
     });
 });

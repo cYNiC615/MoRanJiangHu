@@ -7,7 +7,8 @@ import type {
     剧情规划结构,
     女主剧情规划结构,
     环境信息结构,
-    世界书作用域
+    世界书作用域,
+    导演配置结构
 } from '../../types';
 import * as textAIService from '../../services/ai/text';
 import { 获取规划分析接口配置, 接口配置是否可用 } from '../../utils/apiConfig';
@@ -24,6 +25,7 @@ import { 构建规划性别比例约束摘要 } from '../../prompts/runtime/plan
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
 import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
 import { 构建规划社交上下文, 构建红颜规划候选结果, 过滤女主规划命令 } from '../../utils/socialBehavior';
+import { 构建有效导演开局配置, 构建导演配置注入文本 } from '../../utils/directorConfig';
 
 type 规划更新工作流依赖 = {
     apiConfig: any;
@@ -36,6 +38,7 @@ type 规划更新工作流依赖 = {
     历史记录: any[];
     规划分析进行中Ref?: { current: boolean };
     开局配置?: OpeningConfig;
+    导演配置?: 导演配置结构;
     prompts?: { id?: string; 内容?: string }[];
     worldbooks?: any[];
     规范化环境信息: (envLike?: any) => 环境信息结构;
@@ -382,12 +385,21 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         await 后台让出主线程();
         检查规划分析中断(params.signal);
         const planningWorldbookScopes: 世界书作用域[] = heroineEnabled ? ['story_plan', 'heroine_plan'] : ['story_plan'];
+        const effectiveOpeningConfig = 构建有效导演开局配置(deps.开局配置, deps.导演配置);
         const playerStoryPreferencePrompt = 按功能开关过滤提示词内容(
-            构建玩家剧情倾向提示词(deps.开局配置, { stage: 'planning' }),
+            构建玩家剧情倾向提示词(effectiveOpeningConfig as OpeningConfig | undefined, { stage: 'planning' }),
+            normalizedGameConfig
+        );
+        const directorConfigPrompt = 按功能开关过滤提示词内容(
+            构建导演配置注入文本(effectiveOpeningConfig?.导演配置, {
+                stage: 'planning',
+                triggerTexts: [params.playerInput, latestBodyText, currentPlanText, ...auditFocus],
+                maxExpandedCards: 1
+            }),
             normalizedGameConfig
         );
         const runtimeWorldbooks = 构建运行时世界书解析结果({
-            openingConfig: deps.开局配置,
+            openingConfig: effectiveOpeningConfig || deps.开局配置,
             userWorldbooks: deps.worldbooks
         });
         const planningWorldbookParams = {
@@ -397,7 +409,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             social: params.state.社交,
             world: params.state.世界,
             history: deps.历史记录,
-            extraTexts: [params.playerInput, latestBodyText, currentPlanText, playerStoryPreferencePrompt, ...auditFocus]
+            extraTexts: [params.playerInput, latestBodyText, currentPlanText, playerStoryPreferencePrompt, directorConfigPrompt, ...auditFocus]
         };
         const worldbookExtra = await probe.timeAsync('构建规划世界书注入(worker)', () => 执行游戏后台重计算<string>(
             'buildWorldbookText',
@@ -416,6 +428,7 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
         const planningExtraPrompt = [
             worldbookExtra,
             playerStoryPreferencePrompt,
+            directorConfigPrompt,
             获取繁体输出指令(normalizedGameConfig)
         ]
             .filter(Boolean)

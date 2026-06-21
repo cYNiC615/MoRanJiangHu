@@ -31,17 +31,11 @@ import './services/diagnosticLog';
 import type { 物品生图结果 } from './types';
 import type { 游戏物品 } from './models/item';
 
-const DESKTOP_DETAIL_WIDTHS_STORAGE_KEY = 'moranjianghu.desktopRightDetailWidths.v3';
-const DESKTOP_DETAIL_MIN_WIDTH = 520;
-const DESKTOP_DETAIL_MAX_WIDTH = 1160;
-const DESKTOP_DETAIL_RIGHT_GAP = 12;
 const ITEM_AUTO_IMAGE_RETRY_INTERVAL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_AFTER_CHARACTER_SCENE_IDLE_DELAY = 2500;
 const ITEM_AUTO_IMAGE_RECENT_SUCCESS_TTL = 10 * 60 * 1000;
 const ITEM_AUTO_IMAGE_BACKEND_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
 const DIAGNOSTIC_ERROR_TOAST_COOLDOWN_MS = 90 * 1000;
-// ponytail: every right-detail panel shares one default; per-panel defaults were fake flexibility.
-const DESKTOP_DETAIL_DEFAULT_WIDTH = DESKTOP_DETAIL_MAX_WIDTH;
 
 const 是同类物品图标复用目标 = (left: any, right: any): boolean => (
     获取物品图标复用Key(left) === 获取物品图标复用Key(right)
@@ -103,31 +97,6 @@ const 是同一个物品 = (left: any, right: any): boolean => {
     const rightId = typeof right?.ID === 'string' ? right.ID.trim() : '';
     if (leftId && rightId) return leftId === rightId;
     return Boolean(left?.名称 && right?.名称 && left.名称 === right.名称);
-};
-
-const clampDesktopDetailWidth = (value: number): number => {
-    const viewportLimit = typeof window === 'undefined'
-        ? DESKTOP_DETAIL_MAX_WIDTH
-        : Math.max(DESKTOP_DETAIL_MIN_WIDTH, window.innerWidth - 200);
-    return Math.round(Math.max(
-        DESKTOP_DETAIL_MIN_WIDTH,
-        Math.min(value, DESKTOP_DETAIL_MAX_WIDTH, viewportLimit)
-    ));
-};
-
-const readDesktopDetailWidths = (): Record<string, number> => {
-    if (typeof window === 'undefined') return {};
-    try {
-        const parsed = JSON.parse(window.localStorage.getItem(DESKTOP_DETAIL_WIDTHS_STORAGE_KEY) || '{}');
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        return Object.entries(parsed).reduce<Record<string, number>>((acc, [key, value]) => {
-            const numeric = Number(value);
-            if (Number.isFinite(numeric)) acc[key] = clampDesktopDetailWidth(numeric);
-            return acc;
-        }, {});
-    } catch {
-        return {};
-    }
 };
 
 type 可预加载组件<T extends React.ComponentType<any>> = React.LazyExoticComponent<T> & {
@@ -299,12 +268,6 @@ const App: React.FC = () => {
     const [returnHomeSaving, setReturnHomeSaving] = React.useState(false);
     const [selectedSocialNpcId, setSelectedSocialNpcId] = React.useState<string | null>(null);
     const [inventoryInitialItemRef, setInventoryInitialItemRef] = React.useState('');
-    const [desktopDetailFullscreen, setDesktopDetailFullscreen] = React.useState(false);
-    const [desktopDetailWidths, setDesktopDetailWidths] = React.useState<Record<string, number>>(() => readDesktopDetailWidths());
-    const [viewportWidth, setViewportWidth] = React.useState<number>(() => {
-        if (typeof window === 'undefined') return 1280;
-        return window.innerWidth;
-    });
     const autoItemImageRunningRef = React.useRef<Set<string>>(new Set());
     const autoItemImageScheduledRef = React.useRef<Set<string>>(new Set());
     const autoItemImageRecentSuccessRef = React.useRef<Map<string, 物品自动生图近期结果>>(new Map());
@@ -465,14 +428,6 @@ const App: React.FC = () => {
             confirmResolverRef.current = null;
         }
         setConfirmState((prev) => ({ ...prev, open: false }));
-    }, []);
-
-    React.useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const update = () => setViewportWidth(window.innerWidth);
-        update();
-        window.addEventListener('resize', update);
-        return () => window.removeEventListener('resize', update);
     }, []);
 
     React.useEffect(() => {
@@ -922,29 +877,6 @@ const App: React.FC = () => {
         () => 获取题材界面文案(state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile),
         [state.开局配置?.题材模式, state.开局配置?.modeRuntimeProfile]
     );
-    const activeDetailPanelId =
-        showCharacter ? 'character' :
-        state.showEquipment ? 'equipment' :
-        state.showInventory ? 'inventory' :
-        state.showSocial ? 'social' :
-        state.showWorld ? 'world' :
-        state.showMap ? 'map' :
-        state.showTeam ? 'team' :
-        state.showTask ? 'task' :
-        state.showStory ? 'story' :
-        state.showHeroinePlan ? 'plan' :
-        state.showDirectorConfig ? 'director' :
-        state.showMemory ? 'memory' :
-        showImageManager ? 'image_manager' :
-        state.showSaveLoad.show ? (state.showSaveLoad.mode === 'save' ? 'save' : 'load') :
-        state.showSettings ? 'settings' :
-        null;
-
-    const desktopRightDetailPanelOpen = state.view === 'game' && activeDetailPanelId !== null;
-    const desktopRightDetailId = activeDetailPanelId || 'detail';
-    const desktopRightDetailClass = state.view === 'game'
-        ? `desktop-right-detail-modal desktop-right-detail-modal--${desktopRightDetailId}${desktopDetailFullscreen ? ' desktop-right-detail-modal--fullscreen' : ''}`
-        : undefined;
     const mainStoryApiInfo = React.useMemo(() => {
         const config = 获取主剧情接口配置(state.apiConfig);
         return {
@@ -953,49 +885,8 @@ const App: React.FC = () => {
         };
     }, [state.apiConfig]);
     const mainStoryApiLabel = `主剧情：${mainStoryApiInfo.channelName} / ${mainStoryApiInfo.modelName}`;
-    const desktopRightDetailWidth = React.useMemo(() => clampDesktopDetailWidth(
-        desktopDetailWidths[desktopRightDetailId] ?? DESKTOP_DETAIL_DEFAULT_WIDTH
-    ), [desktopDetailWidths, desktopRightDetailId, viewportWidth]);
-    const appRootStyleVars = React.useMemo(() => ({
-        ...appUiStyleVars,
-        ['--desktop-right-detail-width' as any]: `${desktopRightDetailWidth}px`
-    }), [appUiStyleVars, desktopRightDetailWidth]);
-
-    React.useEffect(() => {
-        if (typeof window === 'undefined') return;
-        window.localStorage.setItem(DESKTOP_DETAIL_WIDTHS_STORAGE_KEY, JSON.stringify(desktopDetailWidths));
-    }, [desktopDetailWidths]);
-
-    const resetDesktopDetailWidth = React.useCallback(() => {
-        setDesktopDetailWidths(prev => {
-            const next = { ...prev };
-            delete next[desktopRightDetailId];
-            return next;
-        });
-    }, [desktopRightDetailId]);
-
-    const startDesktopDetailResize = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        if (desktopDetailFullscreen) return;
-        event.preventDefault();
-        const panelId = desktopRightDetailId;
-        const updateWidth = (clientX: number) => {
-            const nextWidth = clampDesktopDetailWidth(window.innerWidth - clientX - DESKTOP_DETAIL_RIGHT_GAP);
-            setDesktopDetailWidths(prev => ({ ...prev, [panelId]: nextWidth }));
-        };
-        updateWidth(event.clientX);
-        const handlePointerMove = (moveEvent: PointerEvent) => updateWidth(moveEvent.clientX);
-        const handlePointerUp = () => {
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-            document.body.classList.remove('desktop-detail-resizing');
-        };
-        document.body.classList.add('desktop-detail-resizing');
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp, { once: true });
-    }, [desktopDetailFullscreen, desktopRightDetailId]);
 
     const closeAllPanels = React.useCallback(() => {
-        setDesktopDetailFullscreen(false);
         setShowCharacter(false);
         setters.setShowInventory(false);
         setters.setShowEquipment(false);
@@ -1012,22 +903,6 @@ const App: React.FC = () => {
         setters.setShowSaveLoad({ show: false, mode: 'save' });
         setters.setShowSettings(false);
     }, [setters]);
-
-    React.useEffect(() => {
-        if (state.view === 'game') return;
-        setDesktopDetailFullscreen(false);
-        document.body.classList.remove('desktop-detail-resizing');
-    }, [state.view]);
-
-    const collapseDesktopDetailToInitial = React.useCallback(() => {
-        setDesktopDetailFullscreen(false);
-        closeAllPanels();
-    }, [closeAllPanels]);
-
-    const exitDesktopDetailFullscreen = React.useCallback(() => {
-        setDesktopDetailFullscreen(false);
-        resetDesktopDetailWidth();
-    }, [resetDesktopDetailWidth]);
 
     const openCharacter = React.useCallback(() => {
         closeAllPanels();
@@ -1491,7 +1366,7 @@ const App: React.FC = () => {
 
     return (
         <>
-            <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} p-3`} style={appRootStyleVars}>
+            <div className={`h-screen w-screen max-w-full min-w-0 bg-ink-black relative flex flex-col transition-colors duration-500 ${state.view === 'home' ? 'overflow-x-hidden overflow-y-auto' : 'overflow-hidden'} p-3`} style={appUiStyleVars}>
                 {fontFaceStyleText && <style>{fontFaceStyleText}</style>}
             
             {/* View Switching */}
@@ -1727,57 +1602,7 @@ const App: React.FC = () => {
                             />
                         </div>
 
-                        {desktopRightDetailPanelOpen && (
-                            <div
-                                className="hidden md:block h-full shrink-0 border-l border-wuxia-gold/20 bg-black/40"
-                                style={{ width: 'var(--desktop-right-detail-width)' }}
-                                aria-hidden="true"
-                            />
-                        )}
                     </div>
-
-                    {desktopRightDetailPanelOpen && (
-                        <>
-                            {!desktopDetailFullscreen && (
-                                <div
-                                    className="desktop-detail-resize-handle"
-                                    role="separator"
-                                    aria-label="拖拽调整详情栏宽度"
-                                    title="拖拽调整详情栏宽度，双击恢复本页默认宽度"
-                                    onPointerDown={startDesktopDetailResize}
-                                    onDoubleClick={resetDesktopDetailWidth}
-                                />
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => desktopDetailFullscreen ? exitDesktopDetailFullscreen() : setDesktopDetailFullscreen(true)}
-                                className={`desktop-detail-expand-toggle${desktopDetailFullscreen ? ' desktop-detail-expand-toggle--fullscreen' : ''}`}
-                                aria-label={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
-                                title={desktopDetailFullscreen ? '退出详情全屏' : '向左展开详情'}
-                            >
-                                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                                    {desktopDetailFullscreen ? (
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                                    ) : (
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 6-6 6 6 6" />
-                                    )}
-                                </svg>
-                            </button>
-                            {!desktopDetailFullscreen && (
-                                <button
-                                    type="button"
-                                    onClick={collapseDesktopDetailToInitial}
-                                    className="desktop-detail-collapse-toggle"
-                                    aria-label="回到初始状态"
-                                    title="回到初始状态"
-                                >
-                                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
-                                    </svg>
-                                </button>
-                            )}
-                        </>
-                    )}
 
                     {returnHomeSaving && (
                         <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-[#f8f4e8]/72 px-6 py-10 text-center text-stone-900 backdrop-blur-[2px]">
@@ -1888,7 +1713,6 @@ const App: React.FC = () => {
 
             {/* Save/Load Modal */}
             {state.showSaveLoad.show && (
-                <div className={desktopRightDetailClass}>
                 <懒加载边界>
                     <SaveLoadModal 
                         onClose={closeSaveLoad}
@@ -1898,12 +1722,10 @@ const App: React.FC = () => {
                         requestConfirm={requestConfirm}
                     />
                 </懒加载边界>
-                </div>
             )}
 
             {/* Settings Modal */}
             {state.showSettings && (
-                <div className={desktopRightDetailClass}>
                 <懒加载边界>
                     <SettingsModal
                             activeTab={state.activeTab}
@@ -1944,7 +1766,6 @@ const App: React.FC = () => {
                             returnHomeSaving={returnHomeSaving}
                         />
                 </懒加载边界>
-                </div>
             )}
 
             {showWorldbookManager && (
@@ -2007,7 +1828,6 @@ const App: React.FC = () => {
             )}
 
             {showImageManager && (
-                <div className={desktopRightDetailClass}>
                 <懒加载边界>
                     <ImageManagerModal
                             socialList={state.社交}
@@ -2064,12 +1884,11 @@ const App: React.FC = () => {
                             onClose={() => setShowImageManager(false)}
                         />
                 </懒加载边界>
-                </div>
             )}
 
             {/* In-Game Modals */}
             {state.view === 'game' && (
-                <div className={desktopRightDetailClass}>
+                <>
                     {state.showInventory && (
                         <懒加载边界>
                             <InventoryModal
@@ -2247,7 +2066,7 @@ const App: React.FC = () => {
                             />
                         </懒加载边界>
                     )}
-                </div>
+                </>
             )}
         </div>
     </>

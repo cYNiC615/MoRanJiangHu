@@ -67,6 +67,7 @@ import { 保护开局生成组织状态 } from './storyState';
 import { 修复开局伙伴社交列表 } from '../../utils/openingCompanion';
 import { 同步在场NPC当前位置 } from './responseCommandProcessor';
 import { 生成地图更新 } from './mapUpdateWorkflow';
+import { 获取题材模式配置 } from '../../utils/topicModeProfiles';
 
 const 开局规划分析请求超时毫秒 = 90000;
 const 开场剧情慢首包提示毫秒 = 30000;
@@ -1536,7 +1537,9 @@ export const 执行开场剧情生成工作流 = async (
             const envNow = simulatedOpeningState.环境;
             const existingLayers = Array.isArray((simulatedOpeningState.世界 as any)?.地图层级) ? [...(simulatedOpeningState.世界 as any).地图层级] : [];
             const layerNames = new Set(existingLayers.map((l: any) => l?.名称));
-            const bigPlace = envNow?.大地点 || '未知大陆';
+            const isModernOpening = 获取题材模式配置(options?.开局配置?.题材模式).value === '现代都市';
+            const rootName = isModernOpening ? '现实世界' : '诸天万界';
+            const bigPlace = envNow?.大地点 || (isModernOpening ? '未知城市' : '未知大陆');
             let seq = existingLayers.length;
             const addLayer = (name: string, level: string, parentId: string) => {
                 if (!name || layerNames.has(name)) return;
@@ -1544,8 +1547,8 @@ export const 执行开场剧情生成工作流 = async (
                 existingLayers.push({ ID: `DT-${String(seq).padStart(3, '0')}`, 名称: name, 层级: level, 父级ID: parentId, 描述: '' });
                 layerNames.add(name);
             };
-            addLayer('诸天万界', '寰宇', '');
-            addLayer(bigPlace, '大地点', '太古界');
+            addLayer(rootName, '寰宇', '');
+            addLayer(bigPlace, '大地点', rootName);
             addLayer(envNow?.中地点 || '', '中地点', bigPlace);
             addLayer(envNow?.小地点 || '', '小地点', envNow?.中地点 || bigPlace);
             addLayer(envNow?.具体地点 || '', '区地点', envNow?.小地点 || envNow?.中地点 || bigPlace);

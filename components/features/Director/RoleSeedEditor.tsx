@@ -11,6 +11,15 @@ type Props = {
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
+const 默认发展方向选项 = ['红颜/后宫对象', '非红颜/普通配角'] as const;
+
+const 规范化默认发展方向 = (value: unknown): string => {
+    const text = 读取文本(value);
+    return 默认发展方向选项.includes(text as typeof 默认发展方向选项[number])
+        ? text
+        : '红颜/后宫对象';
+};
+
 const 生成种子ID = () => `seed_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 const 创建空种子 = (): 角色种子定义结构 => ({
@@ -42,7 +51,7 @@ const 准备编辑种子 = (raw: any, index: number): 角色种子定义结构 =
     关系入口标签: Array.isArray(raw?.关系入口标签)
         ? raw.关系入口标签.map(读取文本).filter(Boolean)
         : 解析标签(读取文本(raw?.tags)),
-    默认发展方向: 读取文本(raw?.默认发展方向 ?? raw?.direction),
+    默认发展方向: 规范化默认发展方向(raw?.默认发展方向 ?? raw?.direction),
     备注: 读取文本(raw?.备注)
 });
 
@@ -178,13 +187,16 @@ const RoleSeedEditor: React.FC<Props> = ({ config, onChange, compact = false, sh
                                         onChange={(event) => updateSeed(seed.id, (current) => ({ ...current, 关系入口标签: 解析标签(event.target.value) }))}
                                         className="rounded-sm border border-gray-700 bg-black/30 px-3 py-2 text-sm outline-none focus:border-wuxia-gold/60 disabled:cursor-not-allowed disabled:opacity-60"
                                     />
-                                    <input
-                                        value={seed.默认发展方向 || ''}
-                                        placeholder="默认发展方向"
+                                    <select
+                                        value={规范化默认发展方向(seed.默认发展方向)}
                                         disabled={promoted}
                                         onChange={(event) => updateSeed(seed.id, (current) => ({ ...current, 默认发展方向: event.target.value }))}
                                         className="rounded-sm border border-gray-700 bg-black/30 px-3 py-2 text-sm outline-none focus:border-wuxia-gold/60 disabled:cursor-not-allowed disabled:opacity-60"
-                                    />
+                                    >
+                                        {默认发展方向选项.map((option) => (
+                                            <option key={option} value={option}>{option}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="mt-3 flex justify-end">
                                     <button

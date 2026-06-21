@@ -2,6 +2,13 @@ import type { NPC结构, OpeningConfig, 导演配置结构, 角色种子定义�
 
 const 读取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
+const 默认发展方向选项 = new Set(['红颜/后宫对象', '非红颜/普通配角']);
+
+const 规范化默认发展方向 = (value: unknown): string => {
+    const text = 读取文本(value);
+    return 默认发展方向选项.has(text) ? text : '红颜/后宫对象';
+};
+
 const 拆分标签 = (value: unknown): string[] => {
     const raw = Array.isArray(value)
         ? value
@@ -35,7 +42,7 @@ const 规范化角色种子定义 = (raw: any, index: number): 角色种子定�
         入口摘要,
         完整设定: 读取文本(raw.完整设定 ?? raw.fullCard ?? raw.设定),
         关系入口标签: 拆分标签(raw.关系入口标签 ?? raw.tags),
-        默认发展方向: 读取文本(raw.默认发展方向 ?? raw.direction),
+        默认发展方向: 规范化默认发展方向(raw.默认发展方向 ?? raw.direction),
         备注: 读取文本(raw.备注)
     };
 };
@@ -88,6 +95,20 @@ export const 规范化导演配置 = (
         角色种子定义,
         角色种子运行时状态: Array.from(stateBySeed.values())
             .filter((state) => seedIds.has(state.seedId))
+    };
+};
+
+export const 构建有效导演开局配置 = (
+    openingConfig?: Partial<OpeningConfig> | null,
+    runtimeDirectorConfig?: Partial<导演配置结构> | null
+): (Partial<OpeningConfig> & { 导演配置: 导演配置结构 }) | undefined => {
+    if (!openingConfig && !runtimeDirectorConfig) return undefined;
+    const base = openingConfig && typeof openingConfig === 'object' && !Array.isArray(openingConfig)
+        ? openingConfig
+        : {};
+    return {
+        ...base,
+        导演配置: 规范化导演配置(runtimeDirectorConfig || base.导演配置, { openingConfig: base })
     };
 };
 
@@ -188,7 +209,12 @@ export const 删除未转正角色种子 = (
 
 export const 构建导演配置注入文本 = (
     rawConfig?: 导演配置结构,
-    options?: { stage?: 'opening' | 'main' | 'planning' | 'heroine_plan'; triggerTexts?: string[]; maxExpandedCards?: number }
+    options?: {
+        stage?: 'opening' | 'main' | 'planning' | 'heroine_plan' | 'world_evolution' | 'variable_calibration';
+        triggerTexts?: string[];
+        maxExpandedCards?: number;
+        includeExpandedCards?: boolean;
+    }
 ): string => {
     const config = 规范化导演配置(rawConfig);
     const lines: string[] = [];
@@ -213,15 +239,51 @@ export const 构建导演配置注入文本 = (
     lines.push('- 以上是可用角色素材入口，不是既定事实；未登场种子不得写入 world_prompt、剧情规划、女主剧情规划或 社交[]。');
 
     const triggerTexts = options?.triggerTexts || [];
-    const expanded = activeSeeds
-        .filter((seed) => seed.完整设定 && 命中角色种子(seed, triggerTexts))
-        .slice(0, Math.max(1, Math.min(3, options?.maxExpandedCards ?? 3)));
+    const maxExpandedCards = options?.includeExpandedCards === false
+        ? 0
+        : Math.max(0, Math.min(3, options?.maxExpandedCards ?? 3));
+    const expanded = maxExpandedCards > 0
+        ? activeSeeds
+            .filter((seed) => seed.完整设定 && 命中角色种子(seed, triggerTexts))
+            .slice(0, maxExpandedCards)
+        : [];
     if (expanded.length > 0) {
         lines.push('【角色种子完整卡片】');
         expanded.forEach((seed, index) => {
             lines.push(`${index + 1}. 角色种子ID：${seed.id}；${seed.名称}：${seed.完整设定}`);
         });
     }
+    return lines.join('\n').trim();
+};
+
+export const 构建世界生成导演种子弱约束提示词 = (
+    rawConfig?: 导演配置结构 | null
+): string => {
+    const config = 规范化导演配置(rawConfig);
+    const lines: string[] = [];
+    const preference = 读取文本(config.玩家剧情倾向);
+    if (preference) {
+        lines.push('【世界生成导演/角色种子弱约束】');
+        lines.push(`- 玩家剧情倾向：${preference}`);
+    }
+    const activeSeeds = config.角色种子定义
+        .filter((seed) => seed.是否启用 !== false)
+        .filter((seed) => {
+            const status = 读取状态(config, seed.id);
+            return status !== '已转正' && status !== '暂停';
+        });
+    if (activeSeeds.length > 0) {
+        if (lines.length <= 0) lines.push('【世界生成导演/角色种子弱约束】');
+        lines.push('- 以下角色种子只用于判断世界是否容纳对应职业、关系入口、地点氛围与长期关系方向，不强制登场。');
+        activeSeeds.forEach((seed, index) => {
+            const tags = (seed.关系入口标签 || []).length > 0 ? `；入口标签：${seed.关系入口标签.join('、')}` : '';
+            const direction = seed.默认发展方向 ? `；方向：${seed.默认发展方向}` : '';
+            lines.push(`${index + 1}. 角色种子ID：${seed.id}；${seed.名称}：${seed.入口摘要}${tags}${direction}`);
+        });
+    }
+    if (lines.length <= 0) return '';
+    lines.push('- 以上内容不是既定世界事实，不得强制生成女主、组织、主线或社交档案。');
+    lines.push('- 不得把角色种子ID、完整角色卡或未登场角色事实写入 `<世界观>`；如需生成 `<世界基底>`，只允许反映职业生态、关系入口、地点氛围和世界容纳度。');
     return lines.join('\n').trim();
 };
 

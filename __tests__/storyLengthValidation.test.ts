@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { 校验响应人称一致性, 校验主剧情正文最低字数, 获取主剧情正文不足信息, 统计正文字符数 } from '../hooks/useGame/sendWorkflow';
 import { 净化角色对白行, 评估润色长度结果, 检测文章优化协议确认污染, 解析正文日志文本 } from '../hooks/useGame/bodyPolish';
-import { 清理润色正文输出 } from '../services/ai/storyTasks';
+import { 清理润色正文输出, 构建故事请求消息诊断 } from '../services/ai/storyTasks';
 import { 构建主剧情请求参数, type 主剧情系统上下文 } from '../hooks/useGame/mainStoryRequest';
 import { 构建字数要求提示词 } from '../prompts/runtime/protocolDirectives';
 import { 默认游戏设置 } from '../utils/gameSettings';
@@ -236,7 +238,7 @@ describe('主剧情正文字数校验', () => {
             sendInput: '继续剧情。'
         });
 
-        const finalLengthEntryIndex = result.messageEntries.findIndex((entry) => entry.id === 'length_requirement_final');
+        const finalLengthEntryIndex = result.messageEntries.findIndex((entry) => entry.id === 'turn_directives');
         const startTaskIndex = result.messageEntries.findIndex((entry) => entry.id === 'start_task');
 
         expect(finalLengthEntryIndex).toBeGreaterThanOrEqual(0);
@@ -250,6 +252,7 @@ describe('主剧情正文字数校验', () => {
 
     it('酒馆预设模式也会注入动态最低字数要求', () => {
         const lengthPrompt = 构建字数要求提示词(2200);
+        const disclaimerPrompt = '<disclaimer>如需现实建议，请寻求现实专业渠道。</disclaimer>';
         const builtContext: 主剧情系统上下文 = {
             shortMemoryContext: '',
             contextPieces: {
@@ -273,7 +276,7 @@ describe('主剧情正文字数校验', () => {
                 COT提示词: '',
                 格式提示词: '<正文>...</正文>',
                 字数要求提示词: lengthPrompt,
-                免责声明输出提示词: '',
+                免责声明输出提示词: disclaimerPrompt,
                 输出协议提示词: ''
             }
         };
@@ -319,7 +322,248 @@ describe('主剧情正文字数校验', () => {
         });
 
         expect(result.tavernPresetModeEnabled).toBe(true);
-        expect(result.orderedMessages.some((message) => message.content.includes('2200字以上'))).toBe(true);
+        const payload = result.orderedMessages.map((message) => message.content).join('\n');
+        expect(payload).toContain('2200字以上');
+        expect(payload.split('<字数>').length - 1).toBe(1);
+        expect(payload.split('<disclaimer>').length - 1).toBe(1);
+    });
+
+    it('主剧情 assembly 将导演配置与角色种子作为独立分段注入真实 payload', () => {
+        const builtContext: 主剧情系统上下文 = {
+            shortMemoryContext: '',
+            contextPieces: {
+                AI角色声明: '你是墨染江湖叙事模型。',
+                worldPrompt: '现代都市世界观。',
+                地图建筑状态: '',
+                离场NPC档案: '',
+                otherPrompts: '',
+                难度设置提示词: '',
+                叙事人称提示词: '',
+                字数设置提示词: '',
+                长期记忆: '',
+                中期记忆: '',
+                在场NPC档案: '',
+                剧情安排: '',
+                女主剧情规划状态: '',
+                世界状态: '',
+                环境状态: '',
+                角色状态: '',
+                任务状态: '',
+                COT提示词: '',
+                格式提示词: '<正文>...</正文>',
+                字数要求提示词: 构建字数要求提示词(1200),
+                免责声明输出提示词: '',
+                输出协议提示词: '',
+                ...( {
+                    题材模式提示词: '【题材模式】现代都市',
+                    玩家剧情倾向提示词: '【玩家剧情倾向】慢热后宫推进。',
+                    导演配置提示词: '【角色种子入口摘要】\n1. 角色种子ID：seed-roommate；林知夏：合租室友。'
+                } as any)
+            }
+        };
+
+        const result = 构建主剧情请求参数({
+            gameConfig: {
+                ...默认游戏设置,
+                字数要求: 1200,
+                启用GPT模式: true,
+                主剧情消息模式: 'GPT'
+            },
+            apiConfig: {
+                apiKey: 'test-key',
+                baseUrl: 'https://example.test/v1',
+                model: 'gemini-test'
+            } as any,
+            builtContext,
+            updatedContextHistory: [],
+            updatedMemSys: {} as any,
+            sendInput: '回到合租公寓。'
+        });
+
+        const payload = result.orderedMessages.map((message) => message.content).join('\n');
+        expect(result.messageEntries.map((entry) => entry.id)).toEqual(expect.arrayContaining([
+            'topic_mode',
+            'player_preference',
+            'director_config'
+        ]));
+        expect(payload).toContain('【题材模式】现代都市');
+        expect(payload).toContain('【玩家剧情倾向】慢热后宫推进。');
+        expect(payload).toContain('角色种子ID：seed-roommate');
+    });
+
+    it('主剧情 assembly 对字数、人称、重试和用户输入使用唯一分段', () => {
+        const lengthPrompt = 构建字数要求提示词(1600);
+        const builtContext: 主剧情系统上下文 = {
+            shortMemoryContext: '',
+            contextPieces: {
+                AI角色声明: '你是墨染江湖叙事模型。',
+                worldPrompt: '',
+                地图建筑状态: '',
+                离场NPC档案: '',
+                otherPrompts: '',
+                难度设置提示词: '',
+                叙事人称提示词: '',
+                字数设置提示词: '<字数>旧写作要求应由最终硬约束替换。</字数>',
+                长期记忆: '',
+                中期记忆: '',
+                在场NPC档案: '',
+                剧情安排: '',
+                女主剧情规划状态: '',
+                世界状态: '',
+                环境状态: '',
+                角色状态: '',
+                任务状态: '',
+                COT提示词: '',
+                格式提示词: '<正文>...</正文>',
+                字数要求提示词: lengthPrompt,
+                免责声明输出提示词: '',
+                输出协议提示词: '',
+                ...( {
+                    重试格式要求提示词: '【自动重试格式修正】请完整重新生成本回合。',
+                    协议重试要求提示词: '【标签协议自动回炉】缺少 <行动选项>。',
+                    人称硬约束提示词: '【人称硬约束】本回合正文必须使用第三人称指代主角。'
+                } as any)
+            }
+        };
+
+        const result = 构建主剧情请求参数({
+            gameConfig: {
+                ...默认游戏设置,
+                字数要求: 1600,
+                启用GPT模式: true,
+                主剧情消息模式: 'GPT'
+            },
+            apiConfig: {
+                apiKey: 'test-key',
+                baseUrl: 'https://example.test/v1',
+                model: 'gemini-test'
+            } as any,
+            builtContext,
+            updatedContextHistory: [],
+            updatedMemSys: {} as any,
+            sendInput: '去便利店买水。'
+        });
+
+        const payload = result.orderedMessages.map((message) => message.content).join('\n');
+        expect(payload.split('<字数>').length - 1).toBe(1);
+        expect(payload.split('【人称硬约束】').length - 1).toBe(1);
+        expect(payload.split('【自动重试格式修正】').length - 1).toBe(1);
+        expect(payload.split('去便利店买水。').length - 1).toBe(1);
+        expect(result.messageEntries.filter((entry) => entry.id === 'turn_directives')).toHaveLength(1);
+        expect(result.messageEntries.every((entry) => Number.isFinite((entry as any).charCount))).toBe(true);
+    });
+
+    it('主剧情 assembly diagnostics 标明实际拼装分支与分段结构', () => {
+        const builtContext: 主剧情系统上下文 = {
+            shortMemoryContext: '',
+            contextPieces: {
+                AI角色声明: '你是墨染江湖叙事模型。',
+                worldPrompt: '现代都市世界观。',
+                地图建筑状态: '',
+                离场NPC档案: '',
+                otherPrompts: '',
+                难度设置提示词: '',
+                叙事人称提示词: '',
+                字数设置提示词: '',
+                长期记忆: '',
+                中期记忆: '',
+                在场NPC档案: '',
+                剧情安排: '',
+                女主剧情规划状态: '',
+                世界状态: '',
+                环境状态: '',
+                角色状态: '',
+                任务状态: '',
+                COT提示词: '',
+                格式提示词: '<正文>...</正文>',
+                字数要求提示词: 构建字数要求提示词(1200),
+                免责声明输出提示词: '',
+                输出协议提示词: '',
+                ...( {
+                    导演配置提示词: '【角色种子入口摘要】\n1. 角色种子ID：seed-roommate；林知夏：合租室友。'
+                } as any)
+            }
+        };
+
+        const result = 构建主剧情请求参数({
+            gameConfig: {
+                ...默认游戏设置,
+                启用GPT模式: true,
+                主剧情消息模式: 'GPT'
+            },
+            apiConfig: {
+                apiKey: 'test-key',
+                baseUrl: 'https://api.deepseek.com/v1',
+                model: 'deepseek-v4-pro',
+                供应商: 'deepseek'
+            } as any,
+            builtContext,
+            updatedContextHistory: [],
+            updatedMemSys: {} as any,
+            sendInput: '继续剧情。'
+        });
+
+        expect(result.diagnostics).toMatchObject({
+            tavernPresetModeEnabled: false,
+            assemblyBranch: 'native_ordered_segments',
+            orderedMessageCount: result.orderedMessages.length,
+            orderedRoleSequence: result.orderedMessages.map((message) => message.role)
+        });
+        expect(result.diagnostics.payloadSegments).toContainEqual(expect.objectContaining({
+            id: 'director_config',
+            role: 'system',
+            charCount: expect.any(Number)
+        }));
+    });
+
+    it('主剧情 service diagnostics 记录 runtime 注入与 provider 兼容修正后的 role 序列', () => {
+        const beforeRuntime = [
+            { role: 'system' as const, content: '系统提示' },
+            { role: 'assistant' as const, content: '前置说明' },
+            { role: 'user' as const, content: '开始任务' }
+        ];
+        const afterRuntime = [
+            ...beforeRuntime,
+            { role: 'user' as const, content: '【人称硬约束】使用第三人称。' }
+        ];
+
+        const diagnostics = 构建故事请求消息诊断({
+            apiConfig: {
+                apiKey: 'test-key',
+                baseUrl: 'https://api.deepseek.com/v1',
+                model: 'deepseek-v4-pro',
+                供应商: 'deepseek'
+            } as any,
+            beforeRuntimeRequirements: beforeRuntime,
+            afterRuntimeRequirements: afterRuntime
+        });
+
+        expect(diagnostics).toMatchObject({
+            providerProtocol: 'deepseek',
+            runtimeRequirementsInjected: true,
+            beforeRuntimeRequirements: {
+                messageCount: 3,
+                roleSequence: ['system', 'assistant', 'user']
+            },
+            afterRuntimeRequirements: {
+                messageCount: 4,
+                roleSequence: ['system', 'assistant', 'user', 'user']
+            },
+            providerNormalized: {
+                changed: true,
+                roleSequence: ['system', 'user']
+            }
+        });
+    });
+
+    it('主剧情请求开始诊断记录 payload 分段摘要而不是完整正文', () => {
+        const source = readFileSync(resolve(process.cwd(), 'hooks/useGame/sendWorkflow.ts'), 'utf8');
+
+        expect(source).toContain('payloadSegments: messageEntries.map');
+        expect(source).toContain('charCount: entry.charCount');
+        expect(source).toContain('requestDiagnostics');
+        expect(source).toContain('serviceDiagnostics');
+        expect(source).not.toContain('content: entry.content');
     });
 });
 

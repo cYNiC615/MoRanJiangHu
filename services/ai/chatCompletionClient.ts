@@ -22,7 +22,7 @@ export type 模型请求附加选项 = {
     prefixMode?: boolean;
 };
 
-type 请求协议类型 = 'openai' | 'deepseek';
+export type 请求协议类型 = 'openai' | 'deepseek';
 
 type 原生聊天流事件 = {
     requestId?: string;
@@ -200,7 +200,7 @@ export const 是否DeepSeek模型配置 = (apiConfig: 当前可用接口结构):
 
 export const 是否DeepSeek接口配置 = 是否DeepSeek模型配置;
 
-const 解析请求协议类型 = (apiConfig: 当前可用接口结构): 请求协议类型 => {
+export const 解析请求协议类型 = (apiConfig: 当前可用接口结构): 请求协议类型 => {
     return 是否DeepSeek原生接口配置(apiConfig) ? 'deepseek' : 'openai';
 };
 
@@ -615,6 +615,65 @@ export const 提取OpenAI完整文本 = (payload: any): string => {
             .join('\n');
     }
     return '';
+};
+
+const 消息结构签名 = (messages: 通用消息[]): Array<{ role: 通用消息角色; chars: number; prefix?: boolean }> => (
+    messages.map((message) => ({
+        role: message.role,
+        chars: typeof message.content === 'string' ? message.content.length : 0,
+        ...(message.prefix === true ? { prefix: true } : {})
+    }))
+);
+
+const 消息结构相同 = (left: 通用消息[], right: 通用消息[]): boolean => (
+    JSON.stringify(消息结构签名(left)) === JSON.stringify(消息结构签名(right))
+);
+
+export type 文本请求最终消息诊断 = {
+    providerProtocol: 请求协议类型;
+    supplier: string;
+    providerNormalized: {
+        changed: boolean;
+        messageCount: number;
+        roleSequence: 通用消息角色[];
+        prefixIndexes: number[];
+    };
+};
+
+export const 构建文本请求最终消息诊断 = (
+    apiConfig: 当前可用接口结构,
+    messages: 通用消息[],
+    options?: {
+        responseFormat?: 响应格式类型;
+    }
+): 文本请求最终消息诊断 => {
+    const protocol = 解析请求协议类型(apiConfig);
+    const requestedResponseFormat = options?.responseFormat;
+    const shouldSkipResponseFormat = 是否Reasoner模型(apiConfig.model)
+        || 是否Claude模型(apiConfig.model)
+        || 响应格式疑似不受支持(apiConfig.baseUrl, apiConfig.model);
+    const effectiveResponseFormat = (requestedResponseFormat && !shouldSkipResponseFormat)
+        ? requestedResponseFormat
+        : undefined;
+    const normalizedMessages = 应用Claude兼容末尾User修正(
+        应用DeepSeek消息兼容修正(
+            应用强制JSON消息修正(messages, effectiveResponseFormat),
+            protocol
+        ),
+        apiConfig
+    );
+    return {
+        providerProtocol: protocol,
+        supplier: apiConfig.供应商 || '',
+        providerNormalized: {
+            changed: !消息结构相同(messages, normalizedMessages),
+            messageCount: normalizedMessages.length,
+            roleSequence: normalizedMessages.map((message) => message.role),
+            prefixIndexes: normalizedMessages
+                .map((message, index) => (message.prefix === true ? index : -1))
+                .filter((index) => index >= 0)
+        }
+    };
 };
 
 const OpenAI响应因最大输出截断 = (payload: any): boolean => {

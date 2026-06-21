@@ -16,7 +16,7 @@ import type { 响应命令处理状态 } from './responseCommandProcessor';
 import type { 自动存档快照结构 } from './saveCoordinator';
 import type { 世界演变触发参数, 世界演变执行结果 } from './worldEvolutionWorkflow';
 import type { 地图更新执行结果 } from './mapUpdateWorkflow';
-import { 生成地图更新 } from './mapUpdateWorkflow';
+import { 生成地图更新, 判定地图自动更新需求 } from './mapUpdateWorkflow';
 import { 判定后处理调度请求 } from './postprocessScheduler';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
@@ -1385,8 +1385,10 @@ export const 执行主剧情发送工作流 = async (
             styleAssistantPrompt,
             realWorldModePrompt,
             cotPseudoPrompt,
+            messageEntries,
             orderedMessages,
-            extraPromptForService
+            extraPromptForService,
+            diagnostics: requestDiagnostics
         } = 构建主剧情请求参数({
             gameConfig: currentState.gameConfig,
             apiConfig: currentState.apiConfig,
@@ -1409,6 +1411,13 @@ export const 执行主剧情发送工作流 = async (
             maxTokens: activeApi?.maxTokens,
             inputTokens,
             messageCount: orderedMessages.length,
+            payloadSegments: messageEntries.map((entry) => ({
+                id: entry.id,
+                category: entry.category,
+                role: entry.role,
+                charCount: entry.charCount
+            })),
+            requestDiagnostics,
             validateTagCompleteness: runtimeGameConfig.启用标签检测完整性 === true,
             enableTagRepair: runtimeGameConfig.启用标签修复 !== false,
             requireActionOptionsTag: runtimeGameConfig.启用行动选项 !== false,
@@ -1485,7 +1494,8 @@ export const 执行主剧情发送工作流 = async (
                             styleAssistantPrompt: [styleAssistantPrompt, realWorldModePrompt].filter(Boolean).join('\n\n'),
                             outputProtocolPrompt,
                             cotPseudoHistoryPrompt: cotPseudoPrompt,
-                            lengthRequirementPrompt: [lengthRequirementPrompt, retryFormatPrompt, protocolRetryPrompt, (() => {
+                            lengthRequirementPrompt,
+                            runtimeTurnDirectivePrompt: [retryFormatPrompt, protocolRetryPrompt, (() => {
                                 const pov = runtimeGameConfig.叙事人称;
                                 if (pov === '第一人称') return '【人称硬约束】本回合正文必须使用第一人称"我"指代主角，严禁使用"你/他/她"指代主角。';
                                 if (pov === '第三人称') return '【人称硬约束】本回合正文必须使用第三人称指代主角（用主角姓名或"他/她"），严禁使用"我/你"指代主角。';
@@ -1552,7 +1562,8 @@ export const 执行主剧情发送工作流 = async (
             hasVariablePlan: typeof aiResult.response?.t_var_plan === 'string' && aiResult.response.t_var_plan.trim().length > 0,
             hasStoryPlan: typeof aiResult.response?.t_plan === 'string' && aiResult.response.t_plan.trim().length > 0,
             actionOptionsCount: Array.isArray(aiResult.response?.action_options) ? aiResult.response.action_options.length : 0,
-            outputTokens: deps.估算AI输出Token(deps.获取原始AI消息(aiResult.rawText), activeApi?.model)
+            outputTokens: deps.估算AI输出Token(deps.获取原始AI消息(aiResult.rawText), activeApi?.model),
+            serviceDiagnostics: aiResult.diagnostics
         }]);
 
         const worldEvolutionFeatureEnabled = currentState.apiConfig?.功能模型占位?.世界演变功能启用 !== false;
@@ -2012,10 +2023,17 @@ export const 执行主剧情发送工作流 = async (
                     postprocessSchedule.signalReliable && postprocessSignal?.needsPlanningAnalysis ? postprocessModelReasonHint : '',
                     ...planningStageLocalReasonHints
                 ].filter(Boolean).join('；');
+                const mapUpdateDecision = 判定地图自动更新需求({
+                    mode: 'auto_incremental',
+                    环境: simulatedState.环境,
+                    世界: simulatedState.世界,
+                    currentResponse: responseForExecution
+                });
+                const mapGenerationRequested = mapGenerationEnabled && mapUpdateDecision.needed;
                 const parallelStageEntries = [
                     { id: 'world', enabled: worldEvolutionSplitEnabled && worldStageRequested, config: 获取世界演变接口配置(currentState.apiConfig) },
                     { id: 'planning', enabled: planningFeatureEnabled && planningStageRequested, config: 获取规划分析接口配置(currentState.apiConfig) },
-                    { id: 'map', enabled: mapGenerationEnabled, config: 获取地图自动更新接口配置(currentState.apiConfig) }
+                    { id: 'map', enabled: mapGenerationRequested, config: 获取地图自动更新接口配置(currentState.apiConfig) }
                 ].filter((item) => item.enabled && 接口配置是否可用(item.config));
                 const parallelChannelKeys = parallelStageEntries.map((item) => 获取队列阶段渠道键(item.config, activeApi)).filter(Boolean);
                 const 后处理三阶段可并行 = parallelStageEntries.length >= 2
@@ -2203,6 +2221,13 @@ export const 执行主剧情发送工作流 = async (
                         options?.onMapUpdateProgress?.({
                             phase: 'skipped',
                             text: '地图生成功能未开启，已跳过本轮地图更新。'
+                        });
+                        return null;
+                    }
+                    if (!mapUpdateDecision.needed) {
+                        options?.onMapUpdateProgress?.({
+                            phase: 'skipped',
+                            text: `地图自动更新未触发：${mapUpdateDecision.reasons.join('；') || '无稳定新地点'}。`
                         });
                         return null;
                     }

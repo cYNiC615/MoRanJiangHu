@@ -13,6 +13,7 @@ import { 题材是否使用默认现代境界 } from '../../utils/topicRealmDefa
 import { 构建开局运行时快照 } from '../../utils/customNewGamePresets';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import { 合并世界基底到开场状态 } from './storyState';
+import { 构建有效导演开局配置, 构建世界生成导演种子弱约束提示词 } from '../../utils/directorConfig';
 
 type 世界生成选项 = {
     清空前端变量?: boolean;
@@ -290,7 +291,8 @@ export const 执行世界生成工作流 = async (
         openingExtraPrompt: normalizedOpeningExtraPrompt
     });
     deps.设置开局配置(normalizedOpeningConfig ? JSON.parse(JSON.stringify(normalizedOpeningConfig)) : undefined);
-    deps.设置导演配置(deps.规范化导演配置(normalizedOpeningConfig?.导演配置, { openingConfig: normalizedOpeningConfig }));
+    const runtimeDirectorConfig = deps.规范化导演配置(normalizedOpeningConfig?.导演配置, { openingConfig: normalizedOpeningConfig });
+    deps.设置导演配置(runtimeDirectorConfig);
     deps.清空重Roll快照();
     deps.重置自动存档状态();
 
@@ -362,6 +364,8 @@ export const 执行世界生成工作流 = async (
         });
 
         const worldDifficultySummary = 构建世界观难度摘要(updatedPromptsBase);
+        const effectiveOpeningConfig = 构建有效导演开局配置(normalizedOpeningConfig, runtimeDirectorConfig);
+        const worldGenerationDirectorSeedPrompt = 构建世界生成导演种子弱约束提示词(effectiveOpeningConfig?.导演配置);
         const worldGenerationCotPseudoPrompt = 世界观生成COT伪装历史消息提示词;
 
         const updatedPrompts = updatedPromptsBase;
@@ -373,7 +377,8 @@ export const 执行世界生成工作流 = async (
             difficulty,
             worldDifficultySummary,
             normalizedWorldExtraRequirement,
-            normalizedOpeningConfig
+            normalizedOpeningConfig,
+            worldGenerationDirectorSeedPrompt
         ), normalizedGameConfig);
         const worldGenerationExtraPrompt = 按功能开关过滤提示词内容([
             获取世界观生成COT提示词(normalizedOpeningConfig),
@@ -439,9 +444,9 @@ export const 执行世界生成工作流 = async (
 
         const worldPromptContent = generatedWorldResult.worldPrompt?.trim() || worldPromptSeed;
         if (generatedWorldResult.mapLayers.length > 0 || generatedWorldResult.factions.length > 0) {
-            openingBase = 合并世界基底到开场状态(openingBase, generatedWorldResult);
+            openingBase = 合并世界基底到开场状态(openingBase, generatedWorldResult, normalizedOpeningConfig);
             if (clearedOpeningBase) {
-                clearedOpeningBase = 合并世界基底到开场状态(clearedOpeningBase, generatedWorldResult);
+                clearedOpeningBase = 合并世界基底到开场状态(clearedOpeningBase, generatedWorldResult, normalizedOpeningConfig);
                 deps.应用开场基态(clearedOpeningBase);
             }
         }

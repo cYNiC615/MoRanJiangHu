@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { 构建变量路径登记提示, 校验变量命令是否登记 } from '../utils/variableRegistry';
 import { applyStateCommand } from '../utils/stateHelpers';
+import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 
 const baseState = {
     角色: {
@@ -34,6 +35,21 @@ const baseState = {
         任务列表: []
     }
 };
+
+const 应用测试命令 = (key: string, value: any, action: 'set' | 'add' | 'push' | 'delete' = 'push') => applyStateCommand(
+    baseState.角色 as any,
+    baseState.环境 as any,
+    baseState.社交 as any,
+    baseState.世界 as any,
+    baseState.剧情 as any,
+    baseState.剧情规划 as any,
+    undefined,
+    baseState.玩家组织 as any,
+    baseState.任务列表 as any,
+    key,
+    value,
+    action
+);
 
 describe('variableRegistry', () => {
     it('allows registered scalar updates and registered array pushes', () => {
@@ -71,6 +87,9 @@ describe('variableRegistry', () => {
         expect(prompt).toContain('- 玩家组织.玩家贡献');
         expect(prompt).not.toContain('- 战斗');
         expect(prompt).not.toContain('- 玩家组织.任务列表');
+        expect(prompt).not.toContain('- 世界.地图建筑');
+        expect(prompt).not.toContain('- 世界.地图道路');
+        expect(prompt).not.toContain('- 世界.地图人物');
     });
 
     it('blocks retired feature roots from variable commands', () => {
@@ -230,6 +249,36 @@ describe('variableRegistry', () => {
 
         expect('battle' in result).toBe(false);
         expect(result.sect).toEqual(baseState.玩家组织);
+    });
+
+    it('rejects malformed whole social records instead of producing 角色N placeholders', () => {
+        [
+            '沈清越',
+            ['沈清越'],
+            { 身份: '合租室友', 关系状态: '初识' }
+        ].forEach((value) => {
+            const result = 应用测试命令('社交', value, 'push');
+
+            expect(result.social).toHaveLength(baseState.社交.length);
+            expect(result.social.map((npc: any) => npc.姓名)).toEqual(['阿青']);
+        });
+
+        const normalized = 规范化社交列表(['沈清越', ['沈清越']] as any);
+        expect(normalized).toEqual([]);
+    });
+
+    it('accepts social records with 名字/名称/name aliases and normalizes to 姓名', () => {
+        [
+            { 名字: '沈清越', 身份: '合租室友' },
+            { 名称: '顾晚', 身份: '同班同学' },
+            { name: 'Luna', 身份: '咖啡店店员' }
+        ].forEach((value) => {
+            const result = 应用测试命令('社交', value, 'push');
+            const normalized = 规范化社交列表(result.social as any, { 合并同名: false });
+
+            expect(normalized.map((npc: any) => npc.姓名)).toContain(value.名字 || value.名称 || value.name);
+            expect(normalized.map((npc: any) => npc.姓名).some((name: string) => /^角色\d+$/u.test(name))).toBe(false);
+        });
     });
 
     it('applies current player organization commands except the old organization task list', () => {

@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { parseStoryRawText, StoryResponseParseError } from '../services/ai/storyResponseParser';
+import { parseStoryRawText, StoryResponseParseError, 解析命令块 } from '../services/ai/storyResponseParser';
 import { 规范化可渲染对白日志 } from '../utils/dialogueLogNormalizer';
 
 describe('storyResponseParser', () => {
+    it('parses quoted JSON command values back into objects for social pushes', () => {
+        const commands = 解析命令块('[#1] push 社交 = "{\\"姓名\\":\\"沈清越\\",\\"身份\\":\\"合租室友\\",\\"角色种子ID\\":\\"seed-roommate\\"}"');
+
+        expect(commands).toHaveLength(1);
+        expect(commands[0]).toMatchObject({
+            action: 'push',
+            key: '社交',
+            value: {
+                姓名: '沈清越',
+                身份: '合租室友',
+                角色种子ID: 'seed-roommate'
+            }
+        });
+    });
+
     it('parses optional postprocess signal between short memory and actions', () => {
         const parsed = parseStoryRawText([
             '<正文>',

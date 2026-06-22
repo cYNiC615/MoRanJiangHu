@@ -60,6 +60,15 @@ const 提取提示词定位 = (content: string): string => {
     return (matched?.[1] || '').trim();
 };
 
+const 转世界观难度摘要口径 = (text: string): string => (
+    (text || '')
+        .replace(/武侠/g, '城市')
+        .replace(/江湖/g, '城市')
+        .replace(/修炼/g, '成长')
+        .replace(/宗门/g, '组织')
+        .replace(/门派/g, '组织')
+);
+
 export const 构建世界观难度摘要 = (promptPool: 提示词结构[]): string => {
     const enabled = (Array.isArray(promptPool) ? promptPool : []).filter((prompt) => prompt?.启用 === true);
     const gamePrompt = enabled.find((prompt) => prompt?.id?.startsWith('diff_game_'));
@@ -70,13 +79,13 @@ export const 构建世界观难度摘要 = (promptPool: 提示词结构[]): stri
         '- 本摘要只用于世界母本阶段，约束资源压力、失败代价、风险生态与日常压力；不携带完整判定、数值或细则协议。'
     ];
     if (gamePrompt) {
-        lines.push(`- ${(gamePrompt.标题 || '游戏难度').replace(/游戏难度/u, '综合难度')}：${提取提示词定位(gamePrompt.内容).replace(/江湖/u, '城市') || '保持本阶段整体资源压力、失败代价与风险生态尺度。'}`);
+        lines.push(`- ${(gamePrompt.标题 || '游戏难度').replace(/游戏难度/u, '综合难度')}：${转世界观难度摘要口径(提取提示词定位(gamePrompt.内容)) || '保持本阶段整体资源压力、失败代价与风险生态尺度。'}`);
     }
     if (checkPrompt) {
-        lines.push(`- ${(checkPrompt.标题 || '判定难度').replace(/判定难度/u, '判定窗口')}：${提取提示词定位(checkPrompt.内容).replace(/江湖/u, '城市') || '只提炼成功窗口、失败压力与冒进风险，不在世界观阶段展开公式。'}`);
+        lines.push(`- ${(checkPrompt.标题 || '判定难度').replace(/判定难度/u, '判定窗口')}：${转世界观难度摘要口径(提取提示词定位(checkPrompt.内容)) || '只提炼成功窗口、失败压力与冒进风险，不在世界观阶段展开公式。'}`);
     }
     if (physiologyPrompt) {
-        lines.push(`- ${(physiologyPrompt.标题 || '日常压力').replace(/生理难度/u, '日常压力')}：${提取提示词定位(physiologyPrompt.内容).replace(/生理/u, '日常').replace(/江湖/u, '城市') || '只提炼恢复、疲劳、伤病和日常压力的背景口径。'}`);
+        lines.push(`- ${(physiologyPrompt.标题 || '日常压力').replace(/生理难度/u, '日常压力')}：${转世界观难度摘要口径(提取提示词定位(physiologyPrompt.内容)).replace(/生理/g, '日常') || '只提炼恢复、疲劳、伤病和日常压力的背景口径。'}`);
     }
     return lines.join('\n').trim();
 };
@@ -264,7 +273,7 @@ ${worldPromptSeed}
 【世界生成配置】
 - 模式: 新建世界
 - 难度: ${difficulty}
-- 生成目标: 仅生成 world_prompt（世界观提示词文本）
+- 生成目标: 生成 world_prompt，并在启用世界基底扩展时追加世界基底 JSON
 - 当前阶段定位: 世界母本生成，不是开场初始化，不是剧情正文生成，不是变量落地阶段
 ${构建世界观题材提示词(openingConfig)}
 

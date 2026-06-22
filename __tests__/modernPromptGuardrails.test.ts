@@ -1,20 +1,26 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { 获取世界观生成系统提示词, 构建世界观生成消息链 } from '../prompts/runtime/worldGeneration';
 import { 获取世界观生成COT提示词, 世界观生成COT伪装历史消息提示词 } from '../prompts/runtime/worldGenerationCot';
 import { 构建世界观种子提示词, 构建世界生成任务上下文提示词, 构建世界观难度摘要 } from '../prompts/runtime/worldSetup';
 import { 开局变量生成附加提示词 } from '../prompts/runtime/openingVariableGenerationInit';
 import { 开局世界演变初始化附加提示词 } from '../prompts/runtime/openingWorldEvolutionInit';
 import { 开场初始化任务提示词 } from '../prompts/runtime/opening';
+import { 构建开局配置提示词 } from '../prompts/runtime/openingConfig';
 import { 构建变量模型职责提示词 } from '../prompts/runtime/variableModel';
+import { 构建主剧情难度摘要提示词 } from '../prompts/runtime/promptOwnership';
 import { 构建世界演变系统提示词 } from '../prompts/runtime/worldEvolution';
 import { 世界数据结构参考 } from '../prompts/runtime/worldDataSchema';
+import { 构建变量相关规则提示词 } from '../prompts/runtime/variableCalibrationReference';
 import { 核心_输出格式 } from '../prompts/core/format';
+import { 核心_行动选项规范 } from '../prompts/core/actionOptions';
 import { 构建主剧情COT内容 } from '../prompts/core/cot';
 import { 构建女主主COT内容 } from '../prompts/core/cotHeroine';
 import { 获取开局思维链提示词 } from '../prompts/core/cotOpening';
 import { 核心_判定思维链 } from '../prompts/core/cotJudge';
 import { 核心_时间推进法则 } from '../prompts/core/timeProgress';
 import { 核心_世界观摘要 } from '../prompts/core/worldSummary';
+import { 默认提示词 } from '../prompts';
 import { 写作_风格 } from '../prompts/writing/style';
 import { 写作_避免极端情绪 } from '../prompts/writing/emotionGuard';
 import { 写作_防止说话 } from '../prompts/writing/noControl';
@@ -22,10 +28,13 @@ import { 写作_防全知 } from '../prompts/writing/antiOmniscient';
 import { 默认文章优化提示词 } from '../prompts/runtime/defaults';
 import { 数值_世界演化 } from '../prompts/stats/world';
 import { 数值_NPC参考 } from '../prompts/stats/npc';
+import { 数值_物品属性 } from '../prompts/stats/items';
+import { 变量生成COT提示词 } from '../prompts/runtime/variableCot';
 import { 构建开局世界观生成提示词预览 } from '../utils/worldGenerationPromptPreview';
 import { 裁剪成长体系上下文数据 } from '../utils/promptFeatureToggles';
 import { 构建官方模式运行时配置, 渲染模式运行时配置世界书内容 } from '../utils/modeRuntimeProfile';
 import { 规范化导演配置, 构建世界生成导演种子弱约束提示词 } from '../utils/directorConfig';
+import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelector';
 
 const 现代开局配置 = { 题材模式: '现代都市' } as any;
 const 现代世界配置 = {
@@ -134,7 +143,7 @@ describe('modern urban prompt guardrails', () => {
             开局世界演变初始化附加提示词,
             开场初始化任务提示词,
             构建变量模型职责提示词(),
-            构建世界演变系统提示词({ topicMode: '现代都市' } as any),
+            构建世界演变系统提示词(),
             世界数据结构参考,
             数值_世界演化.内容
         ].join('\n');
@@ -175,7 +184,36 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).toContain('先输出 `<世界观>...</世界观>`');
         expect(payload).toContain('随后输出 `<世界基底>...</世界基底>`');
         expect(payload).not.toContain('只生成世界观提示词文本，并包裹在 `<世界观>...</世界观>` 中');
+        expect(payload).not.toContain('`</thinking>` 之后只输出一个 `<世界观>...</世界观>` 标签块');
+        expect(payload).not.toContain('好的，将先以<thinking></thinking>输出思考，再以<世界观></世界观>输出世界观正文，且不使用Markdown，不生成玩家定制内容，不做变量初始化：');
+        expect(payload).toContain('本轮要求世界基底时继续输出<世界基底></世界基底>');
         expect(payload).not.toMatch(/只输出一个 `?<世界观>.*若系统要求输出/u);
+    });
+
+    it('现代世界观生成 payload 不携带旧难度口径、单 world_prompt 目标或地球级尺度', () => {
+        const seed = 构建世界观种子提示词(现代世界配置, 测试角色, 现代开局配置);
+        const difficultySummary = 构建世界观难度摘要(默认提示词);
+        const context = 构建世界生成任务上下文提示词(
+            seed,
+            'normal',
+            difficultySummary,
+            '',
+            现代开局配置
+        );
+        const payload = 构建世界观生成消息链({
+            worldContext: context,
+            charData: 测试角色,
+            extraPrompt: 获取世界观生成COT提示词(现代开局配置),
+            cotPseudoHistoryPrompt: 世界观生成COT伪装历史消息提示词,
+            config: { 生成世界基底: true, openingConfig: 现代开局配置 },
+            openingConfig: 现代开局配置
+        }).map((message) => message.content).join('\n');
+
+        expect(payload).not.toContain('标准武侠生存难度');
+        expect(payload).not.toContain('生成目标: 仅生成 world_prompt（世界观提示词文本）');
+        expect(payload).not.toContain('世界地图是地球级面积');
+        expect(payload).toContain('生成目标: 生成 world_prompt，并在启用世界基底扩展时追加世界基底 JSON');
+        expect(payload).toContain('寰宇层为现实世界，大地点为当前城市或都市圈');
     });
 
     it('世界观阶段难度摘要使用现代风险口径，不暴露旧生理协议标题', () => {
@@ -188,6 +226,24 @@ describe('modern urban prompt guardrails', () => {
         expect(summary).toContain('日常压力');
         expect(summary).toContain('资源压力');
         expect(summary).not.toMatch(/生理难度|生理协议|江湖压力|修炼/u);
+    });
+
+    it('现代主剧情难度摘要使用过滤后口径，不暴露旧武侠或关闭的生理难度', () => {
+        const summary = 构建主剧情难度摘要提示词([
+            { id: 'diff_game_normal', 类型: '难度设定', 标题: '游戏难度：正常', 启用: true, 内容: '<游戏难度协议>\n定位: 本项目标准难度，强调真实江湖生存与代价。\n</游戏难度协议>' },
+            { id: 'diff_check_normal', 类型: '难度设定', 标题: '判定难度：正常', 启用: true, 内容: '<判定难度协议>\n定位: 标准武侠判定窗口。\n</判定难度协议>' },
+            { id: 'diff_phys_normal', 类型: '难度设定', 标题: '生理难度：正常', 启用: true, 内容: '<生理难度协议>\n定位: 本项目标准生理难度，强调持续生存压力。\n</生理难度协议>' }
+        ], {
+            gameConfig: {
+                启用成长体系: false,
+                启用饱腹口渴系统: false
+            } as any
+        });
+
+        expect(summary).toContain('【当前难度摘要】');
+        expect(summary).toContain('综合难度');
+        expect(summary).toContain('判定窗口');
+        expect(summary).not.toMatch(/武侠|江湖|修炼|宗门|门派|生理难度|diff_phys|真实江湖/u);
     });
 
     it('初始世界生成可注入导演和未转正种子弱约束，但禁止当作世界观事实输出', () => {
@@ -233,11 +289,15 @@ describe('modern urban prompt guardrails', () => {
             构建变量模型职责提示词()
         ].join('\n');
 
-        expect(combined).toContain('普通手机、钱包、银行卡、钥匙、笔记本电脑、普通衣物');
-        expect(combined).toContain('默认只作为生活背景');
+        expect(combined).toContain('普通手机、校园卡、交通卡、门禁卡、身份证件、钱包、银行卡、钥匙、笔记本电脑、普通衣物');
+        expect(combined).toContain('默认只作为生活背景、身份凭证或操作入口');
         expect(combined).toContain('不得写入 `角色.物品列表` 或装备栏');
-        expect(combined).toMatch(/剧情证据|任务道具|工作配发|加密数据|损坏状态|可交付物|明确金额现金/u);
+        expect(combined).toContain('不能因为');
+        expect(combined).toContain('任务道具');
+        expect(combined).not.toMatch(/只有[^。]*(任务道具|当前要操作\/交付的对象)/u);
+        expect(combined).toMatch(/剧情证据|工作配发|加密数据|损坏状态|可交付物|被夺\/遗失\/扣押对象|明确金额现金/u);
         expect(combined).toContain('角色.金钱.baseAmount');
+        expect(数值_物品属性.内容).toContain('不因出现在预设清单、正文或变量规划中就写入背包');
     });
 
     it('世界观提示词预览与真实请求共享同一份 COT 和消息拼装规则', () => {
@@ -305,6 +365,50 @@ describe('modern urban prompt guardrails', () => {
 
         expect(combined).not.toMatch(/武力梯度|招式|礼法|境界推进|门派与任务初始化|门派状态|修炼状态/u);
         expect(combined).toMatch(/能力边界|组织与任务初始化|能力成长/u);
+        expect(核心_输出格式.内容).not.toContain('《智能手机》');
+        expect(核心_输出格式.内容).toContain('《证据录音》');
+    });
+
+    it('主剧情、女主与开局 COT 均要求优先匹配可用角色种子但不强行登场', () => {
+        [
+            构建主剧情COT内容(),
+            构建女主主COT内容({ ntl: false }),
+            获取开局思维链提示词({})
+        ].forEach((content) => {
+            expect(content).toContain('角色种子');
+            expect(content).toMatch(/匹配.*角色种子/u);
+            expect(content).toMatch(/无匹配|没有匹配|无可用/u);
+        });
+    });
+
+    it('开局主剧情和开局变量生成都会注入角色种子所在的导演配置提示词', () => {
+        const source = readFileSync('hooks/useGame/openingStoryWorkflow.ts', 'utf8');
+
+        expect(source).toContain('openingContext.contextPieces.题材模式提示词');
+        expect(source).toContain('openingContext.contextPieces.玩家剧情倾向提示词');
+        expect(source).toContain('openingContext.contextPieces.导演配置提示词');
+        expect(source).toMatch(/variableExtraPrompt[\s\S]*openingContext\.contextPieces\.导演配置提示词/u);
+    });
+
+    it('现代开局任务 prompt 要求一周内可推进，不把学期级目标直接作为首条目标', () => {
+        const rendered = 渲染模式运行时配置世界书内容(构建官方模式运行时配置('现代都市'));
+        const combined = [
+            开场初始化任务提示词,
+            构建变量模型职责提示词(),
+            rendered
+        ].join('\n');
+
+        expect(combined).toContain('1 周以内可完成或至少阶段性推进');
+        expect(combined).toContain('完成整个学期');
+        expect(combined).toContain('不能直接写成首条目标');
+        expect(rendered).not.toContain('长期目标推进主线');
+    });
+
+    it('文章优化附加格式示例不再把普通手机作为档案引用锚点', () => {
+        const source = readFileSync('hooks/useGame/bodyPolish.ts', 'utf8');
+
+        expect(source).not.toContain('《智能手机》');
+        expect(source).toContain('《证据录音》');
     });
 
     it('默认现代写作与润色 prompt 不再使用旧武侠文风锚点', () => {
@@ -352,7 +456,70 @@ describe('modern urban prompt guardrails', () => {
         const rendered = 渲染模式运行时配置世界书内容(profile);
 
         expect(rendered).not.toMatch(/属性点或境界变化|修炼=否|境界变化/u);
+        expect(rendered).not.toContain('门派起手');
         expect(rendered).toContain('特殊成长=否');
+        expect(rendered).toContain('切入=日常低压、在途起手、家宅起手、风波前夜');
         expect(rendered).toContain('可分配点数或能力成长');
+    });
+
+    it('现代开局配置 prompt 使用题材化切入文案，不暴露内部旧门派枚举', () => {
+        const prompt = 构建开局配置提示词({
+            配置约束启用: true,
+            题材模式: '现代都市',
+            初始关系模板: '独行少系',
+            关系侧重: ['利益'],
+            开局切入偏好: '门派起手',
+            开局生成组织: false,
+            开局生成成员: false,
+            允许生成性别: ['男', '女', '男娘', '扶她'],
+            生成性别锁定: false,
+            初始伙伴: { enabled: false }
+        } as any);
+
+        expect(prompt).toContain('开局切入偏好：组织起手');
+        expect(prompt).toContain('公司、学校、社区、项目组、门店或合作现场');
+        expect(prompt).not.toContain('开局切入偏好：门派起手');
+    });
+
+    it('现代变量相关规则不暴露旧成长体系和旧坐标路径锚点', () => {
+        const prompt = 构建变量相关规则提示词({
+            promptPool: 默认提示词,
+            gameConfig: {
+                启用成长体系: false,
+                启用NSFW模式: false,
+                启用饱腹口渴系统: true
+            } as any
+        });
+
+        expect(prompt).not.toMatch(/境界|内力|修炼|宗门|门派|法宝|飞剑|灵石|江湖史册/u);
+        expect(prompt).not.toMatch(/世界\.地图建筑|世界\.地图道路|世界\.地图人物/u);
+        expect(prompt).toContain('旧坐标字段已废弃');
+    });
+
+    it('现代变量与行动选项 payload 不携带旧题材示例锚点', () => {
+        const rendered = 渲染模式运行时配置世界书内容(构建官方模式运行时配置('现代都市'));
+        const combined = [
+            构建变量模型职责提示词(),
+            开局变量生成附加提示词,
+            变量生成COT提示词,
+            数值_NPC参考.内容,
+            构建变量相关规则提示词({
+                promptPool: [],
+                gameConfig: {
+                    启用成长体系: false,
+                    启用NSFW模式: false,
+                    启用饱腹口渴系统: false
+                } as any
+            }),
+            核心_行动选项规范.内容,
+            构建女性姓名黑名单提示词(),
+            rendered
+        ].join('\n');
+
+        expect(combined).not.toMatch(/太古界|中州|武侠模式|江湖技艺|仙侠模式|永安宫|掌事太监|教引姑姑|林婆子|京城|城门动静|茶摊|青锋剑|玄铁甲|精铁长剑|棉布短打|粗布鞋|门派、家族|宗门法宝|破境丹|回气丹|凝元丹|辟谷丹|灵石|飞剑|丹炉|宗门弟子/u);
+        expect(combined).toContain('现代都市');
+        expect(combined).toContain('现实压力');
+        expect(combined).toContain('观察宿舍走廊');
+        expect(combined).toContain('查看兼职群消息');
     });
 });

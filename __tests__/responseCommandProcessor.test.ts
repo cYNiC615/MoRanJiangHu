@@ -118,6 +118,24 @@ describe('responseCommandProcessor dialogue social sync', () => {
         });
     });
 
+    it('accepts structured social push commands even when the NPC name is not mentioned in body text', () => {
+        const state = 构建基础状态();
+        state.角色 = { 姓名: '王拓' } as any;
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '清晨，陈一鸣在门口借烧水壶。' }
+            ],
+            tavern_commands: [
+                { action: 'push', key: '社交', value: { id: 'NPC000', 姓名: '陈一鸣', 性别: '男', 身份: '合租邻居' } },
+                { action: 'push', key: '社交', value: { id: 'NPC001', 姓名: '林晚棠', 性别: '女', 身份: '兼职同事', 是否主要角色: true } },
+                { action: 'push', key: '社交', value: { id: 'NPC002', 姓名: '赵秀兰', 性别: '女', 身份: '王拓母亲' } }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交.map((npc: any) => npc.姓名)).toEqual(['陈一鸣', '林晚棠', '赵秀兰']);
+    });
+
     it('adds a child NPC when an adult pregnant character gives birth', () => {
         const state = 构建基础状态();
         state.环境 = { 时间: '1:02:01:00:00' } as any;
@@ -241,7 +259,7 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交).toHaveLength(0);
     });
 
-    it('rejects new social NPC commands when the name never appears in story facts or dialogue', () => {
+    it('accepts new social NPC commands when the name never appears in story facts or dialogue', () => {
         const state = 构建基础状态();
         const result = 执行响应命令处理({
             logs: [
@@ -263,8 +281,8 @@ describe('responseCommandProcessor dialogue social sync', () => {
             ]
         } as any, state, deps, undefined, { applyState: false });
 
-        expect(result.社交.map((npc: any) => npc.姓名)).not.toContain('仲婴筝');
-        expect(result.社交).toHaveLength(0);
+        expect(result.社交.map((npc: any) => npc.姓名)).toContain('仲婴筝');
+        expect(result.社交).toHaveLength(1);
     });
 
     it('rejects panel names such as team when AI social update commands misclassify them as NPCs', () => {

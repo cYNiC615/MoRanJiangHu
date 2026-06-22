@@ -90,6 +90,32 @@ describe('任务完成奖励结算', () => {
         expect(response.logs.some((log: any) => log.text.includes('元 +1000') && log.text.includes('现金 +30'))).toBe(true);
     });
 
+    it('对象奖励描述先归一化再参与结算', () => {
+        const state = 创建奖励状态();
+        state.任务列表[0].标题 = '完成校内急救协助';
+        (state.任务列表[0] as any).奖励描述 = [
+            { 类型: '经济', 内容: '元 +500' },
+            { 内容: '急救熟练度 +5' },
+            { 类型: '组织', 内容: '组织信用 +20' }
+        ];
+        const response: any = { logs: [], tavern_commands: [] };
+        const result = 结算已完成任务奖励({
+            response,
+            state
+        });
+
+        expect(result.changed).toBe(true);
+        expect(result.state.角色.金钱).toEqual({ baseAmount: 500 });
+        expect(result.state.角色.技艺.find((item: any) => item.名称 === '急救')?.熟练度).toBe(5);
+        expect(result.state.玩家组织.玩家贡献).toBe(140);
+        expect(result.state.任务列表[0].奖励到账记录).toEqual(expect.arrayContaining([
+            '元 +500',
+            '急救熟练度 +5',
+            '组织信用 +20'
+        ]));
+        expect(response.logs.some((log: any) => log.text.includes('元 +500'))).toBe(true);
+    });
+
     it('支持人民币和电子支付写法', () => {
         const state = 创建奖励状态();
         state.任务列表[0].标题 = '完成线上委托';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { 归一化任务类型, 规范化任务自动结算 } from '../utils/taskCompat';
+import { 归一化任务类型, 规范化任务奖励描述列表, 规范化任务自动结算 } from '../utils/taskCompat';
 
 describe('任务分类归一化', () => {
     it('把宗门/师门语义归入组织任务', () => {
@@ -24,5 +24,26 @@ describe('任务分类归一化', () => {
 
         expect(normalized.类型).toBe('支线');
         expect(normalized.当前状态).toBe('已完成');
+    });
+
+    it('把对象奖励描述归一为可渲染字符串数组', () => {
+        const rewards = 规范化任务奖励描述列表([
+            { 类型: '经济', 内容: '元 +500' },
+            { 内容: '急救熟练度 +5' },
+            '组织信用 +10',
+            {},
+            null
+        ]);
+
+        expect(rewards).toEqual(['经济：元 +500', '急救熟练度 +5', '组织信用 +10']);
+
+        const normalized = 规范化任务自动结算({
+            类型: '主线',
+            当前状态: '进行中',
+            目标列表: [{ 描述: '办完', 当前进度: 1, 总需进度: 1 }],
+            奖励描述: [{ 类型: '经济', 内容: '元 +500' }, { 内容: '急救熟练度 +5' }]
+        });
+
+        expect(normalized.奖励描述).toEqual(['经济：元 +500', '急救熟练度 +5']);
     });
 });

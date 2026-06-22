@@ -45,6 +45,24 @@ const 是对象 = (value: unknown): value is Record<string, unknown> => (
     Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 );
 
+const 读取社交姓名字段 = (value: any): string => {
+    if (!是对象(value)) return '';
+    return [value.姓名, value.名字, value.名称, value.name]
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .find(Boolean) || '';
+};
+
+const 是否社交整对象命令 = (root: 支持根路径类型, rest: string, action: 状态命令动作): boolean => {
+    if (root !== '社交') return false;
+    if (!['push', 'add', 'set'].includes(action)) return false;
+    const path = (rest || '').trim();
+    return path === '' || /^\[\d+\]$/u.test(path);
+};
+
+const 是否非法社交整对象值 = (value: any): boolean => (
+    !是对象(value) || !读取社交姓名字段(value)
+);
+
 const 深合并对象 = (left: any, right: any): any => {
     if (Array.isArray(right)) return 深拷贝(right);
     if (!是对象(right)) return 深拷贝(right);
@@ -316,6 +334,10 @@ export const applyStateCommand = (
     }
 
     if (action !== 'delete' && 是否废弃世界地图字段路径(normalizedKey)) {
+        return result;
+    }
+
+    if (是否社交整对象命令(parsed.root, parsed.rest, action) && 是否非法社交整对象值(value)) {
         return result;
     }
 

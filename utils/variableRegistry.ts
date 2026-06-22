@@ -256,12 +256,18 @@ export const 构建变量路径登记表 = (
         if (details.length >= maxLines * 2) break;
     }
 
-    const uniqueDetails = Array.from(new Set(details)).filter((path) => (
-        !roots.includes(path as any)
-        && !是否废弃玩家组织字段路径(normalizeStateCommandKey(path))
-    ));
+    const uniqueDetails = Array.from(new Set(details)).filter((path) => {
+        const normalizedKey = normalizeStateCommandKey(path);
+        return !roots.includes(path as any)
+            && !是否废弃玩家组织字段路径(normalizedKey)
+            && !是否废弃世界地图字段路径(normalizedKey);
+    });
     return Array.from(new Set([...roots, ...uniqueDetails]))
-        .filter((path) => !是否废弃玩家组织字段路径(normalizeStateCommandKey(path)))
+        .filter((path) => {
+            const normalizedKey = normalizeStateCommandKey(path);
+            return !是否废弃玩家组织字段路径(normalizedKey)
+                && !是否废弃世界地图字段路径(normalizedKey);
+        })
         .slice(0, maxLines);
 };
 

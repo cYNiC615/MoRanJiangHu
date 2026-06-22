@@ -1,6 +1,7 @@
 import type { GameResponse } from '../types';
 import type { ModeRuntimeProfile } from '../models/system';
 import { 获取角色金钱BaseAmount, 规范化角色金钱 } from './currencyDisplay';
+import { 规范化任务奖励描述列表 } from './taskCompat';
 
 type RewardState = {
     角色: any;
@@ -30,7 +31,7 @@ const 转义正则文本 = (value: string): string => value.replace(/[.*+?^${}()
 
 const 匹配单位奖励 = (part: string, unitLabel: string): number | null => {
     const unit = 转义正则文本(unitLabel);
-    const unitFirst = new RegExp(`(?:^|[\\s【】「」"'“”])${unit}\\s*[+＋]\\s*(\\d+)(?:$|[\\s。！!，,、；;])`, 'u');
+    const unitFirst = new RegExp(`(?:^|[\\s【】「」"'“”：:])${unit}\\s*[+＋]\\s*(\\d+)(?:$|[\\s。！!，,、；;])`, 'u');
     const unitFirstMatch = part.match(unitFirst);
     if (unitFirstMatch) return Math.max(0, Math.trunc(Number(unitFirstMatch[1])));
 
@@ -121,9 +122,7 @@ export const 结算已完成任务奖励 = (
             || 取文本(task.发布人)
             || 取文本(sect.名称)
             || '任务发布人';
-        const rewardDescriptions = Array.isArray(task.奖励描述)
-            ? task.奖励描述.map((item: any) => 取文本(item)).filter(Boolean)
-            : [];
+        const rewardDescriptions = 规范化任务奖励描述列表(task.奖励描述);
         const rewardRecords: string[] = [];
 
         rewardDescriptions.flatMap(解析奖励片段).forEach((part) => {

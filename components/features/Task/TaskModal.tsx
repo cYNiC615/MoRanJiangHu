@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 任务分类列表, 任务结构, 任务类型 } from '../../../models/task';
 import { IconBackpack, IconTarget, IconCoins, IconScroll } from '../../ui/Icons';
-import { 提取任务世界, 规范化任务列表自动结算 } from '../../../utils/taskCompat';
+import { 提取任务世界, 规范化任务奖励描述列表, 规范化任务列表自动结算 } from '../../../utils/taskCompat';
 import type { 题材界面文案 } from '../../../utils/resourceLabels';
 
 interface Props {
@@ -52,7 +52,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, to
     const currentTask = currentTaskEntry?.task;
     const currentTaskOriginalIndex = currentTaskEntry?.originalIndex ?? -1;
     const currentObjectives = Array.isArray(currentTask?.目标列表) ? currentTask.目标列表 : [];
-    const currentRewards = Array.isArray(currentTask?.奖励描述) ? currentTask.奖励描述 : [];
+    const currentRewards = 规范化任务奖励描述列表(currentTask?.奖励描述);
     const getLocationDisplay = (task: any) => {
         if (isInfiniteMode && 文案?.任务地点字段 === '任务世界') return 提取任务世界(task) || '当前任务世界';
         return task?.发布地点 || '';

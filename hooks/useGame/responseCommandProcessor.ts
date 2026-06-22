@@ -1123,9 +1123,6 @@ const 提取新增社交命令姓名 = (cmd: any): string => {
 
 const 净化新增社交命令 = (
     cmd: any,
-    currentSocial: any[],
-    responseFactText: string,
-    dialogueSenderKeys: Set<string>,
     playerName?: string
 ): any | null => {
     const nextName = 提取新增社交命令姓名(cmd);
@@ -1133,15 +1130,7 @@ const 净化新增社交命令 = (
     if (是否保留栏目式社交姓名(nextName)) return null;
     const nextKey = 归一化文本键(nextName);
     if (playerName && nextKey === 归一化文本键(playerName)) return null;
-    const existing = (Array.isArray(currentSocial) ? currentSocial : []).some((npc: any) => (
-        [npc?.id, ...读取NPC名称列表(npc)]
-            .map(归一化文本键)
-            .filter(Boolean)
-            .includes(nextKey)
-    ));
-    if (existing) return cmd;
-    if (dialogueSenderKeys.has(nextKey) || responseFactText.includes(nextName)) return cmd;
-    return null;
+    return cmd;
 };
 
 export const 执行响应命令处理 = (
@@ -1168,7 +1157,6 @@ export const 执行响应命令处理 = (
     const socialBeforeCommands = Array.isArray(socialBuffer) ? socialBuffer : [];
 
     const responseFactText = 提取响应事实文本(response);
-    const dialogueSenderKeys = 提取对白发送者集合(response, charBuffer?.姓名);
     if (Array.isArray(response.tavern_commands)) {
         const deathRiskCommandIndices = 提取NPC死亡风险命令索引(response.tavern_commands, socialBuffer);
         response.tavern_commands.forEach((cmd, commandIndex) => {
@@ -1188,9 +1176,6 @@ export const 执行响应命令处理 = (
                     ),
                     socialBuffer
                 ),
-                socialBuffer,
-                responseFactText,
-                dialogueSenderKeys,
                 charBuffer?.姓名
             );
             if (!safeCmd) return;

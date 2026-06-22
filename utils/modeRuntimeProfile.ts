@@ -2,6 +2,8 @@ import type { ModeRuntimeProfile, 题材模式类型, 性别比例配置, 开局
 import { 获取题材模式配置, 规范化题材模式 } from '../data/workshopThemes/topicModeThemeData';
 
 const 默认开局生成性别列表: 开局生成性别类型[] = ['男', '女', '男娘', '扶她'];
+const 默认切入模板 = ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'];
+const 现代切入模板 = ['日常低压', '在途起手', '家宅起手', '风波前夜'];
 
 const 文本 = (value: unknown, fallback = ''): string => (
     typeof value === 'string' && value.trim() ? value.trim() : fallback
@@ -321,7 +323,7 @@ const 物品默认值 = (mode: 题材模式类型) => {
         return {
             initialItemPool: ['租房合同', '实习证明', '兼职排班表', '社团活动证', '重要录音', '体检报告'],
             rewardItemPool: ['现金', '转账记录', '面试机会', '课程名额', '客户线索', '人情承诺'],
-            bannedItemKeywords: ['破境丹', '回气丹', '凝元丹', '辟谷丹', '灵石', '宗门法宝'],
+            bannedItemKeywords: [],
             exclusiveItemTypes: ['电子设备', '证件', '合同', '工具', '药品', '生活用品'],
             resourceToggles: { food: false, water: false, ammo: false, medicine: true, fuel: false, batteries: true },
             activeResources: []
@@ -419,14 +421,14 @@ export const 构建官方模式运行时配置 = (
                 : profile.group === 'apocalypse'
                 ? ['宗门', '山门', '藏经阁', '洞府', '仙坊']
                 : profile.group === 'modern'
-                    ? ['宗门', '山门', '藏经阁', '仙坊', '坊市']
+                    ? []
                     : profile.group === 'western_fantasy'
                         ? ['宗门', '山门', '藏经阁', '仙坊', '坊市', '写字楼', '地铁站']
                         : [],
             mapPrompt: profile.mapPrompt
         },
         task: {
-            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的身份、处境、关系、资源压力与长期目标推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
+            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的当前身份处境、现实压力和一周内可推进的关系/资源锚点推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
             rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、可分配点数或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、可分配点数或能力成长。'
@@ -457,15 +459,15 @@ export const 构建官方模式运行时配置 = (
         image: {
             characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
             sceneMaterials: isInfinite ? '主神空间冷白光、金属地面、队伍房间、训练场、电影任务世界道具、现代战术装备' : isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
-            itemRealismPrompt: '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
-            negativePrompt: isInfinite ? '禁止把主神商城或团队商城画成古代交易场、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
+            itemRealismPrompt: isModern ? '物品必须按真实用途、材质、尺寸和磨损状态绘制，避免把生活物资画成纯装饰概念图。' : '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
+            negativePrompt: isInfinite ? '禁止把主神商城或团队商城画成古代交易场、宗门坊市、普通超市或金银钱庄。' : isModern ? '保持当代城市服饰、现实材质和可辨认生活/职业道具。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
             visualStyle: isInfinite ? '写实电影感，主神空间、任务世界和兑换道具边界明确' : isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
         },
         opening: {
             defaultBackgrounds: profile.backgroundSuggestions,
             defaultTalents: profile.talentSuggestions,
             companionTemplate: `${organization.memberName}或同行者，能承接${profile.label}的第一幕冲突。`,
-            cutInTemplates: ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'],
+            cutInTemplates: profile.group === 'modern' ? 现代切入模板 : 默认切入模板,
             initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : profile.group === 'modern' ? ['确认眼前处境', '处理现实压力', '找到下一步关系牵引'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索'],
             allowedGeneratedGenders: [...默认开局生成性别列表],
             lockGeneratedGenders: false
@@ -659,14 +661,14 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
                 : profile.group === 'apocalypse'
                 ? ['宗门', '山门', '藏经阁', '洞府', '仙坊']
                 : profile.group === 'modern'
-                    ? ['宗门', '山门', '藏经阁', '仙坊', '坊市']
+                    ? []
                     : profile.group === 'western_fantasy'
                         ? ['宗门', '山门', '藏经阁', '仙坊', '坊市', '写字楼', '地铁站']
                         : [],
             mapPrompt: profile.mapPrompt
         },
         task: {
-            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的身份、处境、关系、资源压力与长期目标推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
+            mainQuestStyle: isInfinite ? '围绕主神任务、恐怖片生存、支线触发、队伍协作和回归结算推进主线。' : isApocalypse ? '围绕求生、营地、感染风险和物资路线推进主线。' : profile.group === 'modern' ? '围绕现代都市的当前身份处境、现实压力和一周内可推进的关系/资源锚点推进主线。' : `围绕${profile.label}的身份、组织、资源与长期目标推进主线。`,
             sideQuestDedupeKeys: ['目标地点', '发放者', '奖励类型', '核心行动', '关联NPC'],
             rewardDistributor: organization.organizationName,
             rewardVisualizationTemplate: isInfinite ? '正文中用【任务奖励】展示主神结算、元、支线剧情凭证、兑换权限、技能提升、可分配点数或队伍信用。' : '正文中用【任务奖励】展示发放者、到账物品、技能提升、贡献/信用、可分配点数或能力成长。'
@@ -697,15 +699,15 @@ const 构建官方模式运行时配置基础 = (mode?: unknown): ModeRuntimePro
         image: {
             characterClothingEra: isInfinite ? '现代轮回者与任务世界混合装备' : isApocalypse ? '现代末日生存服饰' : isModern ? '当代城市服饰' : profile.group === 'xianxia' ? '古典修真服饰' : profile.group === 'western_fantasy' ? '中世纪西方奇幻服饰' : '武侠江湖服饰',
             sceneMaterials: isInfinite ? '主神空间冷白光、金属地面、队伍房间、训练场、电影任务世界道具、现代战术装备' : isApocalypse ? '现代废墟、混凝土、铁皮、塑料布、车辆、临时照明' : isModern ? '城市街区、玻璃、混凝土、电子设备、办公室、商场' : profile.group === 'western_fantasy' ? '石砌城堡、木梁酒馆、羊皮卷、皮革、锁甲、彩绘玻璃、森林、矿洞、地下城、遗迹' : '木石、布帛、山水、院落、兵器、古道',
-            itemRealismPrompt: '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
-            negativePrompt: isInfinite ? '禁止把主神商城或团队商城画成古代交易场、宗门坊市、普通超市或金银钱庄。' : isModern ? '禁止古装、仙侠长袍、山门、丹炉、飞剑、宗门弟子。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
+            itemRealismPrompt: isModern ? '物品必须按真实用途、材质、尺寸和磨损状态绘制，避免把生活物资画成纯装饰概念图。' : '物品必须按真实用途、材质、尺寸和磨损状态绘制，不要把普通物资画成法宝或装饰概念图。',
+            negativePrompt: isInfinite ? '禁止把主神商城或团队商城画成古代交易场、宗门坊市、普通超市或金银钱庄。' : isModern ? '保持当代城市服饰、现实材质和可辨认生活/职业道具。' : profile.group === 'western_fantasy' ? '禁止东方仙侠长袍、宗门山门、丹炉、飞剑、古代江湖侠客服、现代城市通勤装。' : '',
             visualStyle: isInfinite ? '写实电影感，主神空间、任务世界和兑换道具边界明确' : isApocalypse ? '写实、压抑、物资细节明确' : isModern ? '写实、当代、职业和城市细节明确' : profile.group === 'western_fantasy' ? '写实西方奇幻，职业装备、材质和冒险氛围明确' : '写实国风，服饰和物件符合题材'
         },
         opening: {
             defaultBackgrounds: profile.backgroundSuggestions,
             defaultTalents: profile.talentSuggestions,
             companionTemplate: `${organization.memberName}或同行者，能承接${profile.label}的第一幕冲突。`,
-            cutInTemplates: ['日常低压', '在途起手', '家宅起手', '门派起手', '风波前夜'],
+            cutInTemplates: profile.group === 'modern' ? 现代切入模板 : 默认切入模板,
             initialQuestTemplates: isInfinite ? ['读懂主神任务', '确认队伍分工', '寻找第一条支线线索'] : isApocalypse ? ['确认安全点', '获取饮水与药品', '建立营地联系'] : profile.group === 'modern' ? ['确认眼前处境', '处理现实压力', '找到下一步关系牵引'] : ['确认身份牵引', '接触初始组织', '取得第一条主线线索'],
             allowedGeneratedGenders: [...默认开局生成性别列表],
             lockGeneratedGenders: false
@@ -724,13 +726,13 @@ export const 渲染模式运行时配置世界书内容 = (profile: ModeRuntimeP
     `时间系统：显示=${profile.time.displayFormat}；历法=${profile.time.calendarName}；叙事=${profile.time.narrativeStyle}；时段=${profile.time.dayPeriodNames.join('、')}；允许=${profile.time.allowedTimeTerms.join('、') || '无'}；禁用=${profile.time.bannedTimeTerms.join('、') || '无'}；推进=${profile.time.progressionPrompt}`,
     `组织系统：组织=${profile.organization.organizationName}；成员=${profile.organization.memberName}；贡献=${profile.organization.contributionName}；等级=${profile.organization.rankNames.join('、')}`,
     `能力系统：主轴=${profile.ability.primaryAxis}；阶段=${profile.ability.progressionNames.join('、')}；技艺=${profile.ability.skillPool.join('、')}；结算=${profile.ability.combatResolution}`,
-    `物品系统：初始池=${profile.items.initialItemPool.join('、')}；奖励池=${profile.items.rewardItemPool.join('、')}；禁用=${profile.items.bannedItemKeywords.join('、')}；资源计数器=${profile.items.activeResources.join('、') || '无'}`,
-    `地图系统：地点=${profile.map.locationTypes.join('、')}；POI=${profile.map.poiTypes.join('、')}；禁用地点=${profile.map.bannedLocationKeywords.join('、')}`,
+    `物品系统：初始池=${profile.items.initialItemPool.join('、')}；奖励池=${profile.items.rewardItemPool.join('、')}；禁用=${profile.items.bannedItemKeywords.join('、') || '无'}；资源计数器=${profile.items.activeResources.join('、') || '无'}`,
+    `地图系统：地点=${profile.map.locationTypes.join('、')}；POI=${profile.map.poiTypes.join('、')}；禁用地点=${profile.map.bannedLocationKeywords.join('、') || '无'}`,
     `任务系统：主线=${profile.task.mainQuestStyle}；去重=${profile.task.sideQuestDedupeKeys.join('、')}；奖励发放=${profile.task.rewardDistributor}；可视化=${profile.task.rewardVisualizationTemplate}`,
     `NPC系统：身份池=${profile.npc.defaultIdentityPool.join('、')}；关系=${profile.npc.relationTemplates.join('、')}；主要角色必填=${profile.npc.requiredMainCharacterFields.join('、')}；男女比例=${typeof profile.npc.genderRatio === 'string' ? profile.npc.genderRatio : `男${profile.npc.genderRatio.男}%:女${profile.npc.genderRatio.女}%:男娘${profile.npc.genderRatio.男娘}%:扶她${profile.npc.genderRatio.扶她}%`}；生图=${profile.npc.autoImageStyle}`,
-    `生图系统：服饰=${profile.image.characterClothingEra}；场景=${profile.image.sceneMaterials}；物品=${profile.image.itemRealismPrompt}；负面=${profile.image.negativePrompt}`,
+    `生图系统：服饰=${profile.image.characterClothingEra}；场景=${profile.image.sceneMaterials}；物品=${profile.image.itemRealismPrompt}；负面=${profile.image.negativePrompt || '无'}`,
     `开局系统：背景=${profile.opening.defaultBackgrounds.join('、')}；天赋=${profile.opening.defaultTalents.join('、')}；切入=${profile.opening.cutInTemplates.join('、')}；初始任务=${profile.opening.initialQuestTemplates.join('、')}；允许生成性别=${profile.opening.allowedGeneratedGenders.join('、')}；性别锁定=${profile.opening.lockGeneratedGenders ? '是' : '否'}`,
-    `校验系统：禁词=${profile.validation.bannedWords.join('、')}；冲突检测=${profile.validation.conflictChecks.join('、')}；迁移清理=${profile.validation.migrationCleanupRules.join('、')}`
+    `校验系统：禁词=${profile.validation.bannedWords.join('、') || '无'}；冲突检测=${profile.validation.conflictChecks.join('、')}；迁移清理=${profile.validation.migrationCleanupRules.join('、') || '无'}`
 ]).filter(Boolean).join('\n');
 
 export const 获取题材顶部时间显示格式 = (

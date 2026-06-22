@@ -183,6 +183,25 @@ describe('NSFW prompt generation', () => {
         expect(result).toContain('afterglow');
     });
 
+    it('协议字段名和建档规则不会自触发 explicit 层级', () => {
+        const protocolText = [
+            '开局变量生成规则：主要角色缺少名器档案、小穴描述、子宫档案、失贞档案时需要后续补齐。',
+            '世界书正文和字段名只用于建档协议，不代表当前回合正在发生成人场景。'
+        ].join('\n');
+
+        expect(评估NSFW提示层级({ 启用NSFW模式: true }, {
+            stage: 'opening',
+            playerInput: protocolText
+        })).toBe('beacon');
+    });
+
+    it('明确成人输入即使提到档案也会进入 explicit 层级', () => {
+        expect(评估NSFW提示层级({ 启用NSFW模式: true }, {
+            stage: 'main',
+            playerInput: '她明确同意后，要求参考已有名器档案，继续描写小穴、阴蒂和蜜液反应。'
+        })).toBe('explicit');
+    });
+
     it('构建运行时额外提示词 allows disabling intimacy boundary rules', () => {
         const result = 构建运行时额外提示词('', { 启用NSFW模式: true, 启用亲密边界机制: false }, {
             playerInput: '她同意后，两人在卧室里开始做爱。'

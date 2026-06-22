@@ -78,6 +78,76 @@ export type NSFW运行时提示上下文 = {
 
 const 显式成人触发词 = /(做爱|性交|交媾|插入|抽插|内射|射精|高潮|口交|肛交|性器|肉棒|阴茎|龟头|小穴|阴蒂|蜜液|精液|乳头|穴口|破处|失贞|性爱|上床|开房|成人场景|explicit|sex\b|fuck)/i;
 const 亲密触发词 = /(暧昧|约会|私密|独处|亲吻|接吻|拥抱|牵手|贴近|调情|挑逗|脸红|心跳|情欲|欲望|卧室|浴室|酒店|同居|恋人|情人|女友|男友|高好感|亲密|身体距离|暧昧张力|后宫|NSFW|成人内容)/i;
+const 协议字段污染行模式 = /(字段名|机制字段|建档|缺少.*档案|补齐.*档案|世界书|标签协议|变量生成规则|变量规则|审计|固定机制效果表|输出协议|提示词)/;
+const 成人字段名模式 = /(名器档案|胸部描述|小穴描述|屁穴描述|后穴描述|肉棒描述|子宫档案|是否处女|失贞档案|首次亲密记录|ASD部位阈值|部位边界|性癖|敏感点|固定机制效果表|完整名器|显式身体)/;
+const 成人字段名替换模式 = /(名器档案|胸部描述|小穴描述|屁穴描述|后穴描述|肉棒描述|子宫档案|是否处女|失贞档案|首次亲密记录|ASD部位阈值|部位边界|性癖|敏感点|固定机制效果表|完整名器|显式身体)/g;
+
+const 读取文本 = (value: unknown): string => (
+    typeof value === 'string' ? value.trim() : ''
+);
+
+export const 清理NSFW层级判定文本 = (value: unknown): string => {
+    const source = 读取文本(value);
+    if (!source) return '';
+    return source
+        .replace(/\r\n/g, '\n')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter((line) => {
+            if (!协议字段污染行模式.test(line)) return true;
+            return !显式成人触发词.test(line) && !亲密触发词.test(line) && !成人字段名模式.test(line);
+        })
+        .map((line) => line
+            .replace(/`[^`]*`/g, ' ')
+            .replace(成人字段名替换模式, ' ')
+            .replace(/(?:字段名|机制字段|建档|世界书正文|世界书|标签协议|变量生成规则|变量规则|审计提示|固定机制效果表|输出协议|提示词)/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+        )
+        .filter(Boolean)
+        .join('\n');
+};
+
+const 社交判级字段 = [
+    '姓名',
+    '性别',
+    '身份',
+    '关系状态',
+    '当前关系',
+    '关系阶段',
+    '好感度',
+    '信任度',
+    '是否在场',
+    '当前状态',
+    '当前情绪',
+    '当前agenda',
+    '场景关系',
+    '公开场合克制'
+];
+
+export const 构建NSFW社交判定文本 = (socialRaw: unknown, limit = 8): string => {
+    const source = Array.isArray(socialRaw) ? socialRaw : [];
+    return source
+        .slice(0, Math.max(0, limit))
+        .map((npc: any, index) => {
+            if (!npc || typeof npc !== 'object' || Array.isArray(npc)) return '';
+            const parts = 社交判级字段
+                .map((key) => {
+                    const value = npc?.[key];
+                    if (typeof value === 'string') return value.trim() ? `${key}:${value.trim()}` : '';
+                    if (typeof value === 'number' && Number.isFinite(value)) return `${key}:${value}`;
+                    if (typeof value === 'boolean') return `${key}:${value ? '是' : '否'}`;
+                    return '';
+                })
+                .filter(Boolean);
+            if (parts.length <= 0) return '';
+            return `NPC${index + 1} ${parts.join('；')}`;
+        })
+        .map(清理NSFW层级判定文本)
+        .filter(Boolean)
+        .join('\n');
+};
 
 const 合并上下文文本 = (context?: NSFW运行时提示上下文): string => [
     context?.playerInput,
@@ -85,7 +155,10 @@ const 合并上下文文本 = (context?: NSFW运行时提示上下文): string =
     context?.sceneText,
     context?.directorText,
     context?.socialText
-].filter((item): item is string => typeof item === 'string' && item.trim().length > 0).join('\n');
+]
+    .map(清理NSFW层级判定文本)
+    .filter((item) => item.length > 0)
+    .join('\n');
 
 export const 评估NSFW提示层级 = (
     options?: Pick<游戏设置结构, '启用NSFW模式'>,

@@ -4,6 +4,9 @@ import { resolve } from 'node:path';
 import { 构建世界书注入文本 } from '../utils/worldbook';
 import { 规范化开局配置 } from '../utils/openingConfig';
 import { 构建运行时世界书解析结果, 补全开局运行时世界书快照 } from '../utils/runtimeWorldbooks';
+import { 构建系统提示词 } from '../hooks/useGame/systemPromptBuilder';
+import { 默认提示词 } from '../prompts';
+import { 默认游戏设置 } from '../utils/gameSettings';
 import type { 世界书结构 } from '../types';
 
 const 创建用户世界书 = (): 世界书结构 => ({
@@ -22,6 +25,7 @@ const 创建用户世界书 = (): 世界书结构 => ({
         启用: true,
         类型: 'world_lore',
         作用域: ['main'],
+        注入模式: 'always',
         优先级: 200,
         关键词: [],
         创建时间: 1,
@@ -35,6 +39,8 @@ describe('Phase 3.2 runtime worldbook resolver', () => {
         const completed = 补全开局运行时世界书快照(openingConfig);
 
         expect(completed.runtimeSnapshot?.modeWorldbooks?.[0]?.id).toContain('现代都市');
+        expect(completed.runtimeSnapshot?.modeWorldbooks?.[0]?.标题).toContain('运行时兜底世界书');
+        expect(completed.runtimeSnapshot?.modeWorldbooks?.[0]?.标题).not.toContain('模式包');
         expect(completed.runtimeSnapshot?.workshopSelection?.selectedMode).toBeUndefined();
         expect(completed.runtimeSnapshot?.workshopSelection?.selectedModules).toBeUndefined();
     });
@@ -76,9 +82,13 @@ describe('Phase 3.2 runtime worldbook resolver', () => {
 
     it('变量生成不会为普通日常常驻注入完整名器世界书触发词', () => {
         const source = readFileSync(resolve(process.cwd(), 'hooks/useGame/variableModelWorkflow.ts'), 'utf8');
+        const openingSource = readFileSync(resolve(process.cwd(), 'hooks/useGame/openingStoryWorkflow.ts'), 'utf8');
 
         expect(source).not.toContain('名器世界书触发词');
-        expect(source).toContain('extraTexts: [params.playerInput, responseBodyText]');
+        expect(source).toContain('log?.content ?? log?.text');
+        expect(source).toContain('responseVariablePlanText');
+        expect(source).toContain('extraTexts: [params.playerInput, responseBodyText, responseVariablePlanText]');
+        expect(openingSource).not.toContain('const variableWorldbookExtra');
     });
 
     it('非 explicit NSFW 层级会压制名器世界书 always 条目', () => {
@@ -92,6 +102,40 @@ describe('Phase 3.2 runtime worldbook resolver', () => {
 
         expect(injected.combinedText).not.toMatch(/名器|小穴|阴蒂|蜜液|子宫/u);
         expect(injected.suppressedEntryCount).toBeGreaterThan(0);
+    });
+
+    it('系统提示构建使用独立 NSFW 判级文本，不被世界书匹配协议污染', () => {
+        const mingqiBooks = JSON.parse(readFileSync(resolve(process.cwd(), 'public/worldbook-presets/mingqi-core.json'), 'utf8'));
+        const result = 构建系统提示词({
+            promptPool: 默认提示词,
+            memoryData: { 短期记忆: [], 中期记忆: [], 长期记忆: [] } as any,
+            socialData: [],
+            statePayload: {
+                角色: { 姓名: '沈砚' },
+                环境: { 大地点: '海川市', 小地点: '便利店', 具体地点: '收银台' },
+                世界: {},
+                剧情: {},
+                剧情规划: {},
+                女主剧情规划: {},
+                任务列表: []
+            },
+            gameConfig: {
+                ...默认游戏设置,
+                启用NSFW模式: true,
+                启用亲密边界机制: true
+            },
+            memoryConfig: {} as any,
+            worldbooks: mingqiBooks,
+            worldEvolutionEnabled: false,
+            options: {
+                世界书作用域: ['opening'],
+                世界书附加文本: ['开局建档规则：缺少名器档案、小穴描述、子宫档案、失贞档案时后续补齐。'],
+                NSFW层级判定文本: ['今天上午去学校旁边的便利店买早餐。']
+            } as any
+        });
+
+        expect(result.contextPieces.nsfwPromptLevel).toBe('beacon');
+        expect(result.contextPieces.suppressedWorldbookCount).toBeGreaterThan(0);
     });
 
     it('explicit NSFW 层级允许名器世界书按关键词命中', () => {

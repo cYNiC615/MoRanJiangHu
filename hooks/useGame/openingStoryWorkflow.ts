@@ -196,6 +196,8 @@ type 开场剧情生成依赖 = {
             输出协议提示词?: string;
             字数要求提示词?: string;
             免责声明输出提示词?: string;
+            nsfwPromptLevel?: any;
+            导演配置提示词?: string;
         };
     }> | (酒馆上下文结构 & {
         contextPieces: 酒馆上下文结构['contextPieces'] & {
@@ -203,6 +205,8 @@ type 开场剧情生成依赖 = {
             输出协议提示词?: string;
             字数要求提示词?: string;
             免责声明输出提示词?: string;
+            nsfwPromptLevel?: any;
+            导演配置提示词?: string;
         };
     });
     processResponseCommands: (response: GameResponse, baseState?: 开场命令基态, options?: { applyState?: boolean }) => 开场命令基态;
@@ -675,6 +679,9 @@ export const 执行开场剧情生成工作流 = async (
                 : 世界书本体槽位.开局初始化任务_启用生存,
             fallback: 获取开场初始化任务提示词(openingGameConfig)
         }), openingGameConfig);
+        const openingCustomExtraPrompt = typeof options?.开局额外要求 === 'string'
+            ? options.开局额外要求.trim()
+            : '';
         const openingContext = await deps.构建系统提示词(
             openingPromptSnapshot,
             openingMem,
@@ -690,6 +697,10 @@ export const 执行开场剧情生成工作流 = async (
                     构建开局配置提示词(options?.开局配置),
                     typeof options?.开局额外要求 === 'string' ? options.开局额外要求 : '',
                     (openingGameConfig as any)?.activeModuleExtraRules || ''
+                ],
+                NSFW层级判定文本: [
+                    openingCustomExtraPrompt,
+                    构建玩家剧情倾向提示词(options?.开局配置, { stage: 'opening' })
                 ],
                 openingConfig: options?.开局配置,
                 强制剧情COT提示词ID: 'core_cot'
@@ -769,9 +780,6 @@ export const 执行开场剧情生成工作流 = async (
             .filter(Boolean)
             .join('\n\n')
             .trim();
-        const openingCustomExtraPrompt = typeof options?.开局额外要求 === 'string'
-            ? options.开局额外要求.trim()
-            : '';
         const openingNsfwPromptLevel = openingContext.contextPieces.nsfwPromptLevel || 评估NSFW提示层级(openingGameConfig, {
             stage: 'opening',
             playerInput: openingCustomExtraPrompt,
@@ -853,6 +861,9 @@ export const 执行开场剧情生成工作流 = async (
                 playerRole: openingStatePayload?.角色 || deps.角色,
                 overrideCotPrompt: openingCotPromptForTavern,
                 worldbookExtraTexts: [
+                    openingContext.contextPieces.题材模式提示词,
+                    openingContext.contextPieces.玩家剧情倾向提示词,
+                    openingContext.contextPieces.导演配置提示词,
                     openingPerspectivePrompt,
                     openingStyleAssistantPrompt,
                     openingRealWorldModePrompt,
@@ -874,6 +885,9 @@ export const 执行开场剧情生成工作流 = async (
             };
             pushOpening('system', openingContext.contextPieces.AI角色声明);
             pushOpening('system', openingContext.contextPieces.worldPrompt);
+            pushOpening('system', openingContext.contextPieces.题材模式提示词);
+            pushOpening('system', openingContext.contextPieces.玩家剧情倾向提示词);
+            pushOpening('system', openingContext.contextPieces.导演配置提示词);
             pushOpening('system', openingContext.contextPieces.otherPrompts);
             pushOpening('system', openingContext.contextPieces.难度设置提示词);
             pushOpening('system', openingContext.contextPieces.叙事人称提示词);
@@ -1026,7 +1040,6 @@ export const 执行开场剧情生成工作流 = async (
             options?.开局配置
         );
         let openingBodyText = 提取响应完整正文文本(aiData);
-        let openingVariablePlanText = typeof aiData?.t_var_plan === 'string' ? aiData.t_var_plan.trim() : '';
         let openingPlanText = 提取响应规划文本(aiData);
         const openingWorldPrompt = 按功能开关过滤提示词内容(
             读取提示词内容(openingPromptSnapshot, 'core_world'),
@@ -1208,7 +1221,6 @@ export const 执行开场剧情生成工作流 = async (
                     };
                     aiData = responseForExecution;
                     openingBodyText = 提取响应完整正文文本(aiData);
-                    openingVariablePlanText = typeof aiData?.t_var_plan === 'string' ? aiData.t_var_plan.trim() : openingVariablePlanText;
                     openingPlanText = 提取响应规划文本(aiData) || openingPlanText;
                     simulatedOpeningState = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState, { applyState: false }));
                     渲染开场结构化正文草稿();
@@ -1269,18 +1281,10 @@ export const 执行开场剧情生成工作流 = async (
                 run: async () => {
                     const openingCurrentGameTime = 环境时间转标准串(simulatedOpeningState.环境) || '未知时间';
                     const openingVariableAudit = 构建开局变量生成审计重点();
-                    const variableWorldbookExtra = 按功能开关过滤提示词内容(构建世界书注入文本({
-                        books: openingRuntimeWorldbooks,
-                        scopes: ['variable_calibration'],
-                        environment: simulatedOpeningState.环境,
-                        social: simulatedOpeningState.社交,
-                        history: [],
-                        extraTexts: [openingBodyText, openingVariablePlanText]
-                    }).combinedText, openingGameConfig);
                     const variableExtraPrompt = [
                         开局变量生成附加提示词,
-                        openingVariableAudit,
-                        variableWorldbookExtra
+                        openingContext.contextPieces.导演配置提示词,
+                        openingVariableAudit
                     ]
                         .filter(Boolean)
                         .join('\n\n');

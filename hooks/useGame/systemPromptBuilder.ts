@@ -46,7 +46,7 @@ import { 构建模板姓名黑名单提示词 } from '../../utils/templateNameBl
 import { 构建角色金钱显示快照 } from '../../utils/currencyDisplay';
 import { 构建导演配置注入文本 } from '../../utils/directorConfig';
 import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
-import { 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
+import { 构建NSFW社交判定文本, 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
 
 const 解析标准时间为天数片段 = (raw?: string): { year: number; month: number; day: number; hour: number; minute: number } | null => {
     const canonical = normalizeCanonicalGameTime(raw || '');
@@ -127,6 +127,7 @@ export type 系统提示词构建参数 = {
         注入女主剧情规划协议?: boolean;
         世界书作用域?: 世界书作用域[];
         世界书附加文本?: string[];
+        NSFW层级判定文本?: string[];
         openingConfig?: OpeningConfig;
         强制剧情COT提示词ID?: string;
     };
@@ -852,9 +853,13 @@ export const 构建系统提示词 = ({
         openingConfig: effectiveOpeningConfig,
         userWorldbooks: worldbooks
     });
+    const nsfwLevelSignalTexts = Array.isArray(options?.NSFW层级判定文本)
+        ? options.NSFW层级判定文本
+        : (Array.isArray(options?.世界书附加文本) ? options.世界书附加文本 : []);
+    const nsfwSocialSignalText = 构建NSFW社交判定文本(socialData);
     const nsfwPromptLevel = 评估NSFW提示层级(normalizedGameConfig, {
         stage: 'main',
-        playerInput: Array.isArray(options?.世界书附加文本) ? options.世界书附加文本.join('\n') : '',
+        playerInput: nsfwLevelSignalTexts.join('\n'),
         sceneText: [
             statePayload?.环境?.大地点,
             statePayload?.环境?.中地点,
@@ -864,7 +869,7 @@ export const 构建系统提示词 = ({
             statePayload?.环境?.场景描述
         ].filter(Boolean).join('\n'),
         directorText: JSON.stringify(effectiveOpeningConfig?.导演配置 || {}),
-        socialText: JSON.stringify((Array.isArray(socialData) ? socialData : []).slice(0, 8))
+        socialText: nsfwSocialSignalText
     });
     const worldbookInjection = 构建世界书注入文本({
         books: runtimeWorldbooks.books,
@@ -1057,7 +1062,7 @@ export const 构建系统提示词 = ({
             .filter((item) => item.content.trim().length > 0);
     })();
     const difficultyPromptSummary = 按当前设置过滤提示词(
-        构建主剧情难度摘要提示词(promptPool)
+        构建主剧情难度摘要提示词(effectivePromptPool, { gameConfig: normalizedGameConfig })
     );
     const cotPromptEntries = enabledPrompts
         .filter(p => selectedCotPromptIds.includes(p.id))

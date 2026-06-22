@@ -36,13 +36,17 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         ? openingConfig.关系侧重.join('、')
         : '无';
     const 允许生成性别 = 规范化开局生成性别列表(openingConfig.允许生成性别);
-    const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式);
+    const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式, openingConfig.modeRuntimeProfile);
+    const 切入文案 = 开局文案.cutInLabels[openingConfig.开局切入偏好] || {
+        label: openingConfig.开局切入偏好,
+        hint: ''
+    };
     const 玩家剧情倾向提示词 = 构建玩家剧情倾向提示词(openingConfig, { stage: 'opening' });
     const blocks = [
         '【本次开局配置约束】',
         构建题材模式提示词(openingConfig),
         `- 关系侧重：${关系侧重}。生成初始社交网时，应优先让人物结构与关系情绪落在这些方向上。`,
-        `- 开局切入偏好：${openingConfig.开局切入偏好}。第一幕镜头与气氛优先贴近该切入方式，不要无痕偏离。`,
+        `- 开局切入偏好：${切入文案.label}。${切入文案.hint ? `${切入文案.hint}；` : ''}第一幕镜头与气氛优先贴近该切入方式，不要无痕偏离。`,
         `- AI 生成角色性别硬约束：本次只允许新生成的 NPC、开局伙伴、组织成员、队友、路人、敌人与任务人物使用这些性别：${允许生成性别.join('、')}。不得生成未允许性别的新角色；不得用“未知性别/待定/不详”绕过限制。`,
         '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；不要额外扩写未允许性别的新原创角色。',
         `- 题材开局边界：${开局文案.promptBoundary}`,

@@ -1243,6 +1243,26 @@ const 清理命令包裹文本 = (input: string): string => (
         .trim()
 );
 
+const 解包命令引号字符串 = (text: string): string => {
+    if (text.startsWith('"') && text.endsWith('"')) {
+        const parsed = parseJsonWithRepair<string>(text);
+        if (typeof parsed.value === 'string') return parsed.value;
+    }
+    return text.slice(1, -1);
+};
+
+const 尝试解析字符串化JSON命令值 = (value: string): any | undefined => {
+    const candidate = 预处理命令文本((value || '').trim()).trim();
+    const looksLikeJson = (
+        (candidate.startsWith('{') && candidate.endsWith('}'))
+        || (candidate.startsWith('[') && candidate.endsWith(']'))
+    );
+    if (!looksLikeJson) return undefined;
+    const parsed = parseJsonWithRepair<any>(candidate);
+    if (parsed.value !== null && typeof parsed.value === 'object') return parsed.value;
+    return undefined;
+};
+
 const 解析命令值 = (rawValue: string | undefined): any => {
     const text = 预处理命令文本((rawValue || '').trim()).trim();
     if (!text) return null;
@@ -1251,7 +1271,9 @@ const 解析命令值 = (rawValue: string | undefined): any => {
         (text.startsWith('"') && text.endsWith('"'))
         || (text.startsWith("'") && text.endsWith("'"))
     ) {
-        return text.slice(1, -1);
+        const unquoted = 解包命令引号字符串(text);
+        const parsedJson = 尝试解析字符串化JSON命令值(unquoted);
+        return parsedJson === undefined ? unquoted : parsedJson;
     }
 
     if (/^(true|false)$/i.test(text)) {

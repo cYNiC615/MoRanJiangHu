@@ -15,6 +15,43 @@ export const 任务目标已完成 = (objective: Partial<任务目标> | any): b
 
 const 任务类型集合 = new Set<string>(任务分类列表);
 
+const 取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+const 取奖励描述文本 = (value: unknown): string => {
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+
+    const source = value as Record<string, unknown>;
+    const type = 取文本(source.类型) || 取文本(source.type) || 取文本(source.类别);
+    const content = 取文本(source.内容)
+        || 取文本(source.text)
+        || 取文本(source.描述)
+        || 取文本(source.说明)
+        || 取文本(source.名称)
+        || 取文本(source.name);
+    if (type && content) return `${type}：${content}`;
+    if (content) return content;
+    if (type) return type;
+
+    return Object.entries(source)
+        .map(([key, raw]) => {
+            const text = 取文本(raw);
+            return key && text ? `${key}：${text}` : '';
+        })
+        .filter(Boolean)
+        .slice(0, 3)
+        .join('；');
+};
+
+export const 规范化任务奖励描述列表 = (raw: unknown): string[] => {
+    const source = Array.isArray(raw) ? raw : (raw === undefined || raw === null ? [] : [raw]);
+    return source
+        .map(取奖励描述文本)
+        .map((item) => item.trim())
+        .filter(Boolean);
+};
+
 const 合并任务文本 = (task: any): string => [
     task?.类型,
     task?.标题,
@@ -28,10 +65,8 @@ const 合并任务文本 = (task: any): string => [
     task?.推荐境界,
     task?.剧情暗线,
     Array.isArray(task?.目标列表) ? task.目标列表.map((item: any) => item?.描述).join(' ') : '',
-    Array.isArray(task?.奖励描述) ? task.奖励描述.join(' ') : ''
+    规范化任务奖励描述列表(task?.奖励描述).join(' ')
 ].filter(Boolean).join(' ');
-
-const 取文本 = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
 const 具体地点或团队名正则 = /小队|团队|同盟|队伍|队长|成员|主神空间|主神广场|房间|偏厅|大厅|卧室|厨房|走廊|门口|村|古宅|安全屋|据点|营地|办公室|资料室/u;
 
@@ -126,6 +161,7 @@ export const 规范化任务自动结算 = (task: 任务结构 | any): 任务结
         ...(taskWorld ? { 任务世界: taskWorld } : {}),
         当前状态: shouldAutoComplete ? '已完成' : currentStatus,
         目标列表: objectives,
+        奖励描述: 规范化任务奖励描述列表(task.奖励描述),
     };
 };
 

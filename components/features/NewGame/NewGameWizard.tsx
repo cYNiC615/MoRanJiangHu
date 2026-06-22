@@ -935,6 +935,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
     );
     const 当前关系侧重选项 = useMemo(() => 获取题材关系侧重选项(openingConfig.题材模式), [openingConfig.题材模式]);
     const 当前开局切入偏好选项 = useMemo(() => 获取题材开局切入偏好选项(openingConfig.题材模式), [openingConfig.题材模式]);
+    const 当前开局切入偏好显示 = 当前开局切入偏好选项.find((item) => item.value === openingConfig.开局切入偏好)?.label || openingConfig.开局切入偏好;
     const 当前伙伴关系占位 = 当前题材配置.group === 'apocalypse'
         ? '例如：同路幸存者、搜救搭档、营地队友、旧识'
         : 当前题材配置.group === 'modern'
@@ -3035,7 +3036,7 @@ const NewGameWizard: React.FC<Props> = ({ onComplete, onCancel, loading, apiConf
                                     <p>开局配置: <span className="text-white">{openingConfigEnabled ? '已启用' : '未启用'}</span></p>
                                     <p>题材模式: <span className="text-white">{openingConfig.题材模式}</span></p>
                                     <p>关系侧重: <span className="text-white">{openingConfigEnabled ? (openingConfig.关系侧重.join('、') || '无') : '未设置'}</span></p>
-                                    <p>开局切入: <span className="text-white">{openingConfigEnabled ? openingConfig.开局切入偏好 : '未设置'}</span></p>
+                                    <p>开局切入: <span className="text-white">{openingConfigEnabled ? 当前开局切入偏好显示 : '未设置'}</span></p>
                                     <p>生成性别: <span className="text-white">{openingConfigEnabled ? openingConfig.允许生成性别.join('、') : '未设置'}</span></p>
                                 </div>
                             </OrnateBorder>

@@ -5,7 +5,7 @@ import { 规范化游戏设置 } from '../../utils/gameSettings';
 import { 获取繁体输出指令 } from '../../utils/traditionalChinese';
 import { normalizeStateCommandKey, 是否废弃命令根路径, 是否废弃玩家组织字段路径 } from '../../utils/stateHelpers';
 import { 构建世界书注入文本 } from '../../utils/worldbook';
-import { 构建运行时额外提示词, 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
+import { 构建NSFW社交判定文本, 构建运行时额外提示词, 评估NSFW提示层级, type NSFW提示层级 } from '../../prompts/runtime/nsfw';
 import {
     构建变量相关规则提示词
 } from '../../prompts/runtime/variableCalibrationReference';
@@ -502,14 +502,19 @@ export const 执行变量模型校准工作流 = async (
     if (!接口配置是否可用(variableApi)) return null;
 
     const responseBodyText = Array.isArray(params.parsedResponse?.logs)
-        ? params.parsedResponse.logs.map((log: any) => 读取文本(log?.content)).filter(Boolean).join('\n')
+        ? params.parsedResponse.logs
+            .map((log: any) => 读取文本(log?.content ?? log?.text))
+            .filter(Boolean)
+            .join('\n')
         : '';
+    const responseVariablePlanText = 读取文本((params.parsedResponse as any)?.t_var_plan);
+    const nsfwSocialSignalText = 构建NSFW社交判定文本(params.baseState?.社交);
     const nsfwPromptLevel = 评估NSFW提示层级(runtimeGameConfig, {
         stage: 'variable_calibration',
         playerInput: params.playerInput,
         recentBodyText: responseBodyText,
         sceneText: JSON.stringify(params.baseState?.环境 || {}),
-        socialText: JSON.stringify((Array.isArray(params.baseState?.社交) ? params.baseState.社交 : []).slice(0, 8))
+        socialText: nsfwSocialSignalText
     });
     const runtimeExtraPrompt = 按功能开关过滤提示词内容(
         构建运行时额外提示词(runtimeGameConfig.额外提示词 || '', runtimeGameConfig, {
@@ -517,7 +522,7 @@ export const 执行变量模型校准工作流 = async (
             playerInput: params.playerInput,
             recentBodyText: responseBodyText,
             sceneText: JSON.stringify(params.baseState?.环境 || {}),
-            socialText: JSON.stringify((Array.isArray(params.baseState?.社交) ? params.baseState.社交 : []).slice(0, 8)),
+            socialText: nsfwSocialSignalText,
             forceLevel: nsfwPromptLevel
         }),
         runtimeGameConfig
@@ -562,7 +567,7 @@ export const 执行变量模型校准工作流 = async (
             scopes: ['variable_calibration'],
             environment: params.baseState.环境,
             social: params.baseState.社交,
-            extraTexts: [params.playerInput, responseBodyText],
+            extraTexts: [params.playerInput, responseBodyText, responseVariablePlanText],
             nsfwPromptLevel
         }).combinedText, runtimeGameConfig),
         dialogueNpcAuditPrompt,

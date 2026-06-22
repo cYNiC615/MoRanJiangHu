@@ -2781,8 +2781,8 @@ const 修复NPC真实姓名列表 = (list: any[], options?: { 保留非姓名库
 };
 
 const 是否应丢弃NPC条目 = (rawNpc: any): boolean => {
-    if (!rawNpc || typeof rawNpc !== 'object' || Array.isArray(rawNpc)) return false;
-    const name = 取首个非空文本(rawNpc?.姓名, rawNpc?.名称, rawNpc?.name);
+    if (!rawNpc || typeof rawNpc !== 'object' || Array.isArray(rawNpc)) return true;
+    const name = 取首个非空文本(rawNpc?.姓名, rawNpc?.名字, rawNpc?.名称, rawNpc?.name);
     if (!是否噪声NPC姓名(name)) return false;
     if (rawNpc?.对白登场 === true || rawNpc?.自动补全头像 === true) return true;
     const id = 取首个非空文本(rawNpc?.id, rawNpc?.ID);
@@ -2884,7 +2884,7 @@ const 规范化NPC简介 = (npc: any, identity: string): string => {
 };
 
 const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
-    const npc = rawNpc && typeof rawNpc === 'object' ? rawNpc : {};
+    const npc = rawNpc && typeof rawNpc === 'object' && !Array.isArray(rawNpc) ? rawNpc : {};
     let npc其他字段 = { ...npc };
     const 外貌描写 = 取首个非空文本(
         npc?.外貌描写,
@@ -3034,7 +3034,7 @@ const 标准化单个NPC = (rawNpc: any, fallbackIndex: number): any => {
     return {
         ...npc其他字段,
         id: 取首个非空文本(npc?.id, `npc_${fallbackIndex}`) || `npc_${fallbackIndex}`,
-        姓名: 取首个非空文本(npc?.姓名, `角色${fallbackIndex}`) || `角色${fallbackIndex}`,
+        姓名: 取首个非空文本(npc?.姓名, npc?.名字, npc?.名称, npc?.name, `角色${fallbackIndex}`) || `角色${fallbackIndex}`,
         性别: 推断性别,
         年龄: 推断年龄,
         ...(生日 ? { 生日 } : {}),

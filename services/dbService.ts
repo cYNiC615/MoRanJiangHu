@@ -34,6 +34,17 @@ export interface 本地图片资源统计 {
     localImageBytes: number;
 };
 
+export interface 存档谱系轻量视图 {
+    id?: number;
+    类型?: 存档结构['类型'];
+    时间戳?: number;
+    游戏初始时间?: string;
+    角色数据?: Pick<存档结构['角色数据'], '姓名'>;
+    环境信息?: Pick<存档结构['环境信息'], '大地点' | '中地点' | '小地点' | '具体地点' | '时间'>;
+    历史记录?: any[];
+    元数据?: Record<string, unknown>;
+}
+
 const 创建空本地图片资源统计 = (): 本地图片资源统计 => ({
     totalAssets: 0,
     referencedAssets: 0,
@@ -173,6 +184,59 @@ const 构建存档去重键 = (save: {
     const envTime = 读取环境时间文本(save?.环境信息);
     const historyCount = Array.isArray(save?.历史记录) ? save.历史记录.length : 0;
     return `${type}|${ts}|${name}|${envTime}|${historyCount}`;
+};
+
+export const 投影存档谱系轻量视图 = (
+    save: Partial<存档结构> | null | undefined,
+    fallbackId?: number
+): 存档谱系轻量视图 => {
+    const history = Array.isArray(save?.历史记录) ? save.历史记录 : [];
+    const firstHistory = history[0] ? { ...history[0] } : null;
+    const firstUser = history.find((item: any) => item?.role === 'user');
+    const historyProjection = [
+        firstHistory,
+        firstUser && firstUser !== history[0] ? { ...firstUser } : null
+    ].filter(Boolean) as any[];
+    const roleName = typeof save?.角色数据?.姓名 === 'string' ? save.角色数据.姓名 : undefined;
+    const env: any = save?.环境信息 || {};
+    const envProjection: NonNullable<存档谱系轻量视图['环境信息']> = {
+        大地点: env.大地点,
+        中地点: env.中地点,
+        小地点: env.小地点,
+        具体地点: env.具体地点,
+        时间: env.时间
+    };
+    return {
+        id: typeof save?.id === 'number' ? save.id : fallbackId,
+        类型: save?.类型,
+        时间戳: typeof save?.时间戳 === 'number' ? save.时间戳 : Number(save?.时间戳 || 0),
+        游戏初始时间: typeof save?.游戏初始时间 === 'string' ? save.游戏初始时间 : undefined,
+        角色数据: roleName ? { 姓名: roleName } as any : undefined,
+        环境信息: env ? envProjection : undefined,
+        历史记录: historyProjection,
+        元数据: {
+            ...((save?.元数据 && typeof save.元数据 === 'object') ? save.元数据 : {})
+        }
+    };
+};
+
+const 是存档谱系轻量视图 = (save: Partial<存档结构> | 存档谱系轻量视图 | null | undefined): boolean => {
+    if (!save || typeof save !== 'object') return false;
+    const value = save as any;
+    const lacksHeavyFields = !('社交' in value)
+        && !('世界' in value)
+        && !('玩家组织' in value)
+        && !('任务列表' in value)
+        && !('剧情' in value)
+        && !('剧情规划' in value)
+        && !('女主剧情规划' in value)
+        && !('记忆系统' in value)
+        && !('场景图片档案' in value)
+        && !('背景图片' in value);
+    const history = Array.isArray(value.历史记录) ? value.历史记录 : [];
+    const projectedHistory = history.length <= 2
+        && !history.some((item: any) => item?.role === 'assistant' && item?.structuredResponse);
+    return lacksHeavyFields && projectedHistory;
 };
 
 const 计算文本短哈希 = (text: string): string => {
@@ -701,7 +765,17 @@ export const 保存存档 = async (存档: Omit<存档结构, 'id'>): Promise<nu
     if (!normalized) {
         throw new Error('保存存档失败：存档数据结构不完整');
     }
-    const existingSaves = await 读取存档列表().catch(() => []);
+    const actualHistoryCount = Array.isArray(normalized.历史记录) ? normalized.历史记录.length : 0;
+    const metadataHistoryCount = Number((normalized.元数据 as any)?.历史记录条数);
+    if (Number.isFinite(metadataHistoryCount) && metadataHistoryCount >= actualHistoryCount + 8) {
+        console.warn('[存档谱系] 保存前历史记录疑似被截断，仅记录诊断，不阻断保存。', {
+            actualHistoryCount,
+            metadataHistoryCount,
+            saveType: normalized.类型,
+            timestamp: normalized.时间戳
+        });
+    }
+    const existingSaves = await 读取存档谱系轻量视图(db).catch(() => []);
     const withLineage = 补全存档谱系元数据(normalized, existingSaves);
     const persistedSave = await 外置化图片字段(withLineage) as Omit<存档结构, 'id'>;
 
@@ -881,6 +955,28 @@ export const 读取存档列表 = async (): Promise<存档结构[]> => {
     });
 };
 
+const 读取存档谱系轻量视图 = async (existingDb?: IDBDatabase): Promise<存档谱系轻量视图[]> => {
+    const db = existingDb || await 初始化数据库();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.openCursor();
+        const list: 存档谱系轻量视图[] = [];
+
+        request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor) {
+                list.sort((a, b) => Number(b.时间戳 || 0) - Number(a.时间戳 || 0));
+                resolve(list);
+                return;
+            }
+            list.push(投影存档谱系轻量视图(cursor.value as Partial<存档结构>, cursor.key as number));
+            cursor.continue();
+        };
+        request.onerror = () => reject(request.error);
+    });
+};
+
 export const 读取存档摘要列表 = async (options?: {
     limit?: number;
     offset?: number;
@@ -1051,8 +1147,10 @@ export const 读取存档 = async (id: number): Promise<存档结构> => {
     });
 };
 
-const 校正并写回本地存档谱系 = async (db: IDBDatabase, saves?: 存档结构[]): Promise<ReturnType<typeof 修复本地存档谱系列表<存档结构>>> => {
-    let current = [...(saves || await 读取存档列表())].sort((a, b) => Number(a.时间戳 || 0) - Number(b.时间戳 || 0));
+const 运行存档谱系修复 = <T extends Partial<存档结构>>(
+    saves: T[]
+): ReturnType<typeof 修复本地存档谱系列表<T>> => {
+    let current = [...saves].sort((a, b) => Number(a.时间戳 || 0) - Number(b.时间戳 || 0));
     let repaired = 修复本地存档谱系列表(current);
     let repairedGroups = 0;
     let repairedNodes = 0;
@@ -1065,27 +1163,40 @@ const 校正并写回本地存档谱系 = async (db: IDBDatabase, saves?: 存档
         current = repaired.saves;
         repaired = 修复本地存档谱系列表(current);
     }
-    if (changed) {
-        await new Promise<void>((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
-            const saveStore = transaction.objectStore(STORE_NAME);
-            const summaryStore = transaction.objectStore(SAVE_SUMMARIES_STORE);
-            current.forEach((save) => {
-                if (typeof save.id !== 'number') return;
-                saveStore.put(save);
-                const summary = 构建存档摘要记录(save, save.id);
-                if (summary) summaryStore.put(summary);
-            });
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = () => reject(transaction.error);
-        });
-    }
     return {
         saves: current,
         changed,
         repairedGroups,
         repairedNodes
     };
+};
+
+const 校正并写回本地存档谱系 = async (
+    db: IDBDatabase,
+    saves?: Array<存档结构 | 存档谱系轻量视图>
+): Promise<ReturnType<typeof 修复本地存档谱系列表<Partial<存档结构>>>> => {
+    const source = saves || await 读取存档谱系轻量视图(db);
+    const sourceContainsLightView = source.some((item) => 是存档谱系轻量视图(item));
+    let result = 运行存档谱系修复(source as Array<Partial<存档结构>>);
+    if (result.changed && sourceContainsLightView) {
+        result = 运行存档谱系修复(await 读取存档列表());
+    }
+    if (result.changed) {
+        await new Promise<void>((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
+            const saveStore = transaction.objectStore(STORE_NAME);
+            const summaryStore = transaction.objectStore(SAVE_SUMMARIES_STORE);
+            result.saves.forEach((save) => {
+                if (typeof save.id !== 'number') return;
+                saveStore.put(save);
+                const summary = 构建存档摘要记录(save as 存档结构, save.id);
+                if (summary) summaryStore.put(summary);
+            });
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    }
+    return result;
 };
 
 export const 补全存档摘要 = async (id: number): Promise<存档摘要结构 | null> => {

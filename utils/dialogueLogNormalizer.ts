@@ -34,15 +34,18 @@ const 合并原始片段 = (left?: string, right?: string): string => {
     return Array.from(new Set(parts)).join('\n');
 };
 
-const 清理说话人 = (value: string): string => {
+const 清理说话人 = (value: string, options?: { declaredNames?: Set<string> }): string => {
     let text = (value || '')
         .replace(/[（(][^）)]{1,16}[）)]/g, '')
         .replace(/[【】\[\]「」『』“”"']/g, '')
         .trim();
     const special = 规范化正文发送者名(text);
     if (special === '奖励') return special;
+    if (options?.declaredNames?.has(special)) return special;
 
     text = text.split(/[，,、；;。！？!?\s]/).filter(Boolean).pop() || text;
+    const normalized = 规范化正文发送者名(text);
+    if (options?.declaredNames?.has(normalized)) return normalized;
     for (let i = 0; i < 3; i += 1) {
         text = text
             .replace(说话尾迹正则, '')
@@ -50,6 +53,8 @@ const 清理说话人 = (value: string): string => {
             .replace(动作修饰尾迹正则, '')
             .trim();
     }
+    const normalizedAfterCleanup = 规范化正文发送者名(text);
+    if (options?.declaredNames?.has(normalizedAfterCleanup)) return normalizedAfterCleanup;
     text = text
         .replace(/^(?:那|这)(?=[\u4e00-\u9fff]{2,})/, '')
         .replace(/正$/, '')
@@ -58,7 +63,7 @@ const 清理说话人 = (value: string): string => {
     if (!text || text.length > 12) return '';
     if (/[：:，,。！？!?；;\n]/.test(text)) return '';
     if (非单一说话人正则.test(text) || 泛称说话人正则.test(text) || 语气词说话人正则.test(text) || 非人名短语说话人正则.test(text)) return '';
-    if (!是否可信角色发送者(text, { allowUnknownName: true })) return '';
+    if (!是否可信角色发送者(text, { allowUnknownName: true, declaredNames: options?.declaredNames })) return '';
     return text;
 };
 
@@ -494,7 +499,8 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
 };
 
 export const 规范化对白日志 = (
-    logs: GameLog[] | undefined
+    logs: GameLog[] | undefined,
+    options?: { declaredNames?: Set<string> }
 ): GameLog[] => {
     const normalized = 保护引号换行日志(logs)
         .flatMap((item) => {
@@ -503,7 +509,7 @@ export const 规范化对白日志 = (
             const text = 拆分过长旁白段落(rawSender, typeof item?.text === 'string' ? item.text : String(item?.text ?? ''));
             if (是否判定日志文本(rawSender) || 是否判定日志文本(text)) return [附加原始片段({ sender: rawSender, text }, rawSource)];
             if (rawSender === '奖励') return [附加原始片段({ sender: rawSender, text }, rawSource)];
-            const sender = rawSender === '旁白' ? '旁白' : (清理说话人(rawSender) || '旁白');
+            const sender = rawSender === '旁白' ? '旁白' : (清理说话人(rawSender, options) || '旁白');
             const log = 附加原始片段({ sender, text }, rawSource);
             if (sender !== '旁白') return [log];
             return 拆分旁白中的显式方括号对白(log)

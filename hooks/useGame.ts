@@ -87,6 +87,7 @@ import { 创建运行时变量工作流 } from './useGame/runtimeVariableWorkflo
 import { 创建变量校准协调器 as 创建变量生成协调器 } from './useGame/variableCalibrationCoordinator';
 import { use世界演变控制 } from './useGame/worldEvolutionControl';
 import { normalizeCanonicalGameTime, 环境时间转标准串 } from './useGame/timeUtils';
+import { 补全缺失游戏初始时间 } from './useGame/gameInitialTimeRecovery';
 import { 提取NPC生图基础数据, 提取NPC香闺秘档部位生图数据, 提取主角生图基础数据 } from './useGame/npcContext';
 import { 应用NPC记忆总结, 构建手动NPC记忆总结候选, 构建自动NPC记忆总结候选, 构建NPC记忆总结回退文案 } from './useGame/npcMemorySummary';
 import { 规范化游戏设置 } from '../utils/gameSettings';
@@ -494,6 +495,14 @@ export const useGame = () => {
         社交Ref.current = Array.isArray(社交) ? 社交 : [];
     }, [社交]);
 
+    const 同步设置社交 = (updater: any) => {
+        const current = Array.isArray(社交Ref.current) ? 社交Ref.current : [];
+        const next = typeof updater === 'function' ? updater(current) : updater;
+        const normalized = Array.isArray(next) ? next : [];
+        社交Ref.current = normalized;
+        同步设置社交(normalized);
+    };
+
     useEffect(() => {
         visualConfigRef.current = visualConfig;
     }, [visualConfig]);
@@ -663,7 +672,7 @@ export const useGame = () => {
         if (synced.directorChanged) {
             设置导演配置(synced.directorConfig);
         }
-        设置社交(normalized);
+        同步设置社交(normalized);
         刷新NPC记忆总结队列(normalized, { 静默: options?.静默NPC总结提示 === true });
         void performAutoSave({ social: normalized, directorConfig: synced.directorConfig, history: 历史记录, force: true });
         return normalized;
@@ -745,7 +754,7 @@ export const useGame = () => {
         const snapshotEnv = 规范化环境信息(深拷贝(snapshot.回档前状态.环境));
         设置角色(规范化角色物品容器映射(深拷贝(snapshot.回档前状态.角色), { 当前时间: snapshotEnv }));
         设置环境(snapshotEnv);
-        设置社交(应用同名NPC过滤(规范化社交列表(深拷贝(snapshot.回档前状态.社交)), 角色?.姓名));
+        同步设置社交(应用同名NPC过滤(规范化社交列表(深拷贝(snapshot.回档前状态.社交)), 角色?.姓名));
         设置世界(规范化世界状态(深拷贝(snapshot.回档前状态.世界)));
         设置玩家组织(深拷贝(snapshot.回档前状态.玩家组织));
         设置任务列表(深拷贝(snapshot.回档前状态.任务列表));
@@ -761,27 +770,10 @@ export const useGame = () => {
     };
 
     useEffect(() => {
-        if (游戏初始时间) return;
-        const 占位开局时间 = '1:01:01:00:00';
-        const 规范化可用起始时间 = (value?: string | null): string | null => {
-            const canonical = normalizeCanonicalGameTime((value || '').trim());
-            if (!canonical || canonical === 占位开局时间) return null;
-            return canonical;
-        };
-
-        const currentTime = 规范化可用起始时间(环境时间转标准串(环境));
-        if (currentTime) {
-            设置游戏初始时间(currentTime);
-            return;
-        }
-
-        const 回忆档案 = Array.isArray(记忆系统?.回忆档案) ? 记忆系统.回忆档案 : [];
-        const 开局回忆 = 回忆档案.find((item) => item?.回合 === 1 || item?.名称 === '【回忆001】') || 回忆档案[0];
-        const 回忆开局时间 = 规范化可用起始时间(开局回忆?.记录时间)
-            || 规范化可用起始时间(开局回忆?.时间戳);
-        if (!回忆开局时间) return;
-        设置游戏初始时间(回忆开局时间);
-    }, [环境, 游戏初始时间, 记忆系统, 设置游戏初始时间]);
+        const recovered = 补全缺失游戏初始时间(游戏初始时间, 历史记录, 记忆系统);
+        if (!recovered || recovered === 游戏初始时间) return;
+        设置游戏初始时间(recovered);
+    }, [游戏初始时间, 历史记录, 记忆系统, 设置游戏初始时间]);
 
     const 获取原始AI消息 = (rawText: string): string => (typeof rawText === 'string' ? rawText : '');
     const 计算回复耗时秒 = (startedAt: number, endedAt: number = Date.now()): number => {
@@ -1490,7 +1482,7 @@ export const useGame = () => {
         清除NPC背景图片,
         保存NPC图片本地副本
     } = 创建NPC图片状态工作流({
-        设置社交,
+        设置社交: 同步设置社交,
         规范化社交列表: 规范化社交列表安全,
         执行社交自动存档: (socialSnapshot) => {
             void performAutoSave({ social: socialSnapshot, history: 历史记录 });
@@ -2646,7 +2638,7 @@ export const useGame = () => {
         设置环境(规范化环境信息(openingBase.环境));
         设置游戏初始时间(openingBase.游戏初始时间 || '');
         开局社交刚初始化Ref.current = true;
-        设置社交(应用同名NPC过滤(规范化社交列表(openingBase.社交), 角色?.姓名));
+        同步设置社交(应用同名NPC过滤(规范化社交列表(openingBase.社交), 角色?.姓名));
         设置世界(openingBase.世界);
         设置玩家组织(openingBase.玩家组织);
         设置任务列表(openingBase.任务列表 || []);

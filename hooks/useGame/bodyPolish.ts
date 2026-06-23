@@ -193,7 +193,10 @@ const 合并正文续行 = (previousText: string, nextLine: string): string => {
         : `${previous}\n${next}`.trim();
 };
 
-export const 解析正文日志文本 = (bodyText: string): 正文日志结构 => {
+export const 解析正文日志文本 = (
+    bodyText: string,
+    options?: { declaredNames?: Set<string> }
+): 正文日志结构 => {
     const source = (bodyText || '').trim();
     if (!source) return [];
     const lines = source.replace(/\r\n/g, '\n').split('\n');
@@ -229,7 +232,7 @@ export const 解析正文日志文本 = (bodyText: string): 正文日志结构 =
         if (match) {
             const sender = 规范化正文发送者(match[1]);
             const text = (match[2] || '').trim();
-            if (!是否可信正文标签发送者(sender)) {
+            if (!是否可信正文标签发送者(sender, { declaredNames: options?.declaredNames })) {
                 pendingDialogueSender = '';
                 写入旁白行(line);
                 continue;
@@ -256,7 +259,10 @@ export const 解析正文日志文本 = (bodyText: string): 正文日志结构 =
         写入旁白行(line);
     }
 
-    return 规范化对白日志(logs.filter(item => typeof item.text === 'string' && item.text.trim().length > 0));
+    return 规范化对白日志(
+        logs.filter(item => typeof item.text === 'string' && item.text.trim().length > 0),
+        { declaredNames: options?.declaredNames }
+    );
 };
 
 const 构建正文文本 = (logs: 正文日志结构): string => {
@@ -336,7 +342,10 @@ const 剥离角色行外层引号 = (text: string): string => {
     return source;
 };
 
-export const 净化角色对白行 = (logs: 正文日志结构): 正文日志结构 => {
+export const 净化角色对白行 = (
+    logs: 正文日志结构,
+    options?: { declaredNames?: Set<string> }
+): 正文日志结构 => {
     const result: 正文日志结构 = [];
     (Array.isArray(logs) ? logs : []).forEach((item) => {
         const sender = 规范化正文发送者(item?.sender || '旁白');
@@ -363,7 +372,7 @@ export const 净化角色对白行 = (logs: 正文日志结构): 正文日志结
 
         result.push({ sender, text: 剥离角色行外层引号(text) });
     });
-    return 规范化对白日志(result);
+    return 规范化对白日志(result, { declaredNames: options?.declaredNames });
 };
 
 export const 执行正文润色 = async (
@@ -388,6 +397,14 @@ export const 执行正文润色 = async (
     const runtimeGameConfig = 规范化游戏设置(deps.gameConfig);
     const playerName = typeof deps.角色?.姓名 === 'string' ? deps.角色.姓名.trim() : '';
     const playerDisplayName = playerName || '主角';
+    const declaredNames = new Set<string>([
+        playerDisplayName,
+        ...(Array.isArray(deps.社交) ? deps.社交 : [])
+            .map((npc: any) => (typeof npc?.姓名 === 'string' ? npc.姓名.trim() : ''))
+            .filter(Boolean)
+    ]
+        .map((name) => 规范化正文发送者(name))
+        .filter(Boolean));
     const polishFormatSection = (() => {
         const coreFormatPrompt = deps.prompts.find((item) => item.id === 'core_format');
         const content = typeof coreFormatPrompt?.内容 === 'string' ? coreFormatPrompt.内容 : '';
@@ -580,8 +597,8 @@ export const 执行正文润色 = async (
     }
     let polishedLogs = 净化角色对白行(规范化对白日志(限制润色结果判定数量(
         sourceLogs,
-        解析正文日志文本(polishedResult.bodyText)
-    )));
+        解析正文日志文本(polishedResult.bodyText, { declaredNames })
+    ), { declaredNames }), { declaredNames });
     if (polishedLogs.length === 0) {
         return { response: baseResponse, applied: false, error: '优化后正文为空，已保留原文。', rawText: polishedResult.rawText };
     }
@@ -599,8 +616,8 @@ export const 执行正文润色 = async (
         ].join('\n'));
         const dialogueRetryLogs = 净化角色对白行(规范化对白日志(限制润色结果判定数量(
             sourceLogs,
-            解析正文日志文本(dialogueRetryResult.bodyText)
-        )));
+            解析正文日志文本(dialogueRetryResult.bodyText, { declaredNames })
+        ), { declaredNames }), { declaredNames });
         if (dialogueRetryLogs.length > 0 && 统计角色对白条数(dialogueRetryLogs) >= sourceDialogueCount) {
             polishedResult = dialogueRetryResult;
             polishedLogs = dialogueRetryLogs;
@@ -633,8 +650,8 @@ export const 执行正文润色 = async (
         ].join('\n'));
         const retryLogs = 净化角色对白行(规范化对白日志(限制润色结果判定数量(
             sourceLogs,
-            解析正文日志文本(retryResult.bodyText)
-        )));
+            解析正文日志文本(retryResult.bodyText, { declaredNames })
+        ), { declaredNames }), { declaredNames });
         const retryLength = 统计润色正文字符数(retryLogs);
         const retryCheck = 评估润色长度结果({
             sourceLength,
@@ -674,8 +691,8 @@ export const 执行正文润色 = async (
                 ].join('\n'), continuationSource);
                 const continuationLogs = 净化角色对白行(规范化对白日志(限制润色结果判定数量(
                     sourceLogs,
-                    解析正文日志文本(continuationResult.bodyText)
-                )));
+                    解析正文日志文本(continuationResult.bodyText, { declaredNames })
+                ), { declaredNames }), { declaredNames });
                 const continuationLength = 统计润色正文字符数(continuationLogs);
                 const continuationCheck = 评估润色长度结果({
                     sourceLength,

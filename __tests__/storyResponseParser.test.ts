@@ -419,6 +419,25 @@ describe('storyResponseParser', () => {
         expect(parsed.logs[3].sender).toBe('旁白');
     });
 
+    it('passes declared names to fallback stripped-body parsing', () => {
+        const parsed = parseStoryRawText([
+            '<角色名单>',
+            '莉莉丝安',
+            '</角色名单>',
+            '<正文>',
+            '</正文>',
+            '正文：',
+            '【莉莉丝安】你们先别吵，前面有动静。',
+            '<短期记忆>莉莉丝安提醒众人注意前方。</短期记忆>'
+        ].join('\n'));
+
+        expect(parsed.declaredSpeakers).toEqual(['莉莉丝安']);
+        expect(parsed.logs[0]).toEqual({
+            sender: '莉莉丝安',
+            text: '你们先别吵，前面有动静。'
+        });
+    });
+
     it('repairs incomplete <角色名单> tag (missing closing tag)', () => {
         const parsed = parseStoryRawText([
             '<角色名单>',

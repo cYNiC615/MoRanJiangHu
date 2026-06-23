@@ -78,6 +78,7 @@ const 环境相对根字段 = ['环境变量', '大地点', '中地点', '小地
 const 剧情相对根字段 = ['当前章节', '下一章预告', '历史卷宗'];
 const 剧情规划相对根字段 = ['当前章目标', '当前章任务', '跨章延续事项', '待触发事件', '镜头规划', '换章规则'];
 const 女主规划相对根字段 = ['阶段推进', '女主条目', '女主互动事件', '女主镜头规划'];
+const 背包别名字段 = ['背包', '行囊', '物品列表'];
 
 const 废弃世界地图字段 = new Set(['地图', '建筑', '地图建筑', '地图道路', '地图人物']);
 const 废弃环境字段 = new Set(['天气', '节日']);
@@ -114,11 +115,15 @@ export const 是否废弃玩家组织字段路径 = (normalizedKey: string): boo
 };
 
 export const normalizeStateCommandKey = (rawKey: string): string => {
-    const key = (rawKey || '').trim();
+    const raw = (rawKey || '').trim();
+    const hasGameStatePrefix = raw.startsWith('gameState.');
+    const withoutPrefix = hasGameStatePrefix ? raw.slice('gameState.'.length) : raw;
+    const alias = 背包别名字段.find((head) => withoutPrefix === head || withoutPrefix.startsWith(`${head}.`) || withoutPrefix.startsWith(`${head}[`));
+    const key = alias ? `角色.物品列表${withoutPrefix.slice(alias.length)}` : withoutPrefix;
     if (!key) return '';
 
-    if (key.startsWith('gameState.')) {
-        return key;
+    if (hasGameStatePrefix) {
+        return `gameState.${key}`;
     }
 
     for (const root of 根路径列表) {

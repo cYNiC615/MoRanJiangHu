@@ -135,4 +135,31 @@ describe('运行时变量管理', () => {
             force: true
         }));
     });
+
+    it('运行时变量命令会把背包短路径扣减同步到真实物品列表', async () => {
+        const { deps, getState, performAutoSave } = 创建依赖();
+        getState().角色 = {
+            姓名: '沈墨',
+            物品列表: [
+                { ID: 'item_med', 名称: '便携药片', 堆叠数量: 3, 是否可堆叠: true }
+            ]
+        };
+        const workflow = 创建运行时变量工作流(deps);
+
+        await workflow.applyRuntimeVariableCommand({
+            action: 'sub',
+            key: '物品列表[0].堆叠数量',
+            value: 1
+        } as any);
+
+        expect(getState().角色.物品列表[0].堆叠数量).toBe(2);
+        expect(performAutoSave).toHaveBeenCalledWith(expect.objectContaining({
+            char: expect.objectContaining({
+                物品列表: expect.arrayContaining([
+                    expect.objectContaining({ 名称: '便携药片', 堆叠数量: 2 })
+                ])
+            }),
+            force: true
+        }));
+    });
 });

@@ -486,7 +486,7 @@ const 是否允许变量生成命令 = (cmd: TavernCommand): boolean => {
 
     const allowed = 允许根路径.find((root) => normalizedKey === root || normalizedKey.startsWith(`${root}.`) || normalizedKey.startsWith(`${root}[`));
     if (!allowed) return false;
-    return cmd.action === 'add' || cmd.action === 'set' || cmd.action === 'push' || cmd.action === 'delete';
+    return cmd.action === 'add' || cmd.action === 'set' || cmd.action === 'push' || cmd.action === 'delete' || cmd.action === 'sub';
 };
 
 export const 执行变量模型校准工作流 = async (

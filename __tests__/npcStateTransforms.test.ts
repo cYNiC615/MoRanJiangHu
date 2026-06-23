@@ -2,6 +2,47 @@ import { describe, expect, it } from 'vitest';
 import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 
 describe('NPC old save compatibility', () => {
+    it('合并同名 NPC 时不会用 undefined 覆盖已有香闺秘档部位图', () => {
+        const [npc] = 规范化社交列表([
+            {
+                姓名: '林清月',
+                性别: '女',
+                是否主要角色: true,
+                图片档案: {
+                    香闺秘档部位档案: {
+                        胸部: {
+                            id: 'secret-chest',
+                            部位: '胸部',
+                            状态: 'success',
+                            图片URL: 'https://img.example/chest.webp',
+                            生成时间: 1000
+                        }
+                    }
+                }
+            },
+            {
+                姓名: '林清月',
+                性别: '女',
+                是否主要角色: true,
+                图片档案: {
+                    香闺秘档部位档案: {
+                        胸部: undefined,
+                        小穴: {
+                            id: 'secret-pussy',
+                            部位: '小穴',
+                            状态: 'success',
+                            图片URL: 'https://img.example/pussy.webp',
+                            生成时间: 1100
+                        }
+                    }
+                }
+            }
+        ] as any);
+
+        expect(npc.图片档案?.香闺秘档部位档案?.胸部?.id).toBe('secret-chest');
+        expect(npc.图片档案?.香闺秘档部位档案?.小穴?.id).toBe('secret-pussy');
+    });
+
     it('repairs teammate combat caps without inventing equipment or bag contents', () => {
         const [npc] = 规范化社交列表([
             {

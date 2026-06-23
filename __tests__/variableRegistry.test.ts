@@ -66,6 +66,46 @@ describe('variableRegistry', () => {
         }, baseState).allowed).toBe(true);
     });
 
+    it('maps common inventory shorthand paths to the real player inventory', () => {
+        const stateWithBag = {
+            ...baseState,
+            角色: {
+                ...baseState.角色,
+                物品列表: []
+            }
+        };
+
+        const validation = 校验变量命令是否登记({
+            action: 'push',
+            key: '背包',
+            value: { 名称: '便携药片', 堆叠数量: 1 }
+        }, stateWithBag);
+
+        expect(validation).toMatchObject({
+            allowed: true,
+            normalizedKey: 'gameState.角色.物品列表'
+        });
+
+        const result = applyStateCommand(
+            stateWithBag.角色 as any,
+            stateWithBag.环境 as any,
+            stateWithBag.社交 as any,
+            stateWithBag.世界 as any,
+            stateWithBag.剧情 as any,
+            stateWithBag.剧情规划 as any,
+            undefined,
+            stateWithBag.玩家组织 as any,
+            stateWithBag.任务列表 as any,
+            '行囊',
+            { 名称: '能量棒', 堆叠数量: 2 },
+            'push'
+        );
+
+        expect(result.char.物品列表).toEqual([
+            expect.objectContaining({ 名称: '能量棒', 堆叠数量: 2 })
+        ]);
+    });
+
     it('blocks unregistered fields that the variable model invents', () => {
         const result = 校验变量命令是否登记({
             action: 'set',

@@ -44,6 +44,16 @@ const 读取谱系回合数 = (save: Partial<存档结构>): number => {
     return 读取存档游玩回合数(save);
 };
 
+const 是谱系轻量历史视图 = (save: Partial<存档结构>): boolean => {
+    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
+    return history.length <= 2
+        && !history.some((item: any) => item?.role === 'assistant' && item?.structuredResponse);
+};
+
+const 读取谱系写回回合数 = (save: Partial<存档结构>): number => (
+    是谱系轻量历史视图(save) ? 读取谱系回合数(save) : 读取存档游玩回合数(save)
+);
+
 export const 计算谱系短哈希 = (value: string): string => {
     let left = 0x811c9dc5;
     let right = 0x01000193;
@@ -223,7 +233,7 @@ const 写入谱系节点元数据 = <T extends Partial<存档结构>>(
     ordered.forEach((save, offset) => {
         const metadata = save.元数据 as any;
         const index = startIndex + offset;
-        const nextGameRound = 读取存档游玩回合数(save);
+        const nextGameRound = 读取谱系写回回合数(save);
         const nextParentHash = index === 0 ? '' : (offset === 0 ? parentBeforeFirst : 读取存档谱系哈希(ordered[offset - 1]));
         const nextBranchInput = index === 0 ? '开局' : (readText(metadata.存档分支输入) || 读取历史用户输入(save, 0) || '继续游玩');
         if (

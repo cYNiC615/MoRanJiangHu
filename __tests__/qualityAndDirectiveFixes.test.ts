@@ -202,6 +202,52 @@ describe('正文优化重试', () => {
         expect(result.response.logs?.[0]?.text).toContain('修复后的正文');
         expect(result.rawText).toBe('second');
     });
+
+    it('会把当前社交姓名作为声明名单传给文章优化正文解析', async () => {
+        vi.mocked(textAIService.generatePolishedBody).mockResolvedValueOnce({
+            bodyText: [
+                '【莉莉丝安】你们先别吵，前面有动静。',
+                '【旁白】她抬手示意众人停下。'
+            ].join('\n'),
+            rawText: 'polished'
+        } as any);
+
+        const result = await 执行正文润色(
+            {
+                logs: [
+                    { sender: '莉莉丝安', text: '先别吵。' },
+                    { sender: '旁白', text: '她看向门外。' }
+                ]
+            } as any,
+            '<正文>【莉莉丝安】先别吵。\n【旁白】她看向门外。</正文>',
+            {
+                apiConfig: {
+                    功能模型占位: {
+                        文章优化独立模型开关: true,
+                        文章优化使用模型: 'test-model',
+                        文章优化API地址: 'https://example.com',
+                        文章优化API密钥: 'test-key'
+                    }
+                },
+                prompts: [],
+                gameConfig: {},
+                环境: {} as any,
+                剧情: {} as any,
+                社交: [{ 姓名: '莉莉丝安' }],
+                角色: { 姓名: '沈墨' } as any,
+                文章优化已开启: true,
+                深拷贝: (value: any) => JSON.parse(JSON.stringify(value))
+            } as any,
+            { minLength: 0 }
+        );
+
+        expect(vi.mocked(textAIService.generatePolishedBody)).toHaveBeenCalledTimes(1);
+        expect(result.applied).toBe(true);
+        expect(result.response.logs).toEqual([
+            { sender: '莉莉丝安', text: '你们先别吵，前面有动静。' },
+            { sender: '旁白', text: '她抬手示意众人停下。' }
+        ]);
+    });
 });
 
 describe('无限流商城文案边界', () => {

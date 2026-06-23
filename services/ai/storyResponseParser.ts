@@ -1638,13 +1638,13 @@ const 解析标签协议响应 = (content: string, options?: Required<StoryParse
         );
     }
 
-    let logs = 规范化对白日志(解析正文日志(bodyJudgeExtraction.cleanBody, declaredNames));
+    let logs = 规范化对白日志(解析正文日志(bodyJudgeExtraction.cleanBody, declaredNames), { declaredNames });
     if (logs.length === 0) {
         const fallbackBody = titleSections.正文 || 提取候选正文文本(textWithoutThinking);
         const stripped = 提取正文中的Judge区块(清理正文初始化泄露内容(fallbackBody)).cleanBody
             .replace(/<[^>]+>/g, '\n');
         if (/【[^】]+】/.test(stripped)) {
-            logs = 规范化对白日志(解析正文日志(stripped));
+            logs = 规范化对白日志(解析正文日志(stripped, declaredNames), { declaredNames });
         }
     }
     const commands = 解析命令块(commandBlock);

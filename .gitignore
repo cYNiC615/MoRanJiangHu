@@ -69,6 +69,7 @@ lerna-debug.log*
 /.agents/
 /.claude/
 /.mimocode/
+/.local-dev-server-port
 
 # Sensitive local data, save packages, debug outputs, and generated app bundles
 /.tmp-release-assets/

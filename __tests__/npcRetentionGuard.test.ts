@@ -25,7 +25,7 @@ describe('npcRetentionGuard', () => {
         expect(issues.join('\n')).toContain('沈青棠');
     });
 
-    it('restores missing existing NPCs without rewriting retained NPCs', () => {
+    it('restores missing existing NPCs while preserving matched NPC identity', () => {
         const result = 合并保留既有NPC列表(currentSocial, [
             { id: 'npc_second', 姓名: '陆明珂', 身份: '掌柜', 好感度: 20 }
         ]);
@@ -34,5 +34,22 @@ describe('npcRetentionGuard', () => {
         expect(result.恢复名称).toEqual(['沈青棠']);
         expect(result.列表.map((npc: any) => npc.姓名)).toEqual(['沈青棠', '陆明珂']);
         expect(result.列表[1].好感度).toBe(20);
+    });
+
+    it('merges partial updates for matched existing NPCs instead of keeping the partial object', () => {
+        const result = 合并保留既有NPC列表(currentSocial, [
+            { id: 'npc_second', 好感度: 20, 档案: { 小穴描述: '新档案。' } }
+        ]);
+
+        expect(result.恢复数量).toBe(1);
+        expect(result.合并数量).toBe(1);
+        expect(result.是否变更).toBe(true);
+        expect(result.列表[1]).toMatchObject({
+            id: 'npc_second',
+            姓名: '陆明珂',
+            身份: '掌柜',
+            好感度: 20,
+            档案: { 小穴描述: '新档案。' }
+        });
     });
 });

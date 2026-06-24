@@ -52,11 +52,17 @@ const 读取社交姓名字段 = (value: any): string => {
         .find(Boolean) || '';
 };
 
-const 是否社交整对象命令 = (root: 支持根路径类型, rest: string, action: 状态命令动作): boolean => {
+const 是否社交新增整对象命令 = (root: 支持根路径类型, rest: string, action: 状态命令动作): boolean => {
     if (root !== '社交') return false;
-    if (!['push', 'add', 'set'].includes(action)) return false;
+    if (!['push', 'add'].includes(action)) return false;
     const path = (rest || '').trim();
     return path === '' || /^\[\d+\]$/u.test(path);
+};
+
+const 读取社交槽位索引 = (root: 支持根路径类型, rest: string, action: 状态命令动作): number | null => {
+    if (root !== '社交' || action !== 'set') return null;
+    const match = (rest || '').trim().match(/^\[(\d+)\]$/u);
+    return match ? Number(match[1]) : null;
 };
 
 const 是否非法社交整对象值 = (value: any): boolean => (
@@ -249,6 +255,10 @@ const 应用路径命令 = (
             cursor[lastToken] = (Number(cursor[lastToken]) || 0) - (Number(nextValue) || 0);
             return draft;
         }
+        if (是对象(cursor[lastToken]) && 是对象(nextValue)) {
+            cursor[lastToken] = 深合并对象(cursor[lastToken], nextValue);
+            return draft;
+        }
         cursor[lastToken] = 深拷贝(nextValue);
         return draft;
     }
@@ -342,7 +352,19 @@ export const applyStateCommand = (
         return result;
     }
 
-    if (是否社交整对象命令(parsed.root, parsed.rest, action) && 是否非法社交整对象值(value)) {
+    if (parsed.root === '社交' && action === 'set' && parsed.rest === '' && !Array.isArray(value)) {
+        return result;
+    }
+
+    const socialSlotIndex = 读取社交槽位索引(parsed.root, parsed.rest, action);
+    if (socialSlotIndex !== null) {
+        if (!是对象(value)) return result;
+        if (!Array.isArray(rootSocial) || rootSocial[socialSlotIndex] === undefined) {
+            if (是否非法社交整对象值(value)) return result;
+        }
+    }
+
+    if (是否社交新增整对象命令(parsed.root, parsed.rest, action) && 是否非法社交整对象值(value)) {
         return result;
     }
 

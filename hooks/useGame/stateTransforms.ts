@@ -1799,6 +1799,12 @@ const 取更优文本 = (left?: string, right?: string): string | undefined => {
     return l || r;
 };
 
+const 取更新文本 = (left?: string, right?: string): string | undefined => {
+    const r = right?.trim();
+    if (文本质量分(r) > 1) return r;
+    return 取更优文本(left, right);
+};
+
 const 合并补充文本 = (left?: string, right?: string): string | undefined => {
     const l = left?.trim();
     const r = right?.trim();
@@ -3308,14 +3314,14 @@ const 合并NPC对象 = (leftRaw: any, rightRaw: any, fallbackIndex: number): an
         外貌描写: 取更优文本(取字段文本(left, '外貌描写'), 取字段文本(right, '外貌描写')),
         身材描写: 取更优文本(取字段文本(left, '身材描写'), 取字段文本(right, '身材描写')),
         衣着风格: 取更优文本(取字段文本(left, '衣着风格'), 取字段文本(right, '衣着风格')),
-        胸部描述: 取更优文本(读取胸部描述(left), 读取胸部描述(right)),
-        小穴描述: 取更优文本(读取小穴描述(left), 读取小穴描述(right)),
-        屁穴描述: 取更优文本(读取屁穴描述(left), 读取屁穴描述(right)),
-        肉棒描述: 取更优文本(读取肉棒描述(left), 读取肉棒描述(right)),
-        男娘设定: 取更优文本(读取男娘设定(left), 读取男娘设定(right)),
-        扶她设定: 取更优文本(读取扶她设定(left), 读取扶她设定(right)),
-        性癖: 取更优文本(读取性癖(left), 读取性癖(right)),
-        敏感点: 取更优文本(读取敏感点(left), 读取敏感点(right)),
+        胸部描述: 取更新文本(读取胸部描述(left), 读取胸部描述(right)),
+        小穴描述: 取更新文本(读取小穴描述(left), 读取小穴描述(right)),
+        屁穴描述: 取更新文本(读取屁穴描述(left), 读取屁穴描述(right)),
+        肉棒描述: 取更新文本(读取肉棒描述(left), 读取肉棒描述(right)),
+        男娘设定: 取更新文本(读取男娘设定(left), 读取男娘设定(right)),
+        扶她设定: 取更新文本(读取扶她设定(left), 读取扶她设定(right)),
+        性癖: 取更新文本(读取性癖(left), 读取性癖(right)),
+        敏感点: 取更新文本(读取敏感点(left), 读取敏感点(right)),
         ...(mergedArtifactArchive ? { 名器档案: mergedArtifactArchive } : {}),
         子宫: mergedWomb,
         ...(mergedSexLossArchive ? { 失贞档案: mergedSexLossArchive } : {}),

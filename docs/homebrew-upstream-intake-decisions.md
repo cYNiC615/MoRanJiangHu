@@ -1,14 +1,14 @@
 # Homebrew Upstream Intake Decisions
 
-> 日期：2026-06-23
+> 日期：2026-06-24
 >
 > 本文记录从 `upstream/main` 选择性吸收更新时的当前决策。它不是 changelog，也不是
 > upstream 合并计划；后续只按本文确认的小项手动补丁吸收。
 
 ## 审查基线
 
-- 当前 homebrew 基线：`main` at `32a04ea`。
-- 已审查 upstream：`upstream/main` at `2d71bcb`。
+- 当前 homebrew 基线：`main` at `663480a`。
+- 已审查 upstream：`upstream/main` at `8d9f054`。
 - 审查分支：`codex/review-upstream-sync`。
 - 不直接 merge `upstream/main` 到 `main`。
 - 不 cherry-pick 包含大量产品方向回流的 release commit；只手动摘取明确 bugfix。
@@ -181,6 +181,33 @@
 - 不直接 cherry-pick。
 - 在 `hooks/useGame/bodyPolish.ts`、`services/ai/storyResponseParser.ts` 及相关 focused tests 中手动补丁。
 - 只修正文解析保真，不改变文章优化提示词方向。
+
+### 8. 正文变量生成后的 NPC 档案字段稳定写入
+
+决策：已吸收，窄范围手动吸收。
+
+来源参考：
+
+- `8d9f054 release: publish v1.0.523`
+
+已吸收：
+
+- `set 社交[N]` 写入部分对象时，如果既有槽位与新值都是对象，按对象深合并，不再用半截对象覆盖整个 NPC。
+- `合并保留既有NPC列表` 遇到同一 NPC 时，将本轮补充字段合并进旧档案，同时保留旧的姓名、简介、记忆等长期字段。
+- 响应命令处理在 NPC 合并但未恢复缺失 NPC 时也会重新规范化并写回，避免“合并了但没有落盘”。
+- 同名 NPC 规范化合并时，胸部、小穴、屁穴、肉棒、男娘、扶她、性癖、敏感点等私密档案字段优先采用本轮有效更新。
+- 保留本地“新增社交整对象必须有姓名/别名”的防线，避免无名 NPC 被 push 成 `角色N` 占位。
+
+明确不吸收：
+
+- v1.0.523 release metadata、版本号、公网站点更新。
+- Android / APK / 发布脚本更新。
+- 与本条无关的 upstream agent/协作规则。
+
+吸收方式：
+
+- 手动补丁到 `utils/stateHelpers.ts`、`utils/npcRetentionGuard.ts`、`hooks/useGame/responseCommandProcessor.ts`、`hooks/useGame/stateTransforms.ts`。
+- 增加 focused tests 覆盖部分社交槽位写入、NPC 保留合并、同名 NPC 私密档案字段更新优先级。
 
 ## 待逐项确认
 

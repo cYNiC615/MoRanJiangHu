@@ -232,6 +232,49 @@ describe('responseCommandProcessor dialogue social sync', () => {
         expect(result.社交.find((npc: any) => npc.id === 'npc_lu_mingke')?.好感度).toBe(0);
     });
 
+    it('merges partial social slot object updates without losing the existing NPC name or archive', () => {
+        const state = 构建基础状态();
+        state.社交 = 规范化社交列表([
+            {
+                id: 'npc_tang_xiaoxue',
+                姓名: '棠小雪',
+                性别: '女',
+                身份: '炼气三层',
+                是否主要角色: true,
+                简介: '婚约未婚妻，一个月后完婚。',
+                胸部描述: '旧胸部档案。',
+                记忆: [{ 内容: '与主角有婚约。', 时间: '1:01:01:00:00' }]
+            }
+        ], { 合并同名: false });
+
+        const result = 执行响应命令处理({
+            logs: [
+                { sender: '旁白', text: '棠小雪把自己的身体异状讲给杨培强听。' }
+            ],
+            tavern_commands: [
+                {
+                    action: 'set',
+                    key: '社交[0]',
+                    value: {
+                        id: 'npc_tang_xiaoxue',
+                        胸部描述: '名器 雪肌蕴灵：胸部发育适中，肤若凝脂，乳尖呈淡粉色。',
+                        小穴描述: '名器 含羞草：花穴入口极窄且异常敏感。',
+                        屁穴描述: '无名器：后庭内壁布满极敏感的神经末梢。'
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect(result.社交).toHaveLength(1);
+        expect(result.社交[0].姓名).toBe('棠小雪');
+        expect(result.社交[0].姓名).not.toBe('角色1');
+        expect(result.社交[0].简介).toContain('婚约未婚妻');
+        expect(result.社交[0].记忆.map((item: any) => item.内容)).toContain('与主角有婚约。');
+        expect(result.社交[0].胸部描述).toContain('雪肌蕴灵');
+        expect(result.社交[0].小穴描述).toContain('含羞草');
+        expect(result.社交[0].屁穴描述).toContain('无名器');
+    });
+
     it('does not auto-create long-term social NPCs from dialogue alone, even when noise speakers are filtered out', () => {
         const state = 构建基础状态();
         const result = 执行响应命令处理({

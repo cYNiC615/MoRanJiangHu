@@ -1266,7 +1266,7 @@ export const 执行响应命令处理 = (
             { 合并同名: false }
         );
         const retention = 合并保留既有NPC列表(socialBeforeCommands, socialBuffer, charBuffer?.姓名);
-        if (retention.恢复数量 > 0) {
+        if (retention.是否变更) {
             socialBuffer = deps.规范化社交列表(retention.列表, { 合并同名: false });
         }
         socialBuffer = deps.规范化社交列表(
@@ -1366,7 +1366,7 @@ export const 执行响应命令处理 = (
         { 合并同名: false }
     );
     const socialRetention = 合并保留既有NPC列表(socialBeforeCommands, normalizedSocialBase, charBuffer?.姓名);
-    let normalizedSocial = socialRetention.恢复数量 > 0
+    let normalizedSocial = socialRetention.是否变更
         ? deps.规范化社交列表(socialRetention.列表, { 合并同名: false })
         : normalizedSocialBase;
     normalizedSocial = deps.规范化社交列表(

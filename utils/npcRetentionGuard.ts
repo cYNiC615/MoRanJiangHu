@@ -28,17 +28,37 @@ const NPC互相匹配 = (left: any, right: any): boolean => {
     return leftKeys.length > 0 && leftKeys.some((key) => rightKeys.has(key));
 };
 
+const 是普通对象 = (value: unknown): value is Record<string, unknown> => (
+    Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+);
+
+const 深合并保留NPC字段 = (previous: any, next: any): any => {
+    if (Array.isArray(next)) return 深拷贝(next);
+    if (!是普通对象(next)) return 深拷贝(next);
+    const result = 是普通对象(previous) ? 深拷贝(previous) : {};
+    Object.entries(next).forEach(([key, value]) => {
+        if (value === undefined) return;
+        if (是普通对象(result[key]) && 是普通对象(value)) {
+            result[key] = 深合并保留NPC字段(result[key], value);
+            return;
+        }
+        result[key] = 深拷贝(value);
+    });
+    return result;
+};
+
 export const 合并保留既有NPC列表 = (
     previousList: any[],
     nextList: any[],
     playerName?: string
-): { 列表: any[]; 恢复数量: number; 恢复名称: string[] } => {
+): { 列表: any[]; 恢复数量: number; 恢复名称: string[]; 合并数量: number; 是否变更: boolean } => {
     const previous = Array.isArray(previousList) ? previousList : [];
     const next = Array.isArray(nextList) ? nextList : [];
-    if (previous.length <= 0) return { 列表: next, 恢复数量: 0, 恢复名称: [] };
+    if (previous.length <= 0) return { 列表: next, 恢复数量: 0, 恢复名称: [], 合并数量: 0, 是否变更: false };
 
     const result = 深拷贝(next);
     const restoredNames: string[] = [];
+    let mergedCount = 0;
     const playerNormKey = playerName ? 规范化NPC键(playerName) : '';
 
     previous.forEach((npc, index) => {
@@ -48,8 +68,12 @@ export const 合并保留既有NPC列表 = (
             const npcKey = 规范化NPC键(npc?.姓名);
             if (npcKey && npcKey === playerNormKey) return;
         }
-        const exists = result.some((candidate) => NPC互相匹配(npc, candidate));
-        if (exists) return;
+        const existingIndex = result.findIndex((candidate) => NPC互相匹配(npc, candidate));
+        if (existingIndex >= 0) {
+            result[existingIndex] = 深合并保留NPC字段(npc, result[existingIndex]);
+            mergedCount += 1;
+            return;
+        }
         const insertIndex = Math.max(0, Math.min(index, result.length));
         result.splice(insertIndex, 0, 深拷贝(npc));
         const label = typeof npc?.姓名 === 'string' && npc.姓名.trim()
@@ -61,7 +85,9 @@ export const 合并保留既有NPC列表 = (
     return {
         列表: result,
         恢复数量: restoredNames.length,
-        恢复名称: restoredNames
+        恢复名称: restoredNames,
+        合并数量: mergedCount,
+        是否变更: restoredNames.length > 0 || mergedCount > 0
     };
 };
 

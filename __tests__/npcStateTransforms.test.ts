@@ -43,6 +43,27 @@ describe('NPC old save compatibility', () => {
         expect(npc.图片档案?.香闺秘档部位档案?.小穴?.id).toBe('secret-pussy');
     });
 
+    it('合并同名 NPC 时私密档案字段优先采用本轮有效更新', () => {
+        const [npc] = 规范化社交列表([
+            {
+                id: 'npc_lin_qingyue',
+                姓名: '林清月',
+                性别: '女',
+                是否主要角色: true,
+                胸部描述: '旧档案：这是一段较长的旧胸部常态描述，用于模拟历史记录比本轮更新更长的情况。'
+            },
+            {
+                id: 'npc_lin_qingyue',
+                姓名: '林清月',
+                性别: '女',
+                是否主要角色: true,
+                胸部描述: '新档案：已坐实变化。'
+            }
+        ] as any);
+
+        expect(npc.胸部描述).toBe('新档案：已坐实变化。');
+    });
+
     it('repairs teammate combat caps without inventing equipment or bag contents', () => {
         const [npc] = 规范化社交列表([
             {

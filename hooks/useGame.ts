@@ -500,7 +500,7 @@ export const useGame = () => {
         const next = typeof updater === 'function' ? updater(current) : updater;
         const normalized = Array.isArray(next) ? next : [];
         社交Ref.current = normalized;
-        同步设置社交(normalized);
+        设置社交(normalized);
     };
 
     useEffect(() => {

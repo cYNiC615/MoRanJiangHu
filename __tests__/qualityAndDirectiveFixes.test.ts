@@ -270,7 +270,7 @@ describe('无限流商城文案边界', () => {
         expect(labels.标题.任务发布字段).toBe('主神发布');
     });
 
-    it('无限流开局默认任务和能力不会退回武侠模板', () => {
+    it('显式无限流开局默认任务和能力不会退回武侠模板或专属倒计时模板', () => {
         const base = 创建开场基础状态(
             {
                 姓名: '陈默',
@@ -328,8 +328,10 @@ describe('无限流商城文案边界', () => {
         expect(skillText).toContain('精神力扫描');
         expect(skillText).not.toContain('基础剑法残卷');
         expect(skillText).not.toContain('藏经阁');
-        expect(taskText).toContain('主神');
-        expect(taskText).toContain('主神任务倒计时');
+        expect(taskText).toContain('确认眼前处境');
+        expect(taskText).not.toContain('主神任务倒计时');
+        expect(taskText).not.toContain('主神');
+        expect(taskText).not.toContain('任务世界');
         expect(taskText).not.toContain('初入江湖');
         expect(taskText).not.toContain('D级支线剧情');
         expect(taskText).not.toContain('确认第一项主线任务');

@@ -635,7 +635,7 @@ export const 执行变量模型校准工作流 = async (
             includeLogSenders: false
         });
         if (blacklistHits.length > 0) {
-            const message = `变量生成命中女性模板姓名黑名单：${blacklistHits.join('、')}。请重新生成变量命令，并确保正文 sender、人物称呼与社交姓名使用同一个非模板原创姓名。`;
+            const message = `变量生成命中女性姓名硬校验：${blacklistHits.join('、')}。请重新生成变量命令，并确保正文 sender、人物称呼与社交姓名使用同一个原创真实姓名。`;
             const error = new Error(message);
             (error as any).parseDetail = message;
             throw error;

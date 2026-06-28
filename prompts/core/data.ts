@@ -209,8 +209,7 @@ ${构建成长体系附加块('├─ 推荐境界: string')}
 ├─ 截止时间?: string(YYYY:MM:DD:HH:MM)
 ├─ 当前状态: string
 ├─ 目标列表: Array<{ 描述:string, 当前进度:number, 总需进度:number, 完成状态:boolean }>
-├─ 奖励描述: string[]
-└─ 剧情暗线?: string
+└─ 奖励描述: string[]
 
 ## 6. 协议边界
 - 时间推进口径以 \`<时间推进法则>\` 为准。

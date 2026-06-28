@@ -219,11 +219,11 @@ export const 开局预设方案列表: 开局预设方案结构[] = [
         worldConfig: {
             worldName: '海川市',
             worldSize: '弹丸之地',
-            dynastySetting: '现代城市由企业、学校、社区、医院、媒体和治安系统构成，阶层流动、人情关系和职业压力共同推进剧情。',
+            dynastySetting: '现代城市由企业、学校、社区、医院、媒体和治安系统构成，轻喜剧式的人物关系、城市机会、职业小麻烦与家庭/朋友起哄共同推进剧情。',
             sectDensity: '稀少',
             tianjiaoSetting: '优势来自学历、技能、人脉、信息差、资金调度和心理韧性，不默认出现超常能力体系。',
             difficulty: 'easy',
-            worldExtraRequirement: '本局为现代都市现实/低玄题材：日常经济统一使用“元”，工资、存款、欠款、合同、银行卡、电子支付都折算到角色.金钱.baseAmount。',
+            worldExtraRequirement: '本局为现代都市现实/低玄题材：默认偏后宫恋爱轻喜剧与都市日常，社会冲突保持轻量；除非玩家额外要求，不把犯罪、黑市、家暴、勒索、政治丑闻或商业阴谋写成主舞台。日常经济统一使用“元”，工资、存款、欠款、合同、银行卡、电子支付都只作为结算和行动边界，折算到角色.金钱.baseAmount；不要把货币规则扩写成经济世界观。',
             manualWorldPrompt: '',
             manualRealmPrompt: ''
         },

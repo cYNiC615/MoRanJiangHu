@@ -18,7 +18,7 @@ describe('female name selector', () => {
         expect(女性人名选择器列表.slice(0, 20)).not.toContain(selected);
     });
 
-    it('injects a blacklist prompt instead of forcing AI into a candidate pool', () => {
+    it('injects a modern naming style prompt instead of hard blacklist examples', () => {
         const candidates = 选择女性姓名候选列表({
             usedNames: ['苏婉儿', '林清雪', '端测少侠'],
             seed: '端测少侠|端测州|前厅',
@@ -34,10 +34,14 @@ describe('female name selector', () => {
         expect(new Set(candidates).size).toBe(100);
         expect(candidates).not.toContain('苏婉儿');
         expect(candidates).not.toContain('林清雪');
-        expect(prompt).toContain('女性新角色姓名黑名单');
-        expect(prompt).toContain('苏婉清');
-        expect(prompt).toContain('林婉儿');
-        expect(prompt).toContain('自行创造 2-4 字中文真实姓名');
+        expect(prompt).toContain('女性 NPC 命名风格');
+        expect(prompt).toContain('林知夏');
+        expect(prompt).toContain('顾明澜');
+        expect(prompt).toContain('示例仅用于把握语感，不要直接复读');
+        expect(prompt).toContain('年龄、职业和成熟感通过称谓、身份、行为、语气体现');
+        expect(prompt).not.toContain('苏婉清');
+        expect(prompt).not.toContain('林婉儿');
+        expect(prompt).not.toContain('黑名单');
         expect(prompt).not.toContain('候选姓名（100个）');
     });
 
@@ -47,7 +51,7 @@ describe('female name selector', () => {
         expect(提取命中女性姓名黑名单('沈清婉提着剑走入山门')).toEqual(['沈清婉']);
     });
 
-    it('only treats blacklist hits as invalid when they are new structured NPC names', () => {
+    it('keeps template-like female names as prompt-level style issues instead of hard failures', () => {
         const response = {
             logs: [
                 { sender: '旁白', text: '你轻声唤了一句“婉儿”，她偏头应了。' },
@@ -68,7 +72,7 @@ describe('female name selector', () => {
                     }
                 ]
             }
-        })).toEqual(['婉儿']);
+        })).toEqual([]);
     });
 
     it('does not locally rename generated female NPC names', () => {

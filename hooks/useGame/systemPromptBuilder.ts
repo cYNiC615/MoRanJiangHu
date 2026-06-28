@@ -677,8 +677,7 @@ export const 构建系统提示词 = ({
                 总需进度: 取数值(goal?.总需进度),
                 完成状态: 取布尔(goal?.完成状态)
             })),
-            奖励描述: 取数组(task?.奖励描述),
-            剧情暗线: 取文本(task?.剧情暗线)
+            奖励描述: 取数组(task?.奖励描述)
         }));
         return 包装树状上下文('任务列表', 裁剪成长体系上下文数据(orderedTasks, normalizedGameConfig));
     };
@@ -728,6 +727,14 @@ export const 构建系统提示词 = ({
             当前规划: normalizedStoryPlan
                 ? {
                     当前章目标: Array.isArray((normalizedStoryPlan as any).当前章目标) ? (normalizedStoryPlan as any).当前章目标 : [],
+                    剧情暗线: Array.isArray((normalizedStoryPlan as any).剧情暗线) ? (normalizedStoryPlan as any).剧情暗线.map((item: any, idx: number) => ({
+                        索引: idx,
+                        标题: item?.标题 ?? '',
+                        暗线说明: item?.暗线说明 ?? '',
+                        可见边界: item?.可见边界 ?? '',
+                        触发条件: Array.isArray(item?.触发条件) ? item.触发条件 : [],
+                        当前状态: item?.当前状态 ?? ''
+                    })) : [],
                     当前章任务: Array.isArray((normalizedStoryPlan as any).当前章任务) ? (normalizedStoryPlan as any).当前章任务.map((item: any, idx: number) => ({
                         索引: idx,
                         标题: item?.标题 ?? '',

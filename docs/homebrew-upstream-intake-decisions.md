@@ -7,11 +7,20 @@
 
 ## 审查基线
 
-- 当前 homebrew 基线：`main` at `663480a`。
+- 当前 homebrew 基线：`main` / `origin/main` at `45c25aa`。
 - 已审查 upstream：`upstream/main` at `8d9f054`。
 - 审查分支：`codex/review-upstream-sync`。
 - 不直接 merge `upstream/main` 到 `main`。
 - 不 cherry-pick 包含大量产品方向回流的 release commit；只手动摘取明确 bugfix。
+
+## 已完成吸收
+
+- `663480a fix: absorb selected upstream runtime safety fixes`：吸收已确认的 runtime safety 修复。
+- `45c25aa fix: preserve npc archive updates from variable commands`：吸收正文变量生成后的
+  NPC 档案字段稳定写入修复；同名 NPC 合并与部分 `社交[N]` 写入不再覆盖长期档案。
+
+这些提交没有改变“不直接 merge `upstream/main`”的 intake 规则。后续继续按候选项手动补丁，
+不要把 mobile/cloud/release/product 方向回流进 homebrew 主线。
 
 ## 固定排除范围
 
@@ -184,7 +193,7 @@
 
 ### 8. 正文变量生成后的 NPC 档案字段稳定写入
 
-决策：已吸收，窄范围手动吸收。
+决策：已吸收，窄范围手动吸收；最新完成提交是 `45c25aa`。
 
 来源参考：
 

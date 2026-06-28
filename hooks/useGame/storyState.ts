@@ -18,6 +18,7 @@ import { 构建默认技艺 } from '../../utils/skillDefaults';
 import { 获取题材模式配置 } from '../../utils/topicModeProfiles';
 import { 候选名命中模板黑名单 } from '../../utils/templateNameBlacklist';
 import { 确保角色金钱BaseAmount } from '../../utils/currencyDisplay';
+import { parseJsonWithRepair } from '../../utils/jsonRepair';
 import type { WorldFoundationResult } from '../../services/ai/storyTasks';
 
 const 职位等级排序: Record<string, number> = {};
@@ -318,6 +319,33 @@ const 取字符串数组 = (value: any): string[] => (
         : []
 );
 
+const 解析结构化字符串值 = (value: string): any => {
+    const text = (value || '').trim();
+    if (!text) return undefined;
+    const parsed = parseJsonWithRepair<any>(text).value;
+    if (typeof parsed === 'string' && parsed.trim() && parsed.trim() !== text) {
+        const nested = parseJsonWithRepair<any>(parsed.trim()).value;
+        return nested ?? parsed;
+    }
+    return parsed ?? undefined;
+};
+
+const 取对象数组 = (value: any): any[] => {
+    const parsed = typeof value === 'string' ? 解析结构化字符串值(value) : value;
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object') return [parsed];
+    return [];
+};
+
+const 去重对象数组 = <T,>(items: T[], keyOf: (item: T) => string): T[] => {
+    const keyed = new Map<string, T>();
+    items.forEach((item, index) => {
+        const key = keyOf(item) || `__index_${index}`;
+        keyed.set(key, item);
+    });
+    return Array.from(keyed.values());
+};
+
 const 无门派文本集合 = new Set(['', 'none', '无', '无门派', '无门无派', '暂无所属组织', '未加入任何组织', '无所属组织', '尚未加入任何门派', '尚未加入任何组织', '江湖散人', '散修', '无所属门派']);
 
 const 是否无组织标识 = (value: any): boolean => {
@@ -531,36 +559,34 @@ export const 同步角色与组织状态 = <T extends { 角色?: any; 玩家组�
 const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: OpeningConfig): 任务结构 => {
     const topic = openingConfig?.题材模式;
     const organizationName = 是否无组织标识(sect?.ID) ? '' : 取文本(sect?.名称);
-    const publisher = topic === '无限流' ? '主神光球' : (organizationName || (topic === '末日丧尸' ? '求生本能' : topic === '现代都市' ? '现实处境' : '江湖因缘'));
-    const location = topic === '无限流' ? '主神空间' : (organizationName || (topic === '末日丧尸' ? '临时落脚点' : topic === '现代都市' ? '当前城市' : '当前落脚处'));
+    const publisher = organizationName || (topic === '末日丧尸' ? '求生本能' : topic === '现代都市' || topic === '无限流' ? '当前处境' : '江湖因缘');
+    const location = organizationName || (topic === '末日丧尸' ? '临时落脚点' : topic === '现代都市' ? '当前城市' : topic === '无限流' ? '当前落点' : '当前落脚处');
     if (topic === '无限流') {
         return {
-            标题: '主神任务倒计时',
-            描述: `${publisher}的光球在头顶闪烁，屏幕上跳出本轮任务的标题、存活时限和失败惩罚。主角必须在倒计时归零前弄清楚：任务目标到底是什么、当前环境中最致命的威胁在哪里、队友各自擅长什么、以及如果局势失控该往哪撤。`,
+            标题: '确认眼前处境',
+            描述: `${publisher}把第一件可行动的压力摆到台前。主角需要先确认自己所处地点、眼前风险、身边可依靠的人或资源，并给下一步行动留下余地。`,
             类型: '主线',
             发布人: publisher,
             发布地点: location,
-            任务世界: '当前任务世界',
-            推荐境界: '新人轮回者',
+            推荐境界: '新手阶段',
             当前状态: '进行中',
             目标列表: [{
-                描述: '从主神光球或任务腕表上读到本轮任务的标题、存活时限和失败惩罚。',
+                描述: '确认当前地点、可行动范围和最直接的一项风险。',
                 当前进度: 0,
                 总需进度: 1,
                 完成状态: false
             }, {
-                描述: '确认当前任务世界中最直接的一项致命威胁（怪物、陷阱、环境或敌对轮回者）。',
+                描述: '确认至少一名可沟通对象、可用资源或可撤退路线。',
                 当前进度: 0,
                 总需进度: 1,
                 完成状态: false
             }, {
-                描述: '摸清至少一名队友的战斗特长或可用技能，以及一条可撤退的路线或安全点。',
+                描述: '把下一步行动压缩成一个能立刻执行的短期目标。',
                 当前进度: 0,
                 总需进度: 1,
                 完成状态: false
             }],
-            奖励描述: ['主神结算奖励（按完成度判定）'],
-            剧情暗线: '主线：任务必须围绕当前任务世界的生存威胁推进。没有正文证据时不得额外生成支线、隐藏奖励或团队日常任务。'
+            奖励描述: ['后续机会（按剧情判定）']
         };
     }
     if (topic === '末日丧尸') {
@@ -578,8 +604,7 @@ const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: Open
                 总需进度: 1,
                 完成状态: false
             }],
-            奖励描述: ['组织信用 +80', '急救熟练度 +8', '可分配属性点 +1'],
-            剧情暗线: '主线：第一夜奖励必须由营地值班者、队友或主角亲自确认；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
+            奖励描述: ['组织信用 +80', '急救熟练度 +8', '可分配属性点 +1']
         };
     }
     if (topic === '现代都市') {
@@ -607,8 +632,7 @@ const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: Open
                 总需进度: 1,
                 完成状态: false
             }],
-            奖励描述: ['后续机会（按剧情判定）'],
-            剧情暗线: '主线：第一轮只要求现实压力、地点/联系人和可用资源三类锚点成立；不得强制空降公司、学校、社团或固定管理者来确认成果。若奖励涉及物品或金钱，必须由AI在变量命令中明确写入，本地代码不会生成物品。'
+            奖励描述: ['后续机会（按剧情判定）']
         };
     }
     return {
@@ -625,8 +649,7 @@ const 创建开局主线任务 = (sect: 玩家组织结构, openingConfig?: Open
             总需进度: 1,
             完成状态: false
         }],
-        奖励描述: ['组织贡献 +70', '医术熟练度 +6', '可分配属性点 +1'],
-        剧情暗线: '主线：完成后要由发布人或见证者确认成果；若奖励涉及物品，必须由AI在变量命令中明确写入背包，本地代码不会生成物品。'
+        奖励描述: ['组织贡献 +70', '医术熟练度 +6', '可分配属性点 +1']
     };
 };
 
@@ -1641,6 +1664,7 @@ export const 规范化剧情状态 = (raw?: any): 剧情系统结构 => {
 
 export const 创建空剧情规划 = (): 剧情规划结构 => ({
     当前章目标: [],
+    剧情暗线: [],
     当前章任务: [],
     跨章延续事项: [],
     待触发事件: [],
@@ -1660,6 +1684,17 @@ export const 规范化剧情规划状态 = (raw?: any): 剧情规划结构 => {
     const chapterRule = plan?.换章规则 && typeof plan.换章规则 === 'object' ? plan.换章规则 : {};
     return {
         当前章目标: 取字符串数组(plan?.当前章目标),
+        剧情暗线: Array.isArray(plan?.剧情暗线)
+            ? plan.剧情暗线
+                .map((item: any) => ({
+                    标题: 取文本(item?.标题),
+                    暗线说明: 取文本(item?.暗线说明),
+                    可见边界: 取文本(item?.可见边界),
+                    触发条件: 取字符串数组(item?.触发条件),
+                    当前状态: 取文本(item?.当前状态)
+                }))
+                .filter((item) => item.标题 || item.暗线说明)
+            : [],
         当前章任务: Array.isArray(plan?.当前章任务)
             ? plan.当前章任务
                 .map((item: any) => ({
@@ -1742,71 +1777,73 @@ export const 规范化剧情规划状态 = (raw?: any): 剧情规划结构 => {
 export const 规范化女主剧情规划状态 = (raw?: any): 女主剧情规划结构 | undefined => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
     const plan = raw;
+    const normalizedEvents = 取对象数组(plan?.女主互动事件)
+        .map((item: any) => ({
+            女主姓名: 取文本(item?.女主姓名),
+            事件名: 取文本(item?.事件名),
+            事件说明: 取文本(item?.事件说明),
+            计划触发时间: 取文本(item?.计划触发时间),
+            最早触发时间: 取文本(item?.最早触发时间),
+            最晚触发时间: 取文本(item?.最晚触发时间),
+            前置条件: 取字符串数组(item?.前置条件),
+            触发条件: 取字符串数组(item?.触发条件),
+            阻断条件: 取字符串数组(item?.阻断条件),
+            成功结果: 取字符串数组(item?.成功结果),
+            失败结果: 取字符串数组(item?.失败结果),
+            关联剧情任务: 取字符串数组(item?.关联剧情任务),
+            当前状态: 取文本(item?.当前状态)
+        }))
+        .filter((item) => item.女主姓名 || item.事件名);
+    const normalizedShots = 取对象数组(plan?.女主镜头规划)
+        .map((item: any) => ({
+            女主姓名: 取文本(item?.女主姓名),
+            镜头标题: 取文本(item?.镜头标题),
+            镜头内容: 取文本(item?.镜头内容),
+            触发时间: 取文本(item?.触发时间),
+            触发条件: 取字符串数组(item?.触发条件),
+            关联事件: 取字符串数组(item?.关联事件),
+            关联剧情任务: 取字符串数组(item?.关联剧情任务),
+            沉淀内容: 取字符串数组(item?.沉淀内容),
+            当前状态: 取文本(item?.当前状态)
+        }))
+        .filter((item) => item.女主姓名 || item.镜头标题);
     return {
-        阶段推进: Array.isArray(plan?.阶段推进)
-            ? plan.阶段推进
-                .map((item: any) => ({
-                    阶段名: 取文本(item?.阶段名),
-                    阶段目标: 取字符串数组(item?.阶段目标),
-                    主推女主: 取字符串数组(item?.主推女主),
-                    次推女主: 取字符串数组(item?.次推女主),
-                    禁止越级对象: 取字符串数组(item?.禁止越级对象),
-                    关联剧情任务: 取字符串数组(item?.关联剧情任务),
-                    阶段完成判定: 取字符串数组(item?.阶段完成判定),
-                    切换条件: 取字符串数组(item?.切换条件)
-                }))
-                .filter((item) => item.阶段名 || item.阶段目标.length > 0)
-            : [],
-        女主条目: Array.isArray(plan?.女主条目)
-            ? plan.女主条目
-                .map((item: any) => ({
-                    女主姓名: 取文本(item?.女主姓名),
-                    类型: 取文本(item?.类型),
-                    当前关系状态: 取文本(item?.当前关系状态),
-                    当前阶段: 取文本(item?.当前阶段),
-                    已成立事实: 取字符串数组(item?.已成立事实),
-                    阶段目标: 取字符串数组(item?.阶段目标),
-                    推进方式: 取字符串数组(item?.推进方式),
-                    阻断因素: 取字符串数组(item?.阻断因素),
-                    允许突破条件: 取字符串数组(item?.允许突破条件),
-                    失败后回退: 取字符串数组(item?.失败后回退)
-                }))
-                .filter((item) => item.女主姓名)
-            : [],
-        女主互动事件: Array.isArray(plan?.女主互动事件)
-            ? plan.女主互动事件
-                .map((item: any) => ({
-                    女主姓名: 取文本(item?.女主姓名),
-                    事件名: 取文本(item?.事件名),
-                    事件说明: 取文本(item?.事件说明),
-                    计划触发时间: 取文本(item?.计划触发时间),
-                    最早触发时间: 取文本(item?.最早触发时间),
-                    最晚触发时间: 取文本(item?.最晚触发时间),
-                    前置条件: 取字符串数组(item?.前置条件),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    阻断条件: 取字符串数组(item?.阻断条件),
-                    成功结果: 取字符串数组(item?.成功结果),
-                    失败结果: 取字符串数组(item?.失败结果),
-                    关联剧情任务: 取字符串数组(item?.关联剧情任务),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.女主姓名 || item.事件名)
-            : [],
-        女主镜头规划: Array.isArray(plan?.女主镜头规划)
-            ? plan.女主镜头规划
-                .map((item: any) => ({
-                    女主姓名: 取文本(item?.女主姓名),
-                    镜头标题: 取文本(item?.镜头标题),
-                    镜头内容: 取文本(item?.镜头内容),
-                    触发时间: 取文本(item?.触发时间),
-                    触发条件: 取字符串数组(item?.触发条件),
-                    关联事件: 取字符串数组(item?.关联事件),
-                    关联剧情任务: 取字符串数组(item?.关联剧情任务),
-                    沉淀内容: 取字符串数组(item?.沉淀内容),
-                    当前状态: 取文本(item?.当前状态)
-                }))
-                .filter((item) => item.女主姓名 || item.镜头标题)
-            : []
+        阶段推进: 取对象数组(plan?.阶段推进)
+            .map((item: any) => ({
+                阶段名: 取文本(item?.阶段名),
+                阶段目标: 取字符串数组(item?.阶段目标),
+                主推女主: 取字符串数组(item?.主推女主),
+                次推女主: 取字符串数组(item?.次推女主),
+                禁止越级对象: 取字符串数组(item?.禁止越级对象),
+                关联剧情任务: 取字符串数组(item?.关联剧情任务),
+                阶段完成判定: 取字符串数组(item?.阶段完成判定),
+                切换条件: 取字符串数组(item?.切换条件)
+            }))
+            .filter((item) => item.阶段名 || item.阶段目标.length > 0),
+        女主条目: 取对象数组(plan?.女主条目)
+            .map((item: any) => ({
+                女主姓名: 取文本(item?.女主姓名),
+                类型: 取文本(item?.类型),
+                当前关系状态: 取文本(item?.当前关系状态),
+                当前阶段: 取文本(item?.当前阶段),
+                已成立事实: 取字符串数组(item?.已成立事实),
+                阶段目标: 取字符串数组(item?.阶段目标),
+                推进方式: 取字符串数组(item?.推进方式),
+                阻断因素: 取字符串数组(item?.阻断因素),
+                允许突破条件: 取字符串数组(item?.允许突破条件),
+                失败后回退: 取字符串数组(item?.失败后回退)
+            }))
+            .filter((item) => item.女主姓名),
+        女主互动事件: 去重对象数组(normalizedEvents, (item) => [
+            item.女主姓名,
+            item.事件名,
+            item.计划触发时间 || item.最早触发时间 || item.最晚触发时间
+        ].filter(Boolean).join('|')),
+        女主镜头规划: 去重对象数组(normalizedShots, (item) => [
+            item.女主姓名,
+            item.镜头标题,
+            item.触发时间
+        ].filter(Boolean).join('|'))
     };
 };
 

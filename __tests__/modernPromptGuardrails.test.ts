@@ -161,6 +161,23 @@ describe('modern urban prompt guardrails', () => {
         expect(combined).toContain('现代都市默认"现实世界"');
     });
 
+    it('世界演变只保留上限和章节相关性，不再要求后台事件常态补位', () => {
+        const combined = [
+            构建世界演变系统提示词(),
+            世界数据结构参考,
+            数值_世界演化.内容
+        ].join('\n');
+
+        expect(combined).toContain('当前章目标');
+        expect(combined).toContain('玩家当前体验');
+        expect(combined).toContain('只保留峰值上限，不设最低常态补位目标');
+        expect(combined).toContain('没有章节相关、玩家相关、女主/核心 NPC 相关、当前地点相关或玩家行动后果时');
+        expect(combined).not.toMatch(/常态建议维持\s*[457]/u);
+        expect(combined).not.toContain('条数不足时先补');
+        expect(combined).not.toContain('低于常态时');
+        expect(combined).not.toContain('再次清点普通远端活跃 NPC 是否回到 7 条左右');
+    });
+
     it('现代世界观生成 payload 只注入一份 COT，且不注入完整难度协议', () => {
         const payload = 构建现代世界观请求文本();
 
@@ -214,6 +231,55 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).not.toContain('世界地图是地球级面积');
         expect(payload).toContain('生成目标: 生成 world_prompt，并在启用世界基底扩展时追加世界基底 JSON');
         expect(payload).toContain('寰宇层为现实世界，大地点为当前城市或都市圈');
+    });
+
+    it('现代世界观生成以世界事实和独特设定为主，不把城市常识写成报告', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).toContain('世界事实母本');
+        expect(payload).toContain('普通现代常识默认成立，不作为篇幅重点');
+        expect(payload).toContain('篇幅优先给本局独特规则');
+        expect(payload).toContain('独特规则造成的社会后果、关系习惯、地点差异');
+        expect(payload).toContain('可进入地点');
+        expect(payload).toContain('可遇见人物');
+        expect(payload).toContain('关系/女主土壤');
+        expect(payload).not.toContain('近期可触发事件');
+    });
+
+    it('现代世界观生成默认偏轻喜剧恋爱，不把社会冲突写成主舞台', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).toContain('默认偏后宫恋爱轻喜剧与都市日常');
+        expect(payload).toContain('除非玩家世界观草稿与细化要求明确要求');
+        expect(payload).toContain('误会、暧昧、照顾、竞争、同居/合租、约会、家庭/朋友起哄、轻量麻烦');
+        expect(payload).toContain('不要把犯罪、黑市、家暴、勒索、政治丑闻或商业阴谋写成默认主舞台');
+    });
+
+    it('现代世界观生成要求自定义规则落到关系和日常二阶影响', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).toContain('玩家自定义的独特规则必须展开到恋爱、亲密关系、家庭、日常制度、角色选择、日常场景和常见选择');
+        expect(payload).toContain('不得只复述规则本身');
+        expect(payload).toContain('二阶影响');
+    });
+
+    it('现代世界观生成正文结构不暴露 DM 元话语', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).not.toContain('DM 可用运行逻辑');
+        expect(payload).not.toContain('DM 能立即调用');
+        expect(payload).not.toContain('事件联动与剧情推进逻辑');
+    });
+
+    it('现代世界观生成压缩经济制度说明，避免宏观经济报告口径', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).toContain('经济、制度、法律和交通只作为行动边界');
+        expect(payload).toContain('不要展开宏观经济循环');
+        expect(payload).toContain('不要把工资、房租、合同、信用记录写成主要篇幅');
+        expect(payload).toContain('禁止写入“后续世界演化会自动生成”这类系统元话语');
+        expect(payload).not.toContain('经济如何运转');
+        expect(payload).not.toContain('现金流、舆论与法律后果如何影响个人命运');
     });
 
     it('世界观阶段难度摘要使用现代风险口径，不暴露旧生理协议标题', () => {
@@ -404,6 +470,19 @@ describe('modern urban prompt guardrails', () => {
         expect(rendered).not.toContain('长期目标推进主线');
     });
 
+    it('任务链 prompt 不携带无限流专属任务锚点', () => {
+        const combined = [
+            开场初始化任务提示词,
+            开局变量生成附加提示词,
+            构建变量模型职责提示词(),
+            变量生成COT提示词
+        ].join('\n');
+
+        expect(combined).toContain('任务列表');
+        expect(combined).toContain('正式目标');
+        expect(combined).not.toMatch(/无限流|主神|轮回|任务世界|荒怨|生化危机|异形/u);
+    });
+
     it('文章优化附加格式示例不再把普通手机作为档案引用锚点', () => {
         const source = readFileSync('hooks/useGame/bodyPolish.ts', 'utf8');
 
@@ -467,7 +546,7 @@ describe('modern urban prompt guardrails', () => {
             配置约束启用: true,
             题材模式: '现代都市',
             初始关系模板: '独行少系',
-            关系侧重: ['利益'],
+            关系侧重: ['师门', '利益'],
             开局切入偏好: '门派起手',
             开局生成组织: false,
             开局生成成员: false,
@@ -477,8 +556,10 @@ describe('modern urban prompt guardrails', () => {
         } as any);
 
         expect(prompt).toContain('开局切入偏好：组织起手');
+        expect(prompt).toContain('关系侧重：职场、合作');
         expect(prompt).toContain('公司、学校、社区、项目组、门店或合作现场');
         expect(prompt).not.toContain('开局切入偏好：门派起手');
+        expect(prompt).not.toMatch(/宗门|门派|师门/u);
     });
 
     it('现代变量相关规则不暴露旧成长体系和旧坐标路径锚点', () => {
@@ -521,5 +602,19 @@ describe('modern urban prompt guardrails', () => {
         expect(combined).toContain('现实压力');
         expect(combined).toContain('观察宿舍走廊');
         expect(combined).toContain('查看兼职群消息');
+    });
+
+    it('女性 NPC 命名提示只注入现代正例，不注入模板名反例', () => {
+        const combined = [
+            构建变量模型职责提示词(),
+            数值_NPC参考.内容,
+            构建女性姓名黑名单提示词()
+        ].join('\n');
+
+        expect(combined).toContain('女性 NPC 命名风格');
+        expect(combined).toContain('林知夏');
+        expect(combined).toContain('顾明澜');
+        expect(combined).not.toMatch(/女性新角色姓名黑名单|女性姓名黑名单|女性模板姓名黑名单/u);
+        expect(combined).not.toMatch(/苏婉儿|苏婉清|林婉儿|若嫣|清雪|婉儿|灵儿|月儿|芷若/u);
     });
 });

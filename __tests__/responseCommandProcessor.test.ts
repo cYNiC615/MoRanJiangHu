@@ -605,6 +605,34 @@ describe('responseCommandProcessor female relationship target major role fallbac
         expect((result.女主剧情规划 as any)?.现状).toBe('旧规划');
     });
 
+    it('maps hidden plot thread commands into the story planning tree', () => {
+        const state = 构建基础状态();
+
+        const result = 执行响应命令处理({
+            logs: [{ sender: '旁白', text: '楼道监控缺了一段，但暂时只有读者知道。' }],
+            tavern_commands: [
+                {
+                    action: 'push',
+                    key: '剧情暗线',
+                    value: {
+                        标题: '楼道监控被删',
+                        暗线说明: '有人在玩家到场前删除了关键监控片段。',
+                        可见边界: '仅DM/读者视角可见',
+                        触发条件: ['玩家继续追查物业监控'],
+                        当前状态: '待揭示'
+                    }
+                }
+            ]
+        } as any, state, deps, undefined, { applyState: false });
+
+        expect((result.剧情规划 as any).剧情暗线).toEqual([
+            expect.objectContaining({
+                标题: '楼道监控被删',
+                当前状态: '待揭示'
+            })
+        ]);
+    });
+
     it('allows heroine planning commands only when they target an established candidate', () => {
         const state = 构建基础状态();
         state.社交 = 规范化社交列表([{

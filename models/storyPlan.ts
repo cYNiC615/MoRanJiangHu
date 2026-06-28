@@ -63,8 +63,17 @@ export interface 剧情换章规则结构 {
     切章后需重建字段: string[];
 }
 
+export interface 剧情暗线结构 {
+    标题: string;
+    暗线说明: string;
+    可见边界: string;
+    触发条件: string[];
+    当前状态: string;
+}
+
 export interface 剧情规划结构 {
     当前章目标: string[];
+    剧情暗线: 剧情暗线结构[];
     当前章任务: 剧情任务结构[];
     跨章延续事项: 剧情延续事项结构[];
     待触发事件: 剧情待触发事件结构[];

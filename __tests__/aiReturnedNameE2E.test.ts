@@ -93,8 +93,10 @@ describe('AI returned female name e2e', () => {
 
         const npc = result.社交.find((item: any) => item?.id === 'npc_ai_su_waner');
         console.info(`[AI姓名端到端] 模拟AI原始返回=${aiReturnedName}；最终入库=${npc?.姓名}`);
-        expect(candidatePrompt).toContain('女性新角色姓名黑名单');
-        expect(candidatePrompt).toContain('苏婉儿');
+        expect(candidatePrompt).toContain('女性 NPC 命名风格');
+        expect(candidatePrompt).toContain('林知夏');
+        expect(candidatePrompt).toContain('顾明澜');
+        expect(candidatePrompt).not.toContain('苏婉儿');
         expect(candidatePrompt).not.toContain('候选姓名（100个）');
         expect(aiReturnedName).not.toBe('苏婉儿');
         expect(npc?.姓名).toBe(aiReturnedName);
@@ -104,7 +106,7 @@ describe('AI returned female name e2e', () => {
         expect(npc?.自动补全头像).toBe(true);
     });
 
-    it('rejects a newly generated template name before it can be committed', () => {
+    it('does not reject a style-only template name before it can be committed', () => {
         const aiReturnedName = '苏婉儿';
         const response = {
             logs: [
@@ -129,7 +131,7 @@ describe('AI returned female name e2e', () => {
         };
 
         expect(() => 校验响应未命中女性姓名黑名单(response as any, JSON.stringify(response), '主剧情'))
-            .toThrow('女性模板姓名黑名单');
+            .not.toThrow();
     });
 
     it('does not reject normal body text that uses an affectionate nickname', () => {

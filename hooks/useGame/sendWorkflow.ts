@@ -254,7 +254,7 @@ export const 校验响应未命中女性姓名黑名单 = (
         currentSocial
     });
     if (hits.length <= 0) return;
-    const detail = `${stageLabel}命中女性模板姓名黑名单：${hits.join('、')}。请完整重新生成本回合正文和变量命令，改用更贴合世界观的原创真实姓名，并保持正文 sender 与社交姓名一致。`;
+    const detail = `${stageLabel}命中女性姓名硬校验：${hits.join('、')}。请完整重新生成本回合正文和变量命令，改用更贴合世界观的原创真实姓名，并保持正文 sender 与社交姓名一致。`;
     const error = new textAIService.StoryResponseParseError(detail, rawText, detail);
     (error as any).parseDetail = detail;
     throw error;

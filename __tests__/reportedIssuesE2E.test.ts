@@ -1,41 +1,54 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { 补齐世界地图空间字段 } from '../utils/mapSpatial';
 import { 规范化任务列表自动结算 } from '../utils/taskCompat';
 
 describe('用户反馈问题端到端回归', () => {
-    it('会合并无限流同一生存倒计时任务，避免重复出现存活至天亮类任务', () => {
+    it('任务列表只去重完全重复任务，保留相似但不同的正式目标', () => {
         const tasks = 规范化任务列表自动结算([
             {
-                ID: 'main-survive',
-                标题: '主神任务倒计时',
+                ID: 'main-rent',
+                标题: '房租协商',
                 类型: '主线',
-                描述: '任务世界《荒怨民宅》：存活至天亮。',
-                发布人: '主神',
+                描述: '三天内与房东谈妥缓缴方案。',
+                发布人: '房东',
                 当前状态: '进行中',
-                目标列表: [{ 描述: '在荒怨民宅中存活24小时', 当前进度: 0, 总需进度: 1 }]
+                目标列表: [{ 描述: '准备收入证明', 当前进度: 0, 总需进度: 1 }]
             },
             {
-                ID: 'dup-survive-title',
-                标题: '存活至天亮',
+                ID: 'side-utility',
+                标题: '整理水电账单',
                 类型: '支线',
-                描述: '团队成员提醒所有轮回者撑过第一夜。',
-                发布人: '资深者',
+                描述: '室友提醒你把本月水电和房租记录整理清楚。',
+                发布人: '室友',
                 当前状态: '进行中',
-                目标列表: [{ 描述: '活到天亮', 当前进度: 0, 总需进度: 1 }]
+                目标列表: [{ 描述: '核对转账记录', 当前进度: 0, 总需进度: 1 }]
             },
             {
-                ID: 'dup-survive-24h',
-                标题: '在荒怨民宅中存活24小时',
+                ID: 'side-utility-copy',
+                标题: '整理水电账单',
                 类型: '支线',
-                描述: '轮回小队重复记录的主线任务。',
-                发布人: '队长',
+                描述: '室友提醒你把本月水电和房租记录整理清楚。',
+                发布人: '室友',
                 当前状态: '进行中',
-                目标列表: [{ 描述: '第一夜不要死亡', 当前进度: 0, 总需进度: 1 }]
+                目标列表: [{ 描述: '核对转账记录', 当前进度: 0, 总需进度: 1 }]
+            },
+            {
+                ID: 'side-bank',
+                标题: '整理银行流水',
+                类型: '支线',
+                描述: '你决定额外整理近三个月银行流水，避免协商时说不清。',
+                发布人: '自己',
+                当前状态: '进行中',
+                目标列表: [{ 描述: '导出银行流水', 当前进度: 0, 总需进度: 1 }]
             }
         ]);
 
-        expect(tasks).toHaveLength(1);
-        expect(tasks[0].标题).toBe('主神任务倒计时');
+        expect(tasks.map((task: any) => task.标题)).toEqual([
+            '房租协商',
+            '整理水电账单',
+            '整理银行流水'
+        ]);
     });
 
     it('同一个角色只保留一个最细地图落点，不会同时出现在父级和子级', () => {
@@ -62,5 +75,14 @@ describe('用户反馈问题端到端回归', () => {
         expect(playerSpots[0].所在层级ID).toBe('room');
         expect(npcSpots).toHaveLength(1);
         expect(npcSpots[0].所在层级ID).toBe('room');
+    });
+
+    it('社交同步 setter 不会递归调用自身', () => {
+        const source = readFileSync('hooks/useGame.ts', 'utf8');
+        const match = source.match(/const 同步设置社交 = \(updater: any\) => \{[\s\S]*?\n    \};/u);
+
+        expect(match?.[0]).toBeTruthy();
+        expect(match![0]).toContain('设置社交(normalized);');
+        expect(match![0]).not.toContain('同步设置社交(normalized);');
     });
 });

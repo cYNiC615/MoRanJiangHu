@@ -30,7 +30,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, to
             ...(Array.isArray(task?.标签) ? task.标签 : []),
             ...(Array.isArray(task?.任务标签) ? task.任务标签 : [])
         ].map((item) => String(item || '').trim()).filter(Boolean);
-        const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点, task?.剧情暗线].filter(Boolean).join(' ');
+        const text = [task?.标题, task?.描述, task?.发布人, task?.发布地点].filter(Boolean).join(' ');
         if (isInfiniteMode && /主神|任务世界|恐怖片|奖励点|支线剧情|回归|倒计时/u.test(text)) {
             labels.push('主神');
         }

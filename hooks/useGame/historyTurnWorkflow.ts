@@ -86,6 +86,47 @@ type 历史回合工作流依赖 = {
     合并NPC图片档案: (baseNpc: any, latestNpc: any) => any;
 };
 
+const 序列化回放命令 = (cmd: any): string => {
+    try {
+        return JSON.stringify([
+            typeof cmd?.action === 'string' ? cmd.action : 'set',
+            typeof cmd?.key === 'string' ? cmd.key : '',
+            cmd?.value ?? null
+        ]);
+    } catch {
+        return [
+            typeof cmd?.action === 'string' ? cmd.action : 'set',
+            typeof cmd?.key === 'string' ? cmd.key : '',
+            String(cmd?.value ?? null)
+        ].join('::');
+    }
+};
+
+const 清理变量续跑响应 = (response: GameResponse): GameResponse => {
+    const oldVariableKeys = new Set(
+        (Array.isArray((response as any)?.variable_calibration_commands)
+            ? (response as any).variable_calibration_commands
+            : []
+        ).map(序列化回放命令)
+    );
+    const seen = new Set<string>();
+    const tavernCommands = (Array.isArray(response?.tavern_commands) ? response.tavern_commands : [])
+        .filter((cmd: any) => {
+            const key = 序列化回放命令(cmd);
+            if (oldVariableKeys.has(key)) return false;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    return {
+        ...response,
+        tavern_commands: tavernCommands,
+        variable_calibration_report: undefined,
+        variable_calibration_commands: undefined,
+        variable_calibration_model: undefined
+    } as GameResponse;
+};
+
 export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) => {
     const 创建重建空记忆系统 = (): 记忆系统结构 => ({
         回忆档案: [],
@@ -437,6 +478,7 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
                 return deps.提取解析失败原始信息(error) || '无法从原始响应恢复结构化正文。';
             }
         }
+        parsed = 清理变量续跑响应(parsed);
 
         await 使用快照重建解析回合(snapshot, parsed, typeof target.rawJson === 'string' ? target.rawJson : '', {
             playerInput: isOpeningTurn ? '' : playerInput,

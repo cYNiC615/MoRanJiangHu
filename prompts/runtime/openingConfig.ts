@@ -32,11 +32,13 @@ export const 构建题材模式提示词 = (openingConfig?: OpeningConfig | null
 export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null, openingExtraRequirement?: string): string => {
     if (!openingConfig) return '';
     if (openingConfig.配置约束启用 === false) return '';
-    const 关系侧重 = Array.isArray(openingConfig.关系侧重) && openingConfig.关系侧重.length > 0
-        ? openingConfig.关系侧重.join('、')
-        : '无';
     const 允许生成性别 = 规范化开局生成性别列表(openingConfig.允许生成性别);
     const 开局文案 = 获取题材开局配置文案(openingConfig.题材模式, openingConfig.modeRuntimeProfile);
+    const 关系侧重 = Array.isArray(openingConfig.关系侧重) && openingConfig.关系侧重.length > 0
+        ? openingConfig.关系侧重.map((item) => 开局文案.relationLabels[item] || item).join('、')
+        : '无';
+    const profile = 获取题材模式配置(openingConfig.题材模式);
+    const isModern = profile.group === 'modern';
     const 切入文案 = 开局文案.cutInLabels[openingConfig.开局切入偏好] || {
         label: openingConfig.开局切入偏好,
         hint: ''
@@ -51,8 +53,16 @@ export const 构建开局配置提示词 = (openingConfig?: OpeningConfig | null
         '- 主角性别以玩家建档为准，不受上述生成性别列表覆盖；不要额外扩写未允许性别的新原创角色。',
         `- 题材开局边界：${开局文案.promptBoundary}`,
         openingConfig.开局生成组织 === true
-            ? `- 开局组织口径：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”；组织可以是公司、学校、社区、项目组、营地、队伍、公会、协会或其他当前题材合适的社会结构，不等同于旧门派系统。`
-            : '- 开局组织口径：本次不主动生成初始组织、归属结构或绑定团队；除非 world_prompt、玩家草稿、建档信息或最新输入明确要求，否则不要让主角开局就隶属于公司、学校、社团、团队、营地、公会、宗门或门派。',
+            ? (
+                isModern
+                    ? `- 开局组织口径：允许生成与现代都市匹配的初始组织，界面语义为“${开局文案.organizationTitle}”；组织可以是公司、学校、社区、项目组、门店、合作团队、社团、媒体或其他现实社会结构，不等同于固定归属系统。`
+                    : `- 开局组织口径：允许生成与题材匹配的初始组织，界面语义为“${开局文案.organizationTitle}”；组织可以是公司、学校、社区、项目组、营地、队伍、公会、协会或其他当前题材合适的社会结构，不等同于旧门派系统。`
+            )
+            : (
+                isModern
+                    ? '- 开局组织口径：本次不主动生成初始组织、归属结构或绑定团队；除非 world_prompt、玩家草稿、建档信息或最新输入明确要求，否则不要让主角开局就隶属于公司、学校、社团、团队、营地、公会或其他固定组织。'
+                    : '- 开局组织口径：本次不主动生成初始组织、归属结构或绑定团队；除非 world_prompt、玩家草稿、建档信息或最新输入明确要求，否则不要让主角开局就隶属于公司、学校、社团、团队、营地、公会、宗门或门派。'
+            ),
         openingConfig.开局生成成员 === false
             ? '- 开局成员名录：本次明确不生成成员/联系人/队友名录变量；社交人物必须按剧情证据自然落位。'
             : `- 开局成员名录：允许生成与题材匹配的初始成员，界面语义为“${开局文案.memberTitle}”。`,

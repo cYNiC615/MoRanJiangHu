@@ -132,4 +132,51 @@ describe('history turn variable retry', () => {
         expect(deps.设置历史记录).toHaveBeenCalledTimes(1);
         expect(deps.设置历史记录.mock.calls[0][0][0].structuredResponse.tavern_commands).toHaveLength(1);
     });
+
+    it('does not feed previous supplemental commands back into variable retry', async () => {
+        const mainCommand = { action: 'set', key: 'gameState.环境.具体地点', value: '302室' };
+        const oldVariableCommand = { action: 'push', key: 'gameState.社交[0].记忆', value: '旧变量补充' };
+        const oldPlanningCommand = { action: 'push', key: 'gameState.女主剧情规划.女主互动事件', value: { 女主姓名: '王秀芳', 事件名: '晨间偶遇' } };
+        const deps = 创建基础依赖({
+            历史记录: [{
+                role: 'assistant',
+                content: 'Structured Response',
+                structuredResponse: {
+                    logs: [{ sender: '旁白', text: '旧正文' }],
+                    tavern_commands: [mainCommand, oldVariableCommand, oldPlanningCommand, oldPlanningCommand],
+                    variable_calibration_commands: [oldVariableCommand],
+                    planning_analysis_commands: [oldPlanningCommand]
+                },
+                rawJson: '<正文>旧正文</正文>',
+                timestamp: 1
+            }],
+            执行重解析变量生成: vi.fn(async (params: any) => ({
+                ...params.parsedResponse,
+                tavern_commands: [
+                    ...(Array.isArray(params.parsedResponse?.tavern_commands) ? params.parsedResponse.tavern_commands : []),
+                    { action: 'push', key: 'gameState.社交[0].记忆', value: '新变量补充' }
+                ],
+                variable_calibration_commands: [
+                    { action: 'push', key: 'gameState.社交[0].记忆', value: '新变量补充' }
+                ]
+            }))
+        });
+        const workflow = 创建历史回合工作流(deps);
+
+        await workflow.handleRetryLatestVariableGeneration();
+
+        expect(deps.执行重解析变量生成).toHaveBeenCalledTimes(1);
+        const retryInput = deps.执行重解析变量生成.mock.calls[0][0].parsedResponse;
+        expect(retryInput.tavern_commands).toEqual([mainCommand, oldPlanningCommand]);
+
+        const rebuilt = deps.设置历史记录.mock.calls[0][0][0].structuredResponse;
+        expect(rebuilt.tavern_commands).toEqual([
+            mainCommand,
+            oldPlanningCommand,
+            { action: 'push', key: 'gameState.社交[0].记忆', value: '新变量补充' }
+        ]);
+        expect(rebuilt.variable_calibration_commands).toEqual([
+            { action: 'push', key: 'gameState.社交[0].记忆', value: '新变量补充' }
+        ]);
+    });
 });

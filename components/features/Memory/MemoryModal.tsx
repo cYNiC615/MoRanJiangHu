@@ -287,7 +287,7 @@ const MemoryModal: React.FC<Props> = ({
                 
                 {/* 装饰类背景层 */}
                 <div className="absolute inset-0 z-0 pointer-events-none">
-                    <div className="absolute inset-0 bg-[url('/assets/images/ui/paper-texture.png')] opacity-[0.03] mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-white/10 opacity-[0.03] mix-blend-overlay"></div>
                     <div className="absolute inset-0 bg-gradient-to-br from-wuxia-cyan/10 via-transparent to-black"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[500px] font-serif text-wuxia-cyan opacity-[0.02] filter blur-[4px]">
                         识

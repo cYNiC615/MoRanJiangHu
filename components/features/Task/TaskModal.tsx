@@ -86,7 +86,7 @@ const TaskModal: React.FC<Props> = ({ tasks, onDeleteTask, onClose, uiLabels, to
                 
                 {/* 背景装饰 */}
                 <div className="absolute inset-0 z-0 pointer-events-none">
-                    <div className="absolute inset-0 bg-[url('/assets/images/ui/paper-texture.png')] opacity-[0.03] mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-white/10 opacity-[0.03] mix-blend-overlay"></div>
                     <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-transparent to-black"></div>
                 </div>
 

@@ -70,7 +70,7 @@ const HeroinePlanModal: React.FC<Props> = ({ plan, onClose }) => {
             <div className="bg-ink-black/90 w-full max-w-[1400px] h-[90vh] flex flex-col rounded-3xl border border-rose-900/30 shadow-[0_0_100px_rgba(225,29,72,0.1)] relative overflow-hidden ring-1 ring-white/5">
                 {/* Background Textures & Gradients */}
                 <div className="absolute inset-0 z-0 pointer-events-none">
-                    <div className="absolute inset-0 bg-[url('/assets/images/ui/paper-texture.png')] opacity-[0.03] mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-white/10 opacity-[0.03] mix-blend-overlay"></div>
                     <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-rose-900/10 to-transparent opacity-30 transform translate-x-1/3 -translate-y-1/3"></div>
                     <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-amber-900/10 to-transparent opacity-20 transform -translate-x-1/3 translate-y-1/3"></div>
                 </div>

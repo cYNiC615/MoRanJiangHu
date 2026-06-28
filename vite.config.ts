@@ -201,23 +201,6 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/prompts/')) {
               return 'prompts';
             }
-
-            if (
-              normalizedId.endsWith('/utils/openingConfig.ts') ||
-              normalizedId.endsWith('/utils/topicModeProfiles.ts') ||
-              normalizedId.endsWith('/utils/modeRuntimeProfile.ts') ||
-              normalizedId.endsWith('/utils/promptFeatureToggles.ts')
-            ) {
-              return 'prompts';
-            }
-
-            if (
-              normalizedId.includes('/hooks/useGame/') ||
-              normalizedId.endsWith('/hooks/useGame.ts') ||
-              normalizedId.includes('/services/ai/')
-            ) {
-              return 'game-runtime';
-            }
           }
 }
       }

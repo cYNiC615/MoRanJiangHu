@@ -776,7 +776,7 @@ export const 保存存档 = async (存档: Omit<存档结构, 'id'>): Promise<nu
         });
     }
     const existingSaves = await 读取存档谱系轻量视图(db).catch(() => []);
-    const withLineage = 补全存档谱系元数据(normalized, existingSaves);
+    const withLineage = 补全存档谱系元数据(normalized, existingSaves as Array<Partial<存档结构>>);
     const persistedSave = await 外置化图片字段(withLineage) as Omit<存档结构, 'id'>;
 
     if (persistedSave.类型 === 'auto') {

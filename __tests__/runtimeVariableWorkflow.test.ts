@@ -4,7 +4,7 @@ import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 
 const 创建依赖 = (options?: { heroinePlanEnabled?: boolean }) => {
     let social: any[] = [];
-    const state = {
+    const state: any = {
         角色: {},
         环境: {},
         社交: social,

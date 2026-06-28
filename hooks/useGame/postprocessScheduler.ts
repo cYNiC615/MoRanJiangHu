@@ -8,7 +8,7 @@ export type 后处理调度状态快照 = {
 
 export type 后处理调度判定输入 = {
     postprocessSignal?: PostprocessSignal;
-    response?: Partial<GameResponse> & Record<string, unknown>;
+    response?: Partial<GameResponse>;
     state?: 后处理调度状态快照 | null;
     previousState?: 后处理调度状态快照 | null;
 };
@@ -65,10 +65,11 @@ const 安全转JSON = (value: unknown): string => {
     }
 };
 
-const 读取文本字段 = (source: Record<string, unknown> | undefined, keys: string[]): string[] => {
+const 读取文本字段 = (source: Partial<GameResponse> | undefined, keys: string[]): string[] => {
     if (!source) return [];
+    const record = source as Record<string, unknown>;
     return keys
-        .map((key) => source[key])
+        .map((key) => record[key])
         .flatMap((value) => {
             if (typeof value === 'string') return [value];
             if (Array.isArray(value)) {
@@ -78,7 +79,7 @@ const 读取文本字段 = (source: Record<string, unknown> | undefined, keys: s
         });
 };
 
-const 提取响应文本 = (response?: Partial<GameResponse> & Record<string, unknown>): string => {
+const 提取响应文本 = (response?: Partial<GameResponse>): string => {
     if (!response) return '';
     const parts: string[] = [];
 

@@ -232,7 +232,7 @@ const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, on
                 
                 {/* 背景装饰层 */}
                 <div className="absolute inset-0 pointer-events-none z-0">
-                    <div className="absolute inset-0 bg-[url('/assets/images/ui/paper-texture.png')] opacity-[0.03] mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-white/10 opacity-[0.03] mix-blend-overlay"></div>
                     <div className="absolute inset-0 bg-gradient-radial from-wuxia-gold/5 to-transparent blur-[80px]"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[500px] font-serif text-wuxia-gold opacity-[0.02] filter blur-sm">
                         甲
@@ -310,7 +310,7 @@ const EquipmentModal: React.FC<Props> = ({ character, openingConfig, onClose, on
                                 {/* Center Character Display */}
                                 <div className="flex flex-col w-[128px] md:w-64 shrink-0 items-center justify-start relative z-20 pt-0 md:pt-2">
                                     <div className="w-[108px] h-[216px] md:w-56 md:h-[450px] border border-wuxia-gold/30 bg-gradient-to-b from-wuxia-gold/10 to-transparent rounded-[120px] md:rounded-[200px] overflow-hidden relative shadow-[0_0_50px_rgba(212,175,55,0.1)] group">
-                                        <div className="absolute inset-0 bg-[url('/assets/images/ui/paper-texture.png')] opacity-10 mix-blend-overlay"></div>
+                                        <div className="absolute inset-0 bg-white/10 opacity-10 mix-blend-overlay"></div>
                                         {主角披挂像地址 ? (
                                             <>
                                                 <img

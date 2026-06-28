@@ -54,7 +54,7 @@ describe('variableModelWorkflow inventory commands', () => {
                 社交: [],
                 玩家组织: {},
                 任务列表: []
-            },
+            } as any,
             promptPool: [],
             worldEvolutionEnabled: false
         }, {

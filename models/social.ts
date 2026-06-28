@@ -215,7 +215,7 @@ export interface NPC结构 {
     对主角称呼?: string;
     简介: string;
     社交档案版本?: number;
-    行为档案?: NPC行为档案结构;
+    行为档案?: Partial<NPC行为档案结构>;
     角色种子ID?: string;
     核心性格特征?: string; // 一句话锚定角色主性格（用于关系演化）
     好感度突破条件?: string; // 下一阶段好感提升的触发条件

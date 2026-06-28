@@ -22,7 +22,7 @@ const MapModal: React.FC<Props> = ({ world, env, onClose, onRegenerateMap, onIns
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/95 p-2 backdrop-blur-sm animate-fadeIn">
         <div className="relative flex h-[95vh] max-h-[95vh] w-full max-w-[min(1680px,calc(100vw-16px))] flex-col overflow-hidden rounded-2xl border border-wuxia-gold/20 bg-ink-black/95 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
             <div className="pointer-events-none absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-[url('/assets/images/ui/paper-texture.png')] opacity-[0.035] mix-blend-overlay" />
+                <div className="absolute inset-0 bg-white/10 opacity-[0.035] mix-blend-overlay" />
                 <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-wuxia-gold/10 to-transparent" />
             </div>
 

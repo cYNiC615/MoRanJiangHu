@@ -25,20 +25,21 @@ const 读取档案 = (npc: any): Partial<NPC行为档案结构> => (
 
 export const 规范化NPC行为档案 = (npc: any): NPC行为档案结构 => {
     const raw = 读取档案(npc);
+    const rawRecord = raw as Partial<NPC行为档案结构> & { 边界?: unknown; 硬锁?: unknown };
     return {
-        性格底色: 读取文本(raw.性格底色) || 读取文本(npc?.核心性格特征),
-        核心欲望: 读取文本(raw.核心欲望),
-        当前agenda: 读取文本(raw.当前agenda) || 读取文本(npc?.行动意图) || 读取文本(npc?.当前任务),
-        防御机制: 读取文本(raw.防御机制),
-        交流风格: 读取文本(raw.交流风格),
-        情感需求: 读取文本(raw.情感需求),
-        吸引点: 文本列表(raw.吸引点, npc?.好感度突破条件),
-        戒备点: 文本列表(raw.戒备点),
-        亲密阻力: 文本列表(raw.亲密阻力, npc?.关系突破条件),
-        边界与硬锁: 文本列表(raw.边界与硬锁, raw.边界, raw.硬锁),
-        后宫兼容路径: 读取文本(raw.后宫兼容路径),
-        最近更新原因: 读取文本(raw.最近更新原因),
-        更新时间: 读取文本(raw.更新时间)
+        性格底色: 读取文本(rawRecord.性格底色) || 读取文本(npc?.核心性格特征),
+        核心欲望: 读取文本(rawRecord.核心欲望),
+        当前agenda: 读取文本(rawRecord.当前agenda) || 读取文本(npc?.行动意图) || 读取文本(npc?.当前任务),
+        防御机制: 读取文本(rawRecord.防御机制),
+        交流风格: 读取文本(rawRecord.交流风格),
+        情感需求: 读取文本(rawRecord.情感需求),
+        吸引点: 文本列表(rawRecord.吸引点, npc?.好感度突破条件),
+        戒备点: 文本列表(rawRecord.戒备点),
+        亲密阻力: 文本列表(rawRecord.亲密阻力, npc?.关系突破条件),
+        边界与硬锁: 文本列表(rawRecord.边界与硬锁, rawRecord.边界, rawRecord.硬锁),
+        后宫兼容路径: 读取文本(rawRecord.后宫兼容路径),
+        最近更新原因: 读取文本(rawRecord.最近更新原因),
+        更新时间: 读取文本(rawRecord.更新时间)
     };
 };
 

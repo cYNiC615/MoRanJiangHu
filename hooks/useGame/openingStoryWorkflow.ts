@@ -197,6 +197,8 @@ type 开场剧情生成依赖 = {
             字数要求提示词?: string;
             免责声明输出提示词?: string;
             nsfwPromptLevel?: any;
+            题材模式提示词?: string;
+            玩家剧情倾向提示词?: string;
             导演配置提示词?: string;
         };
     }> | (酒馆上下文结构 & {
@@ -206,6 +208,8 @@ type 开场剧情生成依赖 = {
             字数要求提示词?: string;
             免责声明输出提示词?: string;
             nsfwPromptLevel?: any;
+            题材模式提示词?: string;
+            玩家剧情倾向提示词?: string;
             导演配置提示词?: string;
         };
     });

@@ -188,13 +188,6 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).toContain('【当前世界观生成难度摘要】');
     });
 
-    it('现代世界观生成 payload 不携带旧武侠默认触发词', () => {
-        const payload = 构建现代世界观请求文本();
-
-        expect(payload).not.toMatch(/WuXia|武侠口径|江湖叙事|门派|宗门|朝廷|诸天万界|九州/u);
-        expect(payload).toMatch(/城市制度|职业压力|家庭关系|现实资源|组织\/圈层|法律后果/u);
-    });
-
     it('现代世界观生成需要世界基底时不再出现只输出世界观的冲突指令', () => {
         const payload = 构建现代世界观请求文本();
 
@@ -207,7 +200,7 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).not.toMatch(/只输出一个 `?<世界观>.*若系统要求输出/u);
     });
 
-    it('现代世界观生成 payload 不携带旧难度口径、单 world_prompt 目标或地球级尺度', () => {
+    it('现代世界观生成 payload 使用当前世界基底目标和都市尺度', () => {
         const seed = 构建世界观种子提示词(现代世界配置, 测试角色, 现代开局配置);
         const difficultySummary = 构建世界观难度摘要(默认提示词);
         const context = 构建世界生成任务上下文提示词(
@@ -226,9 +219,6 @@ describe('modern urban prompt guardrails', () => {
             openingConfig: 现代开局配置
         }).map((message) => message.content).join('\n');
 
-        expect(payload).not.toContain('标准武侠生存难度');
-        expect(payload).not.toContain('生成目标: 仅生成 world_prompt（世界观提示词文本）');
-        expect(payload).not.toContain('世界地图是地球级面积');
         expect(payload).toContain('生成目标: 生成 world_prompt，并在启用世界基底扩展时追加世界基底 JSON');
         expect(payload).toContain('寰宇层为现实世界，大地点为当前城市或都市圈');
     });
@@ -429,9 +419,7 @@ describe('modern urban prompt guardrails', () => {
             核心_输出格式.内容
         ].join('\n');
 
-        expect(combined).not.toMatch(/武力梯度|招式|礼法|境界推进|门派与任务初始化|门派状态|修炼状态/u);
         expect(combined).toMatch(/能力边界|组织与任务初始化|能力成长/u);
-        expect(核心_输出格式.内容).not.toContain('《智能手机》');
         expect(核心_输出格式.内容).toContain('《证据录音》');
     });
 
@@ -470,19 +458,6 @@ describe('modern urban prompt guardrails', () => {
         expect(rendered).not.toContain('长期目标推进主线');
     });
 
-    it('任务链 prompt 不携带无限流专属任务锚点', () => {
-        const combined = [
-            开场初始化任务提示词,
-            开局变量生成附加提示词,
-            构建变量模型职责提示词(),
-            变量生成COT提示词
-        ].join('\n');
-
-        expect(combined).toContain('任务列表');
-        expect(combined).toContain('正式目标');
-        expect(combined).not.toMatch(/无限流|主神|轮回|任务世界|荒怨|生化危机|异形/u);
-    });
-
     it('文章优化附加格式示例不再把普通手机作为档案引用锚点', () => {
         const source = readFileSync('hooks/useGame/bodyPolish.ts', 'utf8');
 
@@ -490,7 +465,7 @@ describe('modern urban prompt guardrails', () => {
         expect(source).toContain('《证据录音》');
     });
 
-    it('默认现代写作与润色 prompt 不再使用旧武侠文风锚点', () => {
+    it('默认现代写作与润色 prompt 使用现代都市口径', () => {
         const combined = [
             写作_风格.内容,
             默认文章优化提示词,
@@ -499,7 +474,6 @@ describe('modern urban prompt guardrails', () => {
             数值_世界演化.内容
         ].join('\n');
 
-        expect(combined).not.toMatch(/雪中悍刀行|世子很凶|娱乐春秋|江湖压迫|朝堂气势|不能滑成现代段子|武侠\/古风|古法换算/u);
         expect(combined).toMatch(/现代都市|现实压力|组织|能力边界|社会边界/u);
     });
 
@@ -512,17 +486,6 @@ describe('modern urban prompt guardrails', () => {
         expect(content).not.toMatch(/参考.*古风|古言|武侠小说|古风小说/u);
         expect(content).not.toMatch(/肉棒|龟头|阴茎|小穴|阴蒂|蜜液|精液|穴口|臀缝/u);
         expect(content).not.toMatch(/手机.*门禁.*地铁.*监控/u);
-    });
-
-    it('活跃写作守门提示不携带普通现代默认旧锚点', () => {
-        const combined = [
-            写作_风格.内容,
-            写作_避免极端情绪.内容,
-            写作_防止说话.内容,
-            写作_防全知.内容
-        ].join('\n');
-
-        expect(combined).not.toMatch(/传功|拔剑|江湖传言|茶馆议论|术法追踪|命牌|血引/u);
     });
 
     it('内置提示词包含独立世界观摘要槽位', () => {
@@ -541,7 +504,7 @@ describe('modern urban prompt guardrails', () => {
         expect(rendered).toContain('可分配点数或能力成长');
     });
 
-    it('现代开局配置 prompt 使用题材化切入文案，不暴露内部旧门派枚举', () => {
+    it('现代开局配置 prompt 使用题材化切入文案', () => {
         const prompt = 构建开局配置提示词({
             配置约束启用: true,
             题材模式: '现代都市',
@@ -558,11 +521,9 @@ describe('modern urban prompt guardrails', () => {
         expect(prompt).toContain('开局切入偏好：组织起手');
         expect(prompt).toContain('关系侧重：职场、合作');
         expect(prompt).toContain('公司、学校、社区、项目组、门店或合作现场');
-        expect(prompt).not.toContain('开局切入偏好：门派起手');
-        expect(prompt).not.toMatch(/宗门|门派|师门/u);
     });
 
-    it('现代变量相关规则不暴露旧成长体系和旧坐标路径锚点', () => {
+    it('现代变量相关规则保留当前登记表边界说明', () => {
         const prompt = 构建变量相关规则提示词({
             promptPool: 默认提示词,
             gameConfig: {
@@ -572,12 +533,10 @@ describe('modern urban prompt guardrails', () => {
             } as any
         });
 
-        expect(prompt).not.toMatch(/境界|内力|修炼|宗门|门派|法宝|飞剑|灵石|江湖史册/u);
-        expect(prompt).not.toMatch(/世界\.地图建筑|世界\.地图道路|世界\.地图人物/u);
         expect(prompt).toContain('旧坐标字段已废弃');
     });
 
-    it('现代变量与行动选项 payload 不携带旧题材示例锚点', () => {
+    it('现代变量与行动选项 payload 保留现代示例锚点', () => {
         const rendered = 渲染模式运行时配置世界书内容(构建官方模式运行时配置('现代都市'));
         const combined = [
             构建变量模型职责提示词(),
@@ -597,7 +556,6 @@ describe('modern urban prompt guardrails', () => {
             rendered
         ].join('\n');
 
-        expect(combined).not.toMatch(/太古界|中州|武侠模式|江湖技艺|仙侠模式|永安宫|掌事太监|教引姑姑|林婆子|京城|城门动静|茶摊|青锋剑|玄铁甲|精铁长剑|棉布短打|粗布鞋|门派、家族|宗门法宝|破境丹|回气丹|凝元丹|辟谷丹|灵石|飞剑|丹炉|宗门弟子/u);
         expect(combined).toContain('现代都市');
         expect(combined).toContain('现实压力');
         expect(combined).toContain('观察宿舍走廊');

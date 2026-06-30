@@ -234,6 +234,26 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 - `git diff --check` 通过；仅出现 Git 工作区换行提示。
 - `npx tsc --noEmit` 仍失败，集中在既有类型债；本轮命名相关文件没有新增类型错误。
 
+### 2026-06-30：测试体系降噪
+
+改动原因：部分测试仍承担“防旧功能复活”的历史守门职责，或用旧题材负向词表扫描 prompt。
+这些测试在 Phase 4 后会逐渐变成维护噪音，应让测试更多保护当前正向行为和真实回归风险。
+
+改后状态：
+
+- 删除 `tests/homebrew-retired-feature-guardrails.test.ts`。
+- 删除变量注册、响应命令处理中的 retired root / 旧天气节日系统专门测试。
+- `modernPromptGuardrails` 中纯旧词扫描改为正向现代口径断言；保留世界观轻喜剧、经济压噪、角色种子、
+  女性命名等当前体验规则。
+- `variableRegistryPriority` 改为确认当前重要 root 可见，不再要求隐藏 `玩家组织`。
+
+验证：
+
+- `npx vitest run __tests__\modernPromptGuardrails.test.ts __tests__\npcContext.test.ts __tests__\responseCommandProcessor.test.ts __tests__\variableRegistry.test.ts __tests__\variableRegistryPriority.test.ts --reporter=dot`
+- `npx tsc --noEmit --pretty false`
+- `npm run test:run -- --reporter=dot`
+- `git diff --check`
+
 ## Phase 5：Prompt / Runtime 稳定化
 
 目标：把 prompt 主链和诊断框架稳定下来，之后长期少改。

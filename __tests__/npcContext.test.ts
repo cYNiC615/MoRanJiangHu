@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { 构建NPC上下文 } from '../hooks/useGame/npcContext';
 
 describe('npc context', () => {
-    it('uses generic teammate state instead of retired battle state', () => {
+    it('renders current teammate state for present companions', () => {
         const result = 构建NPC上下文([
             {
                 id: 'npc_1',
@@ -24,6 +24,5 @@ describe('npc context', () => {
         ]);
 
         expect(result.在场数据块).toContain('队友状态');
-        expect(result.在场数据块).not.toContain('战斗状态');
     });
 });

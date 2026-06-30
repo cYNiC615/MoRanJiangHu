@@ -132,22 +132,6 @@ describe('variableRegistry', () => {
         expect(prompt).not.toContain('- 世界.地图人物');
     });
 
-    it('blocks retired feature roots from variable commands', () => {
-        [
-            ['战斗.敌方', []],
-            ['战斗态势.主角.当前血量', 1]
-        ].forEach(([key, value]) => {
-            const result = 校验变量命令是否登记({
-                action: 'set',
-                key: key as string,
-                value
-            }, baseState);
-
-            expect(result.allowed, key as string).toBe(false);
-            expect(result.reason, key as string).toBe('废弃功能根路径已退役');
-        });
-    });
-
     it('allows current player organization fields but keeps organization tasks on the global task list', () => {
         expect(校验变量命令是否登记({
             action: 'set',
@@ -269,26 +253,6 @@ describe('variableRegistry', () => {
         );
 
         expect(result.world.地图建筑).toEqual([]);
-    });
-
-    it('ignores retired feature root writes when applying commands', () => {
-        const result = applyStateCommand(
-            baseState.角色 as any,
-            baseState.环境 as any,
-            baseState.社交 as any,
-            baseState.世界 as any,
-            baseState.剧情 as any,
-            baseState.剧情规划 as any,
-            undefined,
-            baseState.玩家组织 as any,
-            baseState.任务列表 as any,
-            '战斗.是否战斗中',
-            true,
-            'set'
-        );
-
-        expect('battle' in result).toBe(false);
-        expect(result.sect).toEqual(baseState.玩家组织);
     });
 
     it('rejects malformed whole social records instead of producing 角色N placeholders', () => {

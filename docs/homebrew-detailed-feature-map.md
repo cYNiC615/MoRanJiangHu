@@ -1,6 +1,6 @@
 # Homebrew Detailed Feature Map
 
-> 日期：2026-06-29
+> 日期：2026-06-30
 >
 > 本文是当前核心事实文档，合并了旧的 AI-native 事实快照和阶段边界文档。未来计划见
 > `docs/homebrew-roadmap.md`。
@@ -77,7 +77,7 @@ Phase 3 当前状态见 `docs/homebrew-phase3-implementation-status.md`。后续
 | 文生图后端 | ComfyUI workflow、settings、proxy | `components/features/Settings/ImageGenerationSettings.tsx`, `services/ai/image*`, `functions/api/image-backend` | 稳定功能 | workflow schema、validators、route、env、tests |
 | 诊断/开发工具 | Context/History/Variable/NPC/WorkflowGraph | `components/features/Settings`, `services/diagnostic*` | Phase 5 支撑 | modal、context builder、state edit paths |
 | Cloudflare/Worker | 本地/API/图片代理辅助面 | `functions/api`, `wrangler.jsonc`, `scripts/build-worker.mjs` | 稳定辅助 | routes、env、worker build、diagnostics |
-| 测试体系 | Vitest/focused suite/E2E harness | `vitest.config.ts`, `__tests__`, `tests` | 稳定功能 | config、fixtures、focused suite definitions |
+| 测试体系 | Vitest/focused suite/E2E harness | `vitest.config.ts`, `__tests__`, `tests` | 稳定功能 | config、fixtures、focused suite definitions；不再保留纯“防旧功能复活”的历史守门测试 |
 | 构建脚本 | package scripts、CNB/image/worker scripts | `package.json`, `scripts`, `functions/api` | 稳定功能 | scripts、npm entries、docs、env |
 
 ## 主运行链路
@@ -215,6 +215,7 @@ IndexedDB reset/migration、内置条目隐藏、默认世界书和本地 snapsh
 ## 验证门禁
 
 - focused Vitest；
+- 全量测试在阶段收口、测试体系清理或大范围 prompt/runtime 改动后补跑；
 - `npx tsc --noEmit --pretty false`；
 - `npm run build`；
 - `git diff --check`；

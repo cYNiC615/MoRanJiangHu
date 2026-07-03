@@ -5,6 +5,7 @@ import { 获取世界观生成COT提示词, 世界观生成COT伪装历史消息
 import { 构建世界观种子提示词, 构建世界生成任务上下文提示词, 构建世界观难度摘要 } from '../prompts/runtime/worldSetup';
 import { 按功能开关过滤提示词内容 } from './promptFeatureToggles';
 import { 获取繁体输出指令 } from './traditionalChinese';
+import { 构建有效导演开局配置, 构建世界生成导演种子弱约束提示词 } from './directorConfig';
 
 type 预览参数 = {
     worldConfig: WorldGenConfig;
@@ -26,12 +27,13 @@ export const 构建开局世界观生成提示词预览 = ({
     const promptPool = Array.isArray(prompts) && prompts.length > 0 ? prompts : 默认提示词;
     const normalizedGameConfig = gameConfig || {};
     const difficulty = worldConfig.difficulty || 'normal';
+    const effectiveOpeningConfig = (构建有效导演开局配置(openingConfig, openingConfig?.导演配置) || openingConfig || undefined) as OpeningConfig | undefined;
     const normalizedWorldExtraRequirement = typeof worldConfig.worldExtraRequirement === 'string'
         ? worldConfig.worldExtraRequirement.trim()
         : '';
 
     const worldPromptSeed = 按功能开关过滤提示词内容(
-        构建世界观种子提示词(worldConfig, charData, openingConfig),
+        构建世界观种子提示词(worldConfig, charData, effectiveOpeningConfig),
         normalizedGameConfig
     );
 
@@ -42,6 +44,7 @@ export const 构建开局世界观生成提示词预览 = ({
                 : prompt
         ));
     const worldDifficultySummary = 构建世界观难度摘要(promptsWithDifficulty);
+    const worldGenerationDirectorSeedPrompt = 构建世界生成导演种子弱约束提示词(effectiveOpeningConfig?.导演配置);
 
     const worldGenerationContext = 按功能开关过滤提示词内容(
             构建世界生成任务上下文提示词(
@@ -49,12 +52,13 @@ export const 构建开局世界观生成提示词预览 = ({
                 difficulty,
                 worldDifficultySummary,
                 normalizedWorldExtraRequirement,
-                openingConfig
+                effectiveOpeningConfig,
+                worldGenerationDirectorSeedPrompt
             ),
         normalizedGameConfig
     );
     const worldGenerationExtraPrompt = 按功能开关过滤提示词内容([
-        获取世界观生成COT提示词(openingConfig),
+        获取世界观生成COT提示词(effectiveOpeningConfig),
         normalizedWorldExtraRequirement ? `【玩家世界观草稿与细化要求】\n${normalizedWorldExtraRequirement}\n- 必须优先保留玩家已写明的事实、地名、势力、时代、规则和禁忌。\n- 生成时只补全缺口、细化因果、补齐长期运行结构，不得推翻、绕开或替换玩家草稿。` : '',
         获取繁体输出指令(normalizedGameConfig)
     ]
@@ -67,8 +71,8 @@ export const 构建开局世界观生成提示词预览 = ({
         charData,
         extraPrompt: worldGenerationExtraPrompt,
         cotPseudoHistoryPrompt: 世界观生成COT伪装历史消息提示词,
-        config: { ...normalizedGameConfig, 生成世界基底: true, openingConfig },
-        openingConfig
+        config: { ...normalizedGameConfig, 生成世界基底: true, openingConfig: effectiveOpeningConfig },
+        openingConfig: effectiveOpeningConfig
     });
     const systemPrompt = messages.find((message) => message.role === 'system')?.content || '';
     const userPrompt = messages.find((message) => message.role === 'user')?.content || '';

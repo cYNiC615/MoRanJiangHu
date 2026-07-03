@@ -35,6 +35,8 @@ import { 裁剪成长体系上下文数据 } from '../utils/promptFeatureToggles
 import { 构建官方模式运行时配置, 渲染模式运行时配置世界书内容 } from '../utils/modeRuntimeProfile';
 import { 规范化导演配置, 构建世界生成导演种子弱约束提示词 } from '../utils/directorConfig';
 import { 构建女性姓名黑名单提示词 } from '../utils/femaleNameSelector';
+import { 题材模式配置表 } from '../data/workshopThemes/topicModeThemeData';
+import { 开局预设方案列表 } from '../data/newGamePresets';
 
 const 现代开局配置 = { 题材模式: '现代都市' } as any;
 const 现代世界配置 = {
@@ -236,13 +238,49 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).not.toContain('近期可触发事件');
     });
 
-    it('现代世界观生成默认偏轻喜剧恋爱，不把社会冲突写成主舞台', () => {
+    it('现代世界观生成默认偏角色扮演剧情沙盒，不把社会冲突写成主舞台', () => {
         const payload = 构建现代世界观请求文本();
 
-        expect(payload).toContain('默认偏后宫恋爱轻喜剧与都市日常');
+        expect(payload).toContain('原创现代都市角色扮演剧情沙盒');
+        expect(payload).toContain('默认偏后宫恋爱轻喜剧、都市日常、人物路线和轻量故事牵引');
+        expect(payload).toContain('现实制度、金钱、交通和法律只作为可信底座与行动边界');
         expect(payload).toContain('除非玩家世界观草稿与细化要求明确要求');
-        expect(payload).toContain('误会、暧昧、照顾、竞争、同居/合租、约会、家庭/朋友起哄、轻量麻烦');
+        expect(payload).toContain('熟人误会、家庭期待、角色间竞争、邀约错位、秘密暴露、临时求助、边界试探和轻量尴尬');
         expect(payload).toContain('不要把犯罪、黑市、家暴、勒索、政治丑闻或商业阴谋写成默认主舞台');
+        expect(payload).not.toContain('家庭/朋友起哄');
+    });
+
+    it('现代世界观生成避免纪实城市报告和默认街景堆砌', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).toContain('不要把世界观写成纪实城市报告');
+        expect(payload).toContain('不要把普通街道、小贩/摊贩、通勤、社区治理或城市管理细节写成默认取景清单');
+        expect(payload).toContain('世界观应提供可反复进入的地点、可遇见人物、人物路线土壤、轻量秘密、关系冲突源、生活小目标和长期未完全说破的背景事实');
+        expect(payload).not.toContain('成人游乐场');
+        expect(payload).not.toMatch(/(^|[^A-Za-z])RP([^A-Za-z]|$)/u);
+    });
+
+    it('现代世界观生成把城市治理结构降为背景支撑层', () => {
+        const payload = 构建现代世界观请求文本();
+
+        expect(payload).toContain('城市治理、行政区划、公共服务网络等治理结构只作为背景支撑层');
+        expect(payload).toContain('默认优先写可反复进入的地点、常驻或可遇见人物类型、人物路线土壤、轻量秘密、关系摩擦与生活小目标');
+        expect(payload).toContain('不要默认展开行政区划、政府部门、社区治理、城市管理、治安体系、产业结构或公共服务网络');
+        expect(payload).toContain('人物圈层与可接触机构');
+        expect(payload).not.toContain('组织/圈层版图');
+    });
+
+    it('现代默认配置锚定角色扮演剧情沙盒，不再默认朋友起哄', () => {
+        const profile = 题材模式配置表.现代都市;
+        const preset = 开局预设方案列表.find((item) => item.id === 'builtin_modern_city');
+        const combined = JSON.stringify([profile.worldDefaults, profile.mapPrompt, profile.promptLines, preset?.worldConfig]);
+
+        expect(combined).toContain('原创现代都市角色扮演剧情沙盒');
+        expect(combined).toContain('人物路线');
+        expect(combined).toContain('轻量故事牵引');
+        expect(combined).toContain('少量秘密地点');
+        expect(combined).toContain('治理结构只作为背景支撑层');
+        expect(combined).not.toContain('家庭/朋友起哄');
     });
 
     it('现代世界观生成要求自定义规则落到关系和日常二阶影响', () => {
@@ -374,6 +412,54 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).toContain(获取世界观生成COT提示词(现代开局配置));
     });
 
+    it('世界观提示词预览与真实请求同样注入导演种子弱约束', () => {
+        const 导演配置 = 规范化导演配置({
+            玩家剧情倾向: '慢热合租与校园关系，不急着进入主线大事件。',
+            角色种子定义: [{
+                id: 'seed-roommate',
+                名称: '林知夏',
+                性别: '女',
+                是否启用: true,
+                入口摘要: '合租室友，表面疏离但会被长期照顾打动。',
+                完整设定: '新闻系研究生，家庭债务压力很重。',
+                关系入口标签: ['合租', '校园'],
+                默认发展方向: '红颜/后宫对象'
+            }],
+            角色种子运行时状态: [{ seedId: 'seed-roommate', 状态: '未引入' }]
+        } as any);
+        const openingConfig = { ...现代开局配置, 导演配置 } as any;
+        const weakPrompt = 构建世界生成导演种子弱约束提示词(导演配置);
+        const seed = 构建世界观种子提示词(现代世界配置, 测试角色, openingConfig);
+        const context = 构建世界生成任务上下文提示词(
+            seed,
+            'normal',
+            构建世界观难度摘要(默认提示词),
+            '',
+            openingConfig,
+            weakPrompt
+        );
+        const payload = 构建世界观生成消息链({
+            worldContext: context,
+            charData: 测试角色,
+            extraPrompt: 获取世界观生成COT提示词(openingConfig),
+            cotPseudoHistoryPrompt: 世界观生成COT伪装历史消息提示词,
+            config: { 生成世界基底: true, openingConfig },
+            openingConfig
+        }).map((message) => message.content).join('\n');
+        const preview = 构建开局世界观生成提示词预览({
+            worldConfig: 现代世界配置,
+            charData: 测试角色,
+            openingConfig,
+            gameConfig: {},
+            prompts: 默认提示词
+        });
+
+        expect(payload).toContain('角色种子ID：seed-roommate');
+        expect(preview).toContain('角色种子ID：seed-roommate');
+        expect(preview).toContain('不得把角色种子ID、完整角色卡或未登场角色事实写入 `<世界观>`');
+        expect(preview).not.toContain('家庭债务压力很重');
+    });
+
     it('现代默认上下文投影会裁剪旧成长体系字段', () => {
         const trimmed = 裁剪成长体系上下文数据({
             角色: {
@@ -482,6 +568,8 @@ describe('modern urban prompt guardrails', () => {
 
         expect(content).toContain('题材优先');
         expect(content).toContain('不是固定道具清单');
+        expect(content).toContain('人物关系、玩家选择和故事推进');
+        expect(content).toContain('普通街道、小贩/摊贩、通勤和社区琐事只在当前地点或已成立事实需要时少量出现');
         expect(content).toMatch(/成年人自愿亲密|成人内容/u);
         expect(content).not.toMatch(/参考.*古风|古言|武侠小说|古风小说/u);
         expect(content).not.toMatch(/肉棒|龟头|阴茎|小穴|阴蒂|蜜液|精液|穴口|臀缝/u);

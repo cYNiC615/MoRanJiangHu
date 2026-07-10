@@ -20,7 +20,7 @@ const 允许属性 = new Set([
     'role', 'rowspan', 'style', 'title'
 ]);
 
-const CSS危险能力正则 = /(?:url\s*\(|image-set\s*\(|@import\b|expression\s*\(|behavior\s*:|-moz-binding\s*:)/i;
+const CSS危险能力正则 = /(?:url\s*\(|image-set\s*\(|@import\b|expression\s*\(|behavior\s*:|-moz-binding\s*:|position\s*:\s*fixed\b|z-index\s*:)/i;
 
 const 清洗CSS声明 = (css: string): string => String(css || '')
     .split(';')

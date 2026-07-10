@@ -46,6 +46,13 @@ describe('酒馆静态 HTML 清洗', () => {
         expect(result).toContain('color: blue');
         expect(result).not.toMatch(/@import|image-set|url\s*\(|expression\s*\(|behavior\s*:|-moz-binding/i);
     });
+
+    it('移除可脱离渲染容器覆盖宿主页面的固定定位', () => {
+        const result = 清洗酒馆静态HTML('<style>.overlay { position: fixed; inset: 0; z-index: 999999; color: red; }</style><div class="overlay">内容</div>');
+
+        expect(result).toContain('color: red');
+        expect(result).not.toMatch(/position\s*:\s*fixed|z-index\s*:/i);
+    });
 });
 
 describe('酒馆静态 HTML 提取', () => {

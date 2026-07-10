@@ -53,6 +53,14 @@ describe('酒馆静态 HTML 清洗', () => {
         expect(result).toContain('color: red');
         expect(result).not.toMatch(/position\s*:\s*fixed|z-index\s*:/i);
     });
+
+    it('拒绝可用于混淆危险 CSS 关键字的转义声明', () => {
+        const result = 清洗酒馆静态HTML('<style>.bad { background: u\\72l(https://example.com/a.png); position: f\\69xed; z-\\69ndex: 9; color: red; }</style><div class="bad">内容</div>');
+
+        expect(result).toContain('color: red');
+        expect(result).not.toContain('\\72');
+        expect(result).not.toContain('\\69');
+    });
 });
 
 describe('酒馆静态 HTML 提取', () => {

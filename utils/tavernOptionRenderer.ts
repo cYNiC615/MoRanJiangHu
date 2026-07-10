@@ -25,6 +25,12 @@ const 收集显式选项块 = (text: string): string[] => {
     return blocks;
 };
 
+export const 推进零长度酒馆正则游标 = (regex: RegExp, match: RegExpExecArray): void => {
+    if ((regex.global || regex.sticky) && match[0] === '' && regex.lastIndex <= match.index) {
+        regex.lastIndex = match.index + 1;
+    }
+};
+
 export const 提取酒馆选项 = (
     text: string,
     scripts: 酒馆正则脚本分类条目[]
@@ -40,6 +46,7 @@ export const 提取酒馆选项 = (
             while ((match = regex.exec(text)) !== null) {
                 const source = match.slice(1).find((value) => typeof value === 'string' && value.trim()) || match[0];
                 candidates.push(...提取选项行(source));
+                推进零长度酒馆正则游标(regex, match);
                 if (!regex.global) break;
             }
         }

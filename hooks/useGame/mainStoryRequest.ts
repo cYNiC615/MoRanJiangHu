@@ -242,7 +242,10 @@ export const 构建主剧情请求参数 = (
             ...params.builtContext,
             contextPieces: {
                 ...params.builtContext.contextPieces,
-                字数设置提示词: 剥离标签块(params.builtContext.contextPieces.字数设置提示词, '字数'),
+                otherPrompts: '',
+                叙事人称提示词: '',
+                字数设置提示词: '',
+                COT提示词: '',
                 格式提示词: ''
             }
         };

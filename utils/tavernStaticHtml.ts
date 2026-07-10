@@ -25,7 +25,7 @@ const CSS危险能力正则 = /(?:url\s*\(|image-set\s*\(|@import\b|expression\s
 const 清洗CSS声明 = (css: string): string => String(css || '')
     .split(';')
     .map(item => item.trim())
-    .filter(item => item && !CSS危险能力正则.test(item))
+    .filter(item => item && !item.includes('\\') && !CSS危险能力正则.test(item))
     .join('; ');
 
 const 清洗样式块 = (css: string): string => {

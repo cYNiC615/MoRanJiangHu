@@ -274,10 +274,10 @@ describe('主剧情正文字数校验', () => {
                 worldPrompt: '世界书占位',
                 地图建筑状态: '',
                 离场NPC档案: '',
-                otherPrompts: '',
+                otherPrompts: 'NATIVE_WRITING_REQUIREMENTS',
                 难度设置提示词: '',
-                叙事人称提示词: '',
-                字数设置提示词: '<字数>旧字数提示会被运行时修正。</字数>',
+                叙事人称提示词: 'NATIVE_POV_PROMPT',
+                字数设置提示词: 'NATIVE_LENGTH_HEADING\n<字数>旧字数提示会被运行时修正。</字数>',
                 长期记忆: '',
                 中期记忆: '',
                 在场NPC档案: '',
@@ -287,7 +287,7 @@ describe('主剧情正文字数校验', () => {
                 环境状态: '',
                 角色状态: '',
                 任务状态: '',
-                COT提示词: '',
+                COT提示词: 'NATIVE_COT_PROMPT',
                 格式提示词: '<正文>...</正文>',
                 字数要求提示词: lengthPrompt,
                 免责声明输出提示词: disclaimerPrompt,
@@ -352,6 +352,10 @@ describe('主剧情正文字数校验', () => {
         expect(payload).not.toContain('2200字以上');
         expect(payload).not.toContain('<disclaimer>');
         expect(payload).not.toContain('NATIVE_OUTPUT_PROTOCOL');
+        expect(payload).not.toContain('NATIVE_WRITING_REQUIREMENTS');
+        expect(payload).not.toContain('NATIVE_POV_PROMPT');
+        expect(payload).not.toContain('NATIVE_LENGTH_HEADING');
+        expect(payload).not.toContain('NATIVE_COT_PROMPT');
         expect(payload).not.toContain('NATIVE_TOPIC_PROMPT');
         expect(payload).not.toContain('NATIVE_PLAYER_PREFERENCE');
         expect(payload).not.toContain('NATIVE_DIRECTOR_PROMPT');

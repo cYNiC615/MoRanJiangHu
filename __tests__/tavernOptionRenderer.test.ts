@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { 酒馆正则脚本分类条目 } from '../models/system';
-import { 提取酒馆选项 } from '../utils/tavernOptionRenderer';
+import { 提取酒馆选项, 推进零长度酒馆正则游标 } from '../utils/tavernOptionRenderer';
 
 describe('酒馆原生选项提取', () => {
+    it('全局零长度匹配会主动推进游标', () => {
+        const regex = /(?:)/g;
+        const match = regex.exec('abc');
+        expect(match?.[0]).toBe('');
+        expect(regex.lastIndex).toBe(0);
+
+        推进零长度酒馆正则游标(regex, match as RegExpExecArray);
+
+        expect(regex.lastIndex).toBe(1);
+    });
+
     it('从 options 标签中提取中英文选项并去重', () => {
         const text = [
             '<options>',

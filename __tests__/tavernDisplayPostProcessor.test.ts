@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameResponse, 酒馆预设结构, 酒馆正则脚本分类条目 } from '../types';
 import { 处理酒馆展示响应 } from '../hooks/useGame/tavernDisplayPostProcessor';
+import { formatHistoryToScript } from '../hooks/useGame/historyUtils';
 
 const 创建脚本 = (
     safetyType: 酒馆正则脚本分类条目['safetyType'],
@@ -55,8 +56,15 @@ describe('酒馆展示响应后处理', () => {
         expect(result.logs).not.toBe(response.logs);
         expect(result.tavern_commands).not.toBe(response.tavern_commands);
         expect(result.logs[0].text).toBe('正文');
+        expect(result.body_original_logs).toEqual(snapshot.logs);
         expect(result.action_options).toEqual(['保留原选项']);
         expect(response).toEqual(snapshot);
+        expect(formatHistoryToScript([{
+            role: 'assistant',
+            content: '',
+            timestamp: 1,
+            structuredResponse: result
+        }])).toContain('正文<cleanup>删除</cleanup>');
     });
 
     it('仅在原选项为空时提取酒馆原生选项', () => {

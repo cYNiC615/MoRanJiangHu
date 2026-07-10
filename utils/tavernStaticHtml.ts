@@ -22,14 +22,22 @@ const 允许属性 = new Set([
 
 const CSS危险能力正则 = /(?:url\s*\(|image-set\s*\(|@import\b|expression\s*\(|behavior\s*:|-moz-binding\s*:|position\s*:\s*fixed\b|z-index\s*:)/i;
 
-const 清洗CSS声明 = (css: string): string => String(css || '')
+const 解码CSS转义 = (css: string): string => String(css || '')
+    .replace(/\\([0-9a-f]{1,6})(?:\r\n|[ \n\r\t\f])?/gi, (_match, hex: string) => {
+        const codePoint = Number.parseInt(hex, 16);
+        return codePoint > 0 && codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : '\uFFFD';
+    })
+    .replace(/\\(?:\r\n|[\n\r\f])/g, '')
+    .replace(/\\([^\n\r\f])/g, '$1');
+
+const 清洗CSS声明 = (css: string): string => 解码CSS转义(css)
     .split(';')
     .map(item => item.trim())
     .filter(item => item && !item.includes('\\') && !CSS危险能力正则.test(item))
     .join('; ');
 
 const 清洗样式块 = (css: string): string => {
-    const withoutImports = String(css || '').replace(/@import\s+[^;]+;?/gi, '');
+    const withoutImports = 解码CSS转义(css).replace(/@import\s+[^;]+;?/gi, '');
     return withoutImports.replace(/([^{}]+)\{([^{}]*)\}/g, (_match, selector: string, declarations: string) => {
         const safeDeclarations = 清洗CSS声明(declarations);
         return safeDeclarations ? `${selector.trim()} { ${safeDeclarations} }` : '';

@@ -61,6 +61,14 @@ describe('酒馆静态 HTML 清洗', () => {
         expect(result).not.toContain('\\72');
         expect(result).not.toContain('\\69');
     });
+
+    it('解码并移除位于声明块外的转义 import', () => {
+        const result = 清洗酒馆静态HTML('<style>@im\\70ort "https://example.com/x.css"; .safe { color: red; }</style><div class="safe">内容</div>');
+
+        expect(result).toContain('color: red');
+        expect(result).not.toContain('example.com');
+        expect(result).not.toMatch(/@import|@im\\70ort/i);
+    });
 });
 
 describe('酒馆静态 HTML 提取', () => {

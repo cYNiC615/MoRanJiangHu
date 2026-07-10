@@ -69,6 +69,20 @@ describe('storyResponseParser', () => {
         ]);
     });
 
+    it('normalizes tavern-style labeled action option lines', () => {
+        const parsed = parseStoryRawText([
+            '<正文>',
+            '【旁白】门后的灯亮了。',
+            '</正文>',
+            '<行动选项>',
+            '>选项一：推门查看',
+            '> 选项二: 留在原地',
+            '</行动选项>'
+        ].join('\n'));
+
+        expect(parsed.action_options).toEqual(['推门查看', '留在原地']);
+    });
+
     it('does not fold variable plan or short memory into body fallback', () => {
         const parsed = parseStoryRawText([
             '<变量规划>',

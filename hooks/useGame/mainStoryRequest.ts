@@ -242,20 +242,10 @@ export const 构建主剧情请求参数 = (
             ...params.builtContext,
             contextPieces: {
                 ...params.builtContext.contextPieces,
-                字数设置提示词: 剥离标签块(params.builtContext.contextPieces.字数设置提示词, '字数')
+                字数设置提示词: 剥离标签块(params.builtContext.contextPieces.字数设置提示词, '字数'),
+                格式提示词: ''
             }
         };
-        const tavernOutputProtocolPrompt = (() => {
-            const source = outputProtocolPrompt.trim();
-            const formatPrompt = params.builtContext.contextPieces.格式提示词.trim();
-            if (!source) return '';
-            if (!formatPrompt) return source;
-            const normalizedSource = source.replace(/\r\n/g, '\n').trim();
-            const normalizedFormat = formatPrompt.replace(/\r\n/g, '\n').trim();
-            return normalizedSource === normalizedFormat
-                ? normalizedSource
-                : normalizedSource;
-        })();
         const tavernMessages = 构建酒馆预设消息链({
             config: runtimeGameConfig,
             context: tavernContext,
@@ -264,16 +254,9 @@ export const 构建主剧情请求参数 = (
             playerName: params.playerRole?.姓名 || '',
             playerRole: params.playerRole,
             worldbookExtraTexts: [
-                params.builtContext.contextPieces.题材模式提示词 || '',
-                params.builtContext.contextPieces.玩家剧情倾向提示词 || '',
-                params.builtContext.contextPieces.导演配置提示词 || '',
-                styleAssistantPrompt,
-                realWorldModePrompt,
                 deepSeekModePrompt,
                 traditionalChinesePrompt,
-                turnDirectivesPrompt,
-                tavernRuntimeExtraPrompt,
-                tavernOutputProtocolPrompt
+                tavernRuntimeExtraPrompt
             ]
         });
         tavernMessages.forEach((message, index) => {

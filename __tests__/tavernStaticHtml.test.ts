@@ -69,6 +69,14 @@ describe('酒馆静态 HTML 清洗', () => {
         expect(result).not.toContain('example.com');
         expect(result).not.toMatch(/@import|@im\\70ort/i);
     });
+
+    it('移除使用 CSS 注释分隔关键字的 import', () => {
+        const result = 清洗酒馆静态HTML('<style>@import/**/"https://example.com/x.css"; .safe { color: red; }</style><div class="safe">内容</div>');
+
+        expect(result).toContain('color: red');
+        expect(result).not.toContain('example.com');
+        expect(result).not.toContain('@import');
+    });
 });
 
 describe('酒馆静态 HTML 提取', () => {

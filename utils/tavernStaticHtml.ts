@@ -42,6 +42,7 @@ const 清洗CSS声明 = (css: string): string => 规范化CSS词法(css)
 const 清洗样式块 = (css: string): string => {
     const withoutImports = 规范化CSS词法(css).replace(/@import\b[^;{}]*(?:;|$)/gi, '');
     return withoutImports.replace(/([^{}]+)\{([^{}]*)\}/g, (_match, selector: string, declarations: string) => {
+        if (/:host\b/i.test(selector)) return '';
         const safeDeclarations = 清洗CSS声明(declarations);
         return safeDeclarations ? `${selector.trim()} { ${safeDeclarations} }` : '';
     });

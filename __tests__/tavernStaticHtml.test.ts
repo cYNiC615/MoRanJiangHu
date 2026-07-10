@@ -79,10 +79,18 @@ describe('酒馆静态 HTML 清洗', () => {
     });
 
     it('移除可将固定定位间接传给宿主的 CSS 变量', () => {
-        const result = 清洗酒馆静态HTML('<style>:host { --p: fixed; position: var(--p); inset: 0; color: red; }</style><div>内容</div>');
+        const result = 清洗酒馆静态HTML('<style>:host { --p: fixed; position: var(--p); inset: 0; } .safe { color: red; }</style><div class="safe">内容</div>');
 
         expect(result).toContain('color: red');
         expect(result).not.toMatch(/--p\s*:|var\s*\(/i);
+    });
+
+    it('禁止预设样式直接覆盖 Shadow DOM 宿主', () => {
+        const result = 清洗酒馆静态HTML('<style>:host { position: absolute; inset: -10000px; width: 20000px; height: 20000px; background: white; } .safe { color: red; }</style><div class="safe">内容</div>');
+
+        expect(result).toContain('color: red');
+        expect(result).not.toContain(':host');
+        expect(result).not.toContain('-10000px');
     });
 });
 

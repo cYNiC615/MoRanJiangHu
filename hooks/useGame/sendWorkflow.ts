@@ -20,6 +20,7 @@ import { 生成地图更新, 判定地图自动更新需求 } from './mapUpdateW
 import { 判定后处理调度请求 } from './postprocessScheduler';
 import { 提取命中新女性角色姓名黑名单 } from '../../utils/femaleNameSelector';
 import { 检测社交删除风险命令 } from '../../utils/npcRetentionGuard';
+import { 处理酒馆展示响应 } from './tavernDisplayPostProcessor';
 
 type 回忆检索进度 = {
     phase: 'start' | 'stream' | 'done' | 'error';
@@ -2487,6 +2488,9 @@ export const 执行主剧情发送工作流 = async (
                     ...finalDisplayResponse,
                     logs: displayAiData.logs || finalDisplayResponse.logs
                 };
+                if (runtimeGameConfig.启用酒馆预设模式 === true && runtimeGameConfig.酒馆预设) {
+                    finalDisplayResponse = 处理酒馆展示响应(finalDisplayResponse, runtimeGameConfig.酒馆预设);
+                }
 
                 const queuedAiMsg: 聊天记录结构 = {
                     ...newAiMsg,

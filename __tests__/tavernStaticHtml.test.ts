@@ -64,6 +64,13 @@ describe('酒馆静态 HTML 提取', () => {
         });
     });
 
+    it('提取未包裹代码块的直接静态 HTML', () => {
+        expect(提取酒馆静态HTML('<style>.card { color: red; }</style><details class="card"><summary>展开</summary><p>内容</p></details>')).toEqual({
+            text: '',
+            htmlContent: '<style>.card { color: red }</style><details class="card"><summary>展开</summary><p>内容</p></details>'
+        });
+    });
+
     it('对白规范化不会丢失已清洗的静态 HTML 字段', () => {
         expect(规范化可渲染对白日志([{
             sender: '旁白',

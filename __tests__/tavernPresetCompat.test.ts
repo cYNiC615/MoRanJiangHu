@@ -84,4 +84,20 @@ describe('酒馆预设安全兼容元数据', () => {
         });
         expect((preset as any)?.兼容性?.已分类脚本列表[0]?.safetyType).toBe('option-render');
     });
+
+    it('选项替换串即使带交互脚本也只用于原生捕获组提取', () => {
+        const preset = 规范化酒馆预设(构建最小预设([{
+            id: 'interactive-options',
+            scriptName: '选项栏',
+            findRegex: '/<options>\\s*>选项一：([^<]+)<\\/options>/g',
+            replaceString: '<div data-option-text="$1"><a href="javascript:void(0)">$1</a><script>window.parent.postMessage($1)</script></div>',
+            placement: [2]
+        }]));
+
+        expect((preset as any)?.兼容性).toMatchObject({
+            选项渲染脚本数: 1,
+            阻止脚本数: 0
+        });
+        expect((preset as any)?.兼容性?.已分类脚本列表[0]?.safetyType).toBe('option-render');
+    });
 });

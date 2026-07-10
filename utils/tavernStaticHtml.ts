@@ -100,14 +100,22 @@ export interface 酒馆静态HTML提取结果 {
 
 export const 提取酒馆静态HTML = (value: string): 酒馆静态HTML提取结果 => {
     const htmlBlocks: string[] = [];
-    const text = String(value || '')
-        .replace(/```html\s*\n([\s\S]*?)```/gi, (_match, html: string) => {
+    let text = String(value || '')
+        .replace(/```(?:html)?\s*\n([\s\S]*?)```/gi, (match, html: string) => {
+            if (!/<(?:style|article|aside|blockquote|details|div|section|span|table|htmlcontent)\b/i.test(html)) return match;
             const sanitized = 清洗酒馆静态HTML(html);
             if (sanitized) htmlBlocks.push(sanitized);
             return '';
         })
         .replace(/\n{2,}/g, '\n')
         .trim();
+    if (/<(?:style|article|aside|blockquote|details|div|section|span|table|htmlcontent)\b/i.test(text)) {
+        const sanitized = 清洗酒馆静态HTML(text);
+        if (sanitized) {
+            htmlBlocks.push(sanitized);
+            text = '';
+        }
+    }
     const htmlContent = htmlBlocks.join('\n').trim();
     return htmlContent ? { text, htmlContent } : { text };
 };

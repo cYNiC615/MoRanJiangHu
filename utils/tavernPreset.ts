@@ -78,8 +78,8 @@ export const 分类酒馆正则脚本 = (raw: unknown, index = 0): 酒馆正则�
         maxDepth: typeof source.maxDepth === 'number' && Number.isFinite(source.maxDepth) ? source.maxDepth : 0
     };
     let safetyType: 酒馆正则脚本安全类型 = 'safe-cleanup';
-    if (包含阻止能力(script.replaceString)) safetyType = 'blocked';
-    else if (是选项渲染脚本(script)) safetyType = 'option-render';
+    if (是选项渲染脚本(script)) safetyType = 'option-render';
+    else if (包含阻止能力(script.replaceString)) safetyType = 'blocked';
     else if (包含静态HTML(script)) safetyType = 'html-beautify';
     return { script, safetyType };
 };

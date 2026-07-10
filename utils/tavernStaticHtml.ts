@@ -20,7 +20,7 @@ const 允许属性 = new Set([
     'role', 'rowspan', 'style', 'title'
 ]);
 
-const CSS危险能力正则 = /(?:url\s*\(|image-set\s*\(|@import\b|expression\s*\(|behavior\s*:|-moz-binding\s*:|position\s*:\s*fixed\b|z-index\s*:)/i;
+const CSS危险能力正则 = /(?:url\s*\(|image-set\s*\(|@import\b|expression\s*\(|behavior\s*:|-moz-binding\s*:|position\s*:\s*fixed\b|z-index\s*:|--[^:;{}]+\s*:|(?:var|attr|env)\s*\()/i;
 
 const 解码CSS转义 = (css: string): string => String(css || '')
     .replace(/\\([0-9a-f]{1,6})(?:\r\n|[ \n\r\t\f])?/gi, (_match, hex: string) => {

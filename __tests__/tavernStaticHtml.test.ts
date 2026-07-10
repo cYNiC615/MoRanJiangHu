@@ -77,6 +77,13 @@ describe('酒馆静态 HTML 清洗', () => {
         expect(result).not.toContain('example.com');
         expect(result).not.toContain('@import');
     });
+
+    it('移除可将固定定位间接传给宿主的 CSS 变量', () => {
+        const result = 清洗酒馆静态HTML('<style>:host { --p: fixed; position: var(--p); inset: 0; color: red; }</style><div>内容</div>');
+
+        expect(result).toContain('color: red');
+        expect(result).not.toMatch(/--p\s*:|var\s*\(/i);
+    });
 });
 
 describe('酒馆静态 HTML 提取', () => {

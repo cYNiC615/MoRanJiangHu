@@ -17,7 +17,7 @@ export const TavernStaticHtmlRenderer: React.FC<{ htmlContent: string }> = ({ ht
         if (!host) return;
         const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
         root.innerHTML = [
-            '<style>:host{display:block;max-width:100%;overflow:hidden;color:inherit}*,*::before,*::after{box-sizing:border-box;max-width:100%}</style>',
+            '<style>:host{display:block;position:relative;max-width:100%;overflow:hidden;color:inherit}*,*::before,*::after{box-sizing:border-box;max-width:100%}</style>',
             htmlContent
         ].join('');
     }, [htmlContent]);

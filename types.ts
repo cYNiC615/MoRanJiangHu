@@ -25,6 +25,8 @@ export interface GameLog {
     sender: string;
     text: string;
     rawText?: string; // Optional debug source for the rendered bubble only.
+    htmlContent?: string;
+    htmlRenderMode?: 'purify';
 }
 
 export interface JudgmentThoughtBlock {

@@ -102,13 +102,18 @@ const 合并相邻同发送者 = (logs: GameLog[]): GameLog[] => {
         const rawText = 读取日志原始片段(item);
         if (!text) return;
         const previous = merged[merged.length - 1];
-        if (previous && previous.sender === sender) {
+        if (
+            previous
+            && previous.sender === sender
+            && previous.htmlRenderMode !== 'purify'
+            && item.htmlRenderMode !== 'purify'
+        ) {
             previous.text = `${previous.text}\n${text}`.trim();
             const mergedRaw = 合并原始片段(previous.rawText, rawText);
             if (mergedRaw) previous.rawText = mergedRaw;
             return;
         }
-        merged.push(附加原始片段({ sender, text }, rawText));
+        merged.push(附加原始片段({ ...item, sender, text }, rawText));
     });
     return merged;
 };
@@ -329,6 +334,18 @@ const 保护引号换行日志 = (logs: GameLog[] | undefined): GameLog[] => {
     let pending: GameLog | null = null;
 
     sourceLogs.forEach((item) => {
+        if (item?.htmlRenderMode === 'purify' && item.htmlContent) {
+            if (pending) {
+                result.push(pending);
+                pending = null;
+            }
+            result.push({
+                ...item,
+                sender: (item.sender || '旁白').trim() || '旁白',
+                text: typeof item.text === 'string' && item.text.trim() ? item.text.trim() : '酒馆静态界面'
+            });
+            return;
+        }
         const rawSender = (item?.sender || '旁白').trim() || '旁白';
         const rawText = typeof item?.text === 'string' ? item.text : String(item?.text ?? '');
         const rawSource = 读取日志原始片段(item);
@@ -451,6 +468,9 @@ export const 规范化可渲染对白日志 = (logs: GameLog[] | undefined): Gam
         const rawSender = (item?.sender || '旁白').trim() || '旁白';
         const rawText = typeof item?.text === 'string' ? item.text.trim() : String(item?.text ?? '').trim();
         const rawSource = 读取日志原始片段(item);
+        if (item.htmlRenderMode === 'purify' && item.htmlContent) {
+            return [附加原始片段({ ...item, sender: rawSender, text: rawText || '酒馆静态界面' }, rawSource)];
+        }
         const text = 拆分过长旁白段落(rawSender === '旁白' ? '旁白' : 清理说话人(rawSender) || '旁白', rawText);
         if (是否Judge残留文本(text)) return [];
         if (是否判定日志文本(rawSender) || 是否判定日志文本(text)) {

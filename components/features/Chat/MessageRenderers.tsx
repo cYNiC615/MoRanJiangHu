@@ -9,6 +9,14 @@ import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import { IconHeart, IconEye, IconBattery, IconShield, IconExplosion, IconDice, IconCoins } from '../../ui/Icons';
 
+export const TavernStaticHtmlRenderer: React.FC<{ htmlContent: string }> = ({ htmlContent }) => (
+    <div
+        className="tavern-static-html my-3 max-w-full overflow-hidden text-inherit"
+        style={{ isolation: 'isolate', contain: 'content' }}
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+    />
+);
+
 type JudgmentModifier = {
     key: string;
     label: string;

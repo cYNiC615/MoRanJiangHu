@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { GameLog, GameResponse, NPC结构, 视觉设置结构 } from '../../../types';
-import { NarratorRenderer, CharacterRenderer, JudgmentRenderer, RewardRenderer } from './MessageRenderers';
+import { NarratorRenderer, CharacterRenderer, JudgmentRenderer, RewardRenderer, TavernStaticHtmlRenderer } from './MessageRenderers';
 import GameButton from '../../ui/GameButton';
 import { 规范化可渲染对白日志 } from '../../../utils/dialogueLogNormalizer';
 import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../../utils/judgmentFormat';
@@ -636,7 +636,9 @@ const TurnItem: React.FC<Props> = ({
                     const textStartsWithJudgment = Boolean(textJudgmentPrefix);
                     const openThisRawLog = () => toggleRawLogPreview(idx);
                     let renderedLog: React.ReactNode;
-                    if (是否奖励日志(rawSender, rawText)) {
+                    if (log.htmlRenderMode === 'purify' && log.htmlContent) {
+                        renderedLog = <TavernStaticHtmlRenderer htmlContent={log.htmlContent} />;
+                    } else if (是否奖励日志(rawSender, rawText)) {
                         renderedLog = <RewardRenderer text={rawText} visualConfig={visualConfig} onOpenRawResponse={openThisRawLog} />;
                     } else if (rawSender === '旁白' && !textStartsWithJudgment) {
                         renderedLog = <NarratorRenderer text={rawText} visualConfig={visualConfig} inventoryItems={inventoryItems} onOpenInventoryItem={onOpenInventoryItem} socialList={socialList} playerProfile={playerProfile} onOpenNpcDetail={onOpenNpcDetail} onOpenRawResponse={openThisRawLog} />;

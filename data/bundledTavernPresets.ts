@@ -12,6 +12,11 @@ export const 内置酒馆预设列表: 内置酒馆预设条目[] = [
         id: 'builtin_izumi_0503',
         名称: 'Izumi 0503',
         path: '/tavern-presets/izumi-0503.json'
+    },
+    {
+        id: 'builtin_izumi_0623',
+        名称: 'Izumi 0623',
+        path: '/tavern-presets/izumi-0623.json'
     }
 ];
 

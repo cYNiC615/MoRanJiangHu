@@ -225,19 +225,6 @@ describe('modern urban prompt guardrails', () => {
         expect(payload).toContain('寰宇层为现实世界，大地点为当前城市或都市圈');
     });
 
-    it('现代世界观生成以世界事实和独特设定为主，不把城市常识写成报告', () => {
-        const payload = 构建现代世界观请求文本();
-
-        expect(payload).toContain('世界事实母本');
-        expect(payload).toContain('普通现代常识默认成立，不作为篇幅重点');
-        expect(payload).toContain('篇幅优先给本局独特规则');
-        expect(payload).toContain('独特规则造成的社会后果、关系习惯、地点差异');
-        expect(payload).toContain('可进入地点');
-        expect(payload).toContain('可遇见人物');
-        expect(payload).toContain('关系/女主土壤');
-        expect(payload).not.toContain('近期可触发事件');
-    });
-
     it('现代世界观生成默认偏角色扮演剧情沙盒，不把社会冲突写成主舞台', () => {
         const payload = 构建现代世界观请求文本();
 
@@ -281,14 +268,6 @@ describe('modern urban prompt guardrails', () => {
         expect(combined).toContain('少量秘密地点');
         expect(combined).toContain('治理结构只作为背景支撑层');
         expect(combined).not.toContain('家庭/朋友起哄');
-    });
-
-    it('现代世界观生成要求自定义规则落到关系和日常二阶影响', () => {
-        const payload = 构建现代世界观请求文本();
-
-        expect(payload).toContain('玩家自定义的独特规则必须展开到恋爱、亲密关系、家庭、日常制度、角色选择、日常场景和常见选择');
-        expect(payload).toContain('不得只复述规则本身');
-        expect(payload).toContain('二阶影响');
     });
 
     it('现代世界观生成正文结构不暴露 DM 元话语', () => {

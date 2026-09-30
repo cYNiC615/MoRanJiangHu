@@ -80,17 +80,6 @@ describe('Phase 3.2 runtime worldbook resolver', () => {
         expect(explicitSelection.runtimeSnapshot?.workshopSelection?.selectedMode).toBe('武侠');
     });
 
-    it('变量生成不会为普通日常常驻注入完整名器世界书触发词', () => {
-        const source = readFileSync(resolve(process.cwd(), 'hooks/useGame/variableModelWorkflow.ts'), 'utf8');
-        const openingSource = readFileSync(resolve(process.cwd(), 'hooks/useGame/openingStoryWorkflow.ts'), 'utf8');
-
-        expect(source).not.toContain('名器世界书触发词');
-        expect(source).toContain('log?.content ?? log?.text');
-        expect(source).toContain('responseVariablePlanText');
-        expect(source).toContain('extraTexts: [params.playerInput, responseBodyText, responseVariablePlanText]');
-        expect(openingSource).not.toContain('const variableWorldbookExtra');
-    });
-
     it('非 explicit NSFW 层级会压制名器世界书 always 条目', () => {
         const mingqiBooks = JSON.parse(readFileSync(resolve(process.cwd(), 'public/worldbook-presets/mingqi-core.json'), 'utf8'));
         const injected = 构建世界书注入文本({

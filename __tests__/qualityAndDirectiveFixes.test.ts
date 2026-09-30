@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { 标准化能力列表, 规范化社交列表 } from '../hooks/useGame/stateTransforms';
 import { 执行正文润色 } from '../hooks/useGame/bodyPolish';
 import * as textAIService from '../services/ai/text';
-import { 获取题材模式配置 } from '../utils/topicModeProfiles';
-import { 获取题材界面文案 } from '../utils/resourceLabels';
 import { 创建开场基础状态 } from '../hooks/useGame/storyState';
 
 vi.mock('../services/ai/text', () => ({
@@ -250,26 +248,7 @@ describe('正文优化重试', () => {
     });
 });
 
-describe('无限流商城文案边界', () => {
-    it('外部市场入口叫主神商城，团队内部兑换叫团队商城', () => {
-        const profile = 获取题材模式配置('无限流');
-        const labels = 获取题材界面文案('无限流');
-
-        expect(profile.marketName).toBe('主神商城');
-        expect(labels.菜单.market).toBe('主神商城');
-        expect(labels.组织.商城).toBe('团队商城');
-    });
-
-    it('侧栏和弹窗标题使用无限流口径', () => {
-        const labels = 获取题材界面文案('无限流');
-
-        expect(labels.标题.系统菜单题头).toBe('主控');
-        expect(labels.标题.地图).toBe('任务地图');
-        expect(labels.标题.任务).toBe('主神任务');
-        expect(labels.标题.能力).toBe('能力档案');
-        expect(labels.标题.任务发布字段).toBe('主神发布');
-    });
-
+describe('题材开局状态', () => {
     it('显式无限流开局默认任务和能力不会退回武侠模板或专属倒计时模板', () => {
         const base = 创建开场基础状态(
             {

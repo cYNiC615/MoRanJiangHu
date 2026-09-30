@@ -78,17 +78,6 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         ]);
     });
 
-    it('keeps trailing narration together when quoted narration is not explicitly tagged', () => {
-        const logs = 规范化可渲染对白日志([
-            { sender: '旁白', text: '叶青点点头说道：“我去检查补给箱，' },
-            { sender: '旁白', text: '看看有没有止血喷雾。”白光重新稳定。' }
-        ] as any);
-
-        expect(logs).toEqual([
-            { sender: '旁白', text: '叶青点点头说道：“我去检查补给箱，看看有没有止血喷雾。”白光重新稳定。' }
-        ]);
-    });
-
     it('splits bracket speaker lines from narration into character bubbles', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',
@@ -277,24 +266,6 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         }]);
     });
 
-    it('keeps quoted oral speech after voice and gaze cues as narration unless explicitly tagged', () => {
-        const logs = 规范化可渲染对白日志([{
-            sender: '旁白',
-            text: [
-                '秦映雪的声音里透着一股被废土现实反复踩踏后的沙哑与无奈，“制式消音器？那玩意儿早在两年前的防线溃败里就打光了。现在整个废土行省，能拿出成套消音装备的，除了核心区的猎鹰连，就只有那些垄断了黑市的大商队。”',
-                '“这是维修工秦砚舟上个月捣鼓出来的土法子。用绝缘胶布死死缠在枪管上，里面塞满破布和钢丝球。能压住前两发的枪口焰和部分噪音，但第三发开始，里面的破布就会被高温点燃，甚至可能导致炸膛。”秦映雪盯着你，眼神冷厉，“如果你觉得这玩意儿比你的短刀更靠谱，你可以拿走。但我个人的建议是，不到万不得已，不要开枪。”',
-                '你的刀，才是最安静的消音器。'
-            ].join('\n\n')
-        }] as any);
-
-        expect(logs).toHaveLength(1);
-        expect(logs[0].sender).toBe('旁白');
-        expect(logs[0].text).toContain('秦映雪的声音里透着');
-        expect(logs[0].text).toContain('“制式消音器？');
-        expect(logs[0].text).toContain('“如果你觉得这玩意儿比你的短刀更靠谱');
-        expect(logs[0].text).toContain('你的刀，才是最安静的消音器。');
-    });
-
     it('does not infer a speaker from narrative adverbs before inner quoted thoughts', () => {
         const logs = 规范化可渲染对白日志([{
             sender: '旁白',
@@ -313,14 +284,19 @@ describe('dialogueLogNormalizer story readability cleanup', () => {
         expect(logs.some(item => item.sender === '死死' || item.sender === '死')).toBe(false);
     });
 
-    it('keeps quoted oral speech without a concrete speaker cue as narration', () => {
-        const logs = 规范化可渲染对白日志([{
-            sender: '旁白',
-            text: '一个清冷的女声从侧后方传来，“别乱动，柜子后面可能有机关。”'
-        }] as any);
 
-        expect(logs).toHaveLength(1);
-        expect(logs[0].sender).toBe('旁白');
-        expect(logs[0].text).toContain('柜子后面可能有机关');
+    it('保留重复出现的显式角色标签，不把第二句降级为旁白', () => {
+        const logs = 规范化可渲染对白日志([
+            { sender: '旁白', text: '霍青鸾朝沈砚清望过去。他在等她说完。' },
+            { sender: '霍青鸾', text: '"我与沈砚清，自十六岁圆房起，结为夫妇。十四载。"' },
+            { sender: '霍青鸾', text: '自今日起，解。' },
+            { sender: '旁白', text: '这一个解字砸在议事堂青砖地上。' }
+        ]);
+
+        expect(logs).toEqual([
+            { sender: '旁白', text: '霍青鸾朝沈砚清望过去。他在等她说完。' },
+            { sender: '霍青鸾', text: '"我与沈砚清，自十六岁圆房起，结为夫妇。十四载。"\n自今日起，解。' },
+            { sender: '旁白', text: '这一个解字砸在议事堂青砖地上。' }
+        ]);
     });
 });

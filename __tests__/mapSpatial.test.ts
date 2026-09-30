@@ -411,4 +411,30 @@ describe('本批 bugfix 回归 - 地图 NPC 社交一致、建筑内部无道路
         // 主街/横巷/纵巷 应该被野外策略移除
         expect(layerRoads.some((item: any) => /主街|横巷|纵巷/.test(item.名称))).toBe(false);
     });
+
+    it('同一个角色只保留一个最细地图落点，不会同时出现在父级和子级', () => {
+        const world = 补齐世界地图空间字段({
+            地图层级: [
+                { ID: 'world', 名称: '主神空间', 层级: '寰宇', 网格宽度: 40, 网格高度: 30 },
+                { ID: 'hall', 名称: '主神大厅', 层级: '大地点', 父级ID: 'world', 网格宽度: 32, 网格高度: 24 },
+                { ID: 'room', 名称: '队伍休息室', 层级: '子地点', 父级ID: 'hall', 网格宽度: 20, 网格高度: 16 }
+            ],
+            地图建筑: [],
+            地图道路: [],
+            地图人物: [
+                { ID: 'p-parent', 名称: '林越', 关联NPC: 'player-1', 所在层级ID: 'hall', 坐标: { x: 6, y: 6 }, 是否当前玩家: true },
+                { ID: 'p-leaf', 名称: '林越', 关联NPC: 'player-1', 所在层级ID: 'room', 坐标: { x: 9, y: 9 }, 是否当前玩家: true },
+                { ID: 'npc-parent', 名称: '叶青', 关联NPC: 'npc-ye-qing', 所在层级ID: 'hall', 坐标: { x: 8, y: 8 } },
+                { ID: 'npc-leaf', 名称: '叶青', 关联NPC: 'npc-ye-qing', 所在层级ID: 'room', 坐标: { x: 10, y: 10 } }
+            ]
+        } as any);
+
+        const playerSpots = world.地图人物.filter((person: any) => person.关联NPC === 'player-1');
+        const npcSpots = world.地图人物.filter((person: any) => person.关联NPC === 'npc-ye-qing');
+
+        expect(playerSpots).toHaveLength(1);
+        expect(playerSpots[0].所在层级ID).toBe('room');
+        expect(npcSpots).toHaveLength(1);
+        expect(npcSpots[0].所在层级ID).toBe('room');
+    });
 });

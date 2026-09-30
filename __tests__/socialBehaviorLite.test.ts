@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { 规范化社交列表 } from '../hooks/useGame/stateTransforms';
-import { 构建统一规划分析用户提示词 } from '../prompts/runtime/planningAnalysis';
 import {
     合并NPC行为档案,
     构建规划社交上下文,
@@ -128,25 +127,6 @@ describe('Phase 3.2 B-lite social behavior profile', () => {
         expect(context.非在场重要角色摘要[0]).toContain('害怕债务牵连');
         expect(JSON.stringify(context)).not.toContain('空白女性');
         expect(context.统计.原始社交数量).toBe(3);
-    });
-
-    it('规划分析 prompt 用红颜规划 v2 候选摘要约束女主规划补位', () => {
-        const prompt = 构建统一规划分析用户提示词({
-            currentStoryJson: '{}',
-            currentHeroinePlanJson: '{}',
-            worldJson: '{}',
-            socialJson: '[{"姓名":"空白女性","性别":"女","是否主要角色":true}]',
-            envJson: '{}',
-            recentBodiesText: '最近正文',
-            currentPlanText: '',
-            auditFocusText: '',
-            heroineEnabled: true,
-            heroineCandidateText: ''
-        } as any);
-
-        expect(prompt).toContain('【红颜规划候选摘要】');
-        expect(prompt).toContain('当前没有可用于红颜规划 v2 的候选摘要');
-        expect(prompt).toContain('不得生成空女主规划');
     });
 
     it('女主规划命令只允许写入红颜规划 v2 候选目标', () => {

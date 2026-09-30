@@ -119,9 +119,7 @@ describe('开局配置题材边界', () => {
         const prompt = 构建开局配置提示词(config);
 
         expect(prompt).toContain('AI 生成角色性别硬约束');
-        expect(prompt).toContain('只允许新生成的 NPC');
         expect(prompt).toContain('女');
-        expect(prompt).toContain('主角性别以玩家建档为准');
     });
 
     it('现代都市默认提示词不主动生成组织，并把玩家剧情倾向作为导演偏好注入', () => {
@@ -134,8 +132,6 @@ describe('开局配置题材边界', () => {
         expect(config.玩家剧情倾向).toBe('想从合租、兼职和校园社团慢慢展开关系。');
         expect(prompt).toContain('开局组织口径：本次不主动生成初始组织');
         expect(prompt).toContain('玩家剧情倾向');
-        expect(prompt).toContain('导演偏好');
-        expect(prompt).toContain('不是世界事实');
         expect(prompt).toContain('合租、兼职和校园社团');
     });
 

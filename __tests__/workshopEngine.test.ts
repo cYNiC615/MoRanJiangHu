@@ -60,11 +60,6 @@ describe('本地模式包主题引擎', () => {
         expect(theme.creationFlow.find((step) => step.id === 'world')?.label).toBe('世界设定');
     });
 
-    it('官方题材模式数据已从工具层剥离到主题数据文件', () => {
-        expect(Object.keys(题材模式配置表)).toContain('武侠');
-        expect(题材模式配置表.仙侠.worldDefaults.worldExtraRequirement).toContain('灵石');
-    });
-
     it('题材类型、顺序和主题配置保持一一对应', () => {
         const expected: 题材模式类型[] = ['武侠', '仙侠', '西方奇幻', '灵气复苏', '都市修仙', '现代都市', '末日丧尸', '无限流'];
 

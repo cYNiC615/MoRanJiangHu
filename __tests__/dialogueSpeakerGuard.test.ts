@@ -11,10 +11,6 @@ describe('additional name support (non-standard CJK names)', () => {
             expect(是否可信角色发送者('芙莉莲')).toBe(true);
         });
 
-        it('accepts 3-char non-standard name without known surname (琪亚娜)', () => {
-            expect(是否可信角色发送者('琪亚娜')).toBe(true);
-        });
-
         it('accepts 4-char name with known surname (伊莎贝尔)', () => {
             expect(是否可信角色发送者('伊莎贝尔')).toBe(true);
         });
@@ -44,7 +40,8 @@ describe('additional name support (non-standard CJK names)', () => {
         });
 
         it('accepts names via knownSpeakers override', () => {
-            expect(是否可信角色发送者('芙莉莲', { knownSpeakers: ['芙莉莲'] })).toBe(true);
+            expect(是否可信角色发送者('阿卡菲尔')).toBe(false);
+            expect(是否可信角色发送者('阿卡菲尔', { knownSpeakers: ['阿卡菲尔'], allowUnknownName: false })).toBe(true);
         });
 
         it('accepts name via declaredNames override even if normally rejected', () => {

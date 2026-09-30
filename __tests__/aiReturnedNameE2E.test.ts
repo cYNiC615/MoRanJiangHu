@@ -37,11 +37,6 @@ const 解析OpenAI聊天响应内容 = async (response: Response): Promise<strin
 
 describe('AI returned female name e2e', () => {
     it('keeps an AI raw non-blacklisted female name without local name-pool rewriting', () => {
-        const candidatePrompt = 构建女性姓名候选提示词({
-            usedNames: ['苏婉儿', '婉儿', '林清雪'],
-            seed: '端测少侠|端测州|前厅',
-            count: 100
-        });
         const aiReturnedName = '谢听澜';
         const response = {
             logs: [
@@ -93,11 +88,6 @@ describe('AI returned female name e2e', () => {
 
         const npc = result.社交.find((item: any) => item?.id === 'npc_ai_su_waner');
         console.info(`[AI姓名端到端] 模拟AI原始返回=${aiReturnedName}；最终入库=${npc?.姓名}`);
-        expect(candidatePrompt).toContain('女性 NPC 命名风格');
-        expect(candidatePrompt).toContain('林知夏');
-        expect(candidatePrompt).toContain('顾明澜');
-        expect(candidatePrompt).not.toContain('苏婉儿');
-        expect(candidatePrompt).not.toContain('候选姓名（100个）');
         expect(aiReturnedName).not.toBe('苏婉儿');
         expect(npc?.姓名).toBe(aiReturnedName);
         expect(提取命中女性姓名黑名单(npc?.姓名)).toHaveLength(0);

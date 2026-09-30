@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { 构建变量模型任务提示词, 构建变量模型职责提示词 } from '../prompts/runtime/variableModel';
+import { 构建变量模型任务提示词 } from '../prompts/runtime/variableModel';
 import { 构建社交档案完整性审计提示 } from '../hooks/useGame/variableModelWorkflow';
 
 describe('variableModel prompts', () => {
-    it('injects dialogue candidate guidance without forcing every speaker into long-term social records', () => {
+    it('extracts named dialogue candidates without treating the narrator as an NPC', () => {
         const prompt = 构建变量模型任务提示词({
             stateJson: '{}',
             response: {
@@ -21,51 +19,8 @@ describe('variableModel prompts', () => {
         expect(prompt).toContain('【本回合对白候选角色列表】');
         expect(prompt).toContain('候选1：护院1');
         expect(prompt).toContain('候选2：杨青儿');
-        expect(prompt).toContain('以下名字只表示“本回合在对白层出现过或被点名过的人物候选”');
-        expect(prompt).toContain('不是已经确认必须长期建档的正式 NPC');
-    });
-
-    it('tells the variable model to prefer story evidence for gender and only use ratio as a weak prior', () => {
-        const systemPrompt = 构建变量模型职责提示词();
-
-        expect(systemPrompt).toContain('其中 `性别` 必须优先由你根据正文和档案证据判断并显式写入');
-        expect(systemPrompt).toContain('只有当正文、变量规划、已有社交档案和本回合命令合起来仍不足以判断时');
-        expect(systemPrompt).toContain('你可以把这些配置当作最后一层弱先验来帮助裁决');
-    });
-
-    it('requires delta accounting for item inputs, outputs, and balances', () => {
-        const systemPrompt = 构建变量模型职责提示词();
-
-        expect(systemPrompt).toContain('输入物/输出物/余额');
-        expect(systemPrompt).toContain('输入物离开背包时，对 `角色.物品列表[i]` 执行 `delete` 或 `sub 堆叠数量`');
-        expect(systemPrompt).toContain('输出物进入背包时，对 `角色.物品列表` 执行 `push/add`');
-        expect(systemPrompt).toContain('货币、信用等收支同步写入对应变量');
-    });
-
-    it('maps transaction and production facts to paired variable commands', () => {
-        const systemPrompt = 构建变量模型职责提示词();
-
-        expect(systemPrompt).toContain('卖出=扣原物+加收入');
-        expect(systemPrompt).toContain('买入=扣货币+加物品');
-        expect(systemPrompt).toContain('兑换=扣旧物+加新物');
-        expect(systemPrompt).toContain('制作=扣材料+加成品');
-        expect(systemPrompt).toContain('只写产出不扣输入');
-    });
-
-    it('keeps intimacy rules in their existing 16.1 and 16.2 slots', () => {
-        const systemPrompt = 构建变量模型职责提示词();
-
-        expect(systemPrompt).toContain('16.1 NSFW 模式下，主要女性/长期关系对象必须维护 `亲密边界档案`');
-        expect(systemPrompt).toContain('16.2 正文或变量规划若确认发生亲密关系，变量命令必须能解释并落档“发生关系判定”');
-    });
-
-    it('anchors the variable model as a fictional local RPG state sync engine', () => {
-        const systemPrompt = 构建变量模型职责提示词();
-
-        expect(systemPrompt).toContain('本地虚构角色扮演项目');
-        expect(systemPrompt).toContain('所有角色均为虚构成年人');
-        expect(systemPrompt).toContain('只输出结构化变量命令');
-        expect(systemPrompt).toContain('不提供现实医疗、法律或性行为指导');
+        expect(prompt).not.toContain('候选3：');
+        expect(prompt).not.toMatch(/候选\d+：旁白/u);
     });
 
     it('does not treat ordinary uterus normal/closed state as a missing social archive', () => {
@@ -175,15 +130,4 @@ describe('variableModel prompts', () => {
         expect(audit).toMatch(/胸部描述|小穴描述|名器档案|子宫档案/u);
     });
 
-    it('variable calibration service injects extra prompt only through the task prompt builder', () => {
-        const source = readFileSync(resolve(process.cwd(), 'services/ai/storyTasks.ts'), 'utf8');
-        const start = source.indexOf('export const generateVariableCalibrationUpdate');
-        const end = source.indexOf('const 构建规划分析消息链', start);
-        expect(start).toBeGreaterThanOrEqual(0);
-        expect(end).toBeGreaterThan(start);
-        const body = source.slice(start, end);
-
-        expect(body).toContain('extraPrompt: normalizedVariableExtraPrompt');
-        expect(body).not.toContain('【最终输出附加要求】');
-    });
 });

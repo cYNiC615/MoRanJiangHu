@@ -40,8 +40,8 @@ describe('creativeWorkshopModules', () => {
             expect(entry.preset?.worldConfig?.modeRuntimeProfile?.identity.baseMode, mode).toBe(mode);
             expect(Array.isArray(entry.payload?.backgrounds), mode).toBe(true);
             expect(Array.isArray(entry.payload?.talents), mode).toBe(true);
-            expect((entry.payload?.backgrounds as any[]).length, mode).toBeGreaterThanOrEqual(8);
-            expect((entry.payload?.talents as any[]).length, mode).toBeGreaterThanOrEqual(8);
+            expect((entry.payload?.backgrounds as any[]).length, mode).toBeGreaterThan(0);
+            expect((entry.payload?.talents as any[]).length, mode).toBeGreaterThan(0);
             expect(entry.payload?.backgrounds).toEqual(获取题材预设背景(mode));
             expect(entry.payload?.talents).toEqual(获取题材预设天赋(mode));
             const backgroundNames = new Set((entry.payload?.backgrounds as any[]).map((item) => item.名称));
@@ -60,38 +60,6 @@ describe('creativeWorkshopModules', () => {
         const entries = 创意工坊模块列表.filter((entry) => entry.source === 'builtin' && entry.contributor === '官方' && entry.type === 'topic');
         expect(entries.length).toBe(题材模式顺序.length);
         expect(new Set(entries.map((entry) => entry.preset?.openingConfig?.题材模式))).toEqual(new Set(题材模式顺序));
-    });
-
-    it('迁入的玩家题材按完整模式包提供单个整合模块', () => {
-        for (const suiteId of ['local-rideress-suite', 'local-pokemon-suite']) {
-            const entries = 创意工坊模块列表.filter((entry) => entry.payload?.suiteId === suiteId);
-            expect(entries.length, suiteId).toBe(1);
-            expect(entries[0].type, suiteId).toBe('topic');
-            expect(entries[0].payload?.packagePart, suiteId).toBe('mode_package');
-            expect(entries[0].modeWorldbooks?.[0]?.条目.some((entry) => entry.标题 === '世界规则'), suiteId).toBe(true);
-            expect(entries[0].modeWorldbooks?.[0]?.条目.some((entry) => entry.标题 === '能力体系'), suiteId).toBe(true);
-            expect(entries[0].modeWorldbooks?.[0]?.条目.some((entry) => entry.标题 === '运行时模式配置'), suiteId).toBe(true);
-            expect(entries[0].modeRuntimeProfile?.identity.displayName, suiteId).toBeTruthy();
-            expect(entries[0].payload?.modeRuntimeProfile, suiteId).toEqual(entries[0].modeRuntimeProfile);
-            expect(entries.every((entry) => entry.formatVersion === 2 && entry.workshopKind === 'standard_module'), suiteId).toBe(true);
-        }
-    });
-
-    it('女骑模式包继承西方奇幻基础模式', () => {
-        for (const suiteId of ['local-rideress-suite']) {
-            const entry = 创意工坊模块列表.find((item) => item.payload?.suiteId === suiteId);
-            expect(entry?.modeRuntimeProfile?.identity.baseMode, suiteId).toBe('西方奇幻');
-            expect(entry?.preset?.openingConfig?.题材模式, suiteId).toBe('西方奇幻');
-            expect((entry?.payload?.modeRuntimeProfile as any)?.identity.baseMode, suiteId).toBe('西方奇幻');
-        }
-    });
-
-    it('末日生化感染规则已整合进末日模式包', () => {
-        expect(创意工坊模块列表.some((entry) => entry.id === 'world-rules-zombie-classic')).toBe(false);
-        const zombiePackage = 创意工坊模块列表.find((entry) => entry.id === 'mode-package-末日丧尸');
-        expect(zombiePackage?.title).toBe('末日模式包');
-        expect(zombiePackage?.payload?.worldExtraRequirement).toContain('感染');
-        expect(zombiePackage?.payload?.worldExtraRequirement).toContain('baseAmount');
     });
 
     it('每个模块都提供注入预览', () => {
@@ -590,8 +558,4 @@ describe('creativeWorkshopModules', () => {
         expect(restored.modeRuntimeProfile?.identity.displayName).toBe(wuxiaTopic!.modeRuntimeProfile?.identity.displayName);
     });
 
-    it('开局配置保留在新建存档流程，不作为模式包分区模块', () => {
-        expect(创意工坊模块分区.map((section) => section.id as string)).not.toContain('opening');
-        expect(创意工坊模块列表.map((entry) => entry.type as string)).not.toContain('opening');
-    });
 });

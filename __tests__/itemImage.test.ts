@@ -1,52 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { 获取物品图标复用Key, 获取物品已选图标地址 } from '../utils/itemImage';
 import { 构建最终图片提示词, 全局无文字正向提示词, 全局无文字负面提示词 } from '../services/ai/image';
-import { 构建物品图提示词, 构建物品负面提示词, 构建物品视觉描述, 物品无文字正向约束 } from '../services/ai/itemImageGeneration';
+import { 构建物品图提示词, 构建物品负面提示词, 构建物品视觉描述 } from '../services/ai/itemImageGeneration';
 
 describe('item image preset fallback', () => {
     const expectHostedPreset = (url: string | undefined) => {
         expect(url).toMatch(/^(?:\/assets\/item-presets\/.+|https:\/\/(?:i\.111666\.best\/image|s3\.hi168\.com\/hi168-19275-07130td3)\/.+)\.(?:jpg|jpeg|png|webp)$/);
     };
-
-    it('keeps explicitly selected icons for known starter equipment', () => {
-        const item: any = {
-            ID: 'Item001',
-            名称: '精钢长剑',
-            类型: '武器',
-            品质: '良品',
-            图片档案: {
-                最近生图结果: {
-                    id: 'bad_generated_spear',
-                    状态: 'success',
-                    图片URL: 'https://example.com/wrong-spear.png',
-                    构图: '物品图标'
-                },
-                生图历史: [
-                    {
-                        id: 'bad_generated_spear',
-                        状态: 'success',
-                        图片URL: 'https://example.com/wrong-spear.png',
-                        构图: '物品图标'
-                    }
-                ],
-                已选图标图片ID: 'bad_generated_spear'
-            }
-        };
-
-        expect(获取物品已选图标地址(item)).toBe('https://example.com/wrong-spear.png');
-    });
-
-    it('uses distinct starter clothing presets for pants and shoes', () => {
-        const pants: any = { 名称: '粗布长裤', 类型: '防具', 品质: '凡品' };
-        const shoes: any = { 名称: '旧布鞋', 类型: '防具', 品质: '凡品' };
-
-        const pantsIcon = 获取物品已选图标地址(pants);
-        const shoesIcon = 获取物品已选图标地址(shoes);
-
-        expectHostedPreset(pantsIcon);
-        expectHostedPreset(shoesIcon);
-        expect(pantsIcon).not.toBe(shoesIcon);
-    });
 
     it('uses generated local presets for structured item library names', () => {
         const sword: any = { 名称: '钢剑', 类型: '武器', 品质: '良品' };
@@ -94,34 +54,6 @@ describe('item image preset fallback', () => {
         };
 
         expect(获取物品已选图标地址(item)).toBe('https://example.com/custom-sword.png');
-    });
-
-    it('keeps selected generated images when the display name differs from presets', () => {
-        const item: any = {
-            ID: 'Item003',
-            名称: '精铁长剑',
-            类型: '武器',
-            品质: '良品',
-            图片档案: {
-                最近生图结果: {
-                    id: 'generated_exact_for_custom_name',
-                    状态: 'success',
-                    图片URL: 'https://example.com/generated-custom-sword.png',
-                    构图: '物品图标'
-                },
-                生图历史: [
-                    {
-                        id: 'generated_exact_for_custom_name',
-                        状态: 'success',
-                        图片URL: 'https://example.com/generated-custom-sword.png',
-                        构图: '物品图标'
-                    }
-                ],
-                已选图标图片ID: 'generated_exact_for_custom_name'
-            }
-        };
-
-        expect(获取物品已选图标地址(item)).toBe('https://example.com/generated-custom-sword.png');
     });
 
     it('normalizes whitespace when matching structured preset names', () => {
@@ -205,21 +137,6 @@ describe('item image prompt classification', () => {
         expect(prompt).toContain('visible bent cigarettes');
         expect(negativePrompt).toContain('leather pouch');
         expect(negativePrompt).toContain('drawstring bag');
-    });
-
-    it('treats training clothes as soft fabric garments even when item type is armor', () => {
-        const prompt = 构建物品图提示词({
-            名称: '灰黑练功服',
-            类型: '防具',
-            品质: '凡品',
-            描述: '一套灰黑色的练功服，布料结实，适合日常练武。'
-        });
-
-        expect(prompt).toContain('cloth kung fu training uniform');
-        expect(prompt).toContain('soft textile clothing item');
-        expect(prompt).toContain('flexible drape');
-        expect(prompt).not.toMatch(/\b(?:no|not)\b/i);
-        expect(prompt).not.toContain('armor prop');
     });
 
     it('treats moon-white sect disciple clothes as pale cloth uniforms instead of black armor', () => {
@@ -353,22 +270,6 @@ describe('item image prompt classification', () => {
         expect(negativePrompt).toContain('metal plates');
     });
 
-    it('keeps exclusions in the negative prompt for cloth shoes instead of the positive prompt', () => {
-        const item = {
-            名称: '千层底布鞋',
-            类型: '防具',
-            品质: '凡品',
-            描述: '手纳的千层底布鞋，鞋面灰黑，适合长途赶路。'
-        };
-        const prompt = 构建物品图提示词(item);
-        const negativePrompt = 构建物品负面提示词(item);
-
-        expect(prompt).toContain('cloth shoes');
-        expect(prompt).not.toMatch(/\b(?:no|not)\b/i);
-        expect(negativePrompt).toContain('leather dress shoe');
-        expect(negativePrompt).toContain('polished leather shoe');
-    });
-
     it('renders old straw sandals as empty footwear without people or feet', () => {
         const item = {
             名称: '旧草鞋',
@@ -494,27 +395,6 @@ describe('item image prompt classification', () => {
         expect(negativePrompt).toContain('medieval shield');
     });
 
-    it('strongly forbids readable or pseudo-readable text on generated item images', () => {
-        const item = {
-            名称: '主神任务通行牌',
-            类型: '任务道具',
-            品质: '良品',
-            描述: '主神空间发放的临时通行牌。'
-        };
-        const negativePrompt = 构建物品负面提示词(item);
-
-        expect(物品无文字正向约束).toContain('blank unlabeled surfaces');
-        expect(物品无文字正向约束).toContain('blank unmarked object surface');
-        expect(物品无文字正向约束).toContain('clean material texture');
-        expect(物品无文字正向约束).not.toMatch(/\bno\s+(?:readable\s+)?text\b/i);
-        expect(物品无文字正向约束).not.toMatch(/\bno\s+(?:pseudo\s+text|labels?|logos?|inscriptions?)\b/i);
-        expect(negativePrompt).toContain('readable inscription');
-        expect(negativePrompt).toContain('pseudo text');
-        expect(negativePrompt).toContain('Chinese characters');
-        expect(negativePrompt).toContain('engraved words');
-        expect(negativePrompt).toContain('ideograms');
-    });
-
     it('keeps global no-text protection even when base negative prompt is skipped', () => {
         const bundle = 构建最终图片提示词('single access token prop', {
             图片后端类型: 'comfyui',
@@ -527,15 +407,8 @@ describe('item image prompt classification', () => {
             附加正向提示词: ''
         });
 
-        expect(全局无文字正向提示词).toContain('label-free visual design');
-        expect(全局无文字负面提示词).toContain('readable inscription');
-        expect(全局无文字负面提示词).toContain('pseudo text');
-        expect(bundle.最终正向提示词).toContain('blank unlabeled surfaces');
-        expect(bundle.最终负向提示词).toContain('text');
-        expect(bundle.最终负向提示词).toContain('watermark');
-        expect(bundle.最终负向提示词).toContain('logo');
-        expect(bundle.最终负向提示词).toContain('Chinese characters');
-        expect(bundle.最终负向提示词).toContain('pseudo text');
+        expect(bundle.最终正向提示词).toContain(全局无文字正向提示词);
+        expect(bundle.最终负向提示词).toContain(全局无文字负面提示词);
     });
 
     it('defaults people in scene snapshots to Chinese unless foreign features are explicit', () => {

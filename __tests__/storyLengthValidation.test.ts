@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { 校验响应人称一致性, 校验主剧情正文最低字数, 获取主剧情正文不足信息, 统计正文字符数 } from '../hooks/useGame/sendWorkflow';
 import { 净化角色对白行, 评估润色长度结果, 检测文章优化协议确认污染, 解析正文日志文本 } from '../hooks/useGame/bodyPolish';
 import { 清理润色正文输出, 构建故事请求消息诊断 } from '../services/ai/storyTasks';
@@ -8,7 +6,7 @@ import { 构建主剧情请求参数, type 主剧情系统上下文 } from '../h
 import { 构建字数要求提示词 } from '../prompts/runtime/protocolDirectives';
 import { 默认游戏设置 } from '../utils/gameSettings';
 
-describe('主剧情正文字数校验', () => {
+describe('主剧情正文处理与请求拼装', () => {
     it('统计正文日志的可见字符数', () => {
         expect(统计正文字符数({
             logs: [
@@ -627,15 +625,29 @@ describe('主剧情正文字数校验', () => {
         });
     });
 
-    it('主剧情请求开始诊断记录 payload 分段摘要而不是完整正文', () => {
-        const source = readFileSync(resolve(process.cwd(), 'hooks/useGame/sendWorkflow.ts'), 'utf8');
+    it('keeps dialogue when the speaker tag and quoted line are split across lines', () => {
+        const logs = 净化角色对白行(解析正文日志文本([
+            '【旁白】',
+            '半空中的主神光球依然在散发着冷光。',
+            '',
+            '【主角】',
+            '“醒醒。别睡了。”',
+            '',
+            '【俞月荷】',
+            '“你……杨培强？你怎么会在这里？”',
+            '',
+            '【旁白】',
+            '她抬头看着你，等待着你的决定。'
+        ].join('\n')));
 
-        expect(source).toContain('payloadSegments: messageEntries.map');
-        expect(source).toContain('charCount: entry.charCount');
-        expect(source).toContain('requestDiagnostics');
-        expect(source).toContain('serviceDiagnostics');
-        expect(source).not.toContain('content: entry.content');
+        expect(logs).toEqual([
+            { sender: '旁白', text: '半空中的主神光球依然在散发着冷光。' },
+            { sender: '主角', text: '醒醒。别睡了。' },
+            { sender: '俞月荷', text: '你……杨培强？你怎么会在这里？' },
+            { sender: '旁白', text: '她抬头看着你，等待着你的决定。' }
+        ]);
     });
+
 });
 
 describe('主剧情叙事人称校验', () => {

@@ -122,8 +122,8 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 
 验证：
 
-- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/modernPromptGuardrails.test.ts --reporter=dot`
-- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/modernPromptGuardrails.test.ts __tests__/reportedIssuesE2E.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
+- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/runtimePromptRouting.test.ts --reporter=dot`
+- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/runtimePromptRouting.test.ts __tests__/mapSpatial.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
 
 补充清理：
 
@@ -136,7 +136,7 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 - 改后：任务 prompt 只保留通用任务准入、字段、奖励和去重规则；测试样例改为现代/中性任务；
   `storyState.ts` 的显式无限流开局默认任务改成中性的 `确认眼前处境`，不再硬塞主神、任务世界或倒计时模板。
   显式无限流模式包、资源文案、地图/正文解析样例暂不作为本轮完整退休范围处理。
-- 验证：`npx vitest run __tests__/taskCompat.test.ts __tests__/reportedIssuesE2E.test.ts __tests__/modernPromptGuardrails.test.ts __tests__/qualityAndDirectiveFixes.test.ts __tests__/planningPrompts.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
+- 验证：`npx vitest run __tests__/taskCompat.test.ts __tests__/mapSpatial.test.ts __tests__/runtimePromptRouting.test.ts __tests__/qualityAndDirectiveFixes.test.ts __tests__/planningPrompts.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
 
 ### 2026-06-27：Phase 4B 规划主轴与世界演变压噪落地
 
@@ -161,8 +161,8 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 
 验证：
 
-- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/modernPromptGuardrails.test.ts --reporter=dot`
-- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/modernPromptGuardrails.test.ts __tests__/reportedIssuesE2E.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
+- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/runtimePromptRouting.test.ts --reporter=dot`
+- `npx vitest run __tests__/taskCompat.test.ts __tests__/planningPrompts.test.ts __tests__/runtimePromptRouting.test.ts __tests__/mapSpatial.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
 
 最终验证补充：
 
@@ -185,8 +185,8 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 验证：
 
 - `npx vitest run __tests__/planningPrompts.test.ts __tests__/responseCommandProcessor.test.ts --reporter=dot`
-- `npx vitest run __tests__/planningPrompts.test.ts __tests__/responseCommandProcessor.test.ts __tests__/modernPromptGuardrails.test.ts __tests__/socialBehaviorLite.test.ts --reporter=dot`
-- `npx vitest run __tests__/taskCompat.test.ts __tests__/reportedIssuesE2E.test.ts __tests__/qualityAndDirectiveFixes.test.ts __tests__/planningPrompts.test.ts __tests__/responseCommandProcessor.test.ts __tests__/modernPromptGuardrails.test.ts __tests__/socialBehaviorLite.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
+- `npx vitest run __tests__/planningPrompts.test.ts __tests__/responseCommandProcessor.test.ts __tests__/runtimePromptRouting.test.ts __tests__/socialBehaviorLite.test.ts --reporter=dot`
+- `npx vitest run __tests__/taskCompat.test.ts __tests__/mapSpatial.test.ts __tests__/qualityAndDirectiveFixes.test.ts __tests__/planningPrompts.test.ts __tests__/responseCommandProcessor.test.ts __tests__/runtimePromptRouting.test.ts __tests__/socialBehaviorLite.test.ts __tests__/phase32RuntimeWorldbooks.test.ts --reporter=dot`
 - `npm run build` 通过；仍保留既有 Vite 提示：`paper-texture.png` 运行时解析，以及 `prompts <-> game-runtime` circular chunk。
 - `git diff --check` 通过；仅出现 Git 工作区换行提示。
 - `npx tsc --noEmit --pretty false` 仍失败，报错集中在既有测试夹具类型、opening workflow prompt union、social behavior、dbService 等旧类型债；本轮未出现 `剧情暗线` 新字段相关类型错误。
@@ -216,8 +216,8 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 
 验证：
 
-- `npx vitest run __tests__/modernPromptGuardrails.test.ts --reporter=dot`
-- `npx vitest run __tests__/modernPromptGuardrails.test.ts __tests__/newGameTopicRealmPriority.test.ts __tests__/newGameDiy.test.ts __tests__/creativeWorkshopModules.test.ts --reporter=dot`
+- `npx vitest run __tests__/runtimePromptRouting.test.ts --reporter=dot`
+- `npx vitest run __tests__/runtimePromptRouting.test.ts __tests__/newGameTopicRealmPriority.test.ts __tests__/newGameDiy.test.ts __tests__/creativeWorkshopModules.test.ts --reporter=dot`
 - `npm run build` 通过；仍保留既有 Vite 提示：`paper-texture.png` 运行时解析，以及 `prompts <-> game-runtime` circular chunk。
 - `git diff --check` 通过；仅出现 Git 工作区换行提示。
 
@@ -235,12 +235,12 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 
 验证：
 
-- `npx vitest run __tests__\femaleNameSelector.test.ts __tests__\aiReturnedNameE2E.test.ts __tests__\npcNamingPrompt.test.ts __tests__\modernPromptGuardrails.test.ts __tests__\variableModelPrompts.test.ts __tests__\runtimeVariableWorkflow.test.ts --reporter=dot`
+- `npx vitest run __tests__\femaleNameSelector.test.ts __tests__\aiReturnedNameE2E.test.ts __tests__\runtimePromptRouting.test.ts __tests__\variableModelPrompts.test.ts __tests__\runtimeVariableWorkflow.test.ts --reporter=dot`
 - `npm run build` 通过；仍保留既有 Vite 提示：`paper-texture.png` 运行时解析，以及 `prompts <-> game-runtime` circular chunk。
 - `git diff --check` 通过；仅出现 Git 工作区换行提示。
 - `npx tsc --noEmit` 仍失败，集中在既有类型债；本轮命名相关文件没有新增类型错误。
 
-### 2026-06-30：测试体系降噪
+### 测试体系降噪（已完成）
 
 改动原因：部分测试仍承担“防旧功能复活”的历史守门职责，或用旧题材负向词表扫描 prompt。
 这些测试在 Phase 4 后会逐渐变成维护噪音，应让测试更多保护当前正向行为和真实回归风险。
@@ -249,13 +249,17 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 
 - 删除 `tests/homebrew-retired-feature-guardrails.test.ts`。
 - 删除变量注册、响应命令处理中的 retired root / 旧天气节日系统专门测试。
-- `modernPromptGuardrails` 中纯旧词扫描改为正向现代口径断言；保留世界观轻喜剧、经济压噪、角色种子、
-  女性命名等当前体验规则。
+- 删除纯 prompt 文案、禁词、固定示例和源码字符串扫描断言；这些测试无法证明模型会遵守对应写作规则。
+- 原 `modernPromptGuardrails` 收束为 `runtimePromptRouting`，保留消息拼装、功能开关、预览一致性、角色种子隐藏信息和上下文裁剪。
+- 变量、规划、姓名和图片提示词测试仅保留输入传递、格式转换、分层与路由行为；存档、解析、状态更新、安全和重试覆盖保持。
+- 删除 `npcNamingPrompt`、`newGameWizardCopy`、`rightPanelModal` 三个纯文案/源码扫描测试文件。
+- 第二轮去重已完成：裁剪图片优先级、对白、姓名保留、任务去重的重复样例及题材固定内容清单；不同图片分类分支和不同预设恢复入口继续保留。
+- 独立的正文分行、对白恢复、渲染归一及反馈问题文件已归入 `storyLengthValidation`、`storyResponseParser`、`dialogueLogNormalizer` 和 `mapSpatial`；重复的任务去重由 `taskCompat` 承接。
 - `variableRegistryPriority` 改为确认当前重要 root 可见，不再要求隐藏 `玩家组织`。
 
 验证：
 
-- `npx vitest run __tests__\modernPromptGuardrails.test.ts __tests__\npcContext.test.ts __tests__\responseCommandProcessor.test.ts __tests__\variableRegistry.test.ts __tests__\variableRegistryPriority.test.ts --reporter=dot`
+- `npx vitest run __tests__\runtimePromptRouting.test.ts __tests__\npcContext.test.ts __tests__\responseCommandProcessor.test.ts __tests__\variableRegistry.test.ts __tests__\variableRegistryPriority.test.ts --reporter=dot`
 - `npx tsc --noEmit --pretty false`
 - `npm run test:run -- --reporter=dot`
 - `git diff --check`
@@ -283,7 +287,7 @@ Phase 4B 先通过 prompt、COT 和注入边界收紧实现，不做 `剧情规�
 
 验证：
 
-- `npx vitest run __tests__\modernPromptGuardrails.test.ts`
+- `npx vitest run __tests__\runtimePromptRouting.test.ts`
 - `npx tsc --noEmit`
 - `git diff --check`
 - `npx vitest run`

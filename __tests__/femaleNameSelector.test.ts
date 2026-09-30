@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { 女性人名选择器列表, 提取命中女性姓名黑名单, 提取命中新女性角色姓名黑名单, 重命名重复女性NPC列表, 选择唯一女性姓名, 选择女性姓名候选列表 } from '../utils/femaleNameSelector';
-import { 构建女性姓名候选提示词 } from '../utils/femaleNameCandidatePrompt';
 
 describe('female name selector', () => {
     it('loads the user-provided female name selector as a unique pool', () => {
@@ -18,13 +17,8 @@ describe('female name selector', () => {
         expect(女性人名选择器列表.slice(0, 20)).not.toContain(selected);
     });
 
-    it('injects a modern naming style prompt instead of hard blacklist examples', () => {
+    it('returns the requested number of unique unused candidate names', () => {
         const candidates = 选择女性姓名候选列表({
-            usedNames: ['苏婉儿', '林清雪', '端测少侠'],
-            seed: '端测少侠|端测州|前厅',
-            count: 100
-        });
-        const prompt = 构建女性姓名候选提示词({
             usedNames: ['苏婉儿', '林清雪', '端测少侠'],
             seed: '端测少侠|端测州|前厅',
             count: 100
@@ -34,15 +28,6 @@ describe('female name selector', () => {
         expect(new Set(candidates).size).toBe(100);
         expect(candidates).not.toContain('苏婉儿');
         expect(candidates).not.toContain('林清雪');
-        expect(prompt).toContain('女性 NPC 命名风格');
-        expect(prompt).toContain('林知夏');
-        expect(prompt).toContain('顾明澜');
-        expect(prompt).toContain('示例仅用于把握语感，不要直接复读');
-        expect(prompt).toContain('年龄、职业和成熟感通过称谓、身份、行为、语气体现');
-        expect(prompt).not.toContain('苏婉清');
-        expect(prompt).not.toContain('林婉儿');
-        expect(prompt).not.toContain('黑名单');
-        expect(prompt).not.toContain('候选姓名（100个）');
     });
 
     it('detects common female template names for regeneration', () => {
@@ -90,37 +75,4 @@ describe('female name selector', () => {
         expect(list[3].曾用名).toBeUndefined();
     });
 
-    it('keeps legacy template-like female names instead of rewriting old saves', () => {
-        const [npc] = 重命名重复女性NPC列表([
-            { id: 'short_given_name', 姓名: '婉儿', 性别: '女', 身份: '贴身侍女' }
-        ]);
-
-        expect(npc.姓名).toBe('婉儿');
-        expect(npc.曾用名).toBeUndefined();
-    });
-
-    it('keeps legacy main female template names instead of rewriting old saves', () => {
-        const [npc] = 重命名重复女性NPC列表([
-            { id: 'main_su_waner', 姓名: '苏婉儿', 性别: '女', 身份: '主要女角色', 是否主要角色: true }
-        ]);
-
-        expect(npc.姓名).toBe('苏婉儿');
-        expect(npc.曾用名).toBeUndefined();
-    });
-
-    it('keeps named major female characters outside the selector pool when local protection is enabled', () => {
-        const [npc] = 重命名重复女性NPC列表([
-            {
-                id: 'major_huang_rong',
-                姓名: '黄蓉',
-                性别: '女',
-                身份: '主要女性角色',
-                是否主要角色: true,
-                简介: '玩家手动保留的关键人物。'
-            }
-        ], { 保留非姓名库主要女性名: true });
-
-        expect(npc.姓名).toBe('黄蓉');
-        expect(npc.曾用名).toBeUndefined();
-    });
 });

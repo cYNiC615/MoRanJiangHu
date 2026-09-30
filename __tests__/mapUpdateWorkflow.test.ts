@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    解析地图自动更新命令,
-    构建地图层级替换结果,
-    构建地图更新用户提示词,
-    判定地图自动更新需求
-} from '../hooks/useGame/mapUpdateWorkflow';
+import { 解析地图自动更新命令, 构建地图层级替换结果, 判定地图自动更新需求 } from '../hooks/useGame/mapUpdateWorkflow';
 
 describe('地图自动更新解析', () => {
     it('兼容模型返回思考块加地点树 JSON 的全量同步格式', () => {
@@ -85,20 +80,6 @@ describe('构建地图层级替换结果 — 不保留「在场人物」', () =>
         expect(inn.控制势力).toBe('商会');
         expect(inn.势力标签).toEqual(['商会', '帮会']);
         expect(inn).not.toHaveProperty('在场人物');
-    });
-
-    it('现代自动更新提示词不再携带旧武侠地图母板', () => {
-        const prompt = 构建地图更新用户提示词({
-            mode: 'auto_incremental',
-            环境: { 大地点: '镜湖市', 中地点: '大学城', 小地点: '合租公寓', 具体地点: '客厅' },
-            世界: { 地图层级: [{ ID: 'DT-001', 名称: '现实世界', 层级: '寰宇', 父级ID: '' }] },
-            currentResponse: { logs: [{ sender: '旁白', text: '他在客厅喝水，没有去新地点。' }] } as any
-        });
-
-        expect(prompt).not.toMatch(/诸天万界|九州大陆|洛阳城|华山派|悦来客栈|帮会|门派/u);
-        expect(prompt).toMatch(/现实世界|镜湖市|大学城|合租公寓|写字楼|医院|社区|商圈/u);
-        expect(prompt).toContain('同父级下名称唯一');
-        expect(prompt).toContain('动态位置短语');
     });
 
     it('同名地点在不同父级下不会被自动更新解析错误合并', () => {

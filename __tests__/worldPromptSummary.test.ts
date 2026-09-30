@@ -7,13 +7,12 @@ describe('world prompt summary routing', () => {
     it('defines an independent core_world_summary prompt slot', () => {
         expect(核心_世界观摘要).toMatchObject({
             id: 'core_world_summary',
-            标题: '主剧情 · 世界观摘要',
             类型: '核心设定',
             启用: true
         });
     });
 
-    it('builds a summary prompt that preserves unique world facts instead of generic modern filler', () => {
+    it('passes world facts to the summary request with the output protocol tag', () => {
         const prompt = 构建世界观摘要提示词([
             '镜湖市表面是普通大学城，但地下媒体同盟“白塔通讯”控制匿名爆料渠道。',
             '普通现代都市也有通勤、外卖、便利店、手机支付。',
@@ -23,7 +22,6 @@ describe('world prompt summary routing', () => {
         expect(prompt).toContain('<世界观摘要>');
         expect(prompt).toContain('白塔通讯');
         expect(prompt).toContain('封存病历');
-        expect(prompt).toContain('过滤普通现代都市废话');
     });
 
     it('deterministic fallback summary keeps distinctive factions, rules, conflicts, and bans generic filler', () => {

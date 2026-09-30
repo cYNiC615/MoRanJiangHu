@@ -77,7 +77,7 @@ Phase 3 当前状态见 `docs/homebrew-phase3-implementation-status.md`。后续
 | 文生图后端 | ComfyUI workflow、settings、proxy | `components/features/Settings/ImageGenerationSettings.tsx`, `services/ai/image*`, `functions/api/image-backend` | 稳定功能 | workflow schema、validators、route、env、tests |
 | 诊断/开发工具 | Context/History/Variable/NPC/WorkflowGraph | `components/features/Settings`, `services/diagnostic*` | Phase 5 支撑 | modal、context builder、state edit paths |
 | Cloudflare/Worker | 本地/API/图片代理辅助面 | `functions/api`, `wrangler.jsonc`, `scripts/build-worker.mjs` | 稳定辅助 | routes、env、worker build、diagnostics |
-| 测试体系 | Vitest/focused suite/E2E harness | `vitest.config.ts`, `__tests__`, `tests` | 稳定功能 | config、fixtures、focused suite definitions；不再保留纯“防旧功能复活”的历史守门测试 |
+| 测试体系 | Vitest/focused suite/E2E harness | `vitest.config.ts`, `__tests__`, `tests` | 稳定功能 | 保护运行时行为、协议与数据安全；不保留纯 prompt 文案/禁词扫描和源码字符串守门测试 |
 | 构建脚本 | package scripts、CNB/image/worker scripts | `package.json`, `scripts`, `functions/api` | 稳定功能 | scripts、npm entries、docs、env |
 
 ## 主运行链路
@@ -231,6 +231,11 @@ IndexedDB reset/migration、内置条目隐藏、默认世界书和本地 snapsh
 
 ## 验证门禁
 
+- 纯提示词措辞、示例或风格增减不写逐句匹配测试；修改提示词后以人工审阅和实际使用效果判断质量。
+- prompt 相关自动化只验证可执行行为：消息顺序与去重、开关与路由、用户输入传递、上下文过滤、协议解析；使用测试输入或结构字段断言，避免冻结内置文案。
+- `__tests__/runtimePromptRouting.test.ts` 承接世界观消息拼装、预览一致性、角色种子信息边界和上下文裁剪；存档、状态命令、解析、重试与安全回归继续保留。
+- 不通过读取业务源码匹配函数名、调用文本或 CSS 类来验证行为；静态 JSON 资源的解析和注入测试仍有保留价值。
+- 同一行为保留代表性样例和独立边界，避免仅更换人物、物品或台词重复测试；题材资源检查引用完整性、唯一性和恢复行为，不锁定固定名称清单或条目数量。
 - focused Vitest；
 - 全量测试在阶段收口、测试体系清理或大范围 prompt/runtime 改动后补跑；
 - `npx tsc --noEmit --pretty false`；

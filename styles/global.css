@@ -103,6 +103,20 @@ html[data-theme="day"] [class*="to-ink-black"] {
   background-color: rgb(var(--c-ink-black)) !important;
 }
 
+html[data-theme="day"] [class*="bg-emerald-"],
+html[data-theme="day"] [class*="bg-green-"],
+html[data-theme="day"] [class*="bg-lime-"] {
+  background-color: rgba(22, 101, 52, 0.10) !important;
+}
+
+html[data-theme="day"] [class*="bg-indigo-"],
+html[data-theme="day"] [class*="bg-violet-"],
+html[data-theme="day"] [class*="bg-purple-"],
+html[data-theme="day"] [class*="bg-fuchsia-"],
+html[data-theme="day"] [class*="bg-pink-"] {
+  background-color: rgba(134, 25, 143, 0.10) !important;
+}
+
 html[data-theme="day"] [class*="text-white"],
 html[data-theme="day"] [class*="text-gray-100"],
 html[data-theme="day"] [class*="text-gray-200"],

@@ -58,6 +58,15 @@ const 构建物品生图接口配置 = (imageApi: 当前可用接口结构 | nul
 const 游戏机制关键词 = /兑换|强化|支线剧情|奖励点|属性|技能|等级|经验|伤害|生命值|法力值|冷却|暴击|命中|闪避|抗性|穿透|吸血|回蓝|buff|debuff|增益|减益|附加|提升|降低|增加|减少|触发|释放|消耗|恢复|回复|持续|回合|概率|倍率|加成|短时间|缓解|恐怖片任务|惊惧|精神污染|精神防护/i;
 
 const 是否游戏机制文案 = (text: string): boolean => 游戏机制关键词.test(text);
+const 效果从句起始 = /^(?:提供|给予|带来|产生|造成|减少|降低|增加|提升|增强|恢复|回复|免疫|抵挡|抵御|抵抗|防止|避免|减免|抵消|便于|有助于?|以便)/;
+const 弱效果从句起始 = /^(?:可(?:以)?|能(?:够)?|会|适合|适用于|用于|用来|使用后|使用时|装备后|穿戴后|携带时|需(?:要)?)/;
+const 效果从句语义 = /遮挡|防护|防御|抵御|抵挡|减免|抵消|恢复|回复|伤害|生命|内力|精力|体力|属性|经验|概率|持续|冷却|回合|加成/i;
+
+export const 清洗物品外观描述 = (text: string): string => (text || '').split(/[，。；\n]/u)
+    .map(clause => clause.trim().replace(/^(?:这是一个|这是|是一个|有一个)\s*/u, ''))
+    .filter(clause => clause && !是否游戏机制文案(clause) && !效果从句起始.test(clause)
+        && !(弱效果从句起始.test(clause) && 效果从句语义.test(clause)))
+    .join('，');
 export const 物品无文字正向约束 = `${全局无文字正向提示词}, blank unmarked object surface, plain empty panels, clean material texture where markings would appear`;
 
 export const 构建物品视觉描述 = (item: any): string => {
@@ -76,7 +85,7 @@ export const 构建物品视觉描述 = (item: any): string => {
         }
         return parts.join('\n');
     }
-    const 描述 = 读取文本(item?.描述);
+    const 描述 = 清洗物品外观描述(读取文本(item?.描述));
     const parts: string[] = [];
     if (描述 && !是否游戏机制文案(描述)) parts.push(描述);
     if (Array.isArray(item?.词条列表) && item.词条列表.length > 0) {
@@ -86,9 +95,9 @@ export const 构建物品视觉描述 = (item: any): string => {
             .join('；');
         if (词条文案 && !是否游戏机制文案(词条文案)) parts.push(词条文案);
     }
-    const 来源 = 读取文本(item?.来源描述);
+    const 来源 = 清洗物品外观描述(读取文本(item?.来源描述));
     if (来源 && !是否游戏机制文案(来源)) parts.push(来源);
-    const 关联 = 读取文本(item?.关联事件);
+    const 关联 = 清洗物品外观描述(读取文本(item?.关联事件));
     if (关联 && !是否游戏机制文案(关联)) parts.push(关联);
     return parts.join('\n');
 };
@@ -663,7 +672,7 @@ const 构建物品视觉主体描述 = (item: any): string => {
     const typeEn = isLivingMount ? 'living mount animal' : isLivingAnimal ? 'living animal' : isFan ? 'folded Chinese hand fan' : isModernFirearm ? 'modern firearm' : isEnergyWeapon ? 'sci-fi energy weapon' : isCrossbow ? 'crossbow' : isQuiver ? 'arrow container' : isArrowAmmo ? 'arrow ammunition' : isWeapon ? 'weapon' : isSoftGarment ? 'cloth garment' : isTacticalVest ? 'wearable tactical vest' : isWearableArmor ? 'wearable torso armor vest' : isAncientMedicine ? 'ancient medicinal powder or pills' : isModernMedicine ? 'modern medicine vial or ampoule' : isBotanicalHerb ? 'botanical medicinal herb' : 物品类型转英文(读取文本(item?.类型, '物品'));
     const qualityEn = 物品品质转英文(读取文本(item?.品质, '普通'));
     const nameEn = 物品名称转英文描述(name);
-    const description = 读取文本(item?.视觉描述) || (!是否游戏机制文案(读取文本(item?.描述) || '') ? 读取文本(item?.描述) : '');
+    const description = 清洗物品外观描述(读取文本(item?.视觉描述)) || 构建物品视觉描述(item);
     const tags = Array.isArray(item?.视觉标签)
         ? item.视觉标签.map((tag: unknown) => 读取文本(tag)).filter(Boolean).join(', ')
         : '';
@@ -840,7 +849,7 @@ export const 生成物品图标 = async (
                 ...structuredItem.视觉标签
             ])),
         } : {}),
-        视觉描述: 读取文本((item as any)?.视觉描述) || 构建物品视觉描述(item),
+        视觉描述: 清洗物品外观描述(读取文本((item as any)?.视觉描述)) || 构建物品视觉描述(item),
     };
     const enrichedItemIsSoftGarment = 物品是否柔性服装(enrichedItem);
     const enrichedItemIsLivingAnimal = 物品是否活体生物(enrichedItem);

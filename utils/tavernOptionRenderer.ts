@@ -8,7 +8,7 @@ const 提取选项行 = (text: string): string[] => {
         const line = rawLine.trim();
         if (!line) continue;
         const labeled = line.match(/^(?:>\s*)?(?:(?:选项|选择)\s*[一二三四五六七八九十\d]*|(?:option|choice)\s*\d*)\s*[:：]\s*(.+)$/i);
-        const numbered = line.match(/^(?:>\s*)?\d+\s*[.、)]\s*(.+)$/);
+        const numbered = line.match(/^(?:>\s*)?(?:\d+|[A-J])\s*[.、):：]\s*(.+)$/i);
         const value = (labeled?.[1] || numbered?.[1] || '').trim();
         if (!value || seen.has(value)) continue;
         seen.add(value);

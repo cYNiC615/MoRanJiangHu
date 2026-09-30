@@ -21,16 +21,26 @@ const 构建最小预设 = (regexScripts: any[]) => ({
 
 describe('酒馆预设安全兼容元数据', () => {
     it('同时注册 Izumi 0503 和 0623，并可安全规范化新版预设', () => {
-        expect(内置酒馆预设列表.map(item => item.id)).toEqual([
+        expect(内置酒馆预设列表.map(item => item.id)).toEqual(expect.arrayContaining([
             'builtin_izumi_0503',
             'builtin_izumi_0623'
-        ]);
+        ]));
         const entry = 内置酒馆预设列表.find(item => item.id === 'builtin_izumi_0623');
         expect(entry?.path).toBe('/tavern-presets/izumi-0623.json');
         const raw = JSON.parse(readFileSync(resolve(process.cwd(), 'public/tavern-presets/izumi-0623.json'), 'utf8'));
         const normalized = 规范化酒馆预设(raw);
         expect(normalized?.prompts.length).toBeGreaterThan(0);
         expect(normalized?.兼容性?.正则脚本总数).toBeGreaterThan(0);
+    });
+
+    it('normalizes every bundled preset and recognizes the Double Journey native option script', () => {
+        for (const entry of 内置酒馆预设列表) {
+            const raw = JSON.parse(readFileSync(resolve(process.cwd(), `public${entry.path}`), 'utf8'));
+            expect(规范化酒馆预设(raw)?.prompts.length, entry.id).toBeGreaterThan(0);
+        }
+        const raw = JSON.parse(readFileSync(resolve(process.cwd(), 'public/tavern-presets/double-journey-v11.json'), 'utf8'));
+        const scripts = 规范化酒馆预设(raw)?.兼容性?.已分类脚本列表 || [];
+        expect(scripts.some(item => item.safetyType === 'option-render' && !item.script.disabled)).toBe(true);
     });
 
     it('保留 regex extensions 并区分安全清理、静态 HTML 与阻止脚本', () => {

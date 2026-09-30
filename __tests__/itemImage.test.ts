@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { 获取物品图标复用Key, 获取物品已选图标地址 } from '../utils/itemImage';
 import { 构建最终图片提示词, 全局无文字正向提示词, 全局无文字负面提示词 } from '../services/ai/image';
-import { 构建物品图提示词, 构建物品负面提示词, 构建物品视觉描述 } from '../services/ai/itemImageGeneration';
+import { 构建物品图提示词, 构建物品负面提示词, 构建物品视觉描述, 清洗物品外观描述 } from '../services/ai/itemImageGeneration';
 
 describe('item image preset fallback', () => {
     const expectHostedPreset = (url: string | undefined) => {
@@ -103,6 +103,13 @@ describe('item image reuse key', () => {
 });
 
 describe('item image visual description', () => {
+    it('keeps appearance clauses while removing mechanics without falling back to discarded text', () => {
+        expect(清洗物品外观描述('灰色棉质披风，提供微弱的身体防护，能遮挡小雨。')).toBe('灰色棉质披风');
+        expect(清洗物品外观描述('可折叠的布帽，会发光的玉佩')).toBe('可折叠的布帽，会发光的玉佩');
+        expect(清洗物品外观描述('恢复生命值，提供属性加成。')).toBe('');
+        expect(清洗物品外观描述('青钢剑用玄铁打造而成的剑身')).toBe('青钢剑用玄铁打造而成的剑身');
+        expect(构建物品视觉描述({ 名称: '测试外套', 描述: '粗布材质，提升防御。' })).toBe('粗布材质');
+    });
     it('uses freeform item descriptions without throwing when no structured preset matches', () => {
         const description = 构建物品视觉描述({
             名称: '斑驳旧木盒',

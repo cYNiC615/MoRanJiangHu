@@ -26,6 +26,8 @@ import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerS
 import { 构建运行时世界书解析结果 } from '../../utils/runtimeWorldbooks';
 import { 构建规划社交上下文, 构建红颜规划候选结果, 过滤女主规划命令 } from '../../utils/socialBehavior';
 import { 构建有效导演开局配置, 构建导演配置注入文本 } from '../../utils/directorConfig';
+import { 收集未登记规划人物 } from '../../utils/planningDiagnostics';
+import { recordDiagnosticLog } from '../../services/diagnosticLog';
 
 type 规划更新工作流依赖 = {
     apiConfig: any;
@@ -624,6 +626,10 @@ export const 创建规划更新工作流 = (deps: 规划更新工作流依赖) =
             }
         });
         probe.mark('调度规划分析自动存档');
+        const unresolvedPeople = 收集未登记规划人物(patched.storyPlan, params.state.社交, deps.角色?.姓名 || '', effectiveOpeningConfig?.导演配置);
+        if (unresolvedPeople.length > 0) {
+            recordDiagnosticLog('info', ['规划人物引用待确认', { unresolvedPeople }]);
+        }
         void deps.performAutoSave({
             story: patched.story,
             storyPlan: patched.storyPlan,

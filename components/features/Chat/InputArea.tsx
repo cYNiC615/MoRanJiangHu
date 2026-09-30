@@ -279,10 +279,52 @@ const InputArea: React.FC<Props> = ({
         error: ''
     });
     const [parseRepairBusy, setParseRepairBusy] = useState(false);
+    const inputTextareaRef = useRef<HTMLTextAreaElement>(null);
+    const parseRepairTextareaRef = useRef<HTMLTextAreaElement>(null);
+    const parseRepairDidLocateRef = useRef(false);
     const quickActionsRef = useRef<HTMLDivElement | null>(null);
     const dragRef = useRef({ active: false, startX: 0, startScrollLeft: 0, moved: false });
     const suppressClickUntilRef = useRef(0);
     const queueProgressDebugRef = useRef<Record<string, { lastAt: number; phase?: string }>>({});
+
+    useEffect(() => {
+        const input = inputTextareaRef.current;
+        if (!input) return;
+        const resize = () => {
+            input.style.height = 'auto';
+            input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+        };
+        resize();
+        const observer = new ResizeObserver(resize);
+        observer.observe(input.parentElement!);
+        return () => observer.disconnect();
+    }, [content]);
+
+    useEffect(() => {
+        if (!parseRepairModal.open) {
+            parseRepairDidLocateRef.current = false;
+            return;
+        }
+        if (parseRepairDidLocateRef.current) return;
+        const text = parseRepairModal.originalRaw;
+        const candidates = [
+            ...Array.from(parseRepairModal.detail.matchAll(/「([^」]+)」/g), match => `【${match[1]}】`),
+            ...(parseRepairModal.detail.match(/<\/?[^<>\s]+\s*>|【[^】]+】/g) || [])
+        ];
+        const keyword = candidates.find(value => text.includes(value));
+        parseRepairDidLocateRef.current = true;
+        if (!keyword) return;
+        const index = text.indexOf(keyword);
+        const frame = requestAnimationFrame(() => {
+            const input = parseRepairTextareaRef.current;
+            if (!input) return;
+            input.focus({ preventScroll: true });
+            input.setSelectionRange(index, index + keyword.length);
+            const lineHeight = parseFloat(getComputedStyle(input).lineHeight) || 24;
+            input.scrollTop = Math.max(0, text.slice(0, index).split('\n').length * lineHeight - 60);
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [parseRepairModal.open, parseRepairModal.originalRaw, parseRepairModal.detail]);
 
     useEffect(() => {
         if (!externalDraft?.text) return;
@@ -1277,14 +1319,21 @@ const InputArea: React.FC<Props> = ({
                 </div>
 
                 {/* Input Field */}
-                <div className={`flex-1 min-w-0 bg-black/40 border border-gray-700/50 rounded-lg h-9 flex items-center px-2.5 transition-all shadow-inner sm:rounded-xl sm:h-11 sm:px-4 ${busy ? 'opacity-50 cursor-not-allowed' : 'focus-within:border-wuxia-gold/50 focus-within:bg-black/60'}`}>
-                    <input
-                        type="text"
-                        className="w-full bg-transparent text-[13px] sm:text-[15px] text-paper-white font-serif placeholder-gray-600 focus:outline-none"
+                <div className={`flex-1 min-w-0 bg-black/40 border border-gray-700/50 rounded-lg min-h-11 max-h-40 flex items-center px-2.5 transition-all shadow-inner sm:px-4 ${busy ? 'opacity-50 cursor-not-allowed' : 'focus-within:border-wuxia-gold/50 focus-within:bg-black/60'}`}>
+                    <textarea
+                        ref={inputTextareaRef}
+                        rows={1}
+                        aria-label="玩家行动"
+                        className="w-full min-h-11 max-h-40 resize-none overflow-y-auto py-2.5 leading-6 bg-transparent text-[15px] text-paper-white font-serif placeholder-gray-600 focus:outline-none"
                         placeholder={busy ? "等待处理中..." : "输入你的行动..."}
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && !busy && handleSend()}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                                e.preventDefault();
+                                if (!busy && !e.repeat) void handleSend();
+                            }
+                        }}
                         disabled={busy}
                     />
                 </div>
@@ -1330,7 +1379,10 @@ const InputArea: React.FC<Props> = ({
                     className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
                 >
                     <div
-                        className="mx-auto w-full max-w-4xl rounded-lg border border-wuxia-cyan/35 bg-black/95 p-5 shadow-[0_0_36px_rgba(0,0,0,0.85)]"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="恢复本回合"
+                        className="mx-auto w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-wuxia-cyan/35 bg-black/95 p-5 shadow-[0_0_36px_rgba(0,0,0,0.85)]"
                     >
                         <div className="flex items-center justify-between gap-4 mb-4">
                             <h4 className="text-lg font-serif font-bold text-wuxia-cyan">
@@ -1345,14 +1397,17 @@ const InputArea: React.FC<Props> = ({
                                 ✕
                             </button>
                         </div>
-                        <div className="text-xs text-gray-300 whitespace-pre-wrap border border-gray-800 rounded-md bg-black/50 p-3 mb-3">
+                        <div className="text-sm text-gray-300 whitespace-pre-wrap break-words border border-gray-800 rounded-md bg-black/50 p-3 mb-3">
                             {parseRepairModal.detail}
                         </div>
                         <div className="text-[11px] text-gray-500 mb-2">{parseRepairModal.hint || '可直接手动补全文本后恢复，或尝试自动修复恢复。'}</div>
                         <textarea
+                            ref={parseRepairTextareaRef}
+                            aria-label="待修复的模型原文"
+                            wrap="off"
                             value={parseRepairModal.editedRaw}
                             onChange={(e) => setParseRepairModal(prev => ({ ...prev, editedRaw: e.target.value, error: '' }))}
-                            className="w-full h-56 bg-black/80 border border-gray-700 rounded-md p-3 text-xs text-green-300 font-mono whitespace-pre resize-y outline-none focus:border-wuxia-cyan/60"
+                            className="w-full h-96 max-h-[50vh] min-h-40 bg-black/80 border border-gray-700 rounded-md p-3 text-sm leading-6 text-green-300 font-mono whitespace-pre resize-y outline-none focus:border-wuxia-cyan/60"
                         />
                         {parseRepairModal.error && (
                             <div className="mt-3 text-xs text-red-300 border border-red-500/30 bg-red-950/20 rounded p-2 whitespace-pre-wrap">

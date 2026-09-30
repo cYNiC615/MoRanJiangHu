@@ -614,6 +614,7 @@ const WorkflowGraphSettings: React.FC<{
         return (
             <div className="mt-2 space-y-1.5" onClick={(event) => event.stopPropagation()}>
                 <InlineSelect
+                    wrapLabel
                     value={selectedChannelId}
                     options={normalized.configs.map((cfgItem) => ({
                         value: cfgItem.id,
@@ -635,12 +636,13 @@ const WorkflowGraphSettings: React.FC<{
                     }}
                     disabled={normalized.configs.length === 0 || !onSave}
                     placeholder="选择渠道"
-                    buttonClassName="h-7 min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[9px] leading-4"
+                    buttonClassName="min-h-7 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[10px] leading-4"
                     panelClassName="text-[10px]"
                     optionClassName="px-2 py-1.5 text-[10px] leading-4"
                 />
                 <div className="relative z-20 space-y-1.5">
                     <InlineSelect
+                        wrapLabel
                         value={modelValue}
                         options={modelOptions.map((model) => ({ value: model, label: model }))}
                         onChange={(model) => {
@@ -652,7 +654,7 @@ const WorkflowGraphSettings: React.FC<{
                         }}
                         disabled={modelOptions.length === 0 || !onSave}
                         placeholder="选择模型"
-                        buttonClassName="h-7 min-h-0 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[9px] leading-4"
+                        buttonClassName="min-h-7 rounded-sm border-gray-700 bg-black/35 px-2 py-1 text-[10px] leading-4"
                         panelClassName="text-[10px]"
                         optionClassName="px-2 py-1.5 text-[10px] leading-4"
                     />
@@ -782,8 +784,8 @@ const WorkflowGraphSettings: React.FC<{
                 </div>
             )}
             <div className="mt-1 space-y-0.5 text-[10px] leading-4">
-                <div className="truncate text-gray-300">渠道：<span className="text-wuxia-cyan">{stage.channel}</span></div>
-                <div className="truncate text-gray-300">模型：<span className="text-wuxia-gold">{stage.model}</span></div>
+                <div className="break-all text-gray-300">渠道：<span className="text-wuxia-cyan">{stage.channel}</span></div>
+                <div className="break-all text-gray-300">模型：<span className="text-wuxia-gold">{stage.model}</span></div>
                 {stageInlineSelector(stage)}
                 <div className="text-gray-500">{stage.note}</div>
                 {clickable && (

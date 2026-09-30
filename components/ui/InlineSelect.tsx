@@ -14,6 +14,7 @@ type InlineSelectProps<T extends string = string> = {
     buttonClassName?: string;
     panelClassName?: string;
     optionClassName?: string;
+    wrapLabel?: boolean;
 };
 
 const InlineSelect = <T extends string>({
@@ -24,7 +25,8 @@ const InlineSelect = <T extends string>({
     disabled = false,
     buttonClassName = '',
     panelClassName = '',
-    optionClassName = ''
+    optionClassName = '',
+    wrapLabel = false
 }: InlineSelectProps<T>) => {
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
@@ -73,14 +75,14 @@ const InlineSelect = <T extends string>({
                             : 'bg-black/40 border-gray-600 text-white hover:border-gray-500')
                 } ${buttonClassName}`}
             >
-                <span className={`truncate ${selected ? '' : 'text-gray-400'}`}>
+                <span className={`${wrapLabel ? 'min-w-0 whitespace-normal break-all' : 'truncate'} ${selected ? '' : 'text-gray-400'}`}>
                     {selected?.label || placeholder}
                 </span>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
-                    className={`w-4 h-4 transition-transform ${
+                    className={`w-4 h-4 shrink-0 transition-transform ${
                         disabled ? 'text-gray-600' : (open ? 'text-wuxia-gold rotate-180' : 'text-gray-400')
                     }`}
                 >
@@ -114,7 +116,7 @@ const InlineSelect = <T extends string>({
                                             : 'text-gray-200 hover:bg-white/5'
                                     }`}
                                 >
-                                    <span className="truncate">{option.label}</span>
+                                    <span className={wrapLabel ? 'min-w-0 whitespace-normal break-all' : 'truncate'}>{option.label}</span>
                                     {active && <span className="text-[10px] text-wuxia-gold/80 shrink-0">当前</span>}
                                 </button>
                             );

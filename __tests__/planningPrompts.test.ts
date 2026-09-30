@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import { 收集未登记规划人物 } from '../utils/planningDiagnostics';
 import {
     构建规划性别比例约束摘要,
     构建统一规划分析用户提示词
 } from '../prompts/runtime/planningAnalysis';
 
 describe('planning prompts', () => {
+    it('reports unresolved references without mutating plans or treating seeds and aliases as missing NPCs', () => {
+        const plan: any = { 当前章任务: [{ 当前状态: '未开始', 关联人物: ['主角', '老林', '种子角色', '未登记人物', '未登记人物'] }], 镜头规划: [] };
+        const before = structuredClone(plan);
+        const result = 收集未登记规划人物(plan, [{ 姓名: '林知夏', 曾用名: ['老林'] }], '主角', {
+            角色种子定义: [{ id: 'seed', 名称: '种子角色', 是否启用: true, 入口摘要: '' }]
+        });
+        expect(result).toEqual([{ path: '当前章任务[0].关联人物', name: '未登记人物' }]);
+        expect(plan).toEqual(before);
+    });
     it('passes the supplied gender ratio summary into the planning request', () => {
         const genderRatioConstraintText = 构建规划性别比例约束摘要('1:9');
         const userPrompt = 构建统一规划分析用户提示词({

@@ -52,6 +52,7 @@ const 是选项渲染脚本 = (script: 酒馆正则脚本结构): boolean => {
     const scriptName = script.scriptName.toLowerCase();
     const targetsOptions = /<\s*(?:options|branches)/.test(findRegex);
     return /data-option-text|option-list|option-link/.test(replaceString)
+        || (/选项栏/.test(scriptName) && /options|branches/.test(findRegex))
         || (targetsOptions && /选项|option|choice/.test(scriptName));
 };
 

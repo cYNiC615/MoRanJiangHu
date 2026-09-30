@@ -27,6 +27,7 @@ import {
     世界书预设组结构,
     导演配置结构
 } from '../types';
+import { 解析文生图功能配置, 构建生图配置恢复签名 } from '../utils/imageFeatureConfig';
 import { useEffect, useRef, useState } from 'react';
 import * as dbService from '../services/dbService';
 import * as textAIService from '../services/ai/text';
@@ -1499,40 +1500,7 @@ export const useGame = () => {
         加载图片AI服务
     });
 
-    const 读取文生图功能配置 = () => {
-        const feature = apiConfig?.功能模型占位 as any;
-        const 场景横竖屏 = feature?.自动场景生图横竖屏 === '竖屏' ? '竖屏' : '横屏';
-        const 场景尺寸 = typeof feature?.自动场景生图分辨率 === 'string' && feature.自动场景生图分辨率.trim()
-            ? feature.自动场景生图分辨率.trim()
-            : (场景横竖屏 === '竖屏' ? '576x1024' : '1024x576');
-        const 自动任务已开启 = Boolean(
-            feature?.NPC生图启用
-            || feature?.物品自动生图启用
-            || feature?.自动场景生图启用
-        );
-        return {
-            总开关: Boolean(feature?.文生图功能启用 || 自动任务已开启),
-            NPC开关: Boolean(feature?.NPC生图启用),
-            使用词组转化器: feature?.NPC生图使用词组转化器 !== false,
-            性别筛选: feature?.NPC生图性别筛选 === '男' || feature?.NPC生图性别筛选 === '女' || feature?.NPC生图性别筛选 === '全部'
-                ? feature.NPC生图性别筛选
-                : '全部',
-            重要性筛选: feature?.NPC生图重要性筛选 === '仅重要' || feature?.NPC生图重要性筛选 === '全部'
-                ? feature.NPC生图重要性筛选
-                : '全部',
-            NPC画风: feature?.自动NPC生图画风 === '二次元' || feature?.自动NPC生图画风 === '写实' || feature?.自动NPC生图画风 === '国风'
-                ? feature.自动NPC生图画风
-                : '通用',
-            场景画风: feature?.自动场景生图画风 === '二次元' || feature?.自动场景生图画风 === '写实' || feature?.自动场景生图画风 === '国风'
-                ? feature.自动场景生图画风
-                : '通用',
-            场景构图要求: feature?.自动场景生图构图要求 === '故事快照' || feature?.自动场景生图构图要求 === '剧照'
-                ? feature.自动场景生图构图要求
-                : '纯场景',
-            场景横竖屏,
-            场景尺寸
-        } as const;
-    };
+    const 读取文生图功能配置 = () => 解析文生图功能配置(apiConfig);
 
     const NPC符合自动生图条件 = (npc: any): boolean => {
         const config = 读取文生图功能配置();
@@ -2342,12 +2310,12 @@ export const useGame = () => {
             feature?.NSFW生图后端类型 || feature?.图片后端类型 || '',
             feature?.NSFW生图模型使用模型 || feature?.文生图模型使用模型 || '',
             feature?.NSFW生图模型API地址 || feature?.文生图模型API地址 || '',
+            构建生图配置恢复签名(apiConfig),
             missingSignature
         ].join('__');
         if (主要角色资源补全签名Ref.current === resourceSignature) return;
-        主要角色资源补全签名Ref.current = resourceSignature;
-
         const timerId = window.setTimeout(() => {
+            主要角色资源补全签名Ref.current = resourceSignature;
             void 自动补全主要角色图片与锚点(社交);
         }, 300);
         return () => window.clearTimeout(timerId);
@@ -2365,12 +2333,12 @@ export const useGame = () => {
             feature?.文生图后端类型 || feature?.图片后端类型 || '',
             feature?.文生图模型使用模型 || '',
             feature?.文生图模型API地址 || '',
+            构建生图配置恢复签名(apiConfig),
             missingSignature
         ].join('__');
         if (全部NPC头像补全签名Ref.current === resourceSignature) return;
-        全部NPC头像补全签名Ref.current = resourceSignature;
-
         const timerId = window.setTimeout(() => {
+            全部NPC头像补全签名Ref.current = resourceSignature;
             void 自动补全全部NPC头像();
         }, 500);
         return () => window.clearTimeout(timerId);

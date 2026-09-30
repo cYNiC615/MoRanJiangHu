@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { 应用Gemini尾部Model回合修正, 构建文本请求最终消息诊断 } from '../services/ai/chatCompletionClient';
 import { 应用Claude兼容末尾User修正, 请求模型文本, 是否流式连接中断错误消息, 规范化流式连接错误提示, 规范化请求模型名称, type 通用消息 } from '../services/ai/chatCompletionClient';
 import type { 当前可用接口结构 } from '../utils/apiConfig';
 
@@ -15,6 +16,36 @@ const baseConfig: 当前可用接口结构 = {
 describe('chatCompletionClient Claude compatible message normalization', () => {
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.useRealTimers();
+    });
+
+    it('normalizes Gemini assistant tails without changing other models or explicit prefix requests', () => {
+        const config = { ...baseConfig, model: 'gemini-test' };
+        const messages: 通用消息[] = [{ role: 'user', content: 'input' }, { role: 'assistant', content: 'format-marker' }];
+        const normalized = 应用Gemini尾部Model回合修正(messages, config);
+        expect(normalized.at(-1)).toMatchObject({ role: 'user', content: expect.stringContaining('format-marker') });
+        expect(messages.at(-1)?.role).toBe('assistant');
+        expect(应用Gemini尾部Model回合修正([...messages.slice(0, 1), { role: 'assistant', content: '  ' }], config)).toEqual(messages.slice(0, 1));
+        expect(应用Gemini尾部Model回合修正(messages, baseConfig)).toBe(messages);
+        const prefix: 通用消息[] = [{ role: 'assistant', content: 'start', prefix: true }];
+        expect(应用Gemini尾部Model回合修正(prefix, config)).toBe(prefix);
+        expect(构建文本请求最终消息诊断(config, messages).providerNormalized.roleSequence).toEqual(normalized.map(m => m.role));
+    });
+
+    it('retries empty JSON and streaming responses with a finite attempt limit', async () => {
+        vi.useFakeTimers();
+        const json = (content: string) => new Response(JSON.stringify({ choices: [{ message: { content } }] }), { headers: { 'content-type': 'application/json' } });
+        const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => json(''));
+        const failed = expect(请求模型文本(baseConfig, [{ role: 'user', content: 'ping' }], { temperature: 0.7 })).rejects.toThrow('模型返回了空内容');
+        await vi.runAllTimersAsync();
+        await failed;
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+        fetchMock.mockReset().mockImplementationOnce(async () => new Response('data: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } }))
+            .mockImplementationOnce(async () => new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } }));
+        const success = 请求模型文本(baseConfig, [{ role: 'user', content: 'ping' }], { temperature: 0.7, streamOptions: { stream: true } });
+        await vi.runAllTimersAsync();
+        expect(await success).toBe('ok');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it('appends a user turn when Claude-like models end with assistant COT pseudo history', () => {

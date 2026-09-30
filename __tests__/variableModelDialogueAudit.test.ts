@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { 构建正文对白人物审计提示 } from '../hooks/useGame/variableModelWorkflow';
+import { 构建正文对白人物审计提示, 查找社交NPC索引 } from '../hooks/useGame/variableModelWorkflow';
 
 describe('variable model dialogue NPC audit', () => {
+    it('prefers exact identity and leaves ambiguous or reverse-description matches unresolved', () => {
+        const social = [
+            { 姓名: '林知夏', 是否主要角色: true, 身份: '丝绸商号', 简介: '曾帮助李老板。' },
+            { 姓名: '李老板', 曾用名: ['老李'], 身份: '掌柜' }
+        ];
+        expect(查找社交NPC索引(social, '丝绸商号掌柜')).toBe(-1);
+        expect(查找社交NPC索引(social, '李老板')).toBe(1);
+        expect(查找社交NPC索引(social, '老李')).toBe(1);
+        expect(查找社交NPC索引([{ 身份: '值班护士' }, { 身份: '住院护士' }], '护士')).toBe(-1);
+    });
     it('requires dialogue speakers missing from social records to be created by variable generation', () => {
         const prompt = 构建正文对白人物审计提示({
             logs: [

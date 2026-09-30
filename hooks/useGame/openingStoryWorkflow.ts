@@ -1,4 +1,5 @@
 import * as textAIService from '../../services/ai/text';
+import { 修补开局角色姓名占位 } from '../../utils/openingConfig';
 import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import type {
@@ -1868,6 +1869,7 @@ export const 执行开场剧情生成工作流 = async (
             tavern_commands: Array.isArray(responseForExecution.tavern_commands) ? [...responseForExecution.tavern_commands] : []
         };
         const openingStateAfterCommands = 保护开局门派(deps.processResponseCommands(responseForExecution, commandBaseState));
+        const repairedOpeningName = 修补开局角色姓名占位(openingStateAfterCommands.角色, contextData.角色 || deps.角色);
         openingStateAfterCommands.社交 = 修复开局伙伴社交列表(
             openingStateAfterCommands.社交,
             options?.开局配置,
@@ -1879,11 +1881,13 @@ export const 执行开场剧情生成工作流 = async (
         openingStateAfterCommands.社交 = 同步在场NPC当前位置(openingStateAfterCommands.社交, openingStateAfterCommands.环境);
         const openingNewNpcList = deps.提取新增NPC列表(commandBaseState.社交, openingStateAfterCommands.社交);
         const hasOpeningCommands = Array.isArray(responseForExecution?.tavern_commands) && responseForExecution.tavern_commands.length > 0;
-        if (!hasOpeningCommands) {
+        if (!hasOpeningCommands || repairedOpeningName) {
             deps.设置角色(deps.规范化角色物品容器映射(openingStateAfterCommands.角色, {
                 启用饱腹口渴系统: openingGameConfig.启用饱腹口渴系统,
                 题材模式: options?.开局配置?.题材模式
             }));
+        }
+        if (!hasOpeningCommands) {
             deps.设置环境(deps.规范化环境信息(openingStateAfterCommands.环境));
             deps.设置世界(deps.规范化世界状态(openingStateAfterCommands.世界));
             deps.设置剧情(deps.规范化剧情状态(openingStateAfterCommands.剧情, openingStateAfterCommands.环境));

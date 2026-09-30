@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { 创建开场基础状态, 合并世界基底到开场状态, 清理空占位地图根节点 } from '../hooks/useGame/storyState';
-import { 规范化开局配置 } from '../utils/openingConfig';
+import { 创建开场基础状态, 合并世界基底到开场状态, 清理空占位地图根节点, 规范化世界状态 } from '../hooks/useGame/storyState';
+import { 规范化开局配置, 修补开局角色姓名占位 } from '../utils/openingConfig';
 import { 创建主题默认世界配置 } from '../utils/workshopEngine';
 import type { 角色数据结构 } from '../types';
 
 describe('modern urban default opening state', () => {
+    it('drops corrupt map nodes and restores only placeholder opening names', () => {
+        const node = { ID: 'city', 名称: '海川', 层级: '大地点' };
+        expect(规范化世界状态({ 地图层级: [null, false, [], {}, 'bad', node] }).地图层级).toEqual([node]);
+        const role = { 姓名: 'Unnamed' };
+        expect(修补开局角色姓名占位(role, { 姓名: '沈砚' })).toBe(true);
+        expect(role.姓名).toBe('沈砚');
+        expect(修补开局角色姓名占位(role, { 姓名: '其他名字' })).toBe(false);
+    });
     it('starts without an organization and does not create prompt-instruction fallback quests', () => {
         const role = {
             姓名: '周行',

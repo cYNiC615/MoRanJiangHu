@@ -1,3 +1,4 @@
+import { 执行文章优化请求带超时 } from './polishRequestTimeout';
 import type {
     GameResponse,
     提示词结构,
@@ -560,15 +561,25 @@ export const 执行正文润色 = async (
     }
 
     const 执行一次文章优化 = async (prompt: string, retryHint = '', bodyOverride?: string) => {
-        const result = await textAIService.generatePolishedBody(
-            (bodyOverride || '').trim() || sourceBody,
-            retryHint ? `${prompt}\n\n${retryHint}` : prompt,
-            polishApi,
-            options?.signal,
-            polishExtraPrompt,
-            polishCotPseudoPrompt,
-            !shouldNonStream && guardedOnDelta ? { stream: true, onDelta: guardedOnDelta } : undefined
-        );
+        const result = await 执行文章优化请求带超时({
+            parentSignal: options?.signal ?? new AbortController().signal,
+            firstResponseTimeoutMs: 90_000,
+            streamIdleTimeoutMs: 120_000,
+            task: (signal, onTimeoutDelta) => textAIService.generatePolishedBody(
+                (bodyOverride || '').trim() || sourceBody,
+                retryHint ? `${prompt}\n\n${retryHint}` : prompt,
+                polishApi, signal, polishExtraPrompt, polishCotPseudoPrompt,
+                !shouldNonStream && guardedOnDelta ? { stream: true, onDelta: (delta, accumulated) => {
+                    if (signal.aborted) return;
+                    onTimeoutDelta(delta, accumulated);
+                    guardedOnDelta(delta, accumulated);
+                } } : undefined
+            ),
+            resolveCompletedDraft: accumulated => {
+                if (!/<正文>[\s\S]+?<\/正文>\s*$/.test(accumulated)) return null;
+                return { rawText: accumulated, bodyText: 提取正文标签内容(accumulated) };
+            }
+        });
         const pollution = 检测文章优化协议确认污染(result.rawText || result.bodyText || '');
         if (pollution.polluted) {
             throw new Error(pollution.reason);

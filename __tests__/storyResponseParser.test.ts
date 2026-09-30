@@ -3,6 +3,28 @@ import { parseStoryRawText, StoryResponseParseError, 解析命令块 } from '../
 import { 规范化可渲染对白日志 } from '../utils/dialogueLogNormalizer';
 
 describe('storyResponseParser', () => {
+    it('preserves prose after adjacent closed judge blocks and an unmatched judge opener', () => {
+        const parsed = parseStoryRawText('<正文>【旁白】先前正文。<judge>【判定】结果=成功</judge>【旁白】中段正文。<judge>【判定】结果=失败</judge>【旁白】后续正文。<judge>【旁白】不能吞掉。</正文><短期记忆>记忆</短期记忆>');
+        expect(parsed.judge_blocks).toHaveLength(2);
+        const body = parsed.logs.map(log => log.text).join('');
+        expect(body).toContain('中段正文');
+        expect(body).toContain('后续正文');
+        expect(body).toContain('不能吞掉');
+    });
+
+    it('splits inline speaker turns without splitting an item name inside dialogue', () => {
+        const parsed = parseStoryRawText('<正文>【沈砚】“看看【青霜剑】。”【林知夏】“我看到了。”</正文><短期记忆>记忆</短期记忆>');
+        expect(parsed.logs).toEqual([
+            { sender: '沈砚', text: '“看看【青霜剑】。”' },
+            { sender: '林知夏', text: '“我看到了。”' }
+        ]);
+    });
+
+    it('removes subtext thinking without consuming the following protocol block', () => {
+        const parsed = parseStoryRawText('<!-- begin_of_Subtext_think -->hidden-planning<正文>【旁白】正文保留。</正文><短期记忆>记忆保留</短期记忆>');
+        expect(parsed.logs[0].text).toBe('正文保留。');
+        expect(JSON.stringify(parsed.logs)).not.toContain('hidden-planning');
+    });
     it('parses quoted JSON command values back into objects for social pushes', () => {
         const commands = 解析命令块('[#1] push 社交 = "{\\"姓名\\":\\"沈清越\\",\\"身份\\":\\"合租室友\\",\\"角色种子ID\\":\\"seed-roommate\\"}"');
 

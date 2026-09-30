@@ -44,9 +44,9 @@ type 历史回合工作流依赖 = {
     场景图片档案Ref: { current: any };
     scrollRef: { current: any };
     获取最新快照: () => 回合快照结构 | null;
-    回档到快照: (snapshot: 回合快照结构, options?: { 保留图片状态?: boolean }) => void;
+    回档到快照: (snapshot: 回合快照结构, options?: { 保留图片状态?: boolean }) => void | Promise<void>;
     弹出重Roll快照: () => 回合快照结构 | null;
-    删除最近自动存档并重置状态: () => Promise<void>;
+    重置自动存档状态: () => void;
     深拷贝: <T>(value: T) => T;
     环境时间转标准串: (env: 环境信息结构) => string;
     规范化记忆配置: (raw?: any) => any;
@@ -214,7 +214,7 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
         const deferRollback = options?.deferRollbackUntilAfterVariableCalibration === true
             && !options?.skipVariableModelCalibration;
         if (!deferRollback) {
-            deps.回档到快照(snapshot, { 保留图片状态: true });
+            await deps.回档到快照(snapshot, { 保留图片状态: true });
         }
 
         const worldEvolutionEnabled = deps.世界演变功能已开启();
@@ -241,7 +241,7 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
             }
         }
         if (deferRollback) {
-            deps.回档到快照(snapshot, { 保留图片状态: true });
+            await deps.回档到快照(snapshot, { 保留图片状态: true });
         }
 
         const newState = deps.processResponseCommands(effectiveParsed, baseState);
@@ -421,8 +421,8 @@ export const 创建历史回合工作流 = (deps: 历史回合工作流依赖) =
         if (deps.loading) return null;
         const snapshot = deps.弹出重Roll快照();
         if (!snapshot) return null;
-        await deps.删除最近自动存档并重置状态();
-        deps.回档到快照(snapshot);
+        deps.重置自动存档状态();
+        await deps.回档到快照(snapshot);
         return snapshot.玩家输入;
     };
 

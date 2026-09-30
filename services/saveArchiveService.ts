@@ -263,14 +263,14 @@ export const 导出ZIP存档文件 = async (options?: { saves?: 存档结构[]; 
     };
 
     for (let index = 0; index < saves.length; index += 1) {
-        const save = 深拷贝(saves[index]);
+        const save = saves[index];
         const saveKey = 构建存档键(save, index);
         const gameDataPath = `${游戏数据目录名}/${saveKey}.json`;
         const historyPath = `${聊天记录目录名}/${saveKey}.json`;
         const sourceToPath = new Map<string, string>();
         const sourceToBytes = new Map<string, Promise<图片二进制结构>>();
 
-        const gameData = 深拷贝(save) as any;
+        const gameData = 深拷贝({ ...save, 历史记录: [] }) as any;
         delete gameData.id;
         gameData.历史记录 = [];
 

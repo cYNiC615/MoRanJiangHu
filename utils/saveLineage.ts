@@ -16,12 +16,35 @@ const 读取历史用户输入 = (save: Partial<存档结构>, startIndex = 0): 
 };
 
 const 读取历史长度 = (save: Partial<存档结构>): number => (
-    Array.isArray(save.历史记录) ? save.历史记录.length : 0
+    (save as any).谱系轻量视图 === true
+        ? Math.max(0, Number((save.元数据 as any)?.历史记录条数) || 0)
+        : (Array.isArray(save.历史记录) ? save.历史记录.length : 0)
 );
+
+export const 是系统占位历史消息 = (item: any): boolean => (
+    !item || item.role === 'system' || (
+        item.role !== 'user' && item.role !== 'assistant'
+        && /^(?:系统[:：]|正在生成开场)/u.test(readText(item.content))
+    )
+);
+
+export const 投影谱系历史消息 = (item: any): any => {
+    const response = item?.structuredResponse;
+    const logs = response?.body_original_logs?.length ? response.body_original_logs : response?.logs;
+    const content = (Array.isArray(logs)
+        ? logs.map((log: any) => `${readText(log?.sender)}:${readText(log?.text)}`).join('\n')
+        : '') || readText(item?.content);
+    return {
+        role: item?.role,
+        content: content.slice(0, 256),
+        谱系内容哈希: readText(item?.谱系内容哈希) || 计算谱系短哈希(content)
+    };
+};
 
 const 读取首条历史签名 = (save: Partial<存档结构>): string => {
     const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
-    return JSON.stringify(history[0] || null);
+    const first = history.find(item => !是系统占位历史消息(item));
+    return first ? JSON.stringify(投影谱系历史消息(first)) : '';
 };
 
 const 是同一开局候选 = (save: Partial<存档结构>, candidate: Partial<存档结构>): boolean => {
@@ -31,11 +54,11 @@ const 是同一开局候选 = (save: Partial<存档结构>, candidate: Partial<�
 
     const currentInitialTime = readText(save.游戏初始时间);
     const candidateInitialTime = readText(candidate.游戏初始时间);
-    if (currentInitialTime && candidateInitialTime) return currentInitialTime === candidateInitialTime;
+    if (currentInitialTime && candidateInitialTime && currentInitialTime !== candidateInitialTime) return false;
 
     const currentFirstHistory = 读取首条历史签名(save);
     const candidateFirstHistory = 读取首条历史签名(candidate);
-    return currentFirstHistory === candidateFirstHistory;
+    return Boolean(currentFirstHistory) && currentFirstHistory === candidateFirstHistory;
 };
 
 const 读取谱系回合数 = (save: Partial<存档结构>): number => {
@@ -45,6 +68,7 @@ const 读取谱系回合数 = (save: Partial<存档结构>): number => {
 };
 
 const 是谱系轻量历史视图 = (save: Partial<存档结构>): boolean => {
+    if ((save as any).谱系轻量视图 === true) return true;
     const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
     return history.length <= 2
         && !history.some((item: any) => item?.role === 'assistant' && item?.structuredResponse);
@@ -70,14 +94,10 @@ export const 计算谱系短哈希 = (value: string): string => {
 export const 读取存档系列ID = (save: Partial<存档结构>): string => {
     const existing = readText((save.元数据 as any)?.存档系列ID);
     if (existing) return existing;
-    const history = Array.isArray(save.历史记录) ? save.历史记录 : [];
-    const firstHistory = history[0] || null;
-    const env: any = save.环境信息 || {};
     const seed = {
         title: readText(save.角色数据?.姓名),
         initialTime: readText(save.游戏初始时间),
-        firstHistory,
-        firstLocation: readText(env.具体地点 || env.小地点 || env.中地点 || env.大地点)
+        openingSignature: 读取首条历史签名(save)
     };
     return `series-${计算谱系短哈希(JSON.stringify(seed))}`;
 };
@@ -93,21 +113,23 @@ export const 选择存档父节点 = (
     const seriesId = 读取存档系列ID(save);
     const currentHash = 读取存档谱系哈希(save);
     const currentAutoNodeId = readText((save.元数据 as any)?.自动存档节点ID);
-    const historyCount = Array.isArray(save.历史记录) ? save.历史记录.length : 0;
+    const historyCount = 读取历史长度(save);
     const timestamp = Number(save.时间戳 || 0);
     const explicitParentHash = readText((save.元数据 as any)?.存档父节点哈希);
     if (explicitParentHash) {
-        const explicit = candidates.find((item) => 读取存档谱系哈希(item) === explicitParentHash);
+        const explicit = candidates.find((item) => 读取存档谱系哈希(item) === explicitParentHash
+            && explicitParentHash !== currentHash
+            && (Number(item.时间戳 || 0) <= timestamp || timestamp <= 0));
         if (explicit) return explicit;
     }
     return candidates
         .filter((item) => 读取存档谱系哈希(item) && 读取存档谱系哈希(item) !== currentHash)
         .filter((item) => !currentAutoNodeId || readText((item.元数据 as any)?.自动存档节点ID) !== currentAutoNodeId)
         .filter((item) => 读取存档系列ID(item) === seriesId)
-        .filter((item) => (Array.isArray(item.历史记录) ? item.历史记录.length : 0) <= historyCount)
+        .filter((item) => 读取历史长度(item) <= historyCount)
         .filter((item) => Number(item.时间戳 || 0) <= timestamp || timestamp <= 0)
         .sort((a, b) => {
-            const byHistory = (Array.isArray(b.历史记录) ? b.历史记录.length : 0) - (Array.isArray(a.历史记录) ? a.历史记录.length : 0);
+            const byHistory = 读取历史长度(b) - 读取历史长度(a);
             if (byHistory !== 0) return byHistory;
             return Number(b.时间戳 || 0) - Number(a.时间戳 || 0);
         })[0] || null;
@@ -142,6 +164,12 @@ export const 补全存档谱系元数据 = <T extends Partial<存档结构>>(
     const metadata: Record<string, unknown> = {
         ...((save.元数据 && typeof save.元数据 === 'object') ? save.元数据 : {})
     };
+    const requestedParent = readText(metadata.存档父节点哈希);
+    const existingParent = candidates.find(item => 读取存档谱系哈希(item) === requestedParent);
+    if (requestedParent && (requestedParent === readText(metadata.存档哈希)
+        || (existingParent && Number(save.时间戳 || 0) > 0 && Number(existingParent.时间戳 || 0) > Number(save.时间戳)))) {
+        metadata.存档父节点哈希 = '';
+    }
     const inheritedParent = !readText(metadata.存档系列ID)
         ? 选择可继承系列父节点({ ...save, 元数据: metadata } as Partial<存档结构>, candidates)
         : null;
@@ -153,7 +181,7 @@ export const 补全存档谱系元数据 = <T extends Partial<存档结构>>(
     const explicitDepth = Number(metadata.存档谱系深度);
     const parent = 选择存档父节点({ ...save, 元数据: metadata } as Partial<存档结构>, candidates);
     const parentHash = parent ? 读取存档谱系哈希(parent) : explicitParentHash;
-    const parentHistoryCount = parent && Array.isArray(parent.历史记录) ? parent.历史记录.length : 0;
+    const parentHistoryCount = parent ? 读取历史长度(parent) : 0;
     const existingBranchInput = readText(metadata.存档分支输入);
     const branchInput = parent
         ? 读取历史用户输入(save, parentHistoryCount)
@@ -279,6 +307,24 @@ export const 修复本地存档谱系列表 = <T extends Partial<存档结构>>(
     let repairedNodes = 0;
     bySeries.forEach((items) => {
         const hashToItem = new Map(items.map((item) => [读取存档谱系哈希(item), item]).filter(([hash]) => Boolean(hash)) as Array<[string, T]>);
+        const validTree = items.every(item => {
+            const seen = new Set<string>();
+            let node: T | undefined = item;
+            while (node) {
+                const hash = 读取存档谱系哈希(node);
+                if (seen.has(hash)) return false;
+                seen.add(hash);
+                const parentHash = readText((node.元数据 as any)?.存档父节点哈希);
+                if (!parentHash) return 是可信谱系根(node)
+                    && readText((item.元数据 as any)?.存档根节点哈希) === hash;
+                const parent: T | undefined = hashToItem.get(parentHash);
+                if (!parent || Number(parent.时间戳 || 0) > Number(node.时间戳 || 0)
+                    || Number((node.元数据 as any)?.存档谱系深度) !== Number((parent.元数据 as any)?.存档谱系深度) + 1) return false;
+                node = parent;
+            }
+            return false;
+        });
+        if (validTree) return;
         const childrenByParent = new Map<string, T[]>();
         items.forEach((item) => {
             const parentHash = readText((item.元数据 as any)?.存档父节点哈希);

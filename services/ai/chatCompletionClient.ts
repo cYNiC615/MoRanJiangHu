@@ -204,6 +204,22 @@ export const 解析请求协议类型 = (apiConfig: 当前可用接口结构): �
     return 是否DeepSeek原生接口配置(apiConfig) ? 'deepseek' : 'openai';
 };
 
+export const 应用Gemini尾部Model回合修正 = (messages: 通用消息[], config: 当前可用接口结构): 通用消息[] => {
+    if (解析请求协议类型(config) !== 'openai' || !/gemini/i.test(规范化请求模型名称(config.model))) return messages;
+    const normalized = [...messages];
+    const anchors: string[] = [];
+    while (normalized.at(-1)?.role === 'assistant' && normalized.at(-1)?.prefix !== true) {
+        const content = normalized.pop()!.content.trim();
+        if (content) anchors.unshift(content);
+    }
+    if (normalized.length === messages.length) return messages;
+    if (anchors.length) normalized.push({
+        role: 'user',
+        content: `请遵循以下既定输出格式继续回复，不要复述格式说明：\n${anchors.join('\n\n')}`
+    });
+    return normalized;
+};
+
 const 读取自定义最大输出Token = (apiConfig: 当前可用接口结构): number | undefined => {
     const raw = apiConfig.maxTokens;
     if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
@@ -459,6 +475,7 @@ const 错误可重试 = (error: unknown): boolean => {
 
     const message = 读取错误消息(error).toLowerCase();
     if (!message) return false;
+    if (message.includes('模型返回了空内容')) return true;
     if (message.includes('aborted') || message.includes('abort') || message.includes('取消')) return false;
     if (是否流式连接中断错误消息(message)) return true;
     if (message.includes('service unavailable')) return true;
@@ -656,9 +673,12 @@ export const 构建文本请求最终消息诊断 = (
         ? requestedResponseFormat
         : undefined;
     const normalizedMessages = 应用Claude兼容末尾User修正(
-        应用DeepSeek消息兼容修正(
-            应用强制JSON消息修正(messages, effectiveResponseFormat),
-            protocol
+        应用Gemini尾部Model回合修正(
+            应用DeepSeek消息兼容修正(
+                应用强制JSON消息修正(messages, effectiveResponseFormat),
+                protocol
+            ),
+            apiConfig
         ),
         apiConfig
     );
@@ -1421,15 +1441,18 @@ export const 请求模型文本 = async (
         ? requestedResponseFormat
         : undefined;
     const normalizedMessages = 应用Claude兼容末尾User修正(
-        应用DeepSeek消息兼容修正(
-            应用强制JSON消息修正(messages, effectiveResponseFormat),
-            protocol
+        应用Gemini尾部Model回合修正(
+            应用DeepSeek消息兼容修正(
+                应用强制JSON消息修正(messages, effectiveResponseFormat),
+                protocol
+            ),
+            apiConfig
         ),
         apiConfig
     );
 
     return 带重试执行(`请求模型文本(${protocol})`, async () => {
-        return 请求OpenAI家族文本(
+        const result = await 请求OpenAI家族文本(
             apiConfig,
             protocol,
             normalizedMessages,
@@ -1445,6 +1468,8 @@ export const 请求模型文本 = async (
                 prefixMode: options.prefixMode
             }
         );
+        if (!result.trim()) throw new Error('模型返回了空内容，请重试或更换模型/渠道。');
+        return result;
     }, {
         signal: options.signal,
         retries: 2,

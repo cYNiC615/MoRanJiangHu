@@ -120,8 +120,10 @@ export const 是否废弃玩家组织字段路径 = (normalizedKey: string): boo
     return 废弃玩家组织字段.has(match[1] || '');
 };
 
+export const 剥离强调标记 = (raw: string): string => (raw || '').trim().replace(/^([*_~]{1,3})([\s\S]+?)\1$/u, '$2').trim();
+
 export const normalizeStateCommandKey = (rawKey: string): string => {
-    const raw = (rawKey || '').trim();
+    const raw = 剥离强调标记(rawKey);
     const hasGameStatePrefix = raw.startsWith('gameState.');
     const withoutPrefix = hasGameStatePrefix ? raw.slice('gameState.'.length) : raw;
     const alias = 背包别名字段.find((head) => withoutPrefix === head || withoutPrefix.startsWith(`${head}.`) || withoutPrefix.startsWith(`${head}[`));

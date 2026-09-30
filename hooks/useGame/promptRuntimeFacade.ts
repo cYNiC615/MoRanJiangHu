@@ -20,6 +20,7 @@ export type PromptRuntimeBuildOptions = {
     注入女主剧情规划协议?: boolean;
     世界书作用域?: 世界书作用域[];
     世界书附加文本?: string[];
+    NSFW层级判定文本?: string[];
     openingConfig?: OpeningConfig;
     强制剧情COT提示词ID?: string;
 };

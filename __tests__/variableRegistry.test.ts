@@ -77,7 +77,7 @@ describe('variableRegistry', () => {
 
         const validation = 校验变量命令是否登记({
             action: 'push',
-            key: '背包',
+            key: '**背包**',
             value: { 名称: '便携药片', 堆叠数量: 1 }
         }, stateWithBag);
 
@@ -96,7 +96,7 @@ describe('variableRegistry', () => {
             undefined,
             stateWithBag.玩家组织 as any,
             stateWithBag.任务列表 as any,
-            '行囊',
+            '*行囊*',
             { 名称: '能量棒', 堆叠数量: 2 },
             'push'
         );

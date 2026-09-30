@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { 修复本地存档谱系列表, 补全存档谱系元数据 } from '../utils/saveLineage';
 
 describe('存档谱系补全', () => {
+    it('keeps valid sibling branches instead of flattening them into a single chain', () => {
+        const node = (hash: string, parent: string, depth: number, timestamp: number): any => ({
+            时间戳: timestamp, 历史记录: [], 元数据: { 存档哈希: hash, 存档系列ID: 'branching',
+                存档父节点哈希: parent, 存档根节点哈希: 'root', 存档谱系深度: depth,
+                游戏回合数: depth, 存档谱系版本: 1, 存档分支输入: parent ? '继续' : '开局' }
+        });
+        const input = [node('root', '', 0, 1), node('left', 'root', 1, 2), node('right', 'root', 1, 3)];
+        const repaired = 修复本地存档谱系列表(input);
+        expect(repaired.changed).toBe(false);
+        expect(repaired.saves).toEqual(input);
+        expect(补全存档谱系元数据(node('self', 'self', 1, 1), []).元数据.存档父节点哈希).toBe('');
+    });
     it('云端导入存档已带父节点时，不因本地暂缺父节点而降级成根节点', () => {
         const save: any = {
             类型: 'auto',
@@ -200,7 +212,7 @@ describe('存档谱系补全', () => {
         }));
     });
 
-    it('同一系列里出现多个第0回合根节点时，会保留在同一谱系并交给时间树排序', () => {
+    it('同一系列中的独立开局根不被修复扫描强行串成父子', () => {
         const firstRoot: any = {
             id: 1,
             类型: 'auto',
@@ -238,7 +250,8 @@ describe('存档谱系补全', () => {
 
         const repaired = 修复本地存档谱系列表([secondRoot, firstRoot]);
 
-        expect(repaired.changed).toBe(true);
+        expect(repaired.changed).toBe(false);
+        expect(repaired.saves.every((item: any) => !item.元数据.存档父节点哈希)).toBe(true);
         expect(repaired.saves.find((item: any) => item.id === 1)?.元数据.存档系列ID).toBe('series-collided');
         expect(repaired.saves.find((item: any) => item.id === 2)?.元数据.存档系列ID).toBe('series-collided');
         expect(repaired.saves.map((item: any) => item.元数据.游戏回合数)).toEqual([0, 0]);

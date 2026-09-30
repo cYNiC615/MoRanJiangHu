@@ -12,6 +12,7 @@ import type {
     聊天记录结构
 } from '../types';
 import { normalizeCanonicalGameTime, 环境时间转标准串 } from '../hooks/useGame/timeUtils';
+import { formatHistoryToScript } from '../hooks/useGame/historyUtils';
 import { 构建AI角色声明提示词 } from '../prompts/runtime/roleIdentity';
 import { 构建真实世界模式提示词 } from '../prompts/runtime/realWorldMode';
 import { 构建变量校准提示词 } from '../prompts/runtime/variableCalibration';
@@ -185,6 +186,13 @@ const 读取字符串数组 = (value: unknown): string[] => (
 );
 
 const 去重字符串数组 = (list: string[]): string[] => Array.from(new Set(list.filter(Boolean)));
+
+export const 解析世界书关键词 = (value: unknown): string[] => 去重字符串数组(
+    (Array.isArray(value) ? value : [value]).flatMap(item =>
+        读取文本(item).split(/[,，、;；\r\n]+/u).map(keyword => keyword.trim()).filter(Boolean))
+);
+
+export const 构建主剧情世界书作用域 = (tavern: boolean): 世界书作用域[] => tavern ? ['main', 'tavern'] : ['main'];
 
 const 生成ID = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -861,7 +869,7 @@ export const 规范化世界书条目 = (raw: unknown, fallback?: Partial<世界
         注入模式: 规范化注入模式(source.注入模式 ?? base.注入模式 ?? shapeDefaults.注入模式),
         时间线开始时间: timeline.start,
         时间线结束时间: timeline.end,
-        关键词: 去重字符串数组(读取字符串数组(source.关键词 ?? base.关键词)),
+        关键词: 解析世界书关键词(source.关键词 ?? base.关键词),
         优先级: priority,
         启用: source.启用 !== undefined ? source.启用 === true : base.启用 !== false,
         内置: isBuiltinEntry,
@@ -972,7 +980,7 @@ const 转换酒馆世界书条目 = (entry: any, index: number): Partial<世界�
         类型: 规范化类型(entry?.类型),
         作用域: ['all'],
         注入模式: isConstant || keys.length <= 0 ? 'always' : 'match_any',
-        关键词: 去重字符串数组(keys),
+        关键词: 解析世界书关键词(keys),
         优先级: Number.isFinite(orderRaw) ? Math.max(0, Math.min(999, Math.floor(orderRaw))) : 50,
         启用: entry?.disable === true || entry?.disabled === true ? false : entry?.enabled !== false
     };
@@ -1178,12 +1186,9 @@ const 提取社交文本 = (social: any[]): string[] => (
     })
 );
 
-const 提取历史文本 = (history: 聊天记录结构[]): string[] => (
-    (Array.isArray(history) ? history : [])
-        .slice(-12)
-        .map((item) => 读取文本(item?.content).trim())
-        .filter(Boolean)
-);
+const 提取历史文本 = (history: 聊天记录结构[]): string[] => [
+    formatHistoryToScript(Array.isArray(history) ? history : [])
+];
 
 const 提取世界文本 = (world: any): string[] => {
     if (!world || typeof world !== 'object') return [];
@@ -1257,20 +1262,23 @@ const 选择生效世界书条目明细 = ({
         ...提取世界文本(world),
         ...(Array.isArray(extraTexts) ? extraTexts.map((item) => 读取文本(item).trim()).filter(Boolean) : [])
     ].join('\n').toLowerCase();
-    const budget = typeof maxChars === 'number' && Number.isFinite(maxChars)
+    const hasExplicitBudget = typeof maxChars === 'number' && Number.isFinite(maxChars);
+    const budget = hasExplicitBudget
         ? Math.max(0, Math.floor(maxChars))
         : Math.max(...activeScopes.map((scope) => 世界书预算映射[scope] || 0));
 
     const selected: 世界书条目结构[] = [];
     const suppressed: 世界书条目结构[] = [];
     let totalChars = 0;
+    let matchedChars = 0;
+    let matchedCount = 0;
 
     扁平化世界书条目(books).forEach((entry) => {
         if (!作用域命中(entry.作用域 || 默认作用域, activeScopes)) return;
         if (!(entry.内容 || '').trim()) return;
         if (!时间线命中(entry, currentTimeText)) return;
         if (entry.注入模式 === 'match_any') {
-            const keywords = Array.isArray(entry.关键词) ? entry.关键词.map((item) => item.trim().toLowerCase()).filter(Boolean) : [];
+            const keywords = 解析世界书关键词(entry.关键词).map(item => item.toLowerCase());
             if (keywords.length <= 0) return;
             if (!keywords.some((keyword) => corpus.includes(keyword))) return;
         }
@@ -1279,10 +1287,15 @@ const 选择生效世界书条目明细 = ({
             return;
         }
         const estimated = `${entry.标题}\n${entry.内容}`.length;
-        const shouldApplyBudget = Boolean(maxChars) || entry.注入模式 === 'match_any';
-        if (shouldApplyBudget && budget > 0 && selected.length > 0 && totalChars + estimated > budget) return;
+        const isMatched = entry.注入模式 === 'match_any';
+        if (hasExplicitBudget && totalChars + estimated > budget) return;
+        if (!hasExplicitBudget && isMatched && budget > 0 && matchedCount > 0 && matchedChars + estimated > budget) return;
         selected.push(entry);
         totalChars += estimated;
+        if (isMatched) {
+            matchedChars += estimated;
+            matchedCount += 1;
+        }
     });
 
     return { selectedEntries: selected, suppressedEntries: suppressed };

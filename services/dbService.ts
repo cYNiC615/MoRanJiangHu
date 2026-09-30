@@ -4,7 +4,7 @@ import { 创建图片资源引用, 解析图片资源引用ID, 是否图片资�
 import { 获取设置项定义, 设置分类定义表, 设置键, type 设置分类类型 } from '../utils/settingsSchema';
 import { 默认功能模型占位, 规范化接口设置 } from '../utils/apiConfig';
 import { buildSaveDebugSummary, recordSaveLoadError, recordSaveLoadTrace } from '../utils/saveLoadTrace';
-import { 修复本地存档谱系列表, 补全存档谱系元数据 } from '../utils/saveLineage';
+import { 修复本地存档谱系列表, 补全存档谱系元数据, 是系统占位历史消息, 投影谱系历史消息 } from '../utils/saveLineage';
 import { 读取存档游玩回合数 } from '../utils/saveTurn';
 
 const DB_NAME = 'WuxiaGameDB';
@@ -35,6 +35,7 @@ export interface 本地图片资源统计 {
 };
 
 export interface 存档谱系轻量视图 {
+    谱系轻量视图?: true;
     id?: number;
     类型?: 存档结构['类型'];
     时间戳?: number;
@@ -191,12 +192,11 @@ export const 投影存档谱系轻量视图 = (
     fallbackId?: number
 ): 存档谱系轻量视图 => {
     const history = Array.isArray(save?.历史记录) ? save.历史记录 : [];
-    const firstHistory = history[0] ? { ...history[0] } : null;
     const firstUser = history.find((item: any) => item?.role === 'user');
-    const historyProjection = [
-        firstHistory,
-        firstUser && firstUser !== history[0] ? { ...firstUser } : null
-    ].filter(Boolean) as any[];
+    const firstNonSystem = history.find(item => !是系统占位历史消息(item));
+    const historyProjection = [history[0], firstNonSystem, firstUser]
+        .filter((item, index, list) => item && list.indexOf(item) === index)
+        .map(投影谱系历史消息);
     const roleName = typeof save?.角色数据?.姓名 === 'string' ? save.角色数据.姓名 : undefined;
     const env: any = save?.环境信息 || {};
     const envProjection: NonNullable<存档谱系轻量视图['环境信息']> = {
@@ -207,6 +207,7 @@ export const 投影存档谱系轻量视图 = (
         时间: env.时间
     };
     return {
+        谱系轻量视图: true,
         id: typeof save?.id === 'number' ? save.id : fallbackId,
         类型: save?.类型,
         时间戳: typeof save?.时间戳 === 'number' ? save.时间戳 : Number(save?.时间戳 || 0),
@@ -215,28 +216,11 @@ export const 投影存档谱系轻量视图 = (
         环境信息: env ? envProjection : undefined,
         历史记录: historyProjection,
         元数据: {
-            ...((save?.元数据 && typeof save.元数据 === 'object') ? save.元数据 : {})
+            ...((save?.元数据 && typeof save.元数据 === 'object') ? save.元数据 : {}),
+            历史记录条数: history.length,
+            游戏回合数: 读取存档游玩回合数(save || {})
         }
     };
-};
-
-const 是存档谱系轻量视图 = (save: Partial<存档结构> | 存档谱系轻量视图 | null | undefined): boolean => {
-    if (!save || typeof save !== 'object') return false;
-    const value = save as any;
-    const lacksHeavyFields = !('社交' in value)
-        && !('世界' in value)
-        && !('玩家组织' in value)
-        && !('任务列表' in value)
-        && !('剧情' in value)
-        && !('剧情规划' in value)
-        && !('女主剧情规划' in value)
-        && !('记忆系统' in value)
-        && !('场景图片档案' in value)
-        && !('背景图片' in value);
-    const history = Array.isArray(value.历史记录) ? value.历史记录 : [];
-    const projectedHistory = history.length <= 2
-        && !history.some((item: any) => item?.role === 'assistant' && item?.structuredResponse);
-    return lacksHeavyFields && projectedHistory;
 };
 
 const 计算文本短哈希 = (text: string): string => {
@@ -1171,30 +1155,34 @@ const 运行存档谱系修复 = <T extends Partial<存档结构>>(
     };
 };
 
-const 校正并写回本地存档谱系 = async (
+export const 校正并写回本地存档谱系 = async (
     db: IDBDatabase,
     saves?: Array<存档结构 | 存档谱系轻量视图>
 ): Promise<ReturnType<typeof 修复本地存档谱系列表<Partial<存档结构>>>> => {
     const source = saves || await 读取存档谱系轻量视图(db);
-    const sourceContainsLightView = source.some((item) => 是存档谱系轻量视图(item));
-    let result = 运行存档谱系修复(source as Array<Partial<存档结构>>);
-    if (result.changed && sourceContainsLightView) {
-        result = 运行存档谱系修复(await 读取存档列表());
-    }
+    const originals = new Map(source.map(save => [save.id, JSON.stringify(save.元数据 || {})]));
+    const result = 运行存档谱系修复(source as Array<Partial<存档结构>>);
     if (result.changed) {
-        await new Promise<void>((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
-            const saveStore = transaction.objectStore(STORE_NAME);
-            const summaryStore = transaction.objectStore(SAVE_SUMMARIES_STORE);
-            result.saves.forEach((save) => {
-                if (typeof save.id !== 'number') return;
-                saveStore.put(save);
-                const summary = 构建存档摘要记录(save as 存档结构, save.id);
-                if (summary) summaryStore.put(summary);
+        for (const view of result.saves) {
+            if (typeof view.id !== 'number' || originals.get(view.id) === JSON.stringify(view.元数据 || {})) continue;
+            // 在同一事务中读取完整存档，只更新谱系元数据，轻量历史永不写回。
+            await new Promise<void>((resolve, reject) => {
+                const tx = db.transaction([STORE_NAME, SAVE_SUMMARIES_STORE], 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get(view.id!);
+                request.onsuccess = () => {
+                    const full = request.result as 存档结构 | undefined;
+                    if (!full) return;
+                    const updated = { ...full, 元数据: { ...full.元数据, ...view.元数据 } };
+                    store.put(updated);
+                    const summary = 构建存档摘要记录(updated, view.id!);
+                    if (summary) tx.objectStore(SAVE_SUMMARIES_STORE).put(summary);
+                };
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error || new Error('存档谱系写回事务已中止'));
             });
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = () => reject(transaction.error);
-        });
+        }
     }
     return result;
 };

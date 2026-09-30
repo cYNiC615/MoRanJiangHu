@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { 构建世界书注入文本, 解析世界书导入数据 } from '../utils/worldbook';
+import { 构建世界书注入文本, 解析世界书导入数据, 解析世界书关键词, 构建主剧情世界书作用域 } from '../utils/worldbook';
 
 describe('SillyTavern 世界书导入', () => {
     it('converts object-shaped World Info entries', () => {
@@ -52,6 +52,28 @@ describe('SillyTavern 世界书导入', () => {
 });
 
 describe('世界书注入选择', () => {
+    it('matches original structured history, splits keywords and keeps matched budget separate from always entries', () => {
+        expect(解析世界书关键词(['档案，医院', '医院;线索\n图书馆'])).toEqual(['档案', '医院', '线索', '图书馆']);
+        const entry = (id: string, content: string, mode: string, keywords: string[]) => ({
+            id, 标题: id, 内容: content, 类型: 'world_lore', 作用域: ['main'],
+            注入模式: mode, 关键词: keywords, 启用: true
+        });
+        const books: any[] = [{ id: 'book', 启用: true, 条目: [
+            entry('always', 'A'.repeat(20000), 'always', []),
+            entry('matched', 'archive-marker', 'match_any', ['档案，医院']),
+            entry('display-only', 'must-not-match', 'match_any', ['展示替换'])
+        ] }];
+        const history: any[] = [{ role: 'assistant', content: '', structuredResponse: {
+            logs: [{ sender: '旁白', text: '展示替换' }],
+            body_original_logs: [{ sender: '旁白', text: '去医院查档案' }]
+        } }];
+        const scopes = 构建主剧情世界书作用域(true);
+        expect(scopes).toEqual(['main', 'tavern']);
+        const result = 构建世界书注入文本({ books, scopes, history });
+        expect(result.selectedEntries.map(e => e.id)).toEqual(['always', 'matched']);
+        expect(构建世界书注入文本({ books, scopes, history, maxChars: 0 }).selectedEntries).toEqual([]);
+        expect(构建世界书注入文本({ books, scopes, history, maxChars: 1 }).selectedEntries).toEqual([]);
+    });
     it('默认不会因为预算裁掉命中作用域的始终注入条目', () => {
         const books: any[] = [{
             id: 'always-book',

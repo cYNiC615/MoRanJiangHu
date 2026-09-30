@@ -12,12 +12,17 @@ import { 获取主剧情接口配置, 接口配置是否可用 } from '../../uti
 import { 获取快速重开运行时恢复参数 } from '../../utils/customNewGamePresets';
 import { 执行开场剧情生成工作流 } from './openingStoryWorkflow';
 import { 执行世界生成工作流 } from './worldGenerationWorkflow';
+import * as dbService from '../../services/dbService';
+import { 设置键 } from '../../utils/settingsSchema';
 
 type 快速重开模式 = 'world_only' | 'opening_only' | 'all';
 
 type 世界生成选项 = {
     清空前端变量?: boolean;
+    重开恢复基线?: boolean;
 };
+
+type 开局提示词基线 = { prompts: 提示词结构[]; worldbooks: any[] };
 
 type 最近开局配置结构 = {
     worldConfig: WorldGenConfig;
@@ -25,6 +30,7 @@ type 最近开局配置结构 = {
     openingConfig?: OpeningConfig;
     openingStreaming: boolean;
     openingExtraPrompt: string;
+    提示词基线?: 开局提示词基线;
 };
 
 type 回合快照结构 = {
@@ -47,6 +53,8 @@ type 回合快照结构 = {
         场景图片档案: any;
     };
     回档前历史: any[];
+    回档前提示词池?: 提示词结构[];
+    回档前世界书?: any[];
 };
 
 type 会话生命周期依赖字段 = {
@@ -76,6 +84,7 @@ type 会话生命周期依赖字段 = {
     ensurePromptsLoaded: () => Promise<提示词结构[]>;
     setView: (value: 'home' | 'game' | 'new_game') => void;
     setPrompts: (value: 提示词结构[]) => void;
+    设置世界书列表: (value: any[]) => void;
     setLoading: (value: boolean) => void;
     setShowSettings: (value: boolean) => void;
     设置历史记录: (value: any) => void;
@@ -224,6 +233,7 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
             命令基态?: any;
             开局额外要求?: string;
             开局配置?: OpeningConfig;
+            世界书快照?: any[];
         }
     ) => {
         deps.设置开局文章优化进度(null);
@@ -234,6 +244,7 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
         const effectivePromptSnapshot = (Array.isArray(promptSnapshot) && promptSnapshot.length > 0)
             ? promptSnapshot
             : await deps.ensurePromptsLoaded();
+        const worldbooks = options?.世界书快照 ?? deps.世界书列表;
         deps.推入重Roll快照({
             玩家输入: '',
             游戏时间: '',
@@ -253,7 +264,9 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
                 视觉设置: deps.获取当前视觉设置快照(),
                 场景图片档案: deps.获取当前场景图片档案快照()
             },
-            回档前历史: deps.深拷贝(Array.isArray(deps.历史记录) ? deps.历史记录 : [])
+            回档前历史: deps.深拷贝(Array.isArray(deps.历史记录) ? deps.历史记录 : []),
+            回档前提示词池: deps.深拷贝(effectivePromptSnapshot),
+            回档前世界书: deps.深拷贝(worldbooks)
         });
         return 执行开场剧情生成工作流(
             contextData,
@@ -274,7 +287,7 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
                 gameConfig: deps.gameConfig,
                 memoryConfig: deps.memoryConfig,
                 builtinPromptEntries: deps.内置提示词列表,
-                worldbooks: deps.世界书列表,
+                worldbooks,
                 abortControllerRef: deps.abortControllerRef,
                 setPrompts: deps.setPrompts,
                 设置历史记录: deps.设置历史记录,
@@ -337,7 +350,17 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
         options?: 世界生成选项,
         activeModuleExtraRules?: string
     ) => {
-        const promptPool = (Array.isArray(deps.prompts) && deps.prompts.length > 0) ? deps.prompts : await deps.ensurePromptsLoaded();
+        const baseline = options?.重开恢复基线 ? deps.最近开局配置?.提示词基线 : undefined;
+        const promptPool = baseline ? deps.深拷贝(baseline.prompts)
+            : ((Array.isArray(deps.prompts) && deps.prompts.length > 0) ? deps.prompts : await deps.ensurePromptsLoaded());
+        const worldbooks = deps.深拷贝(baseline?.worldbooks ?? deps.世界书列表);
+        const nextBaseline = deps.深拷贝({ prompts: promptPool, worldbooks });
+        if (baseline) {
+            await dbService.保存设置(设置键.提示词池, promptPool);
+            await dbService.保存设置(设置键.世界书列表, worldbooks);
+            deps.setPrompts(promptPool);
+            deps.设置世界书列表(worldbooks);
+        }
         deps.设置开局文章优化进度(null);
         deps.设置开局变量生成进度(null);
         deps.设置开局世界演变进度(null);
@@ -370,14 +393,14 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
                 设置开局配置: deps.设置开局配置,
                 设置导演配置: deps.设置导演配置,
                 规范化导演配置: deps.规范化导演配置,
-                设置最近开局配置: deps.设置最近开局配置,
+                设置最近开局配置: value => deps.设置最近开局配置({ ...value, 提示词基线: nextBaseline }),
                 清空重Roll快照: deps.清空重Roll快照,
                 重置自动存档状态: deps.重置自动存档状态,
                 创建开场基础状态: deps.创建开场基础状态,
                 构建前端清空开场状态: deps.构建前端清空开场状态,
                 应用开场基态: deps.应用开场基态,
                 创建开场命令基态: deps.创建开场命令基态,
-                执行开场剧情生成: generateOpeningStory,
+                执行开场剧情生成: (context, prompts, stream, api, options) => generateOpeningStory(context, prompts, stream, api, { ...options, 世界书快照: worldbooks }),
                 追加系统消息: deps.追加系统消息,
                 替换流式草稿为失败提示: deps.替换流式草稿为失败提示
             }
@@ -443,7 +466,7 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
                 'step',
                 openingStreaming,
                 openingExtraPrompt,
-                { 清空前端变量: true },
+                { 清空前端变量: true, 重开恢复基线: true },
                 restoredRuntime.activeModuleExtraRules
             );
             return;
@@ -483,7 +506,7 @@ export const 创建会话生命周期工作流 = (rawDeps: 会话生命周期依
             'all',
             openingStreaming,
             openingExtraPrompt,
-            { 清空前端变量: true },
+            { 清空前端变量: true, 重开恢复基线: true },
             restoredRuntime.activeModuleExtraRules
         );
     };

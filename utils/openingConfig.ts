@@ -667,3 +667,10 @@ export const 规范化可选开局配置 = (raw?: any): OpeningConfig | undefine
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
     return 规范化开局配置(raw);
 };
+export const 修补开局角色姓名占位 = (role: any, fallback: any): boolean => {
+    const name = typeof role?.姓名 === 'string' ? role.姓名.trim() : '';
+    const original = typeof fallback?.姓名 === 'string' ? fallback.姓名.trim() : '';
+    if (!role || typeof role !== 'object' || !original || !/^(?:未命名|未知角色|未知|无名|unnamed|unknown)?$/i.test(name)) return false;
+    role.姓名 = original;
+    return true;
+};

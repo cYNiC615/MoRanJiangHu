@@ -143,6 +143,8 @@ type 回合快照结构 = {
         场景图片档案: 场景图片档案;
     };
     回档前历史: 聊天记录结构[];
+    回档前提示词池?: 提示词结构[];
+    回档前世界书?: 世界书结构[];
 };
 
 type 最近开局配置结构 = {
@@ -151,6 +153,7 @@ type 最近开局配置结构 = {
     openingConfig?: OpeningConfig;
     openingStreaming: boolean;
     openingExtraPrompt: string;
+    提示词基线?: { prompts: 提示词结构[]; worldbooks: 世界书结构[] };
 };
 
 type 开局独立阶段进度 = {
@@ -535,15 +538,6 @@ export const useGame = () => {
         最近自动存档时间戳Ref.current = 0;
         最近自动存档签名Ref.current = '';
     };
-    const 删除最近自动存档并重置状态 = async (): Promise<void> => {
-        try {
-            await dbService.删除最近自动存档();
-        } catch (error) {
-            console.error('删除最近自动存档失败', error);
-        } finally {
-            重置自动存档状态();
-        }
-    };
     const 推送右下角提示 = (toast: Omit<右下角提示结构, 'id'>) => {
         const nextId = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         set右下角提示列表(prev => [...prev, { id: nextId, ...toast }].slice(-4));
@@ -747,10 +741,11 @@ export const useGame = () => {
         return snapshot;
     };
 
-    const 回档到快照 = (
+    const 回档到快照 = async (
         snapshot: 回合快照结构,
         options?: { 保留图片状态?: boolean }
     ) => {
+        const promptWrites: Promise<unknown>[] = [];
         const snapshotEnv = 规范化环境信息(深拷贝(snapshot.回档前状态.环境));
         设置角色(规范化角色物品容器映射(深拷贝(snapshot.回档前状态.角色), { 当前时间: snapshotEnv }));
         设置环境(snapshotEnv);
@@ -762,11 +757,22 @@ export const useGame = () => {
         设置剧情规划(规范化剧情规划状态(深拷贝(snapshot.回档前状态.剧情规划)));
         设置女主剧情规划(规范化女主剧情规划状态(深拷贝(snapshot.回档前状态.女主剧情规划)));
         应用并同步记忆系统(深拷贝(snapshot.回档前状态.记忆系统));
+        if (Array.isArray(snapshot.回档前提示词池)) {
+            const restored = 深拷贝(snapshot.回档前提示词池);
+            setPrompts(restored);
+            promptWrites.push(dbService.保存设置(设置键.提示词池, restored));
+        }
+        if (Array.isArray(snapshot.回档前世界书)) {
+            const restored = 深拷贝(snapshot.回档前世界书);
+            set世界书列表(restored);
+            promptWrites.push(dbService.保存设置(设置键.世界书列表, restored));
+        }
         设置历史记录(深拷贝(snapshot.回档前历史));
         if (options?.保留图片状态 !== true) {
             应用视觉设置到状态(深拷贝(snapshot.回档前持久态?.视觉设置 || {}));
             应用场景图片档案到状态(深拷贝(snapshot.回档前持久态?.场景图片档案 || {}));
         }
+        await Promise.all(promptWrites);
     };
 
     useEffect(() => {
@@ -2922,7 +2928,7 @@ export const useGame = () => {
         获取最新快照: () => 回合快照栈Ref.current[回合快照栈Ref.current.length - 1] || null,
         回档到快照,
         弹出重Roll快照,
-        删除最近自动存档并重置状态,
+        重置自动存档状态,
         深拷贝,
         环境时间转标准串,
         规范化记忆配置,
@@ -3358,6 +3364,7 @@ export const useGame = () => {
         }));
     };
     const 开局会话StateFacade = {
+        设置世界书列表: set世界书列表,
         gameConfig,
         memoryConfig,
         view,

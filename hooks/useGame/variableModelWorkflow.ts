@@ -191,20 +191,26 @@ const 提取本回合对白发送者 = (response: GameResponse, roleName?: strin
     return result.slice(0, 12);
 };
 
-const 查找社交NPC索引 = (socialRaw: unknown, sender: string): number => {
+export const 查找社交NPC索引 = (socialRaw: unknown, sender: string): number => {
     if (!Array.isArray(socialRaw)) return -1;
     const target = 标准化人物匹配文本(sender);
     if (!target) return -1;
-    return socialRaw.findIndex((npc: any) => {
+    const exact = socialRaw.findIndex((npc: any) => {
         if (!npc || typeof npc !== 'object') return false;
         const candidates = [
             npc?.姓名,
-            ...(Array.isArray(npc?.曾用名) ? npc.曾用名 : []),
-            npc?.身份,
-            npc?.简介
+            ...(Array.isArray(npc?.曾用名) ? npc.曾用名 : [])
         ].map(标准化人物匹配文本).filter(Boolean);
-        return candidates.some((item) => item === target || item.includes(target) || target.includes(item));
+        return candidates.includes(target);
     });
+    if (exact >= 0) return exact;
+    // 描述只能包含称呼，不能反向用短身份片段命中新人物；歧义交给模型建档审计。
+    const matches = socialRaw.flatMap((npc: any, index: number) => {
+        if (!npc || typeof npc !== 'object') return [];
+        const candidates = [npc.身份, npc.简介].map(标准化人物匹配文本).filter(Boolean);
+        return candidates.some(item => item.includes(target)) ? [index] : [];
+    });
+    return matches.length === 1 ? matches[0] : -1;
 };
 
 const 对白人物基础缺口 = (npc: any, options?: { xianxiaMode?: boolean }): string[] => {

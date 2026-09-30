@@ -1,4 +1,5 @@
 import * as textAIService from '../../services/ai/text';
+import { formatHistoryToScript } from './historyUtils';
 import { recordAiParseFailureDiagnostic } from '../../services/diagnosticContext';
 import { recordDiagnosticLog } from '../../services/diagnosticLog';
 import type { GameResponse, OpeningConfig, 聊天记录结构, 记忆系统结构, 角色数据结构, 剧情系统结构, 剧情规划结构, 女主剧情规划结构, 世界书结构, 内置提示词条目结构 } from '../../types';
@@ -893,7 +894,7 @@ type 主剧情发送依赖 = {
     提取新增NPC列表: (beforeList: any[], afterList: any[]) => any[];
     推入重Roll快照: (snapshot: 回合快照结构) => void;
     弹出重Roll快照: () => 回合快照结构 | undefined;
-    回档到快照: (snapshot: 回合快照结构, options?: { 保留图片状态?: boolean }) => void;
+    回档到快照: (snapshot: 回合快照结构, options?: { 保留图片状态?: boolean }) => void | Promise<void>;
     深拷贝: <T>(value: T) => T;
     按回合窗口裁剪历史: (history: 聊天记录结构[], rounds: number) => 聊天记录结构[];
     规范化环境信息: (envLike?: any) => any;
@@ -1359,7 +1360,8 @@ export const 执行主剧情发送工作流 = async (
                     ? { 禁用中期长期记忆: true, 禁用短期记忆: true }
                     : {}),
                 世界书作用域: 规范化游戏设置(currentState.gameConfig).启用酒馆预设模式 === true ? ['main', 'tavern'] : ['main'],
-                世界书附加文本: [sendInput, recallTag || '']
+                世界书附加文本: [sendInput, recallTag || '', formatHistoryToScript(contextHistory)],
+                NSFW层级判定文本: [sendInput, recallTag || '']
             }
         );
 
@@ -2577,7 +2579,7 @@ export const 执行主剧情发送工作流 = async (
         if (error.name === 'AbortError') {
             const snapshot = deps.弹出重Roll快照();
             if (snapshot) {
-                deps.回档到快照(snapshot);
+                await deps.回档到快照(snapshot);
             } else {
                 deps.设置历史记录(historyBeforeSend);
                 deps.应用并同步记忆系统(memBeforeSend);

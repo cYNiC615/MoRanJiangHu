@@ -25,6 +25,14 @@ const deps = {
 };
 
 describe('responseCommandProcessor dialogue social sync', () => {
+    it('does not turn temporary or refused companionship into party membership', () => {
+        for (const text of ['林知夏带着杨培强走到门口。', '林知夏短暂同行一段路。', '林知夏拒绝结伴同行。']) {
+            const state = 构建基础状态();
+            state.社交 = 规范化社交列表([{ id: 'npc', 姓名: '林知夏', 是否主要角色: true, 是否在场: true, 是否队友: false }]);
+            const result = 执行响应命令处理({ logs: [{ sender: '旁白', text }], tavern_commands: [] } as any, state, deps, undefined, { applyState: false });
+            expect(result.社交[0].是否队友, text).toBe(false);
+        }
+    });
     it('does not promote new dialogue speakers into long-term social records without stronger structured evidence', () => {
         const state = 构建基础状态();
         const result = 执行响应命令处理({

@@ -1,15 +1,15 @@
 # Homebrew Upstream Intake Decisions
 
-> 日期：2026-07-10
+> 日期：2026-09-30
 >
 > 本文记录从 `upstream/main` 选择性吸收更新时的当前决策。它不是 changelog，也不是
 > upstream 合并计划；后续只按本文确认的小项手动补丁吸收。
 
 ## 审查基线
 
-- 当前 homebrew 基线：`main` at `38d50278`。
-- 已审查 upstream：`upstream/main` at `99da5a49`。
-- 审查分支：`codex/review-upstream-20260710`。
+- 当前 homebrew 基线：`main` at `78f5e79a`。
+- 已审查 upstream：`upstream/main` at `5f7a3e4a`。
+- 审查分支：`codex/review-upstream-20260930`。
 - 不直接 merge `upstream/main` 到 `main`。
 - 不 cherry-pick 包含大量产品方向回流的 release commit；只手动摘取明确 bugfix。
 
@@ -246,4 +246,5 @@
 
 ## 待逐项确认
 
-- 暂无。
+- 2026-09-30 核心修复已按用户确认在 review 分支手动吸收：NPC 匹配、世界书匹配和预算、AI 空响应/Gemini、存档签名和轻量写回、重开隔离、正文解析、入队及地图/姓名防护、文章优化超时。
+- 实现边界和可选项适配结论见 `docs/homebrew-upstream-review-20260930.md`；新预设、桌面体验、图片小修、规划诊断和场外对话尚未实施，后续单独确认。

@@ -63,7 +63,7 @@ const 创建基础依赖 = (overrides: Record<string, unknown> = {}) => ({
     }),
     回档到快照: vi.fn(),
     弹出重Roll快照: vi.fn(),
-    删除最近自动存档并重置状态: vi.fn(async () => undefined),
+    重置自动存档状态: vi.fn(),
     深拷贝: 克隆,
     环境时间转标准串: () => '开局',
     规范化记忆配置: () => ({ 即时消息上传条数N: 10 }),

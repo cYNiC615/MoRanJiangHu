@@ -1,4 +1,6 @@
 import { GameResponse } from '../../types';
+import { 提取并清理Judge区块 } from '../../utils/judgeBlockExtractor';
+import { 剥离强调标记 } from '../../utils/stateHelpers';
 import { 规范化对白日志 } from '../../utils/dialogueLogNormalizer';
 import { 是否可信正文标签发送者, 规范化正文发送者名 } from '../../utils/dialogueSpeakerGuard';
 import { 拆分判定日志与后续正文, 提取判定日志前缀, 是否判定日志文本 } from '../../utils/judgmentFormat';
@@ -478,8 +480,22 @@ const 提取标签载荷列表_含空内容 = (text: string, tag: string): strin
 };
 
 export const 提取首尾思考区段 = (text: string): { thinking: string; textWithoutThinking: string; matched: boolean } => {
-    const source = typeof text === 'string' ? text : '';
+    let source = typeof text === 'string' ? text : '';
     if (!source) return { thinking: '', textWithoutThinking: '', matched: false };
+
+    // [修复] 兼容 SillyTavern 风格 subtext 思维链注释块（<!-- begin_of_Subtext_think --> ... -->）。
+    // 模型有时用它代替/包裹标准 <thinking> 标签；未闭合时截到下一个协议标签为止（边界覆盖全部协议标签，
+    // 避免吞掉后续 <短期记忆>/<命令> 等状态块），防止思维链内容（含引号对白）残留进正文触发格式误报。
+    const subtext思考片段: string[] = [];
+    const 协议标签边界分支 = ['think', ...协议标签列表].join('|');
+    source = source.replace(
+        new RegExp(`<!--\\s*begin_of_Subtext_think\\s*-->([\\s\\S]*?)(?:<!--\\s*end_of_Subtext_think\\s*-->|(?=<\\s*\\/?\\s*(?:${协议标签边界分支})(?:\\s|>))|$)`, 'gi'),
+        (_whole, inner: string) => {
+            if ((inner || '').trim()) subtext思考片段.push(inner.trim());
+            return '';
+        }
+    );
+    const subtextThinking = subtext思考片段.join('\n').trim();
 
     const thinkingCloseRegex = /<\s*\/\s*(thinking|think)\s*>/gi;
     let closeMatch: RegExpExecArray | null = null;
@@ -493,7 +509,11 @@ export const 提取首尾思考区段 = (text: string): { thinking: string; text
         const thinkingRaw = source.slice(0, splitIndex);
         const textWithoutThinking = source.slice(splitIndex);
         const thinking = thinkingRaw.replace(/<\s*\/?\s*(thinking|think)\s*>/gi, '').trim();
-        return { thinking, textWithoutThinking, matched: true };
+        return {
+            thinking: [subtextThinking, thinking].filter(Boolean).join('\n').trim(),
+            textWithoutThinking,
+            matched: true
+        };
     }
 
     const bodyOpenRegex = /<\s*正文\s*>/gi;
@@ -506,15 +526,23 @@ export const 提取首尾思考区段 = (text: string): { thinking: string; text
         const thinkingRaw = source.slice(0, lastBodyOpenMatch.index);
         const thinking = thinkingRaw.replace(/<\s*\/?\s*(thinking|think)\s*>/gi, '').trim();
         const textWithoutThinking = source.slice(lastBodyOpenMatch.index);
-        return { thinking, textWithoutThinking, matched: true };
+        return {
+            thinking: [subtextThinking, thinking].filter(Boolean).join('\n').trim(),
+            textWithoutThinking,
+            matched: true
+        };
     }
 
     if (!/<\s*(thinking|think)\s*>/i.test(source)) {
-        return { thinking: '', textWithoutThinking: source, matched: false };
+        return {
+            thinking: subtextThinking,
+            textWithoutThinking: source,
+            matched: subtextThinking.length > 0
+        };
     }
 
     return {
-        thinking: source.replace(/<\s*\/?\s*(thinking|think)\s*>/gi, '').trim(),
+        thinking: [subtextThinking, source.replace(/<\s*\/?\s*(thinking|think)\s*>/gi, '').trim()].filter(Boolean).join('\n').trim(),
         textWithoutThinking: '',
         matched: true
     };
@@ -857,21 +885,16 @@ const 提取正文中的Judge区块 = (body: string): { cleanBody: string; judge
     }
 
     const judgeBlocks: NonNullable<GameResponse['judge_blocks']> = [];
-    const cleanBody = source.replace(/<\s*judge\s*>([\s\S]*?)(?:<\s*\/\s*judge\s*>|<\s*judge\s*>|$)/gi, (_full, payload: string) => {
-        const normalized = (payload || '').replace(/\r\n/g, '\n').trim();
-        if (normalized) {
-            judgeBlocks.push({
-                raw: normalized,
-                text: normalized,
-                attachedTo: `judge_${judgeBlocks.length + 1}`,
-                isNsfw: /NSFW判定/i.test(normalized)
-            });
-        }
-        return '\n';
-    })
-        .replace(/(^|\n)\s*<\s*\/??\s*judge\s*>\s*(?=\n|$)/gi, '$1')
-        .replace(/[\t ]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n');
+    const extracted = 提取并清理Judge区块(source);
+    for (const payload of extracted.blocks) {
+        judgeBlocks.push({
+            raw: payload,
+            text: payload,
+            attachedTo: `judge_${judgeBlocks.length + 1}`,
+            isNsfw: /NSFW判定/i.test(payload)
+        });
+    }
+    const cleanBody = extracted.cleanText;
 
     return {
         cleanBody: 清理正文Judge残片(cleanBody),
@@ -904,7 +927,11 @@ const 提取残缺角色名单标签 = (text: string): string => {
 
 const 解析正文日志 = (body: string, declaredNames?: Set<string>): Array<{ sender: string; text: string }> => {
     if (!body || !body.trim()) return [];
-    const lines = body.replace(/\r\n/g, '\n').split('\n');
+    const lines = body.replace(/\r\n/g, '\n')
+        .replace(/】([^\n【】]*)(?=【([^】]+)】)/g, (matched, between: string, nextSender: string) => (
+            /(?:^|[。！？!?…；;：:”’"'』」）)])$/.test(between.trimEnd())
+                && 是否可信正文标签发送者(nextSender, { declaredNames }) ? `】${between}\n` : matched
+        )).split('\n');
     const logs: Array<{ sender: string; text: string }> = [];
     let current: { sender: string; text: string } | null = null;
     const 写入旁白行 = (value: string) => {
@@ -1264,7 +1291,7 @@ const 尝试解析字符串化JSON命令值 = (value: string): any | undefined =
 };
 
 const 解析命令值 = (rawValue: string | undefined): any => {
-    const text = 预处理命令文本((rawValue || '').trim()).trim();
+    const text = 剥离强调标记(预处理命令文本((rawValue || '').trim()).trim());
     if (!text) return null;
 
     if (
@@ -1614,7 +1641,7 @@ const 解析标签协议响应 = (content: string, options?: Required<StoryParse
     const dynamicWorldBlock = 提取首个标签内容(textWithoutThinking, '动态世界') || titleSections.动态世界 || '';
     const postprocessSignalBlock = 提取首个标签内容(textWithoutThinking, '后处理信号') || titleSections.后处理信号 || '';
     const bodyJudgeExtraction = 提取正文中的Judge区块(清理正文残留协议内容(bodyBlock || ''));
-    const fallbackJudgeBlocks = 提取标签内容列表(textWithoutThinking, 'judge', { 兼容错误闭合: true })
+    const fallbackJudgeBlocks = 提取并清理Judge区块(textWithoutThinking).blocks
         .map(item => item.replace(/\r\n/g, '\n').trim())
         .filter(Boolean)
         .map((item, index) => ({

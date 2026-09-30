@@ -15,6 +15,7 @@ import { 计算游戏历程天数 } from '../../utils/gameTimeJourney';
 import { 规范化游戏设置 } from '../../utils/gameSettings';
 import {
     构建世界书注入文本,
+    构建主剧情世界书作用域,
     世界书本体槽位
 } from '../../utils/worldbook';
 import { 构建主剧情难度摘要提示词 } from '../../prompts/runtime/promptOwnership';
@@ -24,6 +25,7 @@ import {
     构建运行时提示词池,
     剥离NoControl关联提示词,
     规范化比较文本,
+    酒馆预设模式可用,
 } from './promptRuntime';
 import { 构建AI角色声明提示词 } from '../../prompts/runtime/roleIdentity';
 import {
@@ -37,7 +39,8 @@ import {
     规范化剧情状态,
     规范化剧情规划状态,
     规范化女主剧情规划状态,
-    规范化世界状态
+    规范化世界状态,
+    是否有效地图层级节点
 } from './storyState';
 import { 构建题材模式提示词 } from '../../prompts/runtime/openingConfig';
 import { 构建玩家剧情倾向提示词 } from '../../prompts/runtime/playerStoryPreference';
@@ -684,7 +687,7 @@ export const 构建系统提示词 = ({
     const 构建地图建筑状态文本 = (payload: any) => {
         const source = payload || {};
         const env = 规范化环境信息(source?.环境);
-        const layers = Array.isArray(source?.世界?.地图层级) ? source.世界.地图层级 : [];
+        const layers = Array.isArray(source?.世界?.地图层级) ? source.世界.地图层级.filter(是否有效地图层级节点) : [];
         // 仅输出层级链，不输出旧坐标数据
         const chain: string[] = [env.大地点, env.中地点, env.小地点, env.具体地点].filter(Boolean) as string[];
         const 层级树 = layers.length > 0
@@ -846,7 +849,7 @@ export const 构建系统提示词 = ({
     const normalizedGameConfig = 规范化游戏设置(gameConfig);
     const activeWorldbookScopes: 世界书作用域[] = Array.isArray(options?.世界书作用域) && options.世界书作用域.length > 0
         ? options.世界书作用域
-        : [normalizedGameConfig.启用酒馆预设模式 === true ? 'tavern' : 'main'];
+        : 构建主剧情世界书作用域(酒馆预设模式可用(normalizedGameConfig));
     const openingConfig = options?.openingConfig
         || statePayload?.开局配置
         || statePayload?.openingConfig;
@@ -878,13 +881,17 @@ export const 构建系统提示词 = ({
         directorText: JSON.stringify(effectiveOpeningConfig?.导演配置 || {}),
         socialText: nsfwSocialSignalText
     });
+    const npcContext = 构建NPC上下文(socialData || []);
     const worldbookInjection = 构建世界书注入文本({
         books: runtimeWorldbooks.books,
         scopes: activeWorldbookScopes,
         environment: statePayload?.环境,
-        social: socialData,
         world: statePayload?.世界,
-        extraTexts: options?.世界书附加文本,
+        extraTexts: [
+            ...(options?.世界书附加文本 || []),
+            npcContext.在场数据块,
+            npcContext.离场数据块
+        ],
         nsfwPromptLevel
     });
     const { promptPool: effectivePromptPool, selectedCotPromptIds } = 构建运行时提示词池(
@@ -1203,7 +1210,6 @@ export const 构建系统提示词 = ({
         };
     });
 
-    const npcContext = 构建NPC上下文(socialData || []);
     const contextMapAndBuilding = 构建地图建筑状态文本(statePayload);
     const promptHeader = [
         worldPrompt.trim(),

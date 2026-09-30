@@ -1,15 +1,15 @@
 # Homebrew Upstream Intake Decisions
 
-> 日期：2026-06-24
+> 日期：2026-07-10
 >
 > 本文记录从 `upstream/main` 选择性吸收更新时的当前决策。它不是 changelog，也不是
 > upstream 合并计划；后续只按本文确认的小项手动补丁吸收。
 
 ## 审查基线
 
-- 当前 homebrew 基线：`main` / `origin/main` at `45c25aa`。
-- 已审查 upstream：`upstream/main` at `8d9f054`。
-- 审查分支：`codex/review-upstream-sync`。
+- 当前 homebrew 基线：`main` at `38d50278`。
+- 已审查 upstream：`upstream/main` at `99da5a49`。
+- 审查分支：`codex/review-upstream-20260710`。
 - 不直接 merge `upstream/main` 到 `main`。
 - 不 cherry-pick 包含大量产品方向回流的 release commit；只手动摘取明确 bugfix。
 
@@ -217,6 +217,32 @@
 
 - 手动补丁到 `utils/stateHelpers.ts`、`utils/npcRetentionGuard.ts`、`hooks/useGame/responseCommandProcessor.ts`、`hooks/useGame/stateTransforms.ts`。
 - 增加 focused tests 覆盖部分社交槽位写入、NPC 保留合并、同名 NPC 私密档案字段更新优先级。
+
+### 9. 酒馆预设安全兼容与 Izumi 0623
+
+决策：已吸收安全子集，继续以本地预设为核心，不接入上游社区工坊方向。
+
+当前实现：
+
+- 保留酒馆预设 `extensions.regex_scripts`，导入时分类为纯文本清理、原生选项提取、静态 HTML 美化和阻止执行。
+- 纯文本清理只在最终展示副本执行，不修改用于变量命令和状态结算的原始响应。
+- 选项脚本只读取匹配捕获组并交给现有 `action_options` UI；不执行替换串中的点击脚本、父窗口访问或自动发送。
+- 静态 HTML 使用 DOMPurify 白名单和 CSS/URL 二次清洗后渲染；不提供 iframe、脚本桥接或浏览器存储能力。
+- 酒馆模式由预设拥有叙事风格、格式和字数约束；本地只额外保留供应商兼容、繁体输出和用户明确填写的额外提示词。
+- 本地同时提供 Izumi 0503 与 Izumi 0623；0623 JSON 保持 upstream 原文件内容，运行时统一经过上述安全边界。
+
+明确排除：
+
+- JavaScript 执行、iframe sandbox、父窗口 DOM 访问、自动填充或自动发送玩家输入。
+- 外部图片、字体、样式表和其他 URL 资源加载。
+- 社区工坊、在线预设目录、投稿/下载/同步链路。
+- mobile UI、Android、Capacitor、APK 和移动端专项分支。
+- release metadata、版本号、客户更新日志和公网发布内容。
+
+吸收方式：
+
+- 不 merge `upstream/main`，只在 review 分支手动实现安全兼容层，并直接复制确认需要的预设 JSON。
+- 安全边界、路由所有权和解析行为使用 focused tests；纯提示词内容增删不做脆弱的文案快照测试。
 
 ## 待逐项确认
 

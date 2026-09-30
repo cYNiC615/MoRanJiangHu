@@ -5,6 +5,8 @@ import { 清理润色正文输出, 构建故事请求消息诊断 } from '../ser
 import { 构建主剧情请求参数, type 主剧情系统上下文 } from '../hooks/useGame/mainStoryRequest';
 import { 构建字数要求提示词 } from '../prompts/runtime/protocolDirectives';
 import { 默认游戏设置 } from '../utils/gameSettings';
+import { 获取DeepSeek主剧情兼容提示词 } from '../prompts/runtime/deepseekMode';
+import { 获取繁体输出指令 } from '../utils/traditionalChinese';
 
 describe('主剧情正文处理与请求拼装', () => {
     it('统计正文日志的可见字符数', () => {
@@ -260,7 +262,7 @@ describe('主剧情正文处理与请求拼装', () => {
         expect(result.orderedMessages.some((message) => message.content.includes(lengthPrompt))).toBe(true);
     });
 
-    it('酒馆预设模式也会注入动态最低字数要求', () => {
+    it('酒馆预设模式让预设拥有叙事约束，只保留显式兼容偏好', () => {
         const lengthPrompt = 构建字数要求提示词(2200);
         const disclaimerPrompt = '<disclaimer>如需现实建议，请寻求现实专业渠道。</disclaimer>';
         const builtContext: 主剧情系统上下文 = {
@@ -270,10 +272,10 @@ describe('主剧情正文处理与请求拼装', () => {
                 worldPrompt: '世界书占位',
                 地图建筑状态: '',
                 离场NPC档案: '',
-                otherPrompts: '',
+                otherPrompts: 'NATIVE_WRITING_REQUIREMENTS',
                 难度设置提示词: '',
-                叙事人称提示词: '',
-                字数设置提示词: '<字数>旧字数提示会被运行时修正。</字数>',
+                叙事人称提示词: 'NATIVE_POV_PROMPT',
+                字数设置提示词: 'NATIVE_LENGTH_HEADING\n<字数>旧字数提示会被运行时修正。</字数>',
                 长期记忆: '',
                 中期记忆: '',
                 在场NPC档案: '',
@@ -283,43 +285,51 @@ describe('主剧情正文处理与请求拼装', () => {
                 环境状态: '',
                 角色状态: '',
                 任务状态: '',
-                COT提示词: '',
+                COT提示词: 'NATIVE_COT_PROMPT',
                 格式提示词: '<正文>...</正文>',
                 字数要求提示词: lengthPrompt,
                 免责声明输出提示词: disclaimerPrompt,
-                输出协议提示词: ''
+                输出协议提示词: 'NATIVE_OUTPUT_PROTOCOL',
+                题材模式提示词: 'NATIVE_TOPIC_PROMPT',
+                玩家剧情倾向提示词: 'NATIVE_PLAYER_PREFERENCE',
+                导演配置提示词: 'NATIVE_DIRECTOR_PROMPT'
             }
         };
 
+        const gameConfig = {
+            ...默认游戏设置,
+            字数要求: 2200,
+            启用酒馆预设模式: true,
+            启用真实世界模式: true,
+            启用繁体模式: true,
+            主剧情消息模式: 'DeepSeek标准' as const,
+            额外提示词: 'KEEP_USER_EXTRA',
+            当前酒馆预设ID: 'travel',
+            酒馆预设角色ID: 1,
+            酒馆预设列表: [{
+                id: 'travel',
+                名称: '双人旅行',
+                角色ID: 1,
+                预设: {
+                    spec: 'chara_card_v3',
+                    prompts: [
+                        { identifier: 'main', name: 'main', role: 'system', content: '固定预设' },
+                        { identifier: 'worldInfoBefore', name: 'worldInfoBefore', role: 'system', content: '' },
+                        { identifier: 'userInput', name: 'userInput', role: 'user', content: '' }
+                    ],
+                    prompt_order: [{
+                        character_id: 1,
+                        order: [
+                            { identifier: 'main', enabled: true },
+                            { identifier: 'worldInfoBefore', enabled: true },
+                            { identifier: 'userInput', enabled: true }
+                        ]
+                    }]
+                } as any
+            }]
+        };
         const result = 构建主剧情请求参数({
-            gameConfig: {
-                ...默认游戏设置,
-                字数要求: 2200,
-                启用酒馆预设模式: true,
-                当前酒馆预设ID: 'travel',
-                酒馆预设角色ID: 1,
-                酒馆预设列表: [{
-                    id: 'travel',
-                    名称: '双人旅行',
-                    角色ID: 1,
-                    预设: {
-                        spec: 'chara_card_v3',
-                        prompts: [
-                            { identifier: 'main', name: 'main', role: 'system', content: '固定预设' },
-                            { identifier: 'worldInfoBefore', name: 'worldInfoBefore', role: 'system', content: '' },
-                            { identifier: 'userInput', name: 'userInput', role: 'user', content: '' }
-                        ],
-                        prompt_order: [{
-                            character_id: 1,
-                            order: [
-                                { identifier: 'main', enabled: true },
-                                { identifier: 'worldInfoBefore', enabled: true },
-                                { identifier: 'userInput', enabled: true }
-                            ]
-                        }]
-                    } as any
-                }]
-            },
+            gameConfig,
             apiConfig: {
                 apiKey: 'test-key',
                 baseUrl: 'https://example.test/v1',
@@ -333,9 +343,23 @@ describe('主剧情正文处理与请求拼装', () => {
 
         expect(result.tavernPresetModeEnabled).toBe(true);
         const payload = result.orderedMessages.map((message) => message.content).join('\n');
-        expect(payload).toContain('2200字以上');
-        expect(payload.split('<字数>').length - 1).toBe(1);
-        expect(payload.split('<disclaimer>').length - 1).toBe(1);
+        expect(result.styleAssistantPrompt).not.toBe('');
+        expect(result.realWorldModePrompt).not.toBe('');
+        expect(payload).not.toContain(result.styleAssistantPrompt);
+        expect(payload).not.toContain(result.realWorldModePrompt);
+        expect(payload).not.toContain('2200字以上');
+        expect(payload).not.toContain('<disclaimer>');
+        expect(payload).not.toContain('NATIVE_OUTPUT_PROTOCOL');
+        expect(payload).not.toContain('NATIVE_WRITING_REQUIREMENTS');
+        expect(payload).not.toContain('NATIVE_POV_PROMPT');
+        expect(payload).not.toContain('NATIVE_LENGTH_HEADING');
+        expect(payload).not.toContain('NATIVE_COT_PROMPT');
+        expect(payload).not.toContain('NATIVE_TOPIC_PROMPT');
+        expect(payload).not.toContain('NATIVE_PLAYER_PREFERENCE');
+        expect(payload).not.toContain('NATIVE_DIRECTOR_PROMPT');
+        expect(payload).toContain(获取DeepSeek主剧情兼容提示词(gameConfig as any));
+        expect(payload).toContain(获取繁体输出指令(gameConfig as any));
+        expect(payload).toContain('KEEP_USER_EXTRA');
     });
 
     it('主剧情 assembly 将导演配置与角色种子作为独立分段注入真实 payload', () => {

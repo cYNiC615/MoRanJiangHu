@@ -813,9 +813,42 @@ export interface 酒馆预设顺序结构 {
     order: 酒馆预设顺序项结构[];
 }
 
+export type 酒馆正则脚本安全类型 = 'safe-cleanup' | 'option-render' | 'html-beautify' | 'blocked';
+
+export interface 酒馆正则脚本结构 {
+    id: string;
+    scriptName: string;
+    findRegex: string;
+    replaceString: string;
+    placement: number[];
+    disabled: boolean;
+    markdownOnly: boolean;
+    promptOnly: boolean;
+    runOnEdit: boolean;
+    minDepth: number;
+    maxDepth: number;
+}
+
+export interface 酒馆正则脚本分类条目 {
+    script: 酒馆正则脚本结构;
+    safetyType: 酒馆正则脚本安全类型;
+}
+
+export interface 酒馆预设兼容性结构 {
+    正则脚本总数: number;
+    安全清理脚本数: number;
+    选项渲染脚本数: number;
+    HTML美化脚本数: number;
+    阻止脚本数: number;
+    说明: string[];
+    已分类脚本列表: 酒馆正则脚本分类条目[];
+}
+
 export interface 酒馆预设结构 {
     prompts: 酒馆预设提示词结构[];
     prompt_order: 酒馆预设顺序结构[];
+    extensions?: Record<string, unknown>;
+    兼容性?: 酒馆预设兼容性结构;
 }
 
 export interface 酒馆预设条目结构 {

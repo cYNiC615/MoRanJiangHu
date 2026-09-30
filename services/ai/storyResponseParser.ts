@@ -1530,7 +1530,11 @@ const 解析行动选项块 = (optionsBlock: string): string[] => {
         .split('\n')
         .map(line => line.trim())
         .filter(Boolean)
-        .map(line => line.replace(/^[-*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+        .map(line => line
+            .replace(/^(?:>\s*)?(?:(?:选项|选择)\s*[一二三四五六七八九十\d]*|(?:option|choice)\s*\d*)\s*[:：]\s*/i, '')
+            .replace(/^[-*]\s*/, '')
+            .replace(/^\d+\.\s*/, '')
+            .trim())
         .filter(line => !协议标签行正则.test(line))
         .filter(Boolean);
 };

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { JudgmentThoughtBlock, NPC结构, 视觉设置结构 } from '../../../types';
 import { use图片资源回源预取 } from '../../../hooks/useImageAssetPrefetch';
@@ -8,6 +8,28 @@ import { 根据差额校正判定结果 } from '../../../utils/judgmentFormat';
 import { 获取物品已选图标地址 } from '../../../utils/itemImage';
 import { getRarityNameClass, getRarityStyles } from '../../ui/rarityStyles';
 import { IconHeart, IconEye, IconBattery, IconShield, IconExplosion, IconDice, IconCoins } from '../../ui/Icons';
+
+export const TavernStaticHtmlRenderer: React.FC<{ htmlContent: string }> = ({ htmlContent }) => {
+    const hostRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+        const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
+        root.innerHTML = [
+            '<style>:host{display:block;position:relative;max-width:100%;overflow:hidden;color:inherit}*,*::before,*::after{box-sizing:border-box;max-width:100%}</style>',
+            htmlContent
+        ].join('');
+    }, [htmlContent]);
+
+    return (
+        <div
+            ref={hostRef}
+            className="tavern-static-html my-3 max-w-full overflow-hidden text-inherit"
+            style={{ isolation: 'isolate', contain: 'content' }}
+        />
+    );
+};
 
 type JudgmentModifier = {
     key: string;
